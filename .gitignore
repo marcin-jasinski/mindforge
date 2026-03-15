@@ -1,7 +1,8 @@
 Markdown docs:
-archiwum/
-nowe/
-podsumowane/
+archive/
+new/
+summarized/
+state/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
