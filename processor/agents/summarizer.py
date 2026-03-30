@@ -1,120 +1,148 @@
 """
 Summarizer agent — generates structured lesson summary using large LLM.
+
+Returns SummaryData (structured) instead of markdown. Markdown rendering
+is handled by processor.renderers.
 """
 from __future__ import annotations
 
+import itertools
+import json
 import logging
-import re
-from datetime import datetime, timezone
 from typing import Any
 
 from processor.llm_client import LLMClient
+from processor.models import SummaryData, ConceptEntry, LinkEntry
 
 log = logging.getLogger(__name__)
 
+
+def get_known_concepts_from_graph(driver: Any, max_concepts: int = 50) -> dict[str, Any]:
+    """Retrieve known concept names and their associated lesson numbers from Neo4j.
+
+    This is the preferred source for prior-concept context (CRITICAL-5).  The
+    result has the same shape as the JSON knowledge-index entries so the
+    summarizer ``known_concepts`` parameter works unchanged.
+
+    Returns an empty dict if the graph is unavailable or empty.
+    """
+    try:
+        result = driver.execute_query(
+            """
+            MATCH (c:Concept)-[:MENTIONED_IN]->(l:Lesson)
+            WITH c, collect(l.lesson_number) AS lesson_numbers
+            RETURN c.name AS name, lesson_numbers
+            ORDER BY c.name
+            LIMIT $limit
+            """,
+            {"limit": max_concepts},
+        )
+        concepts: dict[str, Any] = {}
+        for record in result.records:
+            name = record["name"]
+            lesson_numbers = record["lesson_numbers"] or []
+            concepts[name] = {"lessons": lesson_numbers, "definition": ""}
+        log.info("Loaded %d concepts from graph for summarizer context", len(concepts))
+        return concepts
+    except Exception:
+        log.warning("Failed to load concepts from graph — summarizer will run without prior context", exc_info=True)
+        return {}
+
 SYSTEM_PROMPT = """\
 Jesteś ekspertem od syntezy wiedzy. Twoim zadaniem jest stworzenie kompleksowego \
-podsumowania lekcji z kursu o budowaniu aplikacji \
-z wykorzystaniem generatywnej sztucznej inteligencji).
+podsumowania dostarczonego materiału tekstowego.
 
 Podsumowanie powinno:
 - Być napisane w języku polskim
-- Umożliwiać jak najlepsze przyswojenie wiedzy z lekcji
+- Umożliwiać jak najlepsze przyswojenie wiedzy z materiału
 - Być precyzyjne i konkretne, bez zbędnych ogólników
 - Zachować techniczne szczegóły (nazwy API, modeli, narzędzi, parametrów)
 - Uwzględnić praktyczne wskazówki i rekomendacje autora
 
-Format odpowiedzi (Markdown):
+Zwróć odpowiedź w formacie JSON z polami:
+- "overview": 2-4 zdania streszczające całą lekcję — co jest głównym tematem \
+i jakie kluczowe wnioski płyną z jej treści
+- "key_concepts": lista obiektów {"name": "Nazwa koncepcji", "definition": \
+"precyzyjny opis (1-2 zdania)"} — kluczowe koncepcje z lekcji
+- "key_facts": lista stringów — najważniejsze informacje/fakty z lekcji do zapamiętania
+- "practical_tips": lista stringów — praktyczne rady i rekomendacje z lekcji
+- "important_links": lista obiektów {"name": "Nazwa", "url": "URL", \
+"description": "krótki opis, do czego służy"} — zewnętrzne zasoby wspomniane w lekcji
 
-## Podsumowanie
-[2-4 zdania streszczające całą lekcję — co jest głównym tematem i jakie kluczowe wnioski płyną z jej treści]
-
-## Kluczowe koncepcje
-[Lista koncepcji z krótkim, precyzyjnym opisem każdej, w formacie:]
-- **Nazwa koncepcji**: opis (1-2 zdania)
-
-## Najważniejsze informacje
-[Ponumerowana lista najważniejszych informacji/faktów z lekcji, które warto zapamiętać]
-
-## Praktyczne wskazówki
-[Lista praktycznych rad i rekomendacji z lekcji, przydatnych przy budowaniu aplikacji]
-
-## Ważne linki
-[Lista zewnętrznych zasobów wspomnianych w lekcji w formacie:]
-- [Nazwa](URL) — krótki opis, do czego służy
-
-NIE dodawaj żadnych wstępów, uwag ani komentarzy od siebie poza powyższymi sekcjami.\
+NIE dodawaj żadnych wstępów, uwag ani komentarzy — tylko JSON.\
 """
 
+RESPONSE_FORMAT = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "lesson_summary",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "overview": {"type": "string"},
+                "key_concepts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "definition": {"type": "string"},
+                        },
+                        "required": ["name", "definition"],
+                        "additionalProperties": False,
+                    },
+                },
+                "key_facts": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+                "practical_tips": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+                "important_links": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "url": {"type": "string"},
+                            "description": {"type": "string"},
+                        },
+                        "required": ["name", "url", "description"],
+                        "additionalProperties": False,
+                    },
+                },
+            },
+            "required": [
+                "overview",
+                "key_concepts",
+                "key_facts",
+                "practical_tips",
+                "important_links",
+            ],
+            "additionalProperties": False,
+        },
+    },
+}
 
-def _extract_lesson_number(filename: str) -> str:
-    """Extract lesson number from filename."""
-    match = re.match(r"s(\d+)e(\d+)", filename, re.IGNORECASE)
-    if match:
-        return f"S{match.group(1).zfill(2)}E{match.group(2).zfill(2)}"
-    return "unknown"
-
-
-def _extract_topics(summary_text: str) -> list[str]:
-    """Extract topic tags from the key concepts section."""
-    topics = []
-    in_concepts = False
-    for line in summary_text.split("\n"):
-        if "## Kluczowe koncepcje" in line:
-            in_concepts = True
-            continue
-        if in_concepts and line.startswith("## "):
-            break
-        if in_concepts and line.startswith("- **"):
-            match = re.match(r"- \*\*(.+?)\*\*", line)
-            if match:
-                topics.append(match.group(1).strip())
-    return topics[:10]
-
-
-def _build_frontmatter(
-    title: str,
-    source_filename: str,
-    topics: list[str],
-    metadata: dict[str, Any],
-) -> str:
-    """Build YAML frontmatter for the summary file."""
-    lesson_number = _extract_lesson_number(source_filename)
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    # Escape YAML strings
-    safe_title = title.replace('"', '\\"')
-    topics_yaml = ", ".join(f'"{t}"' for t in topics)
-
-    lines = [
-        "---",
-        f'title: "{safe_title}"',
-        f"source: {source_filename}",
-        f"processed_at: {now}",
-        f"lesson_number: {lesson_number}",
-        f"topics: [{topics_yaml}]",
-    ]
-
-    # Preserve useful metadata from original
-    if "published_at" in metadata:
-        lines.append(f"original_published_at: {metadata['published_at']}")
-
-    lines.append("---")
-    return "\n".join(lines)
+# Cap on prior concepts injected into the summarizer prompt.  Bounding this
+# prevents unbounded token growth as the knowledge base accumulates lessons.
+_MAX_PRIOR_CONCEPTS = 50
 
 
 def summarize(
     content: str,
     articles: list[dict[str, str]],
     title: str,
-    source_filename: str,
-    metadata: dict[str, Any],
     llm: LLMClient,
     model: str,
-) -> str:
+    known_concepts: dict[str, Any] | None = None,
+) -> SummaryData:
     """Generate a structured summary of the lesson content.
-    
-    Returns full markdown file content including frontmatter.
+
+    Returns SummaryData with structured sections (no markdown rendering).
     """
     # Build user message with content + optional articles
     user_parts = [f"# Lekcja: {title}\n\n{content}"]
@@ -126,24 +154,46 @@ def summarize(
                 f"\n### {article['text']} ({article['url']})\n{article['content']}\n"
             )
 
+    if known_concepts:
+        user_parts.append("\n\n---\n\n## Pojęcia znane z wcześniejszych lekcji\n")
+        for name, info in itertools.islice(sorted(known_concepts.items()), _MAX_PRIOR_CONCEPTS):
+            lessons = ", ".join(info.get("lessons", []))
+            user_parts.append(f"- **{name}** (lekcje: {lessons}): {info.get('definition', '')}")
+
     user_message = "\n".join(user_parts)
     log.info(
         "Summarizing lesson: %s (%d chars content, %d articles)",
         title, len(content), len(articles),
     )
 
-    summary_text = llm.complete(
+    raw = llm.complete(
         model=model,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ],
         temperature=0.3,
+        response_format=RESPONSE_FORMAT,
     )
 
-    topics = _extract_topics(summary_text)
-    frontmatter = _build_frontmatter(title, source_filename, topics, metadata)
+    data = json.loads(raw)
 
-    full_output = f"{frontmatter}\n\n{summary_text}\n"
-    log.info("Summary generated: %d chars, %d topics", len(full_output), len(topics))
-    return full_output
+    summary = SummaryData(
+        overview=data["overview"],
+        key_concepts=[
+            ConceptEntry(name=c["name"], definition=c["definition"])
+            for c in data.get("key_concepts", [])
+        ],
+        key_facts=data.get("key_facts", []),
+        practical_tips=data.get("practical_tips", []),
+        important_links=[
+            LinkEntry(name=l["name"], url=l["url"], description=l["description"])
+            for l in data.get("important_links", [])
+        ],
+    )
+
+    log.info(
+        "Summary generated: %d concepts, %d facts",
+        len(summary.key_concepts), len(summary.key_facts),
+    )
+    return summary

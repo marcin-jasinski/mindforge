@@ -1,34 +1,58 @@
-# Markdown Lesson Summarizer
+# MindForge
 
-An intelligent AI agent system for processing and summarizing markdown lesson files. The system automatically detects and removes story/task sections, fetches relevant articles from embedded links, and generates structured summaries using large language models (LLMs).
+A comprehensive AI-powered tutoring and learning platform that extracts knowledge from markdown, PDF, and other documents, automatically generates study materials (flashcards, concept maps, summaries), and provides an interactive learning interface powered by LLM agents and graph-based knowledge retrieval.
 
 ## Features
 
 - **Intelligent Content Cleaning**: Automatically removes video embeds, image references, and story/task sections
 - **Smart Link Extraction**: Identifies and classifies relevant links from lesson content
-- **Article Fetching**: Retrieves content from external links with configurable limits
+- **Article Fetching**: Retrieves content from external links with local cache (7-day TTL)
 - **LLM-Powered Summarization**: Generates structured summaries using OpenRouter API
+- **Canonical Artifact**: Single JSON source of truth per lesson — all outputs (markdown, Anki TSV, Mermaid diagrams) are rendered from it
+- **Structured Output**: Summarizer, flashcard generator, and concept mapper use JSON schema for deterministic structured output
+- **Flashcard Generation**: Anki-ready flashcards (basic, cloze, reverse) exported as tab-separated CSV
+- **Concept Maps**: Mermaid diagrams of concept relationships
+- **Knowledge Index**: Cumulative glossary and cross-reference tracking across lessons with concept normalization (canonical names, aliases, confidence scores, source provenance, merge rules)
+- **Quality Validation**: Deterministic checks for concept consistency, flashcard quality, summary completeness, concept map integrity, and cross-reference alignment
+- **Eval Framework**: Automated quality scoring (concept coverage, content grounding, flashcard balance, map connectivity) with optional Langfuse reporting
+- **Graph-RAG**: Neo4j-backed concept graph with lexical and embedding fallback retrieval
+- **Quiz Agent**: Interactive assessment runner powered by graph-RAG — replaces static quiz files
+- **Langfuse Telemetry**: Optional LLM usage, cost, and pipeline tracing via Langfuse
 - **Real-Time Monitoring**: Watch directory for new files and process them automatically
 - **State Tracking**: Maintains a record of processed files to avoid duplicates
+- **Docker Stack**: Full local infrastructure (Langfuse, Neo4j) via Docker Compose
 - **Cost Optimization**: Uses small model for preprocessing, large model only for final summaries
-- **Markdown Output**: Generates structured Markdown with YAML frontmatter metadata
 
 ## System Architecture
 
 ```
-Input (nowe/*.md)
+Input (new/*.md)
     ↓
-[Parser] → Extract frontmatter, links
+[Parser] → Extract frontmatter, links, images
     ↓
-[Cleaner] → Remove videos, images
+[Image Analyzer] → Describe diagrams/schemas (vision model)
+    ↓
+[Cleaner] → Remove videos, images; inject image descriptions
     ↓
 [Preprocessor] → Detect and remove story/task sections
     ↓
-[Article Fetcher] → Classify and fetch relevant links
+[Article Fetcher] → Classify links, fetch articles (with cache)
     ↓
-[Summarizer] → Generate structured summary
+[Summarizer] → Structured JSON → SummaryData
     ↓
-[Output] → podsumowane/ (+ archiwum/ + state tracking)
+[Flashcard Generator] → Structured JSON → FlashcardData[]
+[Concept Mapper] → Structured JSON → ConceptMapData
+    ↓
+[LessonArtifact] → Canonical JSON (state/artifacts/)
+    ↓
+[Renderers] → Markdown, Anki TSV, Mermaid diagram
+    ↓
+[Graph Indexer] → Neo4j (concepts, chunks, facts, relationships)
+    ↓
+[Output] → summarized/ + flashcards/ + diagrams/ + knowledge/
+
+--- Quiz Agent (separate runner) ---
+[Neo4j Graph] → Retrieve context → Generate question → Accept answer → Evaluate
 ```
 
 ## Prerequisites
@@ -42,7 +66,7 @@ Input (nowe/*.md)
 ### 1. Clone or Download the Project
 
 ```bash
-cd markdown-summarizer
+cd mindforge
 ```
 
 ### 2. Create a Python Virtual Environment
@@ -68,6 +92,8 @@ pip install -r requirements.txt
 - `python-frontmatter>=1.1.0` — YAML frontmatter parsing
 - `requests>=2.31.0` — HTTP requests for article fetching
 - `python-dotenv>=1.0.0` — Environment variable management
+- `langfuse>=2.0.0` — LLM observability (optional, tracing disabled by default)
+- `neo4j>=5.0.0` — Neo4j driver for graph-RAG (optional, graph disabled by default)
 
 ## Configuration
 
@@ -107,18 +133,44 @@ MODEL_LARGE=openai/gpt-4o
 The system automatically creates the following directories:
 
 ```
-markdown-summarizer/
+mindforge/
 ├── new/              # Drop lesson .md files here
 ├── summarized/       # Processed summaries (output)
 ├── archive/          # Original input files (archived after processing)
-├── state/            # Internal state tracking (processed.json)
+├── flashcards/       # Anki-ready tab-separated flashcard files
+├── diagrams/         # Mermaid concept map diagrams
+├── quizzes/          # Self-assessment quizzes (legacy)
+├── knowledge/        # Cumulative glossary + cross-references
+├── state/            # Internal state tracking
+│   ├── processed.json       # List of processed filenames
+│   ├── knowledge_index.json # Cumulative concept index
+│   ├── article_cache.json   # Link classification + article cache
+│   └── artifacts/           # Canonical JSON per lesson (source of truth)
+├── docker/           # Docker init scripts, env templates
 └── processor/        # Core modules
-    ├── agents/       # Summarization agents
-    ├── tools/        # Utility functions
-    ├── llm_client.py # LLM integration
-    ├── pipeline.py   # Orchestration
+    ├── models.py     # Canonical LessonArtifact + data models
+    ├── renderers.py  # Markdown/TSV/Mermaid rendering from artifact
+    ├── tracing.py    # Langfuse telemetry integration
+    ├── validation.py # Deterministic quality checks
+    ├── evals.py      # Eval framework with Langfuse scoring
+    ├── llm_client.py # LLM integration + Config
+    ├── pipeline.py   # 16-step orchestration
     ├── watcher.py    # File monitoring
-    └── state.py      # State management
+    ├── state.py      # State management
+    ├── agents/       # LLM-powered agents
+    │   ├── summarizer.py         # Structured summary → SummaryData
+    │   ├── flashcard_generator.py # Structured flashcards → FlashcardData
+    │   ├── concept_mapper.py     # Structured concept map → ConceptMapData
+    │   ├── quiz_generator.py     # Legacy quiz (markdown)
+    │   ├── preprocessor.py       # Story/task section removal
+    │   └── image_analyzer.py     # Vision model image analysis
+    └── tools/        # Utility functions
+        ├── lesson_parser.py    # Frontmatter + link extraction
+        ├── file_ops.py         # File I/O + artifact JSON write
+        ├── article_fetcher.py  # Link classification + fetch (cached)
+        ├── knowledge_index.py  # Cumulative concept tracking + normalization
+        ├── concept_normalizer.py # Canonical names, dedup, merge rules
+        └── anki_exporter.py    # Legacy Anki CSV export
 ```
 
 ## Usage
@@ -128,7 +180,7 @@ markdown-summarizer/
 #### Default Mode: Process Existing + Watch for New Files
 
 ```bash
-python markdown_summarizer.py
+python mindforge.py
 ```
 
 This will:
@@ -139,7 +191,7 @@ This will:
 #### Batch Mode: Process Existing Files Only
 
 ```bash
-python markdown_summarizer.py --once
+python mindforge.py --once
 ```
 
 Processes existing files in `new/` and exits (no file watching).
@@ -155,30 +207,30 @@ Skips processing existing files and immediately starts watching for new ones.
 #### Single File Mode: Process Specific File
 
 ```bash
-python markdown_summarizer.py path/to/file.md
+python mindforge.py path/to/file.md
 ```
 
 or
 
 ```bash
-python markdown_summarizer.py file.md  # Looks in new/ directory
+python mindforge.py file.md  # Looks in new/ directory
 ```
 
 ### Workflow Example
 
 1. **Add a lesson file**:
    ```bash
-   cp path/to/lesson.md new/s01e01-my-lesson.md
+   cp path/to/lesson.md new/01-my-lesson.md
    ```
 
 2. **Run the processor**:
    ```bash
-   python markdown_summarizer.py --once
+   python mindforge.py --once
    ```
 
 3. **Check output**:
-   - `summarized/s01e01-my-lesson.md` — Structured summary with frontmatter
-   - `archive/s01e01-my-lesson.md` — Original file (moved here after processing)
+   - `summarized/01-my-lesson.md` — Structured summary with frontmatter
+   - `archive/01-my-lesson.md` — Original file (moved here after processing)
    - `state/processed.json` — File recorded as processed
 
 ## Output Format
@@ -188,9 +240,9 @@ The generated summaries include YAML frontmatter with metadata:
 ```markdown
 ---
 title: "Lesson Title"
-source: s01e01-original-filename.md
+source: 01-original-filename.md
 processed_at: 2026-03-15T20:47:40Z
-lesson_number: S01E01
+lesson_number: 01
 topics: ["Topic 1", "Topic 2", "Topic 3"]
 original_published_at: 2026-03-09T04:00:00Z
 ---
@@ -215,20 +267,27 @@ original_published_at: 2026-03-09T04:00:00Z
 
 ## Processing Pipeline
 
-The system executes 8 sequential steps:
+The system executes 16 sequential steps:
 
 | Step | Module | Operation |
 |------|--------|-----------|
 | 1 | State | Check if file already processed |
-| 2 | Parser | Extract frontmatter and links (125+ links typical) |
-| 3 | Cleaner | Remove video embeds, images (regex-based) |
-| 4 | Preprocessor | Detect and remove story/task sections (regex + LLM fallback) |
-| 5 | Fetcher | Classify links and fetch article content (max 3 articles) |
-| 6 | Summarizer | Generate final summary using large LLM (~gpt-4o) |
-| 7 | Writer | Save summary with frontmatter |
-| 8 | Archive | Move original file to archive |
-
-**Typical Processing Time**: 60-90 seconds per file (depends on LLM latency)
+| 2 | Parser | Extract frontmatter and links |
+| 3 | Parser | Extract image URLs |
+| 4 | Image Analyzer | Analyze images/diagrams with vision model |
+| 5 | Cleaner | Remove video embeds, images; inject descriptions |
+| 6 | Models | Create canonical LessonArtifact |
+| 7 | Preprocessor | Detect and remove story/task sections |
+| 8 | Fetcher | Classify links and fetch articles (cached) |
+| 9 | Summarizer | Generate structured SummaryData (JSON schema) |
+| 10 | Flashcards | Generate FlashcardData (JSON schema) |
+| 11 | — | (removed — quiz replaced by quiz-agent runner) |
+| 12 | Concept Map | Generate ConceptMapData (JSON schema) |
+| 13 | Writer | Save artifact JSON + render all outputs |
+| 14 | Validation | Deterministic quality checks + eval scoring |
+| 15 | Knowledge | Update cumulative concept index (with normalization) |
+| 15b | Graph | Index into Neo4j: concepts, chunks, facts, relationships |
+| 16 | Archive | Move original file, mark processed |
 
 ## Model Selection
 
@@ -237,14 +296,10 @@ The system uses two LLM models for cost optimization:
 ### Small Model (gpt-4o-mini)
 - **Used for**: Link classification, story/task section detection
 - **Reason**: Fast and cheap, sufficient accuracy for preprocessing
-- **Cost**: ~$0.01 per file
 
 ### Large Model (gpt-4o)
 - **Used for**: Final lesson summarization only
 - **Reason**: Higher quality output for critical content
-- **Cost**: ~$0.05 per file
-
-**Total estimated cost**: ~$0.06 per file with OpenRouter pricing
 
 ## State Tracking
 
@@ -253,8 +308,8 @@ The system tracks processed files in `state/processed.json` to prevent duplicate
 ```json
 {
   "processed": [
-    "s01e01-lesson-one.md",
-    "s01e02-lesson-two.md"
+    "01-lesson-one.md",
+    "02-lesson-two.md"
   ]
 }
 ```
@@ -283,7 +338,7 @@ All operations are logged with timestamps and severity levels:
 
 Enable debug logging:
 ```bash
-# Edit logging level in markdown_summarizer.py
+# Edit logging level in mindforge.py
 logging.basicConfig(level=logging.DEBUG, ...)
 ```
 
@@ -313,10 +368,98 @@ python markdown_summarizer.py
 **Solution**: 
 1. Check that `.env` exists in the project root
 2. Verify the API key is not empty in `.env`
-3. Ensure `.env` is in the same directory as `markdown_summarizer.py`
+3. Ensure `.env` is in the same directory as `mindforge.py`
 
 ### Issue: Long processing time (>2 minutes per file)
 **Solution**: Check internet connection and OpenRouter API status. Normal processing time is 60-90 seconds.
+
+## Docker Stack
+
+The project includes a full local infrastructure via Docker Compose:
+
+### Quick Start
+
+```bash
+docker compose up --build
+```
+
+This starts:
+- **mindforge-app** — the pipeline application
+- **langfuse-web** + **langfuse-worker** — LLM observability UI/API
+- **langfuse-postgres** — Langfuse OLTP database
+- **langfuse-clickhouse** — Langfuse OLAP store
+- **langfuse-redis** — Langfuse cache/queue
+- **langfuse-minio** + **langfuse-minio-init** — S3-compatible storage for Langfuse
+- **neo4j** — Graph database for concept graph-RAG and quiz-agent
+
+### Profiles
+
+Run subsets of the stack:
+
+```bash
+docker compose --profile app up                         # App only
+docker compose --profile observability up                # Langfuse stack only
+docker compose --profile graph up                        # Neo4j only
+docker compose --profile quiz up                         # Quiz agent + Neo4j
+docker compose --profile app --profile graph up          # App + Neo4j
+docker compose up                                        # Full stack
+```
+
+### Backfill (populate graph from archive)
+
+Re-process archived lessons to regenerate all artifacts and feed the Neo4j graph:
+
+```bash
+# Start Neo4j first
+docker compose --profile graph up -d
+
+# Set ENABLE_GRAPH_RAG=true in .env, then:
+python backfill.py                        # backfill all archived lessons
+python backfill.py --lesson S01E01        # backfill a single lesson
+python backfill.py --dry-run              # preview without processing
+python backfill.py --force-graph          # enable graph indexing without editing .env
+python backfill.py --reset-index          # clear knowledge index before rebuilding
+python backfill.py --graph-only           # re-index into Neo4j from existing artifact JSONs
+```
+
+> **Note:** `--graph-only` requires artifact JSONs to already exist in `state/artifacts/`.
+> Run without `--graph-only` first to generate them.
+
+### Quiz Agent
+
+The quiz agent runs as a separate interactive process:
+
+```bash
+# Local (requires Neo4j running and populated via backfill)
+python quiz_agent.py                     # all lessons, 5 questions
+python quiz_agent.py --lesson S01E01     # specific lesson
+python quiz_agent.py --count 3           # fewer questions
+python quiz_agent.py --list-lessons      # show indexed lessons
+
+# Via Docker
+docker compose --profile quiz run --rm quiz-agent
+docker compose --profile quiz run --rm quiz-agent --lesson S01E01
+```
+
+### Access Points
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Langfuse UI | http://localhost:3100 | (set via env) |
+| Neo4j Browser | http://localhost:7474 | neo4j / password |
+| MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
+
+### Volumes
+
+Named volumes persist data across restarts:
+- `langfuse-postgres-data`, `langfuse-clickhouse-data`, `langfuse-minio-data`
+- `neo4j-data`, `neo4j-logs`
+
+### Reset
+
+```bash
+docker compose down -v  # Remove containers AND volumes (full reset)
+```
 
 ## Advanced Configuration
 
@@ -367,19 +510,19 @@ cat state/processed.json | python -m json.tool
 # Force reprocess a specific file
 # 1. Remove from state/processed.json
 # 2. Move from archive/ back to new/
-# 3. Run: python markdown_summarizer.py --once
+# 3. Run: python mindforge.py --once
 
 # Monitor in real-time (watch mode)
-python markdown_summarizer.py  # Ctrl+C to stop
+python mindforge.py  # Ctrl+C to stop
 
 # Clean test
 rm -rf summarized/* archive/* state/processed.json
-python markdown_summarizer.py --once
+python mindforge.py --once
 ```
 
 ## Performance Considerations
 
-- **File Size**: Handles 50-100KB markdown files efficiently (4th-devs course lessons)
+- **File Size**: Handles 50-100KB markdown files efficiently
 - **Batch Processing**: Can process multiple files sequentially; each completes independently
 - **Memory Usage**: ~200-300MB during processing
 - **Network**: Requires stable internet; retries automatically on temporary failures
@@ -397,8 +540,8 @@ MODEL_LARGE                   # Large model for summarization
 ## Project Structure
 
 ```
-markdown-summarizer/
-├── markdown_summarizer.py     # Entry point (main script)
+mindforge/
+├── mindforge.py     # Entry point (main script)
 ├── requirements.txt           # Python dependencies
 ├── env.example                # Example environment variables
 ├── .env                        # Your API credentials (NOT in git)

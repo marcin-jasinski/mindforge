@@ -38,6 +38,9 @@ _ANY_IMAGE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Image extraction (captures alt text and URL)
+_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\((https?://\S+)\)", re.IGNORECASE)
+
 # Link extraction: [text](url)
 _LINK_RE = re.compile(r"\[([^\]]*)\]\((https?://[^\s)]+)\)")
 
@@ -112,6 +115,31 @@ def extract_links(content: str) -> list[dict[str, str]]:
             seen.add(url)
             links.append({"text": text.strip(), "url": url.strip()})
     return links
+
+
+# Video hosting domains — images pointing to these are video embeds, not diagrams
+_VIDEO_DOMAINS = {"vimeo.com", "youtu.be", "www.youtube.com"}
+
+
+def extract_images(content: str) -> list[dict[str, str]]:
+    """Extract image URLs from content BEFORE cleaning removes them.
+
+    Filters out video embeds and cover images (from frontmatter).
+    Returns list of {"alt": ..., "url": ...}.
+    """
+    images: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for alt, url in _IMAGE_RE.findall(content):
+        if url in seen:
+            continue
+        # Skip video embed images
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc.lower()
+        if any(vd in domain for vd in _VIDEO_DOMAINS):
+            continue
+        seen.add(url)
+        images.append({"alt": alt.strip(), "url": url.strip()})
+    return images
 
 
 def clean_lesson(parsed: ParsedLesson) -> CleanedLesson:

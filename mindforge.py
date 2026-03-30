@@ -3,10 +3,17 @@
 Markdown Lesson Summarizer — entry point.
 
 Usage:
-  python markdown_summarizer.py              # Process existing files in nowe/ then watch for new ones
+  python markdown_summarizer.py              # Process existing files in new/ then watch for new ones
   python markdown_summarizer.py --watch      # Watch mode only (skip initial processing)
   python markdown_summarizer.py --once       # Process existing files and exit (no watching)
   python markdown_summarizer.py FILE.md      # Process a single file
+
+Feature flags (disable specific outputs):
+  --no-flashcards    Skip flashcard generation
+  --no-diagrams      Skip concept map generation
+  --no-images        Skip image analysis (vision model)
+  --no-index         Skip knowledge index update
+  --no-graph         Skip Neo4j graph indexing
 """
 from __future__ import annotations
 
@@ -29,6 +36,15 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 log = logging.getLogger("summarizer")
+
+# CLI flags that override feature flags from .env
+_FLAG_OVERRIDES = {
+    "--no-flashcards": "enable_flashcards",
+    "--no-diagrams": "enable_diagrams",
+    "--no-images": "enable_image_analysis",
+    "--no-index": "enable_knowledge_index",
+    "--no-graph": "enable_graph_rag",
+}
 
 
 def process_existing(config) -> int:
@@ -54,6 +70,13 @@ def main() -> None:
     config = load_config(ROOT)
 
     args = sys.argv[1:]
+
+    # Apply --no-* flag overrides
+    for flag, attr in _FLAG_OVERRIDES.items():
+        if flag in args:
+            setattr(config, attr, False)
+            args.remove(flag)
+            log.info("Feature disabled via CLI: %s", attr)
 
     # Single file mode
     if args and not args[0].startswith("--"):
