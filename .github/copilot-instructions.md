@@ -2,48 +2,65 @@
 
 ## Architecture
 
-- MindForge has five main runtime surfaces: the lesson-processing pipeline in `mindforge.py` and `processor/`, the quiz runner in `quiz_agent.py`, the FastAPI app in `api/`, the Discord bot in `discord_bot/`, and the Angular SPA in `frontend/`.
-- Treat `state/artifacts/` as the canonical source of truth for processed lessons. When you add or change outputs, extend the artifact model, pipeline, and renderers instead of creating disconnected side paths.
-- Keep API routers and Discord cogs thin. Shared business logic belongs in `processor/`, `quiz_agent.py`, or focused helpers, not inside FastAPI handlers or Discord callbacks.
-- The API serves the built Angular app when `frontend/dist/frontend/browser` exists; during local UI development, the Angular dev server runs separately on port 4200.
-- Use [docs/architecture.md](./docs/architecture.md) for system design and [docs/implementation-plan.md](./docs/implementation-plan.md) for delivery sequencing.
+MindForge 2.0 follows **hexagonal architecture** (Ports and Adapters). The entire backend lives in the `mindforge/` installable package. See [docs/architecture.md](./docs/architecture.md) for the full design.
+
+**Layer boundaries — never cross them:**
+- `mindforge/domain/` — pure Python, zero I/O, zero framework imports. Entities, value objects, domain events, agent protocols, and port interfaces (abstract ABCs/Protocols) live here.
+- `mindforge/application/` — use-case orchestration. Imports only `domain/`. No database drivers, no HTTP clients, no LLM SDKs.
+- `mindforge/infrastructure/` — all I/O: PostgreSQL repositories, Neo4j graph adapter, Redis, LiteLLM AI gateway, parsers, object storage, outbox, security helpers.
+- `mindforge/agents/` — stateless AI agent implementations that execute via `AgentContext`/`AgentResult`. Agents never call each other directly; all inter-agent data flows through `DocumentArtifact` orchestrated by `mindforge/application/pipeline.py`.
+- `mindforge/api/`, `mindforge/discord/`, `mindforge/slack/`, `mindforge/cli/` — thin driving adapters. No business logic; delegate immediately to application services.
+
+**Composition roots:** Each runtime surface (`mindforge/api/main.py`, `mindforge/discord/bot.py`, `mindforge/slack/app.py`, `mindforge/cli/pipeline_runner.py`) has exactly **one** composition root. No module-level singletons, no import-time side effects, no `sys.path` manipulation.
+
+**Open/Closed:** Adding a new AI agent, document format parser, or auth provider means registering a new adapter — never modifying the orchestrator, `ParserRegistry`, or auth framework.
+
+**Data stores:**
+- PostgreSQL is the single source of truth for all business data.
+- Neo4j is a **derived projection** rebuilt from PostgreSQL artifacts; it is never a source of truth and can be fully rebuilt from the canonical store.
+- Redis is optional: quiz sessions fall back to PostgreSQL, SSE falls back to polling `outbox_events`, semantic cache is disabled. A startup warning is emitted when Redis is absent.
 
 ## Build And Test
 
-- Prefer the existing startup documentation in [README.md](../README.md) and [scripts/STARTUP_GUIDE.md](../scripts/STARTUP_GUIDE.md) over inventing new run commands.
-- Python work assumes a repo-root `.env` copied from `env.example`, a local virtual environment, and dependencies installed with `pip install -r requirements.txt`.
-- Common Python commands from the repo root:
-  - `python mindforge.py --once`
-  - `python -m uvicorn api.main:app --host 0.0.0.0 --port 8080 --reload`
-  - `python quiz_agent.py`
-  - `python -m discord_bot.bot`
-  - `pytest tests`
-- Frontend commands run in `frontend/`: `npm install`, `npm start`, `npm run build`, and `npm test`.
-- For Docker flows, prefer the platform startup scripts in `scripts/` or the profiles defined in `compose.yml`. Compose profiles are `app`, `gui`, `quiz`, `discord`, `observability`, and `graph`.
+- Local dev: copy `env.example` → `.env`, create a venv, then `pip install -e .` (editable install).
+- Available CLI entry points after install:
+  - `mindforge-pipeline` — run the document processing pipeline
+  - `mindforge-api` — start the FastAPI server (`:8080`)
+  - `mindforge-quiz` — interactive quiz CLI
+  - `mindforge-discord` — Discord bot
+  - `mindforge-slack` — Slack bot
+  - `mindforge-backfill` — backfill and reindex operations
+- Direct uvicorn: `python -m uvicorn mindforge.api.main:app --host 0.0.0.0 --port 8080 --reload`
+- Tests: `pytest tests/` — `tests/unit/` (no I/O, fast), `tests/integration/` (real DB, mocked LLM), `tests/e2e/` (full stack).
+- Frontend (`frontend/`): `npm install`, `npm start` (dev server `:4200`), `npm run build`, `npm test`.
+- For Docker, use scripts in `scripts/` or `compose.yml` profiles. Refer to [scripts/STARTUP_GUIDE.md](../scripts/STARTUP_GUIDE.md).
 
 ## Docker And Runtime
 
-- `Dockerfile` is multi-stage: Node builds Angular, then Python runs the pipeline, API, or Discord entrypoints.
-- `compose.yml` orchestrates the app surfaces (`app`, `api`, `quiz-agent`, `discord-bot`) plus Neo4j and the Langfuse stack. Keep healthchecks, init containers, and named volumes aligned when changing services.
-- Prefer official upstream images for Neo4j, Langfuse, Redis, Postgres, ClickHouse, and MinIO. Maintain custom container logic only for MindForge-owned code.
-- When changing SPA deployment, keep FastAPI static serving and Docker build output synchronized with `frontend/dist/frontend/browser`.
+- `Dockerfile` is multi-stage: Node builds Angular, then Python runs the API, pipeline worker, or bot entry points.
+- `compose.yml` orchestrates `api`, `quiz-agent`, `discord-bot`, `slack-bot` plus Neo4j, Redis, Postgres, and the Langfuse observability stack (ClickHouse, MinIO, Postgres). Keep healthchecks, init containers, and named volumes aligned when changing services.
+- The FastAPI process serves the built Angular SPA from `frontend/dist/frontend/browser`. Keep static serving config and Docker build output synchronized.
+- Prefer official upstream images for all external services. Custom container logic only for MindForge-owned code.
 
 ## Security And Cost Guardrails
 
-- Preserve the server-authoritative quiz flow. Browser-facing payloads must not expose quiz grounding context or reference answers; follow `api/routers/quiz.py`, `api/quiz_session_store.py`, and `tests/test_quiz_session.py`.
-- Treat uploaded filenames, lesson links, and image URLs as untrusted input. Use the shared upload sanitization and egress-policy helpers instead of ad-hoc filesystem or HTTP handling.
-- Discord features must enforce allowlists and interaction ownership; auth flows must keep OAuth state validation and environment-aware cookie hardening intact.
-- Prefer graph or lexical retrieval before embeddings, reuse generated `reference_answer` during grading, and keep summarizer context bounded to relevant prior concepts instead of the whole index.
-- Shared JSON state (`processed.json`, `article_cache.json`, `knowledge_index.json`, `sr_state.json`) is cross-process state. Preserve locking and idempotency behavior and avoid duplicate processing races between API uploads, watcher, and bot flows.
+- **Server-authoritative state:** The server owns all grading, scoring, and session state. Browser payloads must never expose `reference_answer`, `grounding_context`, `raw_prompt`, or `raw_completion`. Redaction is enforced in `InteractionStore.list_for_user()` (defense-in-depth — not just in routers). Follow `mindforge/api/routers/quiz.py` and `mindforge/application/quiz.py`.
+- **Untrusted input:** All uploaded filenames, external URLs, and image URLs are untrusted. Use `mindforge/infrastructure/security/upload_sanitizer.py` and `egress_policy.py`. Never write ad-hoc filesystem or HTTP handling.
+- **Retrieval cost discipline:** Graph traversal first → full-text/lexical second → vector embeddings last. Reuse the stored `reference_answer` from the artifact during grading; do not regenerate it.
+- **Lesson identity:** `lesson_id` is resolved deterministically: frontmatter `lesson_id:` → frontmatter `title:` (slugified) → PDF metadata `Title` → filename. Never fall back to a placeholder like `"unknown"` — reject the upload if no valid identifier can be produced.
+- **Discord/Slack:** Enforce allowlists and interaction ownership. See `mindforge/discord/auth.py` and `mindforge/slack/auth.py`.
+- **Idempotency:** Every pipeline step checkpoints its output and `StepFingerprint` to `document_artifacts` after execution. Do not break checkpoint or outbox patterns; outbox guarantees at-least-once event delivery to Neo4j and other consumers.
+- Security review baseline: [reviews/mindforge-deep-code-review-2026-04-01.md](./reviews/mindforge-deep-code-review-2026-04-01.md).
 
 ## Conventions
 
-- Run Python entry points from the repository root. Several entry points intentionally add the repo root to `sys.path`; do not introduce alternate import assumptions unless you are cleaning that pattern up consistently.
-- Keep API contracts synchronized across `api/schemas.py` and `frontend/src/app/core/models/api.models.ts`.
-- For Angular changes, keep HTTP integration in `frontend/src/app/core/services/` and follow the standalone, lazy-loaded routing pattern in `frontend/src/app/app.routes.ts`.
-- Use representative files before introducing new patterns: `processor/pipeline.py` for orchestration, `api/main.py` plus `api/routers/` for backend endpoints, `quiz_agent.py` for shared assessment logic, and `frontend/src/app/core/services/api.service.ts` for client API usage.
-- Preserve existing user-facing Polish content unless the task explicitly changes product language.
-- Some README snippets are legacy. Prefer current entry points such as `mindforge.py`, `quiz_agent.py`, and `api.main` over older `markdown_summarizer.py` references.
+- **No `sys.path` manipulation.** The package is installed via `pip install -e .` and imported as `mindforge.*`. Never add the repo root to `sys.path` in new code.
+- **Configuration is explicit and validated once.** Load settings via `mindforge/infrastructure/config.py` (Pydantic). Never call `os.environ` at request time or in module-level code.
+- **All imports at module top level.** Optional/heavy packages use `try/except ImportError` guards.
+- **API contracts:** Keep `mindforge/api/schemas.py` (Pydantic models) and `frontend/src/app/core/models/api.models.ts` in sync.
+- **Angular:** All HTTP integration belongs in `frontend/src/app/core/services/`; follow the standalone, lazy-loaded routing pattern in `frontend/src/app/app.routes.ts`.
+- **Representative files before introducing new patterns:** `mindforge/application/pipeline.py` (orchestration), `mindforge/api/main.py` + routers (API), `mindforge/agents/summarizer.py` (agent), `mindforge/infrastructure/ai/gateway.py` (LLM gateway), `frontend/src/app/core/services/api.service.ts` (Angular HTTP client).
+- Preserve user-facing Polish content unless the task explicitly changes product language.
 
 ## Reference Docs
 
