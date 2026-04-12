@@ -24,7 +24,6 @@ from mindforge.domain.models import (
     FlashcardData,
     LessonIdentity,
     LessonIdentityError,
-    ReviewResult,
     StepFingerprint,
     TokenBudget,
     slugify,
@@ -47,15 +46,11 @@ _DOC_ID = uuid4()
 
 class TestLessonIdentityResolve:
     def test_step1_frontmatter_lesson_id(self):
-        identity = LessonIdentity.resolve(
-            {"lesson_id": "my-lesson"}, "whatever.md"
-        )
+        identity = LessonIdentity.resolve({"lesson_id": "my-lesson"}, "whatever.md")
         assert identity.lesson_id == "my-lesson"
 
     def test_step1_frontmatter_lesson_id_with_underscores(self):
-        identity = LessonIdentity.resolve(
-            {"lesson_id": "lesson_01"}, "whatever.md"
-        )
+        identity = LessonIdentity.resolve({"lesson_id": "lesson_01"}, "whatever.md")
         assert identity.lesson_id == "lesson_01"
 
     def test_step1_invalid_falls_through_to_step2(self):
