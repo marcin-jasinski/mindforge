@@ -4,32 +4,30 @@ Unit tests for the domain layer.
 Tests cover all validation logic, deterministic computations, and
 serialization.  No I/O, no network — pure Python only.
 """
+
 from __future__ import annotations
 
 import hashlib
 from datetime import datetime, timezone
+from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
 
 from mindforge.domain.events import (
-    DomainEvent,
     DocumentIngested,
     ProcessingCompleted,
 )
 from mindforge.domain.models import (
-    BlockType,
     CardType,
     ContentHash,
-    DeadlineProfile,
-    DocumentStatus,
     FlashcardData,
     LessonIdentity,
     LessonIdentityError,
     ReviewResult,
     StepFingerprint,
     TokenBudget,
-    _slugify,
+    slugify,
 )
 
 
@@ -189,7 +187,7 @@ class TestContentHash:
 
 
 class TestFlashcardCardId:
-    def _make_card(self, kb_id: UUID = _KB_ID, **overrides):
+    def _make_card(self, kb_id: UUID = _KB_ID, **overrides: Any) -> FlashcardData:
         defaults = dict(
             kb_id=kb_id,
             lesson_id="lesson-1",
@@ -240,7 +238,7 @@ class TestFlashcardCardId:
 
 
 class TestStepFingerprint:
-    def _make(self, **overrides):
+    def _make(self, **overrides: Any) -> StepFingerprint:
         defaults = dict(
             input_hash="abc123",
             prompt_version="v1",
@@ -379,21 +377,21 @@ class TestTokenBudget:
 
 class TestSlugify:
     def test_basic(self):
-        assert _slugify("Hello World") == "hello-world"
+        assert slugify("Hello World") == "hello-world"
 
     def test_special_chars(self):
-        assert _slugify("Część 1: Wprowadzenie") == "czesc-1-wprowadzenie"
+        assert slugify("Część 1: Wprowadzenie") == "czesc-1-wprowadzenie"
 
     def test_multiple_hyphens_collapsed(self):
-        assert _slugify("a  b   c") == "a-b-c"
+        assert slugify("a  b   c") == "a-b-c"
 
     def test_strips_leading_trailing_hyphens(self):
-        assert _slugify("  hello  ") == "hello"
+        assert slugify("  hello  ") == "hello"
 
     def test_dashes_preserved(self):
-        result = _slugify("already-slugged")
+        result = slugify("already-slugged")
         assert result == "already-slugged"
 
     def test_underscores_preserved(self):
-        result = _slugify("has_underscores")
+        result = slugify("has_underscores")
         assert result == "has_underscores"

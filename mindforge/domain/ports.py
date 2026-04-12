@@ -8,9 +8,10 @@ Pure Python only.  Zero I/O, zero framework imports.
 The ``connection`` parameters are typed as ``Any`` to avoid importing
 SQLAlchemy at the domain level.
 """
+
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from typing import Any, Protocol, runtime_checkable
 from uuid import UUID
 
@@ -46,19 +47,15 @@ class DocumentRepository(Protocol):
         """Persist a new document within the caller-supplied transaction."""
         ...
 
-    async def get_by_id(self, document_id: UUID) -> Document | None:
-        ...
+    async def get_by_id(self, document_id: UUID) -> Document | None: ...
 
-    async def get_by_content_hash(
-        self, kb_id: UUID, sha256: str
-    ) -> Document | None:
+    async def get_by_content_hash(self, kb_id: UUID, sha256: str) -> Document | None:
         """Return the active document matching the given content hash, or None."""
         ...
 
     async def update_status(
         self, document_id: UUID, status: str, connection: Any
-    ) -> None:
-        ...
+    ) -> None: ...
 
     async def list_by_knowledge_base(
         self,
@@ -66,8 +63,7 @@ class DocumentRepository(Protocol):
         *,
         limit: int = 50,
         offset: int = 0,
-    ) -> list[Document]:
-        ...
+    ) -> list[Document]: ...
 
 
 # ---------------------------------------------------------------------------
@@ -87,8 +83,7 @@ class ArtifactRepository(Protocol):
         """Load the highest-version artifact for a document."""
         ...
 
-    async def count_flashcards(self, kb_id: UUID, lesson_id: str) -> int:
-        ...
+    async def count_flashcards(self, kb_id: UUID, lesson_id: str) -> int: ...
 
 
 # ---------------------------------------------------------------------------
@@ -115,8 +110,7 @@ class RetrievalPort(Protocol):
         concept_key: str,
         *,
         depth: int = 2,
-    ) -> ConceptNeighborhood | None:
-        ...
+    ) -> ConceptNeighborhood | None: ...
 
     async def find_weak_concepts(
         self,
@@ -125,16 +119,13 @@ class RetrievalPort(Protocol):
         today: date,
         *,
         limit: int = 10,
-    ) -> list[WeakConcept]:
-        ...
+    ) -> list[WeakConcept]: ...
 
-    async def get_concepts(self, kb_id: UUID) -> list[ConceptNode]:
-        ...
+    async def get_concepts(self, kb_id: UUID) -> list[ConceptNode]: ...
 
     async def get_lesson_concepts(
         self, kb_id: UUID, lesson_id: str
-    ) -> list[ConceptNode]:
-        ...
+    ) -> list[ConceptNode]: ...
 
 
 # ---------------------------------------------------------------------------
@@ -153,16 +144,14 @@ class AIGateway(Protocol):
         temperature: float = 0.7,
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
-    ) -> CompletionResult:
-        ...
+    ) -> CompletionResult: ...
 
     async def embed(
         self,
         *,
         model: str,
         texts: list[str],
-    ) -> list[list[float]]:
-        ...
+    ) -> list[list[float]]: ...
 
 
 # ---------------------------------------------------------------------------
@@ -174,8 +163,7 @@ class AIGateway(Protocol):
 class StudyProgressStore(Protocol):
     async def get_due_cards(
         self, user_id: UUID, kb_id: UUID, today: date
-    ) -> list[CardState]:
-        ...
+    ) -> list[CardState]: ...
 
     async def save_review(
         self,
@@ -183,11 +171,9 @@ class StudyProgressStore(Protocol):
         kb_id: UUID,
         card_id: str,
         result: ReviewResult,
-    ) -> None:
-        ...
+    ) -> None: ...
 
-    async def due_count(self, user_id: UUID, kb_id: UUID, today: date) -> int:
-        ...
+    async def due_count(self, user_id: UUID, kb_id: UUID, today: date) -> int: ...
 
 
 # ---------------------------------------------------------------------------
@@ -197,9 +183,7 @@ class StudyProgressStore(Protocol):
 
 @runtime_checkable
 class EventPublisher(Protocol):
-    async def publish_in_tx(
-        self, event: DomainEvent, connection: Any
-    ) -> None:
+    async def publish_in_tx(self, event: DomainEvent, connection: Any) -> None:
         """Write event to the outbox table within the caller's transaction."""
         ...
 
@@ -211,16 +195,11 @@ class EventPublisher(Protocol):
 
 @runtime_checkable
 class InteractionStore(Protocol):
-    async def create_interaction(self, interaction: Interaction) -> None:
-        ...
+    async def create_interaction(self, interaction: Interaction) -> None: ...
 
-    async def add_turn(self, turn: InteractionTurn) -> None:
-        ...
+    async def add_turn(self, turn: InteractionTurn) -> None: ...
 
-    async def get_interaction(
-        self, interaction_id: UUID
-    ) -> Interaction | None:
-        ...
+    async def get_interaction(self, interaction_id: UUID) -> Interaction | None: ...
 
     async def list_for_user(
         self,
@@ -254,10 +233,7 @@ class InteractionStore(Protocol):
 
 @runtime_checkable
 class ExternalIdentityRepository(Protocol):
-    async def find_user_id(
-        self, provider: str, external_id: str
-    ) -> UUID | None:
-        ...
+    async def find_user_id(self, provider: str, external_id: str) -> UUID | None: ...
 
     async def link(
         self,
@@ -266,8 +242,7 @@ class ExternalIdentityRepository(Protocol):
         external_id: str,
         email: str | None,
         metadata: dict[str, Any],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     async def create_user_and_link(
         self,
@@ -289,17 +264,13 @@ class ExternalIdentityRepository(Protocol):
 
 @runtime_checkable
 class QuizSessionStore(Protocol):
-    async def create_session(self, session: QuizSession) -> None:
-        ...
+    async def create_session(self, session: QuizSession) -> None: ...
 
-    async def get_session(self, session_id: UUID) -> QuizSession | None:
-        ...
+    async def get_session(self, session_id: UUID) -> QuizSession | None: ...
 
-    async def update_session(self, session: QuizSession) -> None:
-        ...
+    async def update_session(self, session: QuizSession) -> None: ...
 
-    async def delete_session(self, session_id: UUID) -> None:
-        ...
+    async def delete_session(self, session_id: UUID) -> None: ...
 
 
 # ---------------------------------------------------------------------------
@@ -309,9 +280,7 @@ class QuizSessionStore(Protocol):
 
 @runtime_checkable
 class GraphIndexer(Protocol):
-    async def index_artifact(
-        self, artifact: DocumentArtifact, connection: Any
-    ) -> None:
+    async def index_artifact(self, artifact: DocumentArtifact, connection: Any) -> None:
         """Write/update graph nodes and edges from a processed artifact."""
         ...
 
@@ -331,17 +300,13 @@ class GraphIndexer(Protocol):
 
 @runtime_checkable
 class KnowledgeBaseRepository(Protocol):
-    async def save(self, kb: KnowledgeBase, connection: Any) -> None:
-        ...
+    async def save(self, kb: KnowledgeBase, connection: Any) -> None: ...
 
-    async def get_by_id(self, kb_id: UUID) -> KnowledgeBase | None:
-        ...
+    async def get_by_id(self, kb_id: UUID) -> KnowledgeBase | None: ...
 
-    async def list_by_owner(self, owner_id: UUID) -> list[KnowledgeBase]:
-        ...
+    async def list_by_owner(self, owner_id: UUID) -> list[KnowledgeBase]: ...
 
-    async def delete(self, kb_id: UUID, connection: Any) -> None:
-        ...
+    async def delete(self, kb_id: UUID, connection: Any) -> None: ...
 
 
 # ---------------------------------------------------------------------------
@@ -351,11 +316,8 @@ class KnowledgeBaseRepository(Protocol):
 
 @runtime_checkable
 class UserRepository(Protocol):
-    async def save(self, user: User, connection: Any) -> None:
-        ...
+    async def save(self, user: User, connection: Any) -> None: ...
 
-    async def get_by_id(self, user_id: UUID) -> User | None:
-        ...
+    async def get_by_id(self, user_id: UUID) -> User | None: ...
 
-    async def get_by_email(self, email: str) -> User | None:
-        ...
+    async def get_by_email(self, email: str) -> User | None: ...

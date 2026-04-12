@@ -3,6 +3,7 @@ Domain layer — core entities, value objects, and domain structures.
 
 Pure Python only.  Zero I/O, zero framework imports.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -12,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +81,7 @@ class LessonIdentityError(ValueError):
 # ---------------------------------------------------------------------------
 
 
-def _slugify(text: str) -> str:
+def slugify(text: str) -> str:
     """Convert arbitrary text to a valid lesson_id slug."""
     # Normalize unicode (e.g., ę → e) and encode to ASCII
     text = unicodedata.normalize("NFKD", text)
@@ -139,16 +140,16 @@ class LessonIdentity:
 
         # Step 2: frontmatter title (slugified)
         if lesson_id is None and metadata.get("title"):
-            lesson_id = cls._validate(_slugify(str(metadata["title"])))
+            lesson_id = cls._validate(slugify(str(metadata["title"])))
 
         # Step 3: PDF metadata title (slugified)
         if lesson_id is None and metadata.get("pdf_title"):
-            lesson_id = cls._validate(_slugify(str(metadata["pdf_title"])))
+            lesson_id = cls._validate(slugify(str(metadata["pdf_title"])))
 
         # Step 4: filename stem (sanitized)
         if lesson_id is None:
             stem = filename.rsplit(".", 1)[0] if "." in filename else filename
-            lesson_id = cls._validate(_slugify(stem))
+            lesson_id = cls._validate(slugify(stem))
 
         # Step 5: reject
         if lesson_id is None:
@@ -509,7 +510,7 @@ class CardState:
 
 @dataclass
 class ReviewResult:
-    rating: int       # SM-2 rating 0–5
+    rating: int  # SM-2 rating 0–5
     quality_flag: str | None = None
 
 
