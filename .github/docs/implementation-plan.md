@@ -1,6 +1,6 @@
 # MindForge 2.0 — Implementation Plan
 
-> **Version:** 1.1
+> **Version:** 1.2
 > **Date:** 2026-04-12
 > **Status:** Active
 > **Reference:** [architecture.md](./architecture.md)
@@ -130,7 +130,7 @@ phases have a stable foundation.
 
 ---
 
-## [ ] Phase 1 — Domain Layer
+## [x] Phase 1 — Domain Layer
 
 **Goal:** Implement the pure Python domain layer (`mindforge/domain/`) with
 zero I/O and zero framework imports.  This layer is the foundation for
@@ -138,16 +138,16 @@ everything else.
 
 ### Tasks
 
-- [ ] **1.1 — Implement `mindforge/domain/models.py`**
-  - [ ] 1.1.1 — Define enums: `DocumentStatus` (PENDING, PROCESSING, DONE,
+- [x] **1.1 — Implement `mindforge/domain/models.py`**
+  - [x] 1.1.1 — Define enums: `DocumentStatus` (PENDING, PROCESSING, DONE,
     FAILED), `UploadSource` (API, DISCORD, SLACK, FILE_WATCHER), `BlockType`
     (TEXT, IMAGE, CODE, AUDIO, VIDEO), `CardType` (BASIC, CLOZE, REVERSE),
     `ModelTier` (SMALL, LARGE, VISION), `CostTier` (LOW, MEDIUM, HIGH),
     `DeadlineProfile` (INTERACTIVE, BATCH, BACKGROUND).
-  - [ ] 1.1.2 — Implement `ContentHash` frozen dataclass with `sha256: str`
+  - [x] 1.1.2 — Implement `ContentHash` frozen dataclass with `sha256: str`
     field and `compute(raw_bytes: bytes) -> ContentHash` static method using
     `hashlib.sha256`.
-  - [ ] 1.1.3 — Implement `LessonIdentity` frozen dataclass with `lesson_id: str`
+  - [x] 1.1.3 — Implement `LessonIdentity` frozen dataclass with `lesson_id: str`
     and `title: str`.  Include a `resolve()` class method implementing the
     five-step deterministic resolution algorithm (Section 6.2): frontmatter
     `lesson_id` → frontmatter `title` (slugified) → PDF metadata `Title` →
@@ -157,107 +157,109 @@ everything else.
     itself — the domain layer must remain pure.  Validation rules: max 80
     chars, `[a-z0-9\-_]` only, not empty, not in reserved names (`__init__`,
     `index`, `default`).  Raise `LessonIdentityError` on step 5 failure.
-  - [ ] 1.1.4 — Implement `ContentBlock` dataclass (Section 6.2): `block_type`,
+  - [x] 1.1.4 — Implement `ContentBlock` dataclass (Section 6.2): `block_type`,
     `content`, `media_ref`, `media_type`, `metadata: dict`, `position: int`.
-  - [ ] 1.1.5 — Implement `Document` dataclass (Section 6.2): all fields
+  - [x] 1.1.5 — Implement `Document` dataclass (Section 6.2): all fields
     including `document_id: UUID`, `knowledge_base_id: UUID`,
     `lesson_identity: LessonIdentity`, `content_hash: ContentHash`,
     `source_filename: str`, `mime_type: str`, `original_content: str`,
     `content_blocks: list[ContentBlock]`, `upload_source: UploadSource`,
     `uploaded_by: UUID | None`, `status: DocumentStatus`, timestamps.
-  - [ ] 1.1.6 — Implement `KnowledgeBase` dataclass: `kb_id`, `owner_id`,
+  - [x] 1.1.6 — Implement `KnowledgeBase` dataclass: `kb_id`, `owner_id`,
     `name`, `description`, `created_at`, `document_count`.
-  - [ ] 1.1.7 — Implement `User` dataclass: `user_id`, `display_name`, `email`,
+  - [x] 1.1.7 — Implement `User` dataclass: `user_id`, `display_name`, `email`,
     `password_hash`, `avatar_url`, `created_at`, `last_login_at`.
-  - [ ] 1.1.8 — Implement `DocumentArtifact` dataclass (Section 6.2): all
+  - [x] 1.1.8 — Implement `DocumentArtifact` dataclass (Section 6.2): all
     fields including `step_fingerprints: dict[str, StepCheckpoint]`,
     `completed_step: str | None`.  Sub-structures: `SummaryData`,
     `FlashcardData` (with deterministic `card_id` via
     `sha256(kb_id|lesson_id|card_type|front|back)[:16]`), `ConceptMapData`,
     `ImageDescription`, `FetchedArticle`, `ValidationResult`.
-  - [ ] 1.1.9 — Implement `StepFingerprint` frozen dataclass: `input_hash`,
+  - [x] 1.1.9 — Implement `StepFingerprint` frozen dataclass: `input_hash`,
     `prompt_version`, `model_id`, `agent_version`.  `compute()` method
     returns `sha256(f"{input_hash}|{prompt_version}|{model_id}|{agent_version}").hexdigest()[:16]`.
-  - [ ] 1.1.10 — Implement `StepCheckpoint` dataclass: `output_key`,
+  - [x] 1.1.10 — Implement `StepCheckpoint` dataclass: `output_key`,
     `fingerprint`, `completed_at`.
-  - [ ] 1.1.11 — Implement `CompletionResult` frozen dataclass (Section 8.2):
+  - [x] 1.1.11 — Implement `CompletionResult` frozen dataclass (Section 8.2):
     `content`, `input_tokens`, `output_tokens`, `model`, `provider`,
     `latency_ms`, `cost_usd`.
-  - [ ] 1.1.12 — Implement `Interaction`, `InteractionTurn`, `ChatSession`,
+  - [x] 1.1.12 — Implement `Interaction`, `InteractionTurn`, `ChatSession`,
     `ChatTurn` dataclasses for audit and chat.
-  - [ ] 1.1.13 — Implement `ReviewResult` dataclass: `rating` (int 0-5),
+  - [x] 1.1.13 — Implement `ReviewResult` dataclass: `rating` (int 0-5),
     `quality_flag` (optional literal).
-  - [ ] 1.1.14 — Implement retrieval result types: `ConceptNode`,
+  - [x] 1.1.14 — Implement retrieval result types: `ConceptNode`,
     `ConceptNeighborhood`, `RelatedConceptSummary`, `WeakConcept`,
     `RetrievalResult`.
-  - [ ] 1.1.15 — Implement `TokenBudget` dataclass with
+  - [x] 1.1.15 — Implement `TokenBudget` dataclass with
     `available_for_context` property.
 
-- [ ] **1.2 — Implement `mindforge/domain/events.py`**
-  - [ ] 1.2.1 — Define `DomainEvent` base frozen dataclass with a `to_dict()`
+- [x] **1.2 — Implement `mindforge/domain/events.py`**
+  - [x] 1.2.1 — Define `DomainEvent` base frozen dataclass with a `to_dict()`
     method for JSON serialization.
-  - [ ] 1.2.2 — Implement all events from Section 6.3: `DocumentIngested`,
+  - [x] 1.2.2 — Implement all events from Section 6.3: `DocumentIngested`,
     `PipelineStepCompleted`, `ProcessingCompleted`, `ProcessingFailed`,
     `GraphProjectionUpdated`, `QuizSessionStarted`, `QuizAnswerEvaluated`,
     `ReviewRecorded`.  Each carries the fields described in the architecture.
 
-- [ ] **1.3 — Implement `mindforge/domain/agents.py`**
-  - [ ] 1.3.1 — Define `Agent` Protocol with `name` property, `capabilities`
+- [x] **1.3 — Implement `mindforge/domain/agents.py`**
+  - [x] 1.3.1 — Define `Agent` Protocol with `name` property, `capabilities`
     property, and `async execute(context: AgentContext) -> AgentResult` method.
-  - [ ] 1.3.2 — Define `AgentCapability` frozen dataclass: `name`,
+  - [x] 1.3.2 — Define `AgentCapability` frozen dataclass: `name`,
     `description`, `input_types`, `output_types`, `required_model_tier`,
     `estimated_cost_tier`.
-  - [ ] 1.3.3 — Define `AgentContext` dataclass: `document_id`, `knowledge_base_id`,
+  - [x] 1.3.3 — Define `AgentContext` dataclass: `document_id`, `knowledge_base_id`,
     `artifact`, `gateway`, `retrieval`, `settings`, `tracer`, `metadata`.
-  - [ ] 1.3.4 — Define `AgentResult` dataclass: `success`, `output_key`,
+  - [x] 1.3.4 — Define `AgentResult` dataclass: `success`, `output_key`,
     `tokens_used`, `cost_usd`, `duration_ms`, `error`.
-  - [ ] 1.3.5 — Define `ProcessingSettings` dataclass holding chunking configs,
+  - [x] 1.3.5 — Define `ProcessingSettings` dataclass holding chunking configs,
     feature flags, and model-tier mappings used by agents.
 
-- [ ] **1.4 — Implement `mindforge/domain/ports.py`**
-  - [ ] 1.4.1 — Define `DocumentRepository` Protocol with all methods from
+- [x] **1.4 — Implement `mindforge/domain/ports.py`**
+  - [x] 1.4.1 — Define `DocumentRepository` Protocol with all methods from
     Section 6.4: `save`, `get_by_id`, `get_by_content_hash`, `update_status`,
     `list_by_knowledge_base`.
-  - [ ] 1.4.2 — Define `ArtifactRepository` Protocol: `save_checkpoint`,
+  - [x] 1.4.2 — Define `ArtifactRepository` Protocol: `save_checkpoint`,
     `load_latest`, `count_flashcards`.
-  - [ ] 1.4.3 — Define `RetrievalPort` Protocol: `retrieve`,
+  - [x] 1.4.3 — Define `RetrievalPort` Protocol: `retrieve`,
     `retrieve_concept_neighborhood`, `find_weak_concepts`, `get_concepts`,
     `get_lesson_concepts`.
-  - [ ] 1.4.4 — Define `AIGateway` Protocol: `complete` (with
+  - [x] 1.4.4 — Define `AIGateway` Protocol: `complete` (with
     `deadline: DeadlineProfile` parameter), `embed`.
-  - [ ] 1.4.5 — Define `StudyProgressStore` Protocol: `get_due_cards`,
+  - [x] 1.4.5 — Define `StudyProgressStore` Protocol: `get_due_cards`,
     `save_review`, `due_count`.
-  - [ ] 1.4.6 — Define `EventPublisher` Protocol:
+  - [x] 1.4.6 — Define `EventPublisher` Protocol:
     `publish_in_tx(event, connection)`.  The `connection` parameter type is
     `Any` at the domain level (no SQLAlchemy import here).
-  - [ ] 1.4.7 — Define `InteractionStore` Protocol: `create_interaction`,
+  - [x] 1.4.7 — Define `InteractionStore` Protocol: `create_interaction`,
     `add_turn`, `get_interaction`, `list_for_user` (returns redacted data),
     `list_unredacted`.
-  - [ ] 1.4.8 — Define `ExternalIdentityRepository` Protocol: `find_user_id`,
+  - [x] 1.4.8 — Define `ExternalIdentityRepository` Protocol: `find_user_id`,
     `link`, `create_user_and_link`.
-  - [ ] 1.4.9 — Define `QuizSessionStore` Protocol for quiz session
+  - [x] 1.4.9 — Define `QuizSessionStore` Protocol for quiz session
     persistence (Redis or PostgreSQL-backed).
-  - [ ] 1.4.10 — Define `GraphIndexer` Protocol for writing graph projections.
+  - [x] 1.4.10 — Define `GraphIndexer` Protocol for writing graph projections.
 
-- [ ] **1.5 — Write unit tests for domain layer**
-  - [ ] 1.5.1 — Tests for `LessonIdentity.resolve()`: all five resolution
+- [x] **1.5 — Write unit tests for domain layer**
+  - [x] 1.5.1 — Tests for `LessonIdentity.resolve()`: all five resolution
     steps, validation rules, reserved name rejection, boundary cases (80 chars,
     empty after sanitization).
-  - [ ] 1.5.2 — Tests for `ContentHash.compute()`.
-  - [ ] 1.5.3 — Tests for `FlashcardData.card_id` deterministic generation:
+  - [x] 1.5.2 — Tests for `ContentHash.compute()`.
+  - [x] 1.5.3 — Tests for `FlashcardData.card_id` deterministic generation:
     same inputs produce same ID, different `kb_id` with same content produces
     different ID.
-  - [ ] 1.5.4 — Tests for `StepFingerprint.compute()`: same inputs produce
+  - [x] 1.5.4 — Tests for `StepFingerprint.compute()`: same inputs produce
     same hash, any input change produces a different hash.
-  - [ ] 1.5.5 — Tests for `DomainEvent.to_dict()` serialization.
-  - [ ] 1.5.6 — Tests for `TokenBudget.available_for_context` computation.
+  - [x] 1.5.5 — Tests for `DomainEvent.to_dict()` serialization.
+  - [x] 1.5.6 — Tests for `TokenBudget.available_for_context` computation.
 
 ### Completion Checklist
 
-- [ ] All domain classes importable as `from mindforge.domain.models import ...`.
-- [ ] All protocols importable as `from mindforge.domain.ports import ...`.
-- [ ] Zero framework imports in `mindforge/domain/`.
-- [ ] `pytest tests/unit/domain/` passes with full coverage of validation logic.
+- [x] All domain classes importable as `from mindforge.domain.models import ...`.
+- [x] All protocols importable as `from mindforge.domain.ports import ...`.
+- [x] Zero framework imports in `mindforge/domain/`.
+- [x] `pytest tests/unit/domain/` passes with full coverage of validation logic.
+
+> **Completed:** 2026-04-12
 
 ---
 
