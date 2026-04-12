@@ -43,8 +43,8 @@ of earlier ones (see [Dependency Graph](#dependency-graph) at the end).
 
 **Conventions used in this document:**
 
-- `[ ]` — task not started
-- `[X]` — task completed
+- `[ ]` — task or phase not started
+- `[X]` — task or phase completed
 - Each phase has a completion checklist.  A phase is DONE when every task
   and subtask in it is `[X]`.
 - Code references (file paths, class names) correspond exactly to the package
@@ -52,7 +52,7 @@ of earlier ones (see [Dependency Graph](#dependency-graph) at the end).
 
 ---
 
-## Phase 0 — Project Scaffolding and Tooling
+## [x] Phase 0 — Project Scaffolding and Tooling
 
 **Goal:** Establish the installable Python package skeleton, configuration
 loading, developer environment, and CI prerequisites so that all subsequent
@@ -60,7 +60,7 @@ phases have a stable foundation.
 
 ### Tasks
 
-- [ ] **0.1 — Create `pyproject.toml` with PEP 621 metadata**
+- [x] **0.1 — Create `pyproject.toml` with PEP 621 metadata**
   - Project name: `mindforge`, requires-python `>=3.12`.
   - Define all six `[project.scripts]` entry points (`mindforge-pipeline`,
     `mindforge-quiz`, `mindforge-backfill`, `mindforge-discord`, `mindforge-slack`,
@@ -74,7 +74,7 @@ phases have a stable foundation.
   - Include dev dependencies group: `pytest`, `pytest-asyncio`, `httpx` (test
     client), `testcontainers`, `ruff`, `mypy`.
 
-- [ ] **0.2 — Create the package directory tree**
+- [x] **0.2 — Create the package directory tree**
   - Scaffold every `__init__.py` listed in architecture Section 5 as empty files.
     Directories: `mindforge/`, `mindforge/domain/`, `mindforge/application/`,
     `mindforge/infrastructure/`, `mindforge/infrastructure/persistence/`,
@@ -94,28 +94,28 @@ phases have a stable foundation.
   - Scaffold `migrations/`, `migrations/versions/`.
   - Scaffold `scripts/`.
 
-- [ ] **0.3 — Create `env.example`**
+- [x] **0.3 — Create `env.example`**
   - Include every environment variable documented in Appendix B of the
     architecture, with sensible defaults and comments indicating which are
     required vs. optional.
 
-- [ ] **0.4 — Create `requirements.txt`**
+- [x] **0.4 — Create `requirements.txt`**
   - Pin exact versions for reproducibility (`pip-compile` or manual).
   - Must stay in sync with `pyproject.toml` dependencies.
 
-- [ ] **0.5 — Create `.gitignore`**
+- [x] **0.5 — Create `.gitignore`**
   - Python: `__pycache__/`, `*.pyc`, `.venv/`, `venv/`, `dist/`, `*.egg-info/`.
   - Node: `node_modules/`, `frontend/dist/`.
   - IDE: `.vscode/`, `.idea/`.
   - Environment: `.env` (not `env.example`).
   - Docker: volumes, local overrides.
 
-- [ ] **0.6 — Verify editable install**
+- [x] **0.6 — Verify editable install**
   - `pip install -e .` succeeds in a fresh venv.
   - All six entry points resolve (even if they just print "not yet implemented").
   - No `sys.path` manipulation anywhere.
 
-- [ ] **0.7 — Scaffold `tests/conftest.py`**
+- [x] **0.7 — Scaffold `tests/conftest.py`**
   - Create shared pytest fixtures: `settings()` returning an `AppSettings`
     instance, `mock_gateway()` returning a `StubAIGateway`,
     `stub_retrieval()` returning a `StubRetrievalAdapter`.
@@ -124,13 +124,13 @@ phases have a stable foundation.
 
 ### Completion Checklist
 
-- [ ] `pip install -e .` succeeds; all entry points callable.
-- [ ] `pytest tests/` runs (zero tests, zero errors).
-- [ ] Every `__init__.py` exists per architecture Section 5.
+- [x] `pip install -e .` succeeds; all entry points callable.
+- [x] `pytest tests/` runs (zero tests, zero errors).
+- [x] Every `__init__.py` exists per architecture Section 5.
 
 ---
 
-## Phase 1 — Domain Layer
+## [ ] Phase 1 — Domain Layer
 
 **Goal:** Implement the pure Python domain layer (`mindforge/domain/`) with
 zero I/O and zero framework imports.  This layer is the foundation for
@@ -261,7 +261,7 @@ everything else.
 
 ---
 
-## Phase 2 — Infrastructure Foundation
+## [ ] Phase 2 — Infrastructure Foundation
 
 **Goal:** Implement configuration loading, database engine setup, PostgreSQL
 schema (via Alembic migrations), and all persistence repository adapters.
@@ -388,7 +388,7 @@ schema (via Alembic migrations), and all persistence repository adapters.
 
 ---
 
-## Phase 3 — AI Gateway
+## [ ] Phase 3 — AI Gateway
 
 **Goal:** Implement the LiteLLM-backed AI Gateway adapter with retry, circuit
 breaker, cost tracking, deadline profiles, and fallback chains.
@@ -467,7 +467,7 @@ breaker, cost tracking, deadline profiles, and fallback chains.
 
 ---
 
-## Phase 4 — Document Parsing and Ingestion
+## [ ] Phase 4 — Document Parsing and Ingestion
 
 **Goal:** Implement the parser registry, all four document format parsers, the
 upload sanitizer, the egress policy, the chunking strategy, and the ingestion
@@ -574,7 +574,7 @@ service with deduplication and revision management.
 
 ---
 
-## Phase 5 — Agent Framework and Pipeline Orchestration
+## [ ] Phase 5 — Agent Framework and Pipeline Orchestration
 
 **Goal:** Implement the agent registry, orchestration graph, pipeline
 orchestrator with DAG-aware checkpointing and fingerprint invalidation, and
@@ -656,7 +656,7 @@ the pipeline worker process.
 
 ---
 
-## Phase 6 — Concrete Processing Agents
+## [ ] Phase 6 — Concrete Processing Agents
 
 **Goal:** Implement all processing agents listed in Section 9.3.  Each agent
 implements the `Agent` protocol, declares `__version__`, and is registered in
@@ -776,7 +776,7 @@ the `AgentRegistry`.
 
 ---
 
-## Phase 7 — Neo4j Graph Layer
+## [ ] Phase 7 — Neo4j Graph Layer
 
 **Goal:** Implement the Neo4j graph adapter, indexer, retrieval port, and
 Cypher queries for concept graph management, Graph RAG, and weak concept
@@ -856,7 +856,7 @@ detection.
 
 ---
 
-## Phase 8 — Event System
+## [ ] Phase 8 — Event System
 
 **Goal:** Implement the transactional outbox, outbox relay, durable consumers
 (Graph Indexer, Audit Logger), and ephemeral subscriber infrastructure.
@@ -916,7 +916,7 @@ detection.
 
 ---
 
-## Phase 9 — API Layer (FastAPI)
+## [ ] Phase 9 — API Layer (FastAPI)
 
 **Goal:** Implement the FastAPI application factory, composition root, auth
 system (Discord OAuth + email/password + JWT), all routers, middleware, and
@@ -1034,7 +1034,7 @@ SPA serving.
 
 ---
 
-## Phase 10 — Quiz and Flashcard Services
+## [ ] Phase 10 — Quiz and Flashcard Services
 
 **Goal:** Implement the Quiz Service (session management, question generation
 via Graph RAG, answer evaluation, SR integration) and Flashcard Service
@@ -1108,7 +1108,7 @@ via Graph RAG, answer evaluation, SR integration) and Flashcard Service
 
 ---
 
-## Phase 11 — Search and Conversational RAG
+## [ ] Phase 11 — Search and Conversational RAG
 
 **Goal:** Implement the Search Service and Chat Service (conversational RAG
 with knowledge base).
@@ -1168,7 +1168,7 @@ with knowledge base).
 
 ---
 
-## Phase 12 — Angular Frontend
+## [ ] Phase 12 — Angular Frontend
 
 **Goal:** Create the Angular SPA with standalone components, lazy-loaded
 routing, auth integration, and all user-facing pages.
@@ -1258,7 +1258,7 @@ routing, auth integration, and all user-facing pages.
 
 ---
 
-## Phase 13 — Discord Bot
+## [ ] Phase 13 — Discord Bot
 
 **Goal:** Implement the Discord bot with quiz, search, upload cogs, identity
 resolution, and auth enforcement.
@@ -1302,7 +1302,7 @@ resolution, and auth enforcement.
 
 ---
 
-## Phase 14 — Slack Bot
+## [ ] Phase 14 — Slack Bot
 
 **Goal:** Implement the Slack bot using Slack Bolt (async mode) with quiz,
 search, upload handlers, identity resolution, and workspace security.
@@ -1350,7 +1350,7 @@ search, upload handlers, identity resolution, and workspace security.
 
 ---
 
-## Phase 15 — CLI Entry Points
+## [ ] Phase 15 — CLI Entry Points
 
 **Goal:** Implement all remaining CLI entry points: quiz runner, backfill tool,
 and startup scripts.
@@ -1385,7 +1385,7 @@ and startup scripts.
 
 ---
 
-## Phase 16 — Observability and Tracing
+## [ ] Phase 16 — Observability and Tracing
 
 **Goal:** Implement Langfuse integration, tracing spans for all meaningful
 operations, cost tracking, and quality evaluations.
@@ -1430,7 +1430,7 @@ operations, cost tracking, and quality evaluations.
 
 ---
 
-## Phase 17 — Docker and Deployment
+## [ ] Phase 17 — Docker and Deployment
 
 **Goal:** Create the multi-stage Dockerfile, Docker Compose configuration with
 all profiles, and verify the full stack runs in containers.
@@ -1475,7 +1475,7 @@ all profiles, and verify the full stack runs in containers.
 
 ---
 
-## Phase 18 — Security Hardening (Penetration Testing and Regression)
+## [ ] Phase 18 — Security Hardening (Penetration Testing and Regression)
 
 **Goal:** Whole-system penetration testing, security regression test suite, and
 production configuration review.  This phase does NOT introduce security
@@ -1536,7 +1536,7 @@ catches cross-cutting issues that per-phase tests cannot.
 
 ---
 
-## Phase 19 — End-to-End Testing and Quality Gates
+## [ ] Phase 19 — End-to-End Testing and Quality Gates
 
 **Goal:** Implement the full test pyramid, contract tests, LLM quality
 evaluations, and verify the complete data flow from upload to quiz.
