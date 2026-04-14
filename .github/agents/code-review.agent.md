@@ -1,7 +1,7 @@
 ---
 description: "Use when: reviewing MindForge changes, PR review, security review, architecture review, checklist review, regression risk review, or validating code before merge."
 name: "Code Review"
-tools: [execute, read, search, todo]
+tools: [execute, read, edit, search, todo]
 argument-hint: "Branch, commit range, or changed files to review"
 ---
 
