@@ -19,13 +19,14 @@ from mindforge.domain.events import DomainEvent
 from mindforge.domain.models import (
     CardState,
     CompletionResult,
+    ContentHash,
     ConceptNeighborhood,
     ConceptNode,
     DeadlineProfile,
     Document,
     DocumentArtifact,
+    DocumentStatus,
     Interaction,
-    InteractionTurn,
     KnowledgeBase,
     QuizSession,
     RetrievalResult,
@@ -43,18 +44,20 @@ from mindforge.domain.models import (
 
 @runtime_checkable
 class DocumentRepository(Protocol):
-    async def save(self, document: Document, connection: Any) -> None:
-        """Persist a new document within the caller-supplied transaction."""
+    async def save(self, document: Document) -> None:
+        """Persist a new document within the caller's session/unit-of-work."""
         ...
 
     async def get_by_id(self, document_id: UUID) -> Document | None: ...
 
-    async def get_by_content_hash(self, kb_id: UUID, sha256: str) -> Document | None:
+    async def get_by_content_hash(
+        self, kb_id: UUID, content_hash: ContentHash
+    ) -> Document | None:
         """Return the active document matching the given content hash, or None."""
         ...
 
     async def update_status(
-        self, document_id: UUID, status: str, connection: Any
+        self, document_id: UUID, status: DocumentStatus
     ) -> None: ...
 
     async def list_by_knowledge_base(
@@ -73,10 +76,8 @@ class DocumentRepository(Protocol):
 
 @runtime_checkable
 class ArtifactRepository(Protocol):
-    async def save_checkpoint(
-        self, artifact: DocumentArtifact, connection: Any
-    ) -> None:
-        """UPSERT artifact JSON and step fingerprints within the caller's transaction."""
+    async def save_checkpoint(self, artifact: DocumentArtifact) -> None:
+        """UPSERT artifact JSON and step fingerprints within the caller's session."""
         ...
 
     async def load_latest(self, document_id: UUID) -> DocumentArtifact | None:
@@ -195,9 +196,28 @@ class EventPublisher(Protocol):
 
 @runtime_checkable
 class InteractionStore(Protocol):
-    async def create_interaction(self, interaction: Interaction) -> None: ...
+    async def create_interaction(
+        self,
+        *,
+        interaction_type: str,
+        user_id: UUID | None = None,
+        kb_id: UUID | None = None,
+        context: dict[str, Any] | None = None,
+        parent_interaction_id: UUID | None = None,
+    ) -> UUID: ...
 
-    async def add_turn(self, turn: InteractionTurn) -> None: ...
+    async def add_turn(
+        self,
+        interaction_id: UUID,
+        *,
+        actor_type: str,
+        actor_id: str,
+        action: str,
+        input_data: dict[str, Any] | None = None,
+        output_data: dict[str, Any] | None = None,
+        duration_ms: int | None = None,
+        cost: float | None = None,
+    ) -> UUID: ...
 
     async def get_interaction(self, interaction_id: UUID) -> Interaction | None: ...
 

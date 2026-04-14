@@ -76,6 +76,26 @@ class LessonIdentityError(ValueError):
     """Raised when a valid lesson_id cannot be derived from document metadata."""
 
 
+class DeadlineExceeded(Exception):
+    """Raised when an AI gateway call exceeds its deadline profile budget.
+
+    Callers decide how to handle:
+    - INTERACTIVE: return a degraded response
+    - BATCH / BACKGROUND: retry
+    """
+
+    def __init__(
+        self, deadline_profile: str, elapsed_ms: float, budget_ms: float
+    ) -> None:
+        self.deadline_profile = deadline_profile
+        self.elapsed_ms = elapsed_ms
+        self.budget_ms = budget_ms
+        super().__init__(
+            f"Deadline exceeded for profile {deadline_profile!r}: "
+            f"{elapsed_ms:.0f}ms > {budget_ms:.0f}ms budget"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Helper function
 # ---------------------------------------------------------------------------
@@ -512,6 +532,36 @@ class CardState:
 class ReviewResult:
     rating: int  # SM-2 rating 0–5
     quality_flag: str | None = None
+
+
+def sm2_update(
+    rating: int,
+    ease_factor: float,
+    interval: int,
+    repetitions: int,
+) -> tuple[float, int, int]:
+    """Standard SM-2 spaced-repetition algorithm update.  ``rating`` is 0–5.
+
+    Returns ``(new_ease_factor, new_interval, new_repetitions)``.
+    """
+    if rating < 3:
+        # Failed recall — reset schedule
+        repetitions = 0
+        interval = 1
+    else:
+        if repetitions == 0:
+            interval = 1
+        elif repetitions == 1:
+            interval = 6
+        else:
+            interval = round(interval * ease_factor)
+        repetitions += 1
+
+    ease_factor = max(
+        1.3,
+        ease_factor + 0.1 - (5 - rating) * (0.08 + (5 - rating) * 0.02),
+    )
+    return ease_factor, interval, repetitions
 
 
 # ---------------------------------------------------------------------------
