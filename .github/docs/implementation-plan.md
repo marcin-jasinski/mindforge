@@ -263,15 +263,15 @@ everything else.
 
 ---
 
-## [ ] Phase 2 — Infrastructure Foundation
+## [x] Phase 2 — Infrastructure Foundation
 
 **Goal:** Implement configuration loading, database engine setup, PostgreSQL
 schema (via Alembic migrations), and all persistence repository adapters.
 
 ### Tasks
 
-- [ ] **2.1 — Implement `mindforge/infrastructure/config.py`**
-  - [ ] 2.1.1 — Define `AppSettings` Pydantic `BaseSettings` class loading
+- [x] **2.1 — Implement `mindforge/infrastructure/config.py`**
+  - [x] 2.1.1 — Define `AppSettings` Pydantic `BaseSettings` class loading
     all variables from Appendix B: `database_url`, `redis_url`, `neo4j_uri`,
     `neo4j_username`, `neo4j_password`, `neo4j_database`, model map
     (`model_small`, `model_large`, `model_vision`, `model_embedding`,
@@ -285,28 +285,28 @@ schema (via Alembic migrations), and all persistence repository adapters.
     `max_pending_tasks_per_user`, `pipeline_task_stale_threshold_minutes`,
     `quiz_session_ttl_seconds`), tracing settings, chunking settings
     (`chunk_max_tokens`, `chunk_min_tokens`, `chunk_overlap_tokens`).
-  - [ ] 2.1.2 — Define `EgressSettings` frozen dataclass (Section 16.3):
+  - [x] 2.1.2 — Define `EgressSettings` frozen dataclass (Section 16.3):
     `allow_private_networks`, `allow_nonstandard_ports`, `allowed_protocols`,
     `max_response_bytes`, `timeout_seconds`.
-  - [ ] 2.1.3 — Implement `load_settings()`, `load_credentials()`,
+  - [x] 2.1.3 — Implement `load_settings()`, `load_credentials()`,
     `load_auth_settings()`, `load_egress_settings()` functions.  Settings are
     loaded once, validated on startup — never read at request time.
-  - [ ] 2.1.4 — Implement `validate_settings()` that performs cross-field
+  - [x] 2.1.4 — Implement `validate_settings()` that performs cross-field
     validation (e.g., if `enable_graph=true` then `neo4j_uri` is required).
     Raise descriptive errors on startup, not at request time.
-  - [ ] 2.1.5 — Implement `model_map` property that returns the logical-name to
+  - [x] 2.1.5 — Implement `model_map` property that returns the logical-name to
     LiteLLM-string mapping: `{"small": settings.model_small, "large": settings.model_large, ...}`.
 
-- [ ] **2.2 — Implement `mindforge/infrastructure/db.py`**
-  - [ ] 2.2.1 — Implement `create_async_engine(database_url)` returning a
+- [x] **2.2 — Implement `mindforge/infrastructure/db.py`**
+  - [x] 2.2.1 — Implement `create_async_engine(database_url)` returning a
     SQLAlchemy `AsyncEngine`.  Configure pool size, pool recycle, echo settings.
-  - [ ] 2.2.2 — Implement `run_migrations(conn)` that runs Alembic migrations
+  - [x] 2.2.2 — Implement `run_migrations(conn)` that runs Alembic migrations
     programmatically within the provided connection.
 
-- [ ] **2.3 — Set up Alembic and create initial migration**
-  - [ ] 2.3.1 — Initialize Alembic: `migrations/alembic.ini`, `migrations/env.py`.
+- [x] **2.3 — Set up Alembic and create initial migration**
+  - [x] 2.3.1 — Initialize Alembic: `migrations/alembic.ini`, `migrations/env.py`.
     Configure to use `DATABASE_URL` from settings.
-  - [ ] 2.3.2 — Create migration `001_initial_schema.py` implementing the
+  - [x] 2.3.2 — Create migration `001_initial_schema.py` implementing the
     **full** SQL schema from Section 7.1: tables `users`,
     `external_identities`, `knowledge_bases`, `documents` (with
     `uq_active_lesson` partial unique index), `document_artifacts`,
@@ -316,142 +316,144 @@ schema (via Alembic migrations), and all persistence repository adapters.
     `lesson_projections`.  Every column, constraint, default, and index must
     match the architecture exactly.
 
-- [ ] **2.4 — Implement `mindforge/infrastructure/persistence/models.py`**
-  - [ ] 2.4.1 — Define SQLAlchemy 2.0 Mapped classes for every table in the
+- [x] **2.4 — Implement `mindforge/infrastructure/persistence/models.py`**
+  - [x] 2.4.1 — Define SQLAlchemy 2.0 Mapped classes for every table in the
     schema: `UserModel`, `ExternalIdentityModel`, `KnowledgeBaseModel`,
     `DocumentModel`, `DocumentArtifactModel`, `ContentBlockModel`,
     `MediaAssetModel`, `StudyProgressModel`, `InteractionModel`,
     `InteractionTurnModel`, `PipelineTaskModel`, `OutboxEventModel`,
     `ConsumerCursorModel`, `LessonProjectionModel`.
-  - [ ] 2.4.2 — Map relationships: `User.external_identities`,
+  - [x] 2.4.2 — Map relationships: `User.external_identities`,
     `KnowledgeBase.documents`, `Document.artifacts`, etc.
 
-- [ ] **2.5 — Implement `mindforge/infrastructure/persistence/document_repo.py`**
-  - [ ] 2.5.1 — Implement `PostgresDocumentRepository` fulfilling
+- [x] **2.5 — Implement `mindforge/infrastructure/persistence/document_repo.py`**
+  - [x] 2.5.1 — Implement `PostgresDocumentRepository` fulfilling
     `DocumentRepository` protocol.
-  - [ ] 2.5.2 — `save(document, connection)` — INSERT into `documents` within
+  - [x] 2.5.2 — `save(document, connection)` — INSERT into `documents` within
     the caller's transaction.
-  - [ ] 2.5.3 — `get_by_id(document_id)` — SELECT with domain model mapping.
-  - [ ] 2.5.4 — `get_by_content_hash(kb_id, hash)` — dedup check scoped to
+  - [x] 2.5.3 — `get_by_id(document_id)` — SELECT with domain model mapping.
+  - [x] 2.5.4 — `get_by_content_hash(kb_id, hash)` — dedup check scoped to
     knowledge base.
-  - [ ] 2.5.5 — `update_status(document_id, status)`.
-  - [ ] 2.5.6 — `list_by_knowledge_base(kb_id, ...)` — paginated listing with
+  - [x] 2.5.5 — `update_status(document_id, status)`.
+  - [x] 2.5.6 — `list_by_knowledge_base(kb_id, ...)` — paginated listing with
     filters.
 
-- [ ] **2.6 — Implement `mindforge/infrastructure/persistence/artifact_repo.py`**
-  - [ ] 2.6.1 — `save_checkpoint(artifact, connection)` — UPSERT artifact JSON,
+- [x] **2.6 — Implement `mindforge/infrastructure/persistence/artifact_repo.py`**
+  - [x] 2.6.1 — `save_checkpoint(artifact, connection)` — UPSERT artifact JSON,
     per-step fingerprints, and completed_step within caller's transaction.
-  - [ ] 2.6.2 — `load_latest(document_id)` — load highest-version artifact,
+  - [x] 2.6.2 — `load_latest(document_id)` — load highest-version artifact,
     deserialize into `DocumentArtifact`.
-  - [ ] 2.6.3 — `count_flashcards(kb_id, lesson_id)`.
+  - [x] 2.6.3 — `count_flashcards(kb_id, lesson_id)`.
 
-- [ ] **2.7 — Implement `mindforge/infrastructure/persistence/interaction_repo.py`**
-  - [ ] 2.7.1 — `create_interaction`, `add_turn`, `get_interaction`.
-  - [ ] 2.7.2 — `list_for_user(user_id)` — must enforce redaction policy:
+- [x] **2.7 — Implement `mindforge/infrastructure/persistence/interaction_repo.py`**
+  - [x] 2.7.1 — `create_interaction`, `add_turn`, `get_interaction`.
+  - [x] 2.7.2 — `list_for_user(user_id)` — must enforce redaction policy:
     strip `reference_answer`, `grounding_context`, `raw_prompt`,
     `raw_completion` from `output_data`, and hide `cost` for non-admin users.
     Redaction happens in the store, not the router (defense in depth).
-  - [ ] 2.7.3 — `list_unredacted()` — admin-only, returns full data.
+  - [x] 2.7.3 — `list_unredacted()` — admin-only, returns full data.
 
-- [ ] **2.8 — Implement `mindforge/infrastructure/persistence/identity_repo.py`**
-  - [ ] 2.8.1 — `find_user_id(provider, external_id)` — lookup.
-  - [ ] 2.8.2 — `link(user_id, provider, external_id, email, metadata)` —
+- [x] **2.8 — Implement `mindforge/infrastructure/persistence/identity_repo.py`**
+  - [x] 2.8.1 — `find_user_id(provider, external_id)` — lookup.
+  - [x] 2.8.2 — `link(user_id, provider, external_id, email, metadata)` —
     INSERT into `external_identities`.
-  - [ ] 2.8.3 — `create_user_and_link(provider, external_id, display_name, ...)`
+  - [x] 2.8.3 — `create_user_and_link(provider, external_id, display_name, ...)`
     — atomically create `users` + `external_identities` rows, return `user_id`.
 
-- [ ] **2.9 — Implement `mindforge/infrastructure/persistence/study_progress_repo.py`**
-  - [ ] 2.9.1 — `get_due_cards(user_id, kb_id, today)` — SELECT cards where
+- [x] **2.9 — Implement `mindforge/infrastructure/persistence/study_progress_repo.py`**
+  - [x] 2.9.1 — `get_due_cards(user_id, kb_id, today)` — SELECT cards where
     `next_review <= today`.
-  - [ ] 2.9.2 — `save_review(user_id, kb_id, card_id, result)` — UPSERT with
+  - [x] 2.9.2 — `save_review(user_id, kb_id, card_id, result)` — UPSERT with
     SM-2 updated fields.
-  - [ ] 2.9.3 — `due_count(user_id, kb_id, today)`.
+  - [x] 2.9.3 — `due_count(user_id, kb_id, today)`.
 
-- [ ] **2.10 — Implement `mindforge/infrastructure/persistence/read_models.py`**
-  - [ ] 2.10.1 — `upsert_lesson_projection(kb_id, lesson_id, data)` — UPSERT
+- [x] **2.10 — Implement `mindforge/infrastructure/persistence/read_models.py`**
+  - [x] 2.10.1 — `upsert_lesson_projection(kb_id, lesson_id, data)` — UPSERT
     into `lesson_projections`.
-  - [ ] 2.10.2 — `list_lessons(kb_id)` — return projections for lesson list
+  - [x] 2.10.2 — `list_lessons(kb_id)` — return projections for lesson list
     endpoint.
 
-- [ ] **2.11 — Write integration tests for persistence layer**
-  - [ ] 2.11.1 — Test document CRUD: save, get_by_id, dedup check, list.
-  - [ ] 2.11.2 — Test artifact checkpoint save/load round-trip.
-  - [ ] 2.11.3 — Test interaction redaction in `list_for_user`.
-  - [ ] 2.11.4 — Test identity repo: create_user_and_link, find_user_id, link.
-  - [ ] 2.11.5 — Test study progress SM-2 update cycle.
-  - [ ] 2.11.6 — Test lesson projection upsert/list.
+- [x] **2.11 — Write integration tests for persistence layer**
+  - [x] 2.11.1 — Test document CRUD: save, get_by_id, dedup check, list.
+  - [x] 2.11.2 — Test artifact checkpoint save/load round-trip.
+  - [x] 2.11.3 — Test interaction redaction in `list_for_user`.
+  - [x] 2.11.4 — Test identity repo: create_user_and_link, find_user_id, link.
+  - [x] 2.11.5 — Test study progress SM-2 update cycle.
+  - [x] 2.11.6 — Test lesson projection upsert/list.
 
 ### Completion Checklist
 
-- [ ] `load_settings()` loads and validates all `.env` variables.
-- [ ] `alembic upgrade head` creates the full schema.
-- [ ] All repository implementations pass integration tests with real PostgreSQL.
-- [ ] Redaction policy enforced in `InteractionStore.list_for_user()`.
+- [x] `load_settings()` loads and validates all `.env` variables.
+- [x] `alembic upgrade head` creates the full schema.
+- [x] All repository implementations pass integration tests with real PostgreSQL.
+- [x] Redaction policy enforced in `InteractionStore.list_for_user()`.
+
+> **Completed:** 2026-04-12
 
 ---
 
-## [ ] Phase 3 — AI Gateway
+## [x] Phase 3 — AI Gateway
 
 **Goal:** Implement the LiteLLM-backed AI Gateway adapter with retry, circuit
 breaker, cost tracking, deadline profiles, and fallback chains.
 
 ### Tasks
 
-- [ ] **3.1 — Implement `mindforge/infrastructure/ai/gateway.py`**
-  - [ ] 3.1.1 — Implement `LiteLLMGateway` class fulfilling `AIGateway` protocol.
+- [x] **3.1 — Implement `mindforge/infrastructure/ai/gateway.py`**
+  - [x] 3.1.1 — Implement `LiteLLMGateway` class fulfilling `AIGateway` protocol.
     Constructor accepts: `default_model`, `model_map: dict[str, str]`,
     `fallback_models: list[str]`, `timeout_seconds`, `max_retries`,
     `tracer: LangfuseAdapter | None`.
-  - [ ] 3.1.2 — Implement `complete(model, messages, temperature, response_format,
+  - [x] 3.1.2 — Implement `complete(model, messages, temperature, response_format,
     deadline)` — resolve logical model name via `model_map`, call
     `litellm.acompletion(...)`, wrap result in `CompletionResult`.  Track
     `input_tokens`, `output_tokens`, `latency_ms`, `cost_usd` (record 0.0
     for local models like Ollama).
-  - [ ] 3.1.3 — Implement deadline profile enforcement: `INTERACTIVE` = 15s,
+  - [x] 3.1.3 — Implement deadline profile enforcement: `INTERACTIVE` = 15s,
     `BATCH` = 180s, `BACKGROUND` = 300s.  Raise `DeadlineExceeded` if total
     time exceeds budget.
-  - [ ] 3.1.4 — Implement retry with exponential backoff + jitter using
+  - [x] 3.1.4 — Implement retry with exponential backoff + jitter using
     LiteLLM's built-in retry mechanism, supplemented by a custom wrapper for
     circuit breaker logic.
-  - [ ] 3.1.5 — Implement circuit breaker: open after 5 consecutive failures,
+  - [x] 3.1.5 — Implement circuit breaker: open after 5 consecutive failures,
     half-open after 60s cooldown.  When open, immediately fail to fallback
     model.
-  - [ ] 3.1.6 — Implement provider fallback chain: on primary failure (after
+  - [x] 3.1.6 — Implement provider fallback chain: on primary failure (after
     retries), try each fallback model in order.
-  - [ ] 3.1.7 — Record the **actually used model** (not the requested one) in
+  - [x] 3.1.7 — Record the **actually used model** (not the requested one) in
     `CompletionResult.model` so that `StepFingerprint` reflects fallback usage.
-  - [ ] 3.1.8 — Implement `Retry-After` header respect for rate-limited
+  - [x] 3.1.8 — Implement `Retry-After` header respect for rate-limited
     responses.
 
-- [ ] **3.2 — Implement `mindforge/infrastructure/ai/embeddings.py`**
-  - [ ] 3.2.1 — Implement `embed(model, texts)` method on the gateway (or as a
+- [x] **3.2 — Implement `mindforge/infrastructure/ai/embeddings.py`**
+  - [x] 3.2.1 — Implement `embed(model, texts)` method on the gateway (or as a
     separate adapter) — call `litellm.aembedding(...)`, return
     `list[list[float]]`.
-  - [ ] 3.2.2 — Handle batching: if `texts` exceeds the provider's max batch
+  - [x] 3.2.2 — Handle batching: if `texts` exceeds the provider's max batch
     size, split and concatenate.
 
-- [ ] **3.3 — Implement `DeadlineExceeded` exception**
+- [x] **3.3 — Implement `DeadlineExceeded` exception**
   - Define in `mindforge/domain/` (or a shared exceptions module).  Callers
     decide how to handle: degraded response for interactive, retry for batch.
 
-- [ ] **3.4 — Implement `StubAIGateway` for tests**
+- [x] **3.4 — Implement `StubAIGateway` for tests**
   - In `tests/conftest.py`: a test double returning deterministic responses
     from a preconfigured dict keyed by prompt content or model name.
 
-- [ ] **3.5 — Write unit tests for AI Gateway**
-  - [ ] 3.5.1 — Test logical model name resolution via `model_map`.
-  - [ ] 3.5.2 — Test `CompletionResult` construction with all fields.
-  - [ ] 3.5.3 — Test deadline enforcement (mock slow responses).
-  - [ ] 3.5.4 — Test circuit breaker state transitions.
-  - [ ] 3.5.5 — Test fallback chain invocation on primary failure.
+- [x] **3.5 — Write unit tests for AI Gateway**
+  - [x] 3.5.1 — Test logical model name resolution via `model_map`.
+  - [x] 3.5.2 — Test `CompletionResult` construction with all fields.
+  - [x] 3.5.3 — Test deadline enforcement (mock slow responses).
+  - [x] 3.5.4 — Test circuit breaker state transitions.
+  - [x] 3.5.5 — Test fallback chain invocation on primary failure.
 
-- [ ] **3.6 — Implement `StdoutTracingAdapter` (early observability stub)**
-  - [ ] 3.6.1 — Create `mindforge/infrastructure/tracing/stdout_adapter.py`
+- [x] **3.6 — Implement `StdoutTracingAdapter` (early observability stub)**
+  - [x] 3.6.1 — Create `mindforge/infrastructure/tracing/stdout_adapter.py`
     implementing the same `TracingAdapter` protocol that the full
     `LangfuseAdapter` (Phase 16) will fulfill.  On each `complete()` call,
     log model name, token counts, `cost_usd`, and `latency_ms` to stdout
     using structured logging (`logging.getLogger`).
-  - [ ] 3.6.2 — Wire into `LiteLLMGateway` as the default tracer when
+  - [x] 3.6.2 — Wire into `LiteLLMGateway` as the default tracer when
     `LANGFUSE_PUBLIC_KEY` is not configured.
   - **Rationale:** `CompletionResult` already carries `cost_usd` and
     `latency_ms`.  During Phase 6 agent development, having live cost
@@ -461,11 +463,13 @@ breaker, cost tracking, deadline profiles, and fallback chains.
 
 ### Completion Checklist
 
-- [ ] Gateway correctly resolves logical model names to LiteLLM strings.
-- [ ] Deadline profiles enforce correct timeouts.
-- [ ] Circuit breaker opens/closes as specified.
-- [ ] Fallback chain works and records the actually-used model.
-- [ ] `StubAIGateway` available for all downstream tests.
+- [x] Gateway correctly resolves logical model names to LiteLLM strings.
+- [x] Deadline profiles enforce correct timeouts.
+- [x] Circuit breaker opens/closes as specified.
+- [x] Fallback chain works and records the actually-used model.
+- [x] `StubAIGateway` available for all downstream tests.
+
+> **Completed:** 2026-04-14
 
 ---
 
