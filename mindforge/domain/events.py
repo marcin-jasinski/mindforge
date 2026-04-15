@@ -55,6 +55,7 @@ class DocumentIngested(DomainEvent):
     content_sha256: str
     uploaded_by: UUID | None
     timestamp: datetime
+    revision: int = 1
 
 
 @dataclass(frozen=True)
