@@ -580,7 +580,7 @@ service with deduplication and revision management.
 
 ---
 
-## [ ] Phase 5 — Agent Framework and Pipeline Orchestration
+## [x] Phase 5 — Agent Framework and Pipeline Orchestration
 
 **Goal:** Implement the agent registry, orchestration graph, pipeline
 orchestrator with DAG-aware checkpointing and fingerprint invalidation, and
@@ -588,77 +588,79 @@ the pipeline worker process.
 
 ### Tasks
 
-- [ ] **5.1 — Implement `AgentRegistry`**
-  - [ ] 5.1.1 — In `mindforge/agents/__init__.py` or a dedicated module:
+- [x] **5.1 — Implement `AgentRegistry`**
+  - [x] 5.1.1 — In `mindforge/agents/__init__.py` or a dedicated module:
     `AgentRegistry` class with `register(agent)`, `get(name)`, `all()` methods.
     Open/Closed — adding an agent never modifies the orchestrator.
 
-- [ ] **5.2 — Implement `OrchestrationGraph`**
-  - [ ] 5.2.1 — Define `GraphNode` dataclass: `agent_name`, `output_key`,
+- [x] **5.2 — Implement `OrchestrationGraph`**
+  - [x] 5.2.1 — Define `GraphNode` dataclass: `agent_name`, `output_key`,
     `dependencies: list[str]` (names of upstream nodes).
-  - [ ] 5.2.2 — Implement `OrchestrationGraph` class: holds a list of
+  - [x] 5.2.2 — Implement `OrchestrationGraph` class: holds a list of
     `GraphNode`s, provides `topological_order()` method (Kahn's algorithm or
     DFS), `dependencies(step_name) -> list[str]`.
-  - [ ] 5.2.3 — Define the default pipeline graph matching the DAG in
+  - [x] 5.2.3 — Define the default pipeline graph matching the DAG in
     Section 9.4: `DocumentParser` → `RelevanceGuard` → (`ImageAnalyzer` ||
     `Preprocessor`) → `ArticleFetcher` → `Summarizer` →
     (`FlashcardGenerator` || `ConceptMapper`) → `Validation` →
     `GraphIndexer` → `ReadModelPublisher`.
 
-- [ ] **5.3 — Implement `mindforge/application/pipeline.py`**
-  - [ ] 5.3.1 — Implement `PipelineOrchestrator` class (Section 9.5):
+- [x] **5.3 — Implement `mindforge/application/pipeline.py`**
+  - [x] 5.3.1 — Implement `PipelineOrchestrator` class (Section 9.5):
     constructor accepts `AgentRegistry`, `OrchestrationGraph`,
     `ArtifactRepository`, `EventPublisher`, `InteractionStore`.
-  - [ ] 5.3.2 — Implement `run(document_id, artifact, context, force=False)`:
+  - [x] 5.3.2 — Implement `run(document_id, artifact, context, force=False)`:
     iterate topological order, for each step: check fingerprint → execute or
     skip → flush checkpoint → publish `PipelineStepCompleted` event → record
     interaction turn.
-  - [ ] 5.3.3 — Implement `_compute_fingerprint(step, context)`: build
+  - [x] 5.3.3 — Implement `_compute_fingerprint(step, context)`: build
     `StepFingerprint` from upstream artifact fields hash, prompt version,
     model ID, agent version.
-  - [ ] 5.3.4 — Implement checkpoint skip logic: skip only if (a) output field
+  - [x] 5.3.4 — Implement checkpoint skip logic: skip only if (a) output field
     is populated AND (b) stored fingerprint matches current fingerprint.
     `force=True` bypasses all checkpoints.
-  - [ ] 5.3.5 — Implement `invalidated_steps(graph, changed_step)`: return all
+  - [x] 5.3.5 — Implement `invalidated_steps(graph, changed_step)`: return all
     downstream dependents via DAG traversal.
-  - [ ] 5.3.6 — Implement transactional flush: after each LLM-producing step,
+  - [x] 5.3.6 — Implement transactional flush: after each LLM-producing step,
     save artifact checkpoint AND outbox event in the **same** database
     transaction.
 
-- [ ] **5.4 — Implement `mindforge/cli/pipeline_runner.py`**
-  - [ ] 5.4.1 — Implement `PipelineWorker` class (Section 11.5): `worker_id`,
+- [x] **5.4 — Implement `mindforge/cli/pipeline_runner.py`**
+  - [x] 5.4.1 — Implement `PipelineWorker` class (Section 11.5): `worker_id`,
     `db_engine`, `orchestrator`, `event_publisher`, `max_concurrent`.
-  - [ ] 5.4.2 — Implement `run_forever()`: poll `pipeline_tasks` WHERE
+  - [x] 5.4.2 — Implement `run_forever()`: poll `pipeline_tasks` WHERE
     status='pending' with `FOR UPDATE SKIP LOCKED`, claim and execute.
-  - [ ] 5.4.3 — Implement `claim_task()`: atomic claim via
+  - [x] 5.4.3 — Implement `claim_task()`: atomic claim via
     `SELECT ... FOR UPDATE SKIP LOCKED`.
-  - [ ] 5.4.4 — Implement `execute_task(task)`: load document, load/create
+  - [x] 5.4.4 — Implement `execute_task(task)`: load document, load/create
     artifact, build `AgentContext`, run orchestrator, update task status
     (done/failed).
-  - [ ] 5.4.5 — Implement stale task recovery on startup: reclaim tasks where
+  - [x] 5.4.5 — Implement stale task recovery on startup: reclaim tasks where
     `status='running'` AND `claimed_at` older than
     `PIPELINE_TASK_STALE_THRESHOLD_MINUTES`.  Mark as failed after 3 reclaim
     attempts.
-  - [ ] 5.4.6 — Implement `shutdown(timeout_seconds)`: graceful drain on
+  - [x] 5.4.6 — Implement `shutdown(timeout_seconds)`: graceful drain on
     SIGTERM.
-  - [ ] 5.4.7 — Implement `main()` entry point: composition root wiring all
+  - [x] 5.4.7 — Implement `main()` entry point: composition root wiring all
     dependencies (settings, DB, gateway, registry, graph, repos, publisher).
 
-- [ ] **5.5 — Write unit tests for orchestration**
-  - [ ] 5.5.1 — Test topological ordering of the default graph.
-  - [ ] 5.5.2 — Test fingerprint computation and comparison.
-  - [ ] 5.5.3 — Test checkpoint skip logic (fingerprint match vs. mismatch).
-  - [ ] 5.5.4 — Test DAG-aware invalidation cascade.
-  - [ ] 5.5.5 — Test `force=True` bypasses all checkpoints.
-  - [ ] 5.5.6 — Test pipeline worker claim/execute/stale-recovery flow (with
+- [x] **5.5 — Write unit tests for orchestration**
+  - [x] 5.5.1 — Test topological ordering of the default graph.
+  - [x] 5.5.2 — Test fingerprint computation and comparison.
+  - [x] 5.5.3 — Test checkpoint skip logic (fingerprint match vs. mismatch).
+  - [x] 5.5.4 — Test DAG-aware invalidation cascade.
+  - [x] 5.5.5 — Test `force=True` bypasses all checkpoints.
+  - [x] 5.5.6 — Test pipeline worker claim/execute/stale-recovery flow (with
     mock DB).
 
 ### Completion Checklist
 
-- [ ] Orchestrator executes the agent graph in correct topological order.
-- [ ] Checkpoint skip works when fingerprint matches; invalidation cascades.
-- [ ] Pipeline worker claims tasks, executes, and handles stale recovery.
-- [ ] `mindforge-pipeline` entry point is callable.
+- [x] Orchestrator executes the agent graph in correct topological order.
+- [x] Checkpoint skip works when fingerprint matches; invalidation cascades.
+- [x] Pipeline worker claims tasks, executes, and handles stale recovery.
+- [x] `mindforge-pipeline` entry point is callable.
+
+> **Completed:** 2026-04-15
 
 ---
 
