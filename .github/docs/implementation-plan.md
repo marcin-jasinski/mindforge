@@ -786,7 +786,9 @@ the `AgentRegistry`.
 
 ---
 
-## [ ] Phase 7 — Neo4j Graph Layer
+## [x] Phase 7 — Neo4j Graph Layer
+
+> **Completed:** 2026-04-15
 
 **Goal:** Implement the Neo4j graph adapter, indexer, retrieval port, and
 Cypher queries for concept graph management, Graph RAG, and weak concept
@@ -794,13 +796,13 @@ detection.
 
 ### Tasks
 
-- [ ] **7.1 — Implement `mindforge/infrastructure/graph/neo4j_context.py`**
-  - [ ] 7.1.1 — `Neo4jContext` class: create and manage `AsyncDriver` from
+- [x] **7.1 — Implement `mindforge/infrastructure/graph/neo4j_context.py`**
+  - [x] 7.1.1 — `Neo4jContext` class: create and manage `AsyncDriver` from
     `neo4j` Python driver.  Accept `neo4j_uri`, `neo4j_password`,
     `neo4j_database`.  Provide `session()` context manager and `close()`.
 
-- [ ] **7.2 — Implement `mindforge/infrastructure/graph/cypher_queries.py`**
-  - [ ] 7.2.1 — Named Cypher query constants for all graph operations:
+- [x] **7.2 — Implement `mindforge/infrastructure/graph/cypher_queries.py`**
+  - [x] 7.2.1 — Named Cypher query constants for all graph operations:
     `MERGE_KNOWLEDGE_BASE`, `MERGE_LESSON`, `MERGE_CONCEPT`,
     `MERGE_FACT`, `MERGE_CHUNK`, `CREATE_ASSERTS_CONCEPT`,
     `CREATE_ASSERTS_RELATION`, `DELETE_LESSON_ENTITIES` (the cleanup query
@@ -808,61 +810,61 @@ detection.
     `REBUILD_RELATES_TO_EDGES`, `RETRIEVE_CONCEPT_NEIGHBORHOOD`
     (Section 7.2 — the Cypher from Graph RAG), `FIND_WEAK_CONCEPTS`
     (the quiz targeting query), `FULLTEXT_SEARCH`, `VECTOR_SEARCH`.
-  - [ ] 7.2.2 — All write queries use `UNWIND` batches.
-  - [ ] 7.2.3 — All queries filter by `kb_id` for knowledge base isolation.
+  - [x] 7.2.2 — All write queries use `UNWIND` batches.
+  - [x] 7.2.3 — All queries filter by `kb_id` for knowledge base isolation.
 
-- [ ] **7.3 — Implement `mindforge/infrastructure/graph/neo4j_indexer.py`**
-  - [ ] 7.3.1 — `Neo4jGraphIndexer` fulfilling `GraphIndexer` protocol.
-  - [ ] 7.3.2 — `index_lesson(kb_id, lesson_id, artifact)`: execute the
+- [x] **7.3 — Implement `mindforge/infrastructure/graph/neo4j_indexer.py`**
+  - [x] 7.3.1 — `Neo4jGraphIndexer` fulfilling `GraphIndexer` protocol.
+  - [x] 7.3.2 — `index_lesson(kb_id, lesson_id, artifact)`: execute the
     lesson revision lifecycle from Section 7.2 — (1) delete old lesson
     entities, (2) clean up orphaned concepts, (3) MERGE new lesson +
     concepts + facts + chunks + relations via UNWIND batches, (4) rebuild
     `RELATES_TO` derived edges, (5) set embeddings on chunks.
-  - [ ] 7.3.3 — Deterministic node IDs: `Fact.id = sha256(lesson_id|text)[:16]`,
+  - [x] 7.3.3 — Deterministic node IDs: `Fact.id = sha256(lesson_id|text)[:16]`,
     `Chunk.id = sha256(lesson_id|position|text)[:16]`.
-  - [ ] 7.3.4 — Concept normalization via `dedupe_key()` function:
+  - [x] 7.3.4 — Concept normalization via `dedupe_key()` function:
     consistent `normalized_key` used across all write paths.
 
-- [ ] **7.4 — Implement `mindforge/infrastructure/graph/neo4j_retrieval.py`**
-  - [ ] 7.4.1 — `Neo4jRetrievalAdapter` fulfilling `RetrievalPort` protocol.
-  - [ ] 7.4.2 — `retrieve(query, kb_id, ...)`: hybrid retrieval —
+- [x] **7.4 — Implement `mindforge/infrastructure/graph/neo4j_retrieval.py`**
+  - [x] 7.4.1 — `Neo4jRetrievalAdapter` fulfilling `RetrievalPort` protocol.
+  - [x] 7.4.2 — `retrieve(query, kb_id, ...)`: hybrid retrieval —
     (1) extract concept mentions from query (keyword/NER matching),
     (2) for each matched concept: `retrieve_concept_neighborhood()`,
     (3) if no concepts matched: fall back to full-text → vector similarity,
     (4) assemble context from neighborhoods + supplementary chunks.
-  - [ ] 7.4.3 — `retrieve_concept_neighborhood(concept_key, kb_id, depth=2)`:
+  - [x] 7.4.3 — `retrieve_concept_neighborhood(concept_key, kb_id, depth=2)`:
     execute the Cypher query from Section 7.2, return `ConceptNeighborhood`.
-  - [ ] 7.4.4 — `find_weak_concepts(user_id, kb_id, limit=5)`: execute
+  - [x] 7.4.4 — `find_weak_concepts(user_id, kb_id, limit=5)`: execute
     the Graph-Based Quiz Question Selection query from Section 7.2 — concepts
     with low `ease_factor` and high graph degree.
-  - [ ] 7.4.5 — `get_concepts(kb_id)`, `get_lesson_concepts(kb_id, lesson_id)`.
+  - [x] 7.4.5 — `get_concepts(kb_id)`, `get_lesson_concepts(kb_id, lesson_id)`.
 
-- [ ] **7.5 — Create Neo4j indexes and constraints**
-  - [ ] 7.5.1 — Create uniqueness constraints on `Lesson.id + kb_id`,
+- [x] **7.5 — Create Neo4j indexes and constraints**
+  - [x] 7.5.1 — Create uniqueness constraints on `Lesson.id + kb_id`,
     `Concept.key + kb_id`, deterministic node IDs.
-  - [ ] 7.5.2 — Create full-text index on `Chunk.text`, `Fact.text`.
-  - [ ] 7.5.3 — Create vector index on `Chunk.embedding` (Neo4j 5.x vector
+  - [x] 7.5.2 — Create full-text index on `Chunk.text`, `Fact.text`.
+  - [x] 7.5.3 — Create vector index on `Chunk.embedding` (Neo4j 5.x vector
     index).
 
-- [ ] **7.6 — Implement `StubRetrievalAdapter` for tests**
+- [x] **7.6 — Implement `StubRetrievalAdapter` for tests**
   - In `tests/conftest.py`: returns preconfigured concept neighborhoods and
     weak concepts.
 
-- [ ] **7.7 — Write integration tests for graph layer**
-  - [ ] 7.7.1 — Test lesson indexing: concepts, facts, chunks created with
+- [x] **7.7 — Write integration tests for graph layer**
+  - [x] 7.7.1 — Test lesson indexing: concepts, facts, chunks created with
     correct IDs.
-  - [ ] 7.7.2 — Test lesson revision cleanup: old entities deleted, orphaned
+  - [x] 7.7.2 — Test lesson revision cleanup: old entities deleted, orphaned
     concepts removed.
-  - [ ] 7.7.3 — Test concept neighborhood retrieval: correct graph traversal.
-  - [ ] 7.7.4 — Test weak concept detection query.
-  - [ ] 7.7.5 — Test MERGE idempotency: re-index same data → no duplicates.
+  - [x] 7.7.3 — Test concept neighborhood retrieval: correct graph traversal.
+  - [x] 7.7.4 — Test weak concept detection query.
+  - [x] 7.7.5 — Test MERGE idempotency: re-index same data → no duplicates.
 
 ### Completion Checklist
 
-- [ ] Graph indexer writes correct nodes/edges with UNWIND batches.
-- [ ] Lesson revision cleanup removes stale data.
-- [ ] Retrieval follows graph-first → full-text → vector priority.
-- [ ] All graph queries scoped to `kb_id`.
+- [x] Graph indexer writes correct nodes/edges with UNWIND batches.
+- [x] Lesson revision cleanup removes stale data.
+- [x] Retrieval follows graph-first → full-text → vector priority.
+- [x] All graph queries scoped to `kb_id`.
 
 ---
 

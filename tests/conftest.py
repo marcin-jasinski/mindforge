@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 
-from mindforge.domain.models import CompletionResult, DeadlineProfile
+from mindforge.domain.models import (
+    CompletionResult,
+    ConceptNeighborhood,
+    ConceptNode,
+    DeadlineProfile,
+    RelatedConceptSummary,
+    RetrievalResult,
+    WeakConcept,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -140,12 +150,87 @@ def mock_gateway() -> StubAIGateway:
     return StubAIGateway()
 
 
-@pytest.fixture
-def stub_retrieval() -> AsyncMock:
-    """Return a stub RetrievalPort adapter.
+# ---------------------------------------------------------------------------
+# StubRetrievalAdapter — typed test double for RetrievalPort protocol
+# ---------------------------------------------------------------------------
 
-    Replaced in Phase 7 with a typed ``StubRetrievalAdapter`` backed by
-    in-memory fixture data.
+
+class StubRetrievalAdapter:
+    """In-memory RetrievalPort double for unit and integration tests.
+
+    Pre-populate ``concepts``, ``neighborhoods``, and ``weak_concepts`` before
+    the test to control retrieval results::
+
+        stub = StubRetrievalAdapter()
+        stub.concepts = [ConceptNode(key="ml", label="Machine Learning", description="...")]
+        ctx = _make_context(retrieval=stub)
     """
-    stub = AsyncMock(name="StubRetrievalAdapter")
-    return stub
+
+    def __init__(self) -> None:
+        self.concepts: list[ConceptNode] = []
+        self.neighborhoods: dict[str, ConceptNeighborhood] = {}
+        self.weak_concepts: list[WeakConcept] = []
+        self.retrieval_results: list[RetrievalResult] = []
+        self.calls: list[dict[str, Any]] = []
+
+    async def retrieve(
+        self,
+        query: str,
+        kb_id: UUID,
+        *,
+        top_k: int = 5,
+        budget: Any = None,
+    ) -> list[RetrievalResult]:
+        self.calls.append({"method": "retrieve", "query": query, "kb_id": kb_id})
+        return self.retrieval_results[:top_k]
+
+    async def retrieve_concept_neighborhood(
+        self,
+        kb_id: UUID,
+        concept_key: str,
+        *,
+        depth: int = 2,
+    ) -> ConceptNeighborhood | None:
+        self.calls.append(
+            {
+                "method": "retrieve_concept_neighborhood",
+                "kb_id": kb_id,
+                "concept_key": concept_key,
+            }
+        )
+        return self.neighborhoods.get(concept_key)
+
+    async def find_weak_concepts(
+        self,
+        user_id: UUID,
+        kb_id: UUID,
+        today: date,
+        *,
+        limit: int = 10,
+    ) -> list[WeakConcept]:
+        self.calls.append(
+            {"method": "find_weak_concepts", "user_id": user_id, "kb_id": kb_id}
+        )
+        return self.weak_concepts[:limit]
+
+    async def get_concepts(self, kb_id: UUID) -> list[ConceptNode]:
+        self.calls.append({"method": "get_concepts", "kb_id": kb_id})
+        return list(self.concepts)
+
+    async def get_lesson_concepts(
+        self, kb_id: UUID, lesson_id: str
+    ) -> list[ConceptNode]:
+        self.calls.append(
+            {
+                "method": "get_lesson_concepts",
+                "kb_id": kb_id,
+                "lesson_id": lesson_id,
+            }
+        )
+        return list(self.concepts)
+
+
+@pytest.fixture
+def stub_retrieval() -> StubRetrievalAdapter:
+    """Return a typed StubRetrievalAdapter for use in agent and pipeline tests."""
+    return StubRetrievalAdapter()
