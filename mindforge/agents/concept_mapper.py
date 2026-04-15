@@ -24,6 +24,7 @@ from mindforge.domain.models import (
     ModelTier,
 )
 from mindforge.infrastructure.ai.prompts import concept_mapper as _prompts
+from mindforge.infrastructure.graph.normalizer import dedupe_key  # noqa: F401 (re-exported)
 
 __version__ = "1.0.0"
 
@@ -41,21 +42,6 @@ _CAPABILITY = AgentCapability(
 )
 
 _MAX_CONTENT_CHARS = 20_000
-
-
-def dedupe_key(text: str) -> str:
-    """Normalise a concept key for consistent graph merging.
-
-    Applies: unicode normalisation → lowercase → strip non-alphanumeric chars →
-    collapse spaces/hyphens to underscores → strip leading/trailing underscores.
-    """
-    text = unicodedata.normalize("NFKD", text)
-    text = text.encode("ascii", "ignore").decode("ascii")
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9_\s-]", "", text)
-    text = re.sub(r"[\s\-]+", "_", text)
-    text = text.strip("_")
-    return text or "unknown"
 
 
 class ConceptMapperAgent:
