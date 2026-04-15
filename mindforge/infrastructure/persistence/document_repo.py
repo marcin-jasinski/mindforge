@@ -6,14 +6,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mindforge.domain.models import (
-    ContentBlock,
-    BlockType,
     ContentHash,
     Document,
     DocumentStatus,
@@ -40,7 +37,7 @@ class PostgresDocumentRepository:
             kb_id=document.knowledge_base_id,
             lesson_id=document.lesson_identity.lesson_id,
             title=document.lesson_identity.title,
-            revision=1,
+            revision=document.revision,
             is_active=document.is_active,
             content_sha256=document.content_hash.sha256,
             source_filename=document.source_filename,
@@ -63,6 +60,42 @@ class PostgresDocumentRepository:
             .where(DocumentModel.document_id == document_id)
             .values(status=status.value.lower(), updated_at=datetime.now(timezone.utc))
         )
+
+    async def get_active_by_lesson(
+        self, kb_id: uuid.UUID, lesson_id: str
+    ) -> Document | None:
+        """Return the currently active revision for a lesson in a KB, or None."""
+        result = await self._session.execute(
+            select(DocumentModel).where(
+                DocumentModel.kb_id == kb_id,
+                DocumentModel.lesson_id == lesson_id,
+                DocumentModel.is_active.is_(True),
+            )
+        )
+        row = result.scalar_one_or_none()
+        return _to_domain(row) if row else None
+
+    async def deactivate_lesson(self, kb_id: uuid.UUID, lesson_id: str) -> int:
+        """Atomically mark the active revision as inactive; return its revision number.
+
+        Uses a single ``UPDATE … RETURNING`` statement to avoid a TOCTOU race
+        between a SELECT and a subsequent ORM mutation when two concurrent
+        ingestion requests target the same lesson in the same knowledge base.
+
+        Returns 0 if no active document was found.
+        """
+        result = await self._session.execute(
+            update(DocumentModel)
+            .where(
+                DocumentModel.kb_id == kb_id,
+                DocumentModel.lesson_id == lesson_id,
+                DocumentModel.is_active.is_(True),
+            )
+            .values(is_active=False, updated_at=datetime.now(timezone.utc))
+            .returning(DocumentModel.revision)
+        )
+        row = result.first()
+        return row[0] if row else 0
 
     # ------------------------------------------------------------------
     # Read
@@ -123,6 +156,7 @@ def _to_domain(row: DocumentModel) -> Document:
         upload_source=UploadSource(row.upload_source.upper()),
         status=DocumentStatus(row.status.upper()),
         is_active=row.is_active,
+        revision=row.revision,
         uploaded_by=row.uploaded_by,
         created_at=row.created_at,
         updated_at=row.updated_at,

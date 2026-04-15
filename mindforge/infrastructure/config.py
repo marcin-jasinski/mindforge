@@ -159,6 +159,16 @@ class AppSettings(BaseSettings):
             "fallback": self.model_fallback,
         }
 
+
+def load_egress_settings(settings: AppSettings) -> EgressSettings:
+    """Construct :class:`EgressSettings` from the corresponding fields on *settings*."""
+    return EgressSettings(
+        allow_private_networks=settings.egress_allow_private_networks,
+        allow_nonstandard_ports=settings.egress_allow_nonstandard_ports,
+        max_response_bytes=settings.egress_max_response_bytes,
+        timeout_seconds=settings.egress_timeout_seconds,
+    )
+
     @property
     def slack_allowed_workspace_list(self) -> list[str]:
         if not self.slack_allowed_workspaces:
