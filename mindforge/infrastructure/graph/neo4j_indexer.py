@@ -105,9 +105,7 @@ class Neo4jGraphIndexer:
         kb_id = str(artifact.knowledge_base_id)
         lesson_id = artifact.lesson_id
 
-        log.info(
-            "Neo4jGraphIndexer: indexing lesson %s in KB %s", lesson_id, kb_id
-        )
+        log.info("Neo4jGraphIndexer: indexing lesson %s in KB %s", lesson_id, kb_id)
 
         async with self._ctx.session() as session:
             # 1. Delete old lesson entities
@@ -154,9 +152,7 @@ class Neo4jGraphIndexer:
             # 8. Rebuild derived RELATES_TO projection for this KB
             await self._rebuild_relates_to(session, kb_id)
 
-        log.info(
-            "Neo4jGraphIndexer: indexed lesson %s in KB %s", lesson_id, kb_id
-        )
+        log.info("Neo4jGraphIndexer: indexed lesson %s in KB %s", lesson_id, kb_id)
 
     async def remove_lesson(self, kb_id: UUID, lesson_id: str) -> None:
         """Remove all graph nodes and edges for a deactivated lesson."""
@@ -181,9 +177,7 @@ class Neo4jGraphIndexer:
         graph for the KB so the caller starts from a clean slate.
         """
         kb_id_str = str(kb_id)
-        log.warning(
-            "Neo4jGraphIndexer: full rebuild requested for KB %s", kb_id_str
-        )
+        log.warning("Neo4jGraphIndexer: full rebuild requested for KB %s", kb_id_str)
         async with self._ctx.session() as session:
             # Delete the KnowledgeBase node and all its reachable entities
             await session.run(
@@ -287,9 +281,7 @@ class Neo4jGraphIndexer:
             for kp in key_points
         ]
         for batch in _batched(facts):
-            await session.run(
-                MERGE_FACT, facts=batch, lesson_id=lesson_id, kb_id=kb_id
-            )
+            await session.run(MERGE_FACT, facts=batch, lesson_id=lesson_id, kb_id=kb_id)
 
     async def _write_chunks(
         self,
@@ -346,18 +338,25 @@ class Neo4jGraphIndexer:
             log.warning("Neo4jGraphIndexer: embedding failed, skipping", exc_info=True)
             return
 
-        payload = [
-            {"id": c["id"], "embedding": v} for c, v in zip(chunks, vectors)
-        ]
+        payload = [{"id": c["id"], "embedding": v} for c, v in zip(chunks, vectors)]
         for batch in _batched(payload):
             await session.run(SET_CHUNK_EMBEDDINGS, chunks=batch)
 
     @staticmethod
     async def _rebuild_relates_to(session: Any, kb_id: str) -> None:
-        # REBUILD_RELATES_TO_EDGES is two separate statements separated by ';'
-        # Neo4j async driver requires them to be run individually.
-        from mindforge.infrastructure.graph.cypher_queries import REBUILD_RELATES_TO_EDGES
+        # REBUILD_RELATES_TO_EDGES contains two statements (DELETE then MERGE).
+        # Both must run in a single explicit transaction so that a crash between
+        # them never leaves the KB with zero RELATES_TO edges.
+        from mindforge.infrastructure.graph.cypher_queries import (
+            REBUILD_RELATES_TO_EDGES,
+        )
 
         parts = [p.strip() for p in REBUILD_RELATES_TO_EDGES.split(";") if p.strip()]
-        for part in parts:
-            await session.run(part, kb_id=kb_id)
+        tx = await session.begin_transaction()
+        try:
+            for part in parts:
+                await tx.run(part, kb_id=kb_id)
+            await tx.commit()
+        except Exception:
+            await tx.rollback()
+            raise

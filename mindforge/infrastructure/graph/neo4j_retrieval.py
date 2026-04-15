@@ -166,7 +166,12 @@ class Neo4jRetrievalAdapter:
                 )
             )
 
-        return ConceptNeighborhood(center=center, neighbors=neighbors, depth=depth)
+        # Map fact texts collected by the Cypher query (previously discarded)
+        facts = [f for f in (record.get("facts") or []) if f]
+
+        return ConceptNeighborhood(
+            center=center, neighbors=neighbors, depth=depth, facts=facts
+        )
 
     async def find_weak_concepts(
         self,
@@ -285,10 +290,13 @@ class Neo4jRetrievalAdapter:
             return []
 
         try:
+            # Over-fetch by 10x before the KB post-filter so the global top-k cut
+            # does not starve a small KB when other KBs dominate the index.
+            fetch_k = top_k * 10
             async with self._ctx.session() as session:
                 result = await session.run(
                     """
-                    CALL db.index.vector.queryNodes('chunk_embedding', $top_k, $vector)
+                    CALL db.index.vector.queryNodes('chunk_embedding', $fetch_k, $vector)
                     YIELD node, score
                     WHERE node.kb_id = $kb_id
                     RETURN node.text AS text, node.lesson_id AS lesson_id, score
@@ -298,6 +306,7 @@ class Neo4jRetrievalAdapter:
                     vector=query_vector,
                     kb_id=kb_id_str,
                     top_k=top_k,
+                    fetch_k=fetch_k,
                 )
                 records = await result.data()
         except Exception:
@@ -345,6 +354,10 @@ def _neighborhood_to_text(hood: ConceptNeighborhood) -> str:
         f"Concept: {hood.center.label}",
         f"Definition: {hood.center.description}",
     ]
+    if hood.facts:
+        lines.append("Key facts:")
+        for f in hood.facts:
+            lines.append(f"  - {f}")
     if hood.neighbors:
         lines.append("Related concepts:")
         for n in hood.neighbors:

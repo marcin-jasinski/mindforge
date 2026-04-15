@@ -24,7 +24,9 @@ from mindforge.domain.models import (
     ModelTier,
 )
 from mindforge.infrastructure.ai.prompts import concept_mapper as _prompts
-from mindforge.infrastructure.graph.normalizer import dedupe_key  # noqa: F401 (re-exported)
+from mindforge.infrastructure.graph.normalizer import (
+    dedupe_key,
+)  # noqa: F401 (re-exported)
 
 __version__ = "1.0.0"
 

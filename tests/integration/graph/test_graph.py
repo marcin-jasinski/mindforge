@@ -339,9 +339,7 @@ class TestConceptNeighborhoodRetrieval:
         )
 
         retrieval = Neo4jRetrievalAdapter(neo4j_ctx)
-        hood = await retrieval.retrieve_concept_neighborhood(
-            uuid4(), "no_such_concept"
-        )
+        hood = await retrieval.retrieve_concept_neighborhood(uuid4(), "no_such_concept")
         assert hood is None
 
     async def test_get_concepts_returns_all_in_kb(self, neo4j_ctx):
@@ -433,3 +431,112 @@ class TestMergeIdempotency:
 
         assert concept_count == 2  # exactly 2 concepts, no duplicates
         assert edge_count == 1  # exactly 1 RELATES_TO edge, no duplicates
+
+
+# ---------------------------------------------------------------------------
+# Regression — relation label fix (Finding 6 from phase review)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+class TestNeighborhoodRelationLabel:
+    async def test_relation_label_is_not_asserts_concept(self, neo4j_ctx):
+        """Regression: RETRIEVE_CONCEPT_NEIGHBORHOOD must return the semantic
+        RELATES_TO edge label, not the internal 'ASSERTS_CONCEPT' type.
+
+        Previously the query used ``type(nac)`` on the ASSERTS_CONCEPT relationship
+        instead of ``rel.label`` on the RELATES_TO relationship, so every neighbor
+        entry reported relation='ASSERTS_CONCEPT'.
+        """
+        from mindforge.infrastructure.graph.neo4j_indexer import Neo4jGraphIndexer
+        from mindforge.infrastructure.graph.neo4j_retrieval import (
+            Neo4jRetrievalAdapter,
+        )
+
+        artifact = _make_artifact()
+        indexer = Neo4jGraphIndexer(neo4j_ctx)
+        await indexer.index_artifact(artifact)
+
+        retrieval = Neo4jRetrievalAdapter(neo4j_ctx)
+        hood = await retrieval.retrieve_concept_neighborhood(
+            artifact.knowledge_base_id, "neural_network"
+        )
+
+        assert hood is not None
+        neighbor_keys = {n.key for n in hood.neighbors}
+        assert "backprop" in neighbor_keys, "backprop must appear as a neighbor"
+
+        backprop = next(n for n in hood.neighbors if n.key == "backprop")
+        # Must NOT be the internal graph relationship type
+        assert backprop.relation != "ASSERTS_CONCEPT", (
+            "relation field must carry the semantic label (e.g. 'USED_FOR'), "
+            "not the internal 'ASSERTS_CONCEPT' type"
+        )
+        # The test artifact defines the edge as USED_FOR
+        assert backprop.relation == "USED_FOR"
+
+    async def test_neighborhood_includes_facts(self, neo4j_ctx):
+        """Regression: facts collected by the Cypher query were silently discarded
+        because ConceptNeighborhood had no facts field (Finding 5 from phase review).
+        """
+        from mindforge.infrastructure.graph.neo4j_indexer import Neo4jGraphIndexer
+        from mindforge.infrastructure.graph.neo4j_retrieval import (
+            Neo4jRetrievalAdapter,
+        )
+
+        artifact = _make_artifact()
+        indexer = Neo4jGraphIndexer(neo4j_ctx)
+        await indexer.index_artifact(artifact)
+
+        retrieval = Neo4jRetrievalAdapter(neo4j_ctx)
+        hood = await retrieval.retrieve_concept_neighborhood(
+            artifact.knowledge_base_id, "neural_network"
+        )
+
+        assert hood is not None
+        assert len(hood.facts) > 0, "ConceptNeighborhood.facts must be populated"
+        facts_text = " ".join(hood.facts)
+        # The test artifact contains "Backpropagation computes gradients." as a key point
+        assert "Backpropagation" in facts_text or "SGD" in facts_text
+
+
+# ---------------------------------------------------------------------------
+# Regression — REBUILD_RELATES_TO atomicity (Finding 4 from phase review)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+class TestRebuildRelationshipAtomicity:
+    async def test_relates_to_edges_present_after_reindex(self, neo4j_ctx):
+        """Regression: ensure RELATES_TO edges survive a second index cycle.
+
+        Previously the two DELETE+MERGE statements in REBUILD_RELATES_TO_EDGES
+        ran as separate auto-commit transactions, so a failure between them
+        could leave the KB with no RELATES_TO edges.  This test exercises the
+        path by re-indexing twice and verifying the edge is always present.
+        """
+        from mindforge.infrastructure.graph.neo4j_indexer import Neo4jGraphIndexer
+
+        artifact = _make_artifact()
+        indexer = Neo4jGraphIndexer(neo4j_ctx)
+
+        await indexer.index_artifact(artifact)
+        # Second index run — exercises the DELETE+rebuild cycle again
+        await indexer.index_artifact(artifact)
+
+        kb_id = str(artifact.knowledge_base_id)
+        async with neo4j_ctx.session() as session:
+            result = await session.run(
+                """
+                MATCH (:Concept {key: 'backprop', kb_id: $kb_id})
+                      -[:RELATES_TO]->
+                      (:Concept {key: 'neural_network', kb_id: $kb_id})
+                RETURN count(*) AS n
+                """,
+                kb_id=kb_id,
+            )
+            record = await result.single()
+
+        assert (
+            record["n"] == 1
+        ), "RELATES_TO edge must exist after two consecutive index cycles"

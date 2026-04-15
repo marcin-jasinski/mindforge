@@ -602,6 +602,7 @@ class ConceptNeighborhood:
     center: ConceptNode
     neighbors: list[RelatedConceptSummary]
     depth: int
+    facts: list[str] = field(default_factory=list)
 
 
 @dataclass

@@ -211,7 +211,7 @@ RETRIEVE_CONCEPT_NEIGHBORHOOD = """
 MATCH (c:Concept {key: $concept_key})-[:IN_KNOWLEDGE_BASE]->(kb {id: $kb_id})
 OPTIONAL MATCH (c)<-[ac:ASSERTS_CONCEPT]-(l:Lesson)
 OPTIONAL MATCH (l)-[:HAS_FACT]->(f:Fact)
-OPTIONAL MATCH (c)-[:RELATES_TO*1..2]-(neighbor:Concept)
+OPTIONAL MATCH (c)-[rel:RELATES_TO]-(neighbor:Concept)
   -[:IN_KNOWLEDGE_BASE]->(kb)
 OPTIONAL MATCH (neighbor)<-[nac:ASSERTS_CONCEPT]-(nl:Lesson)
 RETURN
@@ -223,7 +223,7 @@ RETURN
         key:        neighbor.key,
         name:       neighbor.name,
         definition: nac.definition,
-        relation:   type(nac)
+        relation:   coalesce(rel.label, 'RELATES_TO')
     })                                                         AS neighbors
 """
 

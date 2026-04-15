@@ -51,6 +51,7 @@ async def neo4j_ctx():
     )
     try:
         await ctx.verify_connectivity()
+        await ctx.ensure_schema()
     except Exception as exc:
         await ctx.close()
         pytest.skip(f"Neo4j unreachable: {exc}")

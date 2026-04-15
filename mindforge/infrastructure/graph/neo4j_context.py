@@ -72,6 +72,37 @@ class Neo4jContext:
         await self._driver.verify_connectivity()
         log.info("Neo4jContext: connectivity verified")
 
+    async def ensure_schema(self, *, embedding_dimensions: int = 1536) -> None:
+        """Create uniqueness constraints and search indexes if they do not exist.
+
+        DDL statements must run in auto-commit (implicit) transactions in Neo4j,
+        so each statement is executed individually via ``session.run()``.
+        Safe to call on every startup thanks to the ``IF NOT EXISTS`` guards.
+        """
+        from mindforge.infrastructure.graph.cypher_queries import (
+            CREATE_CONSTRAINTS,
+            CREATE_FULLTEXT_INDEX,
+            CREATE_VECTOR_INDEX,
+        )
+
+        async with self.session() as session:
+            # Constraints — split on ';' because the constant holds multiple DDL stmts
+            for stmt in CREATE_CONSTRAINTS.split(";"):
+                stmt = stmt.strip()
+                if stmt:
+                    await session.run(stmt)
+
+            await session.run(CREATE_FULLTEXT_INDEX.rstrip(";"))
+            await session.run(
+                CREATE_VECTOR_INDEX.rstrip(";"),
+                dimensions=embedding_dimensions,
+            )
+
+        log.info(
+            "Neo4jContext: schema ensured (constraints + indexes, dimensions=%d)",
+            embedding_dimensions,
+        )
+
     async def close(self) -> None:
         """Close the driver and release all pooled connections."""
         await self._driver.close()

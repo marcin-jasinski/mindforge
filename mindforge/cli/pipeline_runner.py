@@ -46,6 +46,8 @@ from mindforge.infrastructure.ai.gateway import LiteLLMGateway
 from mindforge.infrastructure.config import AppSettings, load_egress_settings
 from mindforge.infrastructure.db import create_async_engine
 from mindforge.infrastructure.events import OutboxEventPublisher
+from mindforge.infrastructure.graph.neo4j_context import Neo4jContext
+from mindforge.infrastructure.graph.neo4j_retrieval import Neo4jRetrievalAdapter
 from mindforge.infrastructure.security.egress_policy import EgressPolicy
 from mindforge.infrastructure.persistence.artifact_repo import (
     PostgresArtifactRepository,
@@ -498,6 +500,39 @@ def main() -> None:
 
         graph = OrchestrationGraph.default()
 
+        # Wire Neo4jRetrievalAdapter when graph features are enabled and Neo4j
+        # is reachable; fall back to _StubRetrieval on connectivity failure so
+        # the worker degrades gracefully without crashing.
+        neo4j_ctx: Neo4jContext | None = None
+        if settings.enable_graph:
+            try:
+                neo4j_ctx = Neo4jContext(
+                    uri=settings.neo4j_uri,
+                    username=settings.neo4j_username,
+                    password=settings.neo4j_password,
+                    database=settings.neo4j_database,
+                )
+                await neo4j_ctx.verify_connectivity()
+                await neo4j_ctx.ensure_schema()
+                retrieval: Any = Neo4jRetrievalAdapter(
+                    neo4j_ctx,
+                    gateway=gateway,
+                    embedding_model="embedding",
+                )
+                logger.info("Neo4j graph layer active")
+            except Exception:
+                logger.warning(
+                    "Neo4j unavailable; graph features disabled. "
+                    "RelevanceGuard will accept all documents (empty-KB path).",
+                    exc_info=True,
+                )
+                if neo4j_ctx is not None:
+                    await neo4j_ctx.close()
+                    neo4j_ctx = None
+                retrieval = _StubRetrieval()
+        else:
+            retrieval = _StubRetrieval()
+
         # PipelineWorker builds a fresh per-task orchestrator (with its own
         # session) on each _execute_task call, so no long-lived shared session
         # is required here.
@@ -508,7 +543,7 @@ def main() -> None:
             graph=graph,
             gateway=gateway,
             settings=processing_settings,
-            retrieval=_StubRetrieval(),
+            retrieval=retrieval,
             max_concurrent=settings.max_concurrent_pipelines,
             stale_threshold_minutes=settings.pipeline_task_stale_threshold_minutes,
         )
@@ -527,6 +562,8 @@ def main() -> None:
                 pass
 
         await worker.run_forever()
+        if neo4j_ctx is not None:
+            await neo4j_ctx.close()
         await engine.dispose()
 
     asyncio.run(_run())
