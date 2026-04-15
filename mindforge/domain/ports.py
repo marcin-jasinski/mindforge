@@ -28,6 +28,7 @@ from mindforge.domain.models import (
     DocumentStatus,
     Interaction,
     KnowledgeBase,
+    ParsedDocument,
     QuizSession,
     RetrievalResult,
     ReviewResult,
@@ -35,6 +36,40 @@ from mindforge.domain.models import (
     User,
     WeakConcept,
 )
+
+
+# ---------------------------------------------------------------------------
+# Document parsing ports (used by IngestionService)
+# ---------------------------------------------------------------------------
+
+
+@runtime_checkable
+class DocumentParser(Protocol):
+    """Synchronous, pure parser for a single document format."""
+
+    def parse(self, raw_bytes: bytes, filename: str) -> ParsedDocument: ...
+
+
+@runtime_checkable
+class DocumentParserRegistry(Protocol):
+    """Format-dispatch registry for document parsers."""
+
+    def get(self, mime_type: str) -> DocumentParser:
+        """Return the parser for ``mime_type``; raise if unavailable."""
+        ...
+
+
+@runtime_checkable
+class DocumentSanitizer(Protocol):
+    """Validates and sanitizes document uploads before any processing."""
+
+    def sanitize_filename(self, filename: str) -> str:
+        """Return the sanitized (basename-only) filename; raise on traversal."""
+        ...
+
+    def validate(self, raw_bytes: bytes, filename: str) -> str:
+        """Validate size and format; return the resolved MIME type."""
+        ...
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +89,20 @@ class DocumentRepository(Protocol):
         self, kb_id: UUID, content_hash: ContentHash
     ) -> Document | None:
         """Return the active document matching the given content hash, or None."""
+        ...
+
+    async def get_active_by_lesson(
+        self, kb_id: UUID, lesson_id: str
+    ) -> Document | None:
+        """Return the currently active revision for a lesson in a KB, or None."""
+        ...
+
+    async def deactivate_lesson(self, kb_id: UUID, lesson_id: str) -> int:
+        """Mark the active revision for a lesson as inactive.
+
+        Returns the ``revision`` number of the document that was deactivated,
+        or 0 if no active document was found.
+        """
         ...
 
     async def update_status(
@@ -186,6 +235,26 @@ class StudyProgressStore(Protocol):
 class EventPublisher(Protocol):
     async def publish_in_tx(self, event: DomainEvent, connection: Any) -> None:
         """Write event to the outbox table within the caller's transaction."""
+        ...
+
+
+# ---------------------------------------------------------------------------
+# Pipeline Task Store
+# ---------------------------------------------------------------------------
+
+
+@runtime_checkable
+class PipelineTaskStore(Protocol):
+    async def create_task(self, document_id: UUID) -> UUID:
+        """Insert a new pipeline_task row with status='pending'.
+
+        Returns the generated ``task_id``.
+        Must be called within the caller's active session/unit-of-work.
+        """
+        ...
+
+    async def count_pending_for_user(self, user_id: UUID) -> int:
+        """Return the number of pending or running tasks owned by ``user_id``."""
         ...
 
 

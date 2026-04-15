@@ -217,6 +217,25 @@ class ContentBlock:
 
 
 # ---------------------------------------------------------------------------
+# Parsed Document (output of document format parsers)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ParsedDocument:
+    """Structured output returned by a document format parser.
+
+    ``embedded_images`` carries raw image bytes extracted from the document
+    for later vision-model analysis by the ImageAnalyzer agent.
+    """
+
+    text_content: str
+    metadata: dict[str, Any]
+    content_blocks: list[ContentBlock] = field(default_factory=list)
+    embedded_images: list[bytes] = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
 # Core Entities
 # ---------------------------------------------------------------------------
 
@@ -238,6 +257,7 @@ class Document:
     uploaded_by: UUID | None = None
     tags: list[str] = field(default_factory=list)
     is_active: bool = True
+    revision: int = 1
 
     @property
     def lesson_id(self) -> str:
