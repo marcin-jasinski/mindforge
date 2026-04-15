@@ -30,15 +30,23 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from mindforge.agents import AgentRegistry
+from mindforge.agents.article_fetcher import ArticleFetcherAgent
+from mindforge.agents.concept_mapper import ConceptMapperAgent
+from mindforge.agents.flashcard_generator import FlashcardGeneratorAgent
+from mindforge.agents.image_analyzer import ImageAnalyzerAgent
+from mindforge.agents.preprocessor import PreprocessorAgent
+from mindforge.agents.relevance_guard import RelevanceGuardAgent
+from mindforge.agents.summarizer import SummarizerAgent
 from mindforge.application.orchestration import OrchestrationGraph
 from mindforge.application.pipeline import PipelineOrchestrator, StepExecutionError
 from mindforge.domain.agents import AgentContext, ProcessingSettings
 from mindforge.domain.models import DocumentArtifact
 from mindforge.domain.ports import AIGateway, ArtifactRepository
 from mindforge.infrastructure.ai.gateway import LiteLLMGateway
-from mindforge.infrastructure.config import AppSettings
+from mindforge.infrastructure.config import AppSettings, load_egress_settings
 from mindforge.infrastructure.db import create_async_engine
 from mindforge.infrastructure.events import OutboxEventPublisher
+from mindforge.infrastructure.security.egress_policy import EgressPolicy
 from mindforge.infrastructure.persistence.artifact_repo import (
     PostgresArtifactRepository,
 )
@@ -275,6 +283,7 @@ class PipelineWorker:
                 gateway=self._gateway,
                 retrieval=self._retrieval,
                 settings=self._settings,
+                metadata={"original_content": doc_row.original_content},
             )
 
             try:
@@ -399,6 +408,31 @@ class PipelineWorker:
 # ---------------------------------------------------------------------------
 
 
+class _StubRetrieval:
+    """Phase 5–6 placeholder for the RetrievalPort.
+
+    Phase 7 (Neo4j graph layer) replaces this with a real ``Neo4jRetrievalAdapter``
+    wired at composition-root time.  Until then, every retrieval call returns an
+    empty result, which causes ``RelevanceGuardAgent`` to unconditionally accept
+    all documents (empty-KB path).
+    """
+
+    async def retrieve(self, *a: object, **kw: object) -> list:
+        return []
+
+    async def retrieve_concept_neighborhood(self, *a: object, **kw: object) -> None:
+        return None
+
+    async def find_weak_concepts(self, *a: object, **kw: object) -> list:
+        return []
+
+    async def get_concepts(self, *a: object, **kw: object) -> list:
+        return []
+
+    async def get_lesson_concepts(self, *a: object, **kw: object) -> list:
+        return []
+
+
 def _parse_reclaim_count(error: str | None) -> int:
     """Extract the ``[reclaim:N]`` counter embedded in the error field."""
     if not error:
@@ -446,31 +480,23 @@ def main() -> None:
             chunk_overlap_tokens=settings.chunk_overlap_tokens,
             enable_graph=settings.enable_graph,
             enable_image_analysis=settings.enable_image_analysis,
+            enable_article_fetch=settings.enable_article_fetch,
             model_tier_map=settings.model_map,
         )
 
+        egress_settings = load_egress_settings(settings)
+        egress_policy = EgressPolicy(egress_settings)
+
         registry = AgentRegistry()
-        # Agents registered in Phase 6.
+        registry.register(PreprocessorAgent())
+        registry.register(ImageAnalyzerAgent())
+        registry.register(RelevanceGuardAgent())
+        registry.register(ArticleFetcherAgent(egress_policy=egress_policy))
+        registry.register(SummarizerAgent())
+        registry.register(FlashcardGeneratorAgent())
+        registry.register(ConceptMapperAgent())
 
         graph = OrchestrationGraph.default()
-
-        class _StubRetrieval:
-            async def retrieve(self, *a: object, **kw: object) -> list:
-                return []
-
-            async def retrieve_concept_neighborhood(
-                self, *a: object, **kw: object
-            ) -> None:
-                return None
-
-            async def find_weak_concepts(self, *a: object, **kw: object) -> list:
-                return []
-
-            async def get_concepts(self, *a: object, **kw: object) -> list:
-                return []
-
-            async def get_lesson_concepts(self, *a: object, **kw: object) -> list:
-                return []
 
         # PipelineWorker builds a fresh per-task orchestrator (with its own
         # session) on each _execute_task call, so no long-lived shared session

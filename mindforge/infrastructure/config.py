@@ -101,6 +101,7 @@ class AppSettings(BaseSettings):
     # -- Feature Flags ------------------------------------------------------
     enable_graph: bool = True
     enable_image_analysis: bool = True
+    enable_article_fetch: bool = True
     enable_flashcards: bool = True
     enable_diagrams: bool = True
     enable_tracing: bool = True

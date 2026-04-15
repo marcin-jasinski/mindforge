@@ -664,7 +664,7 @@ the pipeline worker process.
 
 ---
 
-## [ ] Phase 6 — Concrete Processing Agents
+## [x] Phase 6 — Concrete Processing Agents
 
 **Goal:** Implement all processing agents listed in Section 9.3.  Each agent
 implements the `Agent` protocol, declares `__version__`, and is registered in
@@ -672,115 +672,117 @@ the `AgentRegistry`.
 
 ### Tasks
 
-- [ ] **6.1 — Implement prompt templates**
-  - [ ] 6.1.1 — `mindforge/infrastructure/ai/prompts/preprocessor.py`: system
+- [x] **6.1 — Implement prompt templates**
+  - [x] 6.1.1 — `mindforge/infrastructure/ai/prompts/preprocessor.py`: system
     prompt for content cleaning (remove headers/footers, TOC, boilerplate).
     Version-tagged string constant.
-  - [ ] 6.1.2 — `prompts/image_analyzer.py`: system prompt for vision model
+  - [x] 6.1.2 — `prompts/image_analyzer.py`: system prompt for vision model
     to describe images/diagrams in educational context.
-  - [ ] 6.1.3 — `prompts/summarizer.py`: produce structured summary with
+  - [x] 6.1.3 — `prompts/summarizer.py`: produce structured summary with
     `key_concepts` (list of `{name, definition}`), `key_facts` (list of
     factual statements), `section_summaries`.
-  - [ ] 6.1.4 — `prompts/flashcard_gen.py`: generate flashcards of types
+  - [x] 6.1.4 — `prompts/flashcard_gen.py`: generate flashcards of types
     BASIC, CLOZE, REVERSE from summary.
-  - [ ] 6.1.5 — `prompts/concept_mapper.py`: generate concept map with
+  - [x] 6.1.5 — `prompts/concept_mapper.py`: generate concept map with
     `concepts` (list of `{key, name, definition}`) and `relations` (list of
     `{source_key, target_key, label, description}`).
-  - [ ] 6.1.6 — `prompts/quiz_generator.py`: generate quiz question from
+  - [x] 6.1.6 — `prompts/quiz_generator.py`: generate quiz question from
     concept neighborhood context.
-  - [ ] 6.1.7 — `prompts/quiz_evaluator.py`: evaluate answer against reference
+  - [x] 6.1.7 — `prompts/quiz_evaluator.py`: evaluate answer against reference
     answer and grounding context.
 
-- [ ] **6.2 — Implement `mindforge/agents/preprocessor.py`**
-  - [ ] 6.2.1 — `PreprocessorAgent` with `__version__ = "1.0.0"`,
+- [x] **6.2 — Implement `mindforge/agents/preprocessor.py`**
+  - [x] 6.2.1 — `PreprocessorAgent` with `__version__ = "1.0.0"`,
     model tier SMALL.
-  - [ ] 6.2.2 — Takes `original_content` from artifact, produces
+  - [x] 6.2.2 — Takes `original_content` from artifact, produces
     `cleaned_content`.  Remove noise sections, normalize formatting.
 
-- [ ] **6.3 — Implement `mindforge/agents/image_analyzer.py`**
-  - [ ] 6.3.1 — `ImageAnalyzerAgent` with `__version__ = "1.0.0"`,
+- [x] **6.3 — Implement `mindforge/agents/image_analyzer.py`**
+  - [x] 6.3.1 — `ImageAnalyzerAgent` with `__version__ = "1.0.0"`,
     model tier VISION.
-  - [ ] 6.3.2 — Takes `embedded_images` from parsed document, produces
+  - [x] 6.3.2 — Takes `embedded_images` from parsed document, produces
     `image_descriptions: list[ImageDescription]`.
 
-- [ ] **6.4 — Implement `mindforge/agents/relevance_guard.py`**
-  - [ ] 6.4.1 — `RelevanceGuardAgent` with `__version__ = "1.0.0"`,
+- [x] **6.4 — Implement `mindforge/agents/relevance_guard.py`**
+  - [x] 6.4.1 — `RelevanceGuardAgent` with `__version__ = "1.0.0"`,
     model tier SMALL.
-  - [ ] 6.4.2 — Extract existing concepts from KB graph (via
+  - [x] 6.4.2 — Extract existing concepts from KB graph (via
     `context.retrieval`).  Compare document content against KB profile.  For
     empty KBs (first document), always accept.  Below threshold → reject.
-  - [ ] 6.4.3 — Produces `validation_result` with relevance score and
+  - [x] 6.4.3 — Produces `validation_result` with relevance score and
     accept/reject decision.
 
-- [ ] **6.5 — Implement `mindforge/agents/article_fetcher.py`**
-  - [ ] 6.5.1 — `ArticleFetcherAgent` with `__version__ = "1.0.0"`,
+- [x] **6.5 — Implement `mindforge/agents/article_fetcher.py`**
+  - [x] 6.5.1 — `ArticleFetcherAgent` with `__version__ = "1.0.0"`,
     model tier SMALL.
-  - [ ] 6.5.2 — Extract Markdown links from `cleaned_content` (exclude code
+  - [x] 6.5.2 — Extract Markdown links from `cleaned_content` (exclude code
     blocks and image URLs).
-  - [ ] 6.5.3 — Classify each URL using LLM (SMALL): `article | api_docs |
+  - [x] 6.5.3 — Classify each URL using LLM (SMALL): `article | api_docs |
     video | social | irrelevant`.
-  - [ ] 6.5.4 — Fetch `article` and `api_docs` URLs via `EgressPolicy.fetch()`.
+  - [x] 6.5.4 — Fetch `article` and `api_docs` URLs via `EgressPolicy.fetch()`.
     HTTP timeout 10s, max body 1 MB.
-  - [ ] 6.5.5 — Produce `fetched_articles: list[FetchedArticle]`.  Cache by
+  - [x] 6.5.5 — Produce `fetched_articles: list[FetchedArticle]`.  Cache by
     URL hash.
 
-- [ ] **6.6 — Implement `mindforge/agents/summarizer.py`**
-  - [ ] 6.6.1 — `SummarizerAgent` with `__version__ = "1.0.0"`,
+- [x] **6.6 — Implement `mindforge/agents/summarizer.py`**
+  - [x] 6.6.1 — `SummarizerAgent` with `__version__ = "1.0.0"`,
     model tier LARGE.
-  - [ ] 6.6.2 — Input: `cleaned_content` + `image_descriptions` +
+  - [x] 6.6.2 — Input: `cleaned_content` + `image_descriptions` +
     `fetched_articles` (ok status only) + prior concepts from graph context
     (injected via `context.metadata` by the orchestrator).
-  - [ ] 6.6.3 — Produce `summary: SummaryData` with `key_concepts`,
+  - [x] 6.6.3 — Produce `summary: SummaryData` with `key_concepts`,
     `key_facts`, `section_summaries`.
-  - [ ] 6.6.4 — Use `response_format` for structured JSON output.
+  - [x] 6.6.4 — Use `response_format` for structured JSON output.
 
-- [ ] **6.7 — Implement `mindforge/agents/flashcard_generator.py`**
-  - [ ] 6.7.1 — `FlashcardGeneratorAgent` with `__version__ = "1.0.0"`,
+- [x] **6.7 — Implement `mindforge/agents/flashcard_generator.py`**
+  - [x] 6.7.1 — `FlashcardGeneratorAgent` with `__version__ = "1.0.0"`,
     model tier LARGE.
-  - [ ] 6.7.2 — Input: `summary`, `cleaned_content`.
-  - [ ] 6.7.3 — Produce `flashcards: list[FlashcardData]` with deterministic
+  - [x] 6.7.2 — Input: `summary`, `cleaned_content`.
+  - [x] 6.7.3 — Produce `flashcards: list[FlashcardData]` with deterministic
     `card_id` using `sha256(kb_id|lesson_id|card_type|front|back)[:16]`.
-  - [ ] 6.7.4 — Generate a mix of BASIC, CLOZE, and REVERSE card types.
+  - [x] 6.7.4 — Generate a mix of BASIC, CLOZE, and REVERSE card types.
 
-- [ ] **6.8 — Implement `mindforge/agents/concept_mapper.py`**
-  - [ ] 6.8.1 — `ConceptMapperAgent` with `__version__ = "1.0.0"`,
+- [x] **6.8 — Implement `mindforge/agents/concept_mapper.py`**
+  - [x] 6.8.1 — `ConceptMapperAgent` with `__version__ = "1.0.0"`,
     model tier LARGE.
-  - [ ] 6.8.2 — Input: `summary`, `cleaned_content`.
-  - [ ] 6.8.3 — Produce `concept_map: ConceptMapData` with concepts
+  - [x] 6.8.2 — Input: `summary`, `cleaned_content`.
+  - [x] 6.8.3 — Produce `concept_map: ConceptMapData` with concepts
     (key, name, definition, normalized_key via `dedupe_key()`) and relations
     (source_key, target_key, label, description).
 
-- [ ] **6.9 — Implement `mindforge/agents/quiz_generator.py`**
-  - [ ] 6.9.1 — `QuizGeneratorAgent` with `__version__ = "1.0.0"`,
+- [x] **6.9 — Implement `mindforge/agents/quiz_generator.py`**
+  - [x] 6.9.1 — `QuizGeneratorAgent` with `__version__ = "1.0.0"`,
     model tier LARGE.
-  - [ ] 6.9.2 — Used at quiz runtime (not in the pipeline).  Input:
+  - [x] 6.9.2 — Used at quiz runtime (not in the pipeline).  Input:
     concept neighborhood context from Graph RAG.  Produces a quiz question
     with reference answer.
 
-- [ ] **6.10 — Implement `mindforge/agents/quiz_evaluator.py`**
-  - [ ] 6.10.1 — `QuizEvaluatorAgent` with `__version__ = "1.0.0"`,
+- [x] **6.10 — Implement `mindforge/agents/quiz_evaluator.py`**
+  - [x] 6.10.1 — `QuizEvaluatorAgent` with `__version__ = "1.0.0"`,
     model tier LARGE.
-  - [ ] 6.10.2 — Evaluates user answer against stored `reference_answer` and
+  - [x] 6.10.2 — Evaluates user answer against stored `reference_answer` and
     `grounding_context`.  Reuses the stored reference answer — never
     regenerates.
-  - [ ] 6.10.3 — Returns score, feedback, and detailed explanation.
+  - [x] 6.10.3 — Returns score, feedback, and detailed explanation.
 
-- [ ] **6.11 — Register all agents in `AgentRegistry`**
+- [x] **6.11 — Register all agents in `AgentRegistry`**
   - In the pipeline worker's composition root and other surfaces that need
     agents.
 
-- [ ] **6.12 — Write unit tests for agents**
-  - [ ] 6.12.1 — Test each agent's prompt assembly (correct input fields used).
-  - [ ] 6.12.2 — Test response parsing (JSON → domain objects).
-  - [ ] 6.12.3 — Test error handling (malformed LLM output → graceful failure).
-  - [ ] 6.12.4 — Test flashcard ID determinism.
-  - [ ] 6.12.5 — Test article fetcher URL extraction and classification.
+- [x] **6.12 — Write unit tests for agents**
+  - [x] 6.12.1 — Test each agent's prompt assembly (correct input fields used).
+  - [x] 6.12.2 — Test response parsing (JSON → domain objects).
+  - [x] 6.12.3 — Test error handling (malformed LLM output → graceful failure).
+  - [x] 6.12.4 — Test flashcard ID determinism.
+  - [x] 6.12.5 — Test article fetcher URL extraction and classification.
 
 ### Completion Checklist
 
-- [ ] All 8 pipeline agents + 2 quiz agents implemented and registered.
-- [ ] Each agent declares `__version__`.
-- [ ] All agents pass unit tests with `StubAIGateway`.
+- [x] All 8 pipeline agents + 2 quiz agents implemented and registered.
+- [x] Each agent declares `__version__`.
+- [x] All agents pass unit tests with `StubAIGateway`.
+
+> **Completed:** 2026-04-15
 
 ---
 
