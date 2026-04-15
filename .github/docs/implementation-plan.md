@@ -473,7 +473,7 @@ breaker, cost tracking, deadline profiles, and fallback chains.
 
 ---
 
-## [ ] Phase 4 — Document Parsing and Ingestion
+## [x] Phase 4 — Document Parsing and Ingestion
 
 **Goal:** Implement the parser registry, all four document format parsers, the
 upload sanitizer, the egress policy, the chunking strategy, and the ingestion
@@ -481,102 +481,102 @@ service with deduplication and revision management.
 
 ### Tasks
 
-- [ ] **4.1 — Implement `mindforge/infrastructure/security/upload_sanitizer.py`**
-  - [ ] 4.1.1 — Implement `UploadSanitizer` class: sanitize filename (strip
+- [x] **4.1 — Implement `mindforge/infrastructure/security/upload_sanitizer.py`**
+  - [x] 4.1.1 — Implement `UploadSanitizer` class: sanitize filename (strip
     path components, reject absolute paths, reject drive-qualified paths,
     reject path traversal sequences `..`), validate file extension against
     allowed set, enforce byte size limit per format.
-  - [ ] 4.1.2 — All filenames, external URLs, and image URLs are untrusted.
+  - [x] 4.1.2 — All filenames, external URLs, and image URLs are untrusted.
     Final writes only inside designated storage directories.
 
-- [ ] **4.2 — Implement `mindforge/infrastructure/security/egress_policy.py`**
-  - [ ] 4.2.1 — Implement `EgressPolicy` class initialized from
+- [x] **4.2 — Implement `mindforge/infrastructure/security/egress_policy.py`**
+  - [x] 4.2.1 — Implement `EgressPolicy` class initialized from
     `EgressSettings`.  `validate_url(url)` resolves the hostname, blocks
     private IPs (`10.x`, `172.16-31.x`, `192.168.x`), loopback (`127.x`,
     `::1`), link-local (`169.254.x`), metadata service IPs (`169.254.169.254`),
     blocks non-allowlisted schemes (only `http`/`https` by default), blocks
     non-standard ports if configured.
-  - [ ] 4.2.2 — Implement `fetch(url)` method: validates URL, follows redirects
+  - [x] 4.2.2 — Implement `fetch(url)` method: validates URL, follows redirects
     with re-validation at each hop, enforces `max_response_bytes` and
     `timeout_seconds`, sends `User-Agent: MindForge/2.0` header.
-  - [ ] 4.2.3 — Raise `EgressViolation` on any policy breach.
+  - [x] 4.2.3 — Raise `EgressViolation` on any policy breach.
 
-- [ ] **4.3 — Implement `mindforge/infrastructure/parsing/registry.py`**
-  - [ ] 4.3.1 — Implement `ParserRegistry` class: `register(mime_type, parser)`,
+- [x] **4.3 — Implement `mindforge/infrastructure/parsing/registry.py`**
+  - [x] 4.3.1 — Implement `ParserRegistry` class: `register(mime_type, parser)`,
     `get(mime_type) -> DocumentParser` (raises `UnsupportedFormatError`).
-  - [ ] 4.3.2 — Define `DocumentParser` Protocol: `parse(raw_bytes, filename) ->
+  - [x] 4.3.2 — Define `DocumentParser` Protocol: `parse(raw_bytes, filename) ->
     ParsedDocument`.
-  - [ ] 4.3.3 — Define `ParsedDocument` dataclass: `text_content`, `metadata`,
+  - [x] 4.3.3 — Define `ParsedDocument` dataclass: `text_content`, `metadata`,
     `content_blocks`, `embedded_images`.
 
-- [ ] **4.4 — Implement format parsers**
-  - [ ] 4.4.1 — `MarkdownParser` (`markdown_parser.py`): extract frontmatter
+- [x] **4.4 — Implement format parsers**
+  - [x] 4.4.1 — `MarkdownParser` (`markdown_parser.py`): extract frontmatter
     via `python-frontmatter`, text content, first heading, embedded image
     references.  Handle YAML frontmatter fields `lesson_id`, `title`.
-  - [ ] 4.4.2 — `PdfParser` (`pdf_parser.py`): extract text via PyMuPDF,
+  - [x] 4.4.2 — `PdfParser` (`pdf_parser.py`): extract text via PyMuPDF,
     extract PDF metadata `Title`, extract embedded images, enforce page limit.
-  - [ ] 4.4.3 — `DocxParser` (`docx_parser.py`): extract text via
+  - [x] 4.4.3 — `DocxParser` (`docx_parser.py`): extract text via
     `python-docx`, extract document properties, extract embedded images.
-  - [ ] 4.4.4 — `TxtParser` (`txt_parser.py`): plain text extraction, no
+  - [x] 4.4.4 — `TxtParser` (`txt_parser.py`): plain text extraction, no
     metadata, no images.
 
-- [ ] **4.5 — Implement heading-aware chunking**
-  - [ ] 4.5.1 — Implement `Chunker` class (in `mindforge/infrastructure/parsing/`
+- [x] **4.5 — Implement heading-aware chunking**
+  - [x] 4.5.1 — Implement `Chunker` class (in `mindforge/infrastructure/parsing/`
     or `mindforge/application/`): heading-aware splitting as described in
     Section 10.5.  Configurable via `CHUNK_MAX_TOKENS`, `CHUNK_MIN_TOKENS`,
     `CHUNK_OVERLAP_TOKENS`.
-  - [ ] 4.5.2 — For Markdown: split on `##` and `###` headings → paragraph
+  - [x] 4.5.2 — For Markdown: split on `##` and `###` headings → paragraph
     boundaries → sentence boundaries.  Merge small chunks.  Apply overlap.
-  - [ ] 4.5.3 — For unstructured text: fall back to paragraph-based splitting.
-  - [ ] 4.5.4 — Each chunk gets deterministic ID: `sha256(lesson_id|position|text)[:16]`.
-  - [ ] 4.5.5 — Each chunk carries `heading_context` (breadcrumb of heading
+  - [x] 4.5.3 — For unstructured text: fall back to paragraph-based splitting.
+  - [x] 4.5.4 — Each chunk gets deterministic ID: `sha256(lesson_id|position|text)[:16]`.
+  - [x] 4.5.5 — Each chunk carries `heading_context` (breadcrumb of heading
     hierarchy above it).
 
-- [ ] **4.6 — Implement `mindforge/application/ingestion.py`**
-  - [ ] 4.6.1 — Implement `IngestionService` class with constructor accepting
-    `DocumentRepository`, `UploadSanitizer`, `ParserRegistry`,
-    `OutboxEventPublisher`.
-  - [ ] 4.6.2 — Implement `ingest(raw_bytes, filename, knowledge_base_id,
+- [x] **4.6 — Implement `mindforge/application/ingestion.py`**
+  - [x] 4.6.1 — Implement `IngestionService` class with constructor accepting
+    `DocumentRepository`, `DocumentSanitizer`, `DocumentParserRegistry`,
+    `PipelineTaskStore`, `EventPublisher`.
+  - [x] 4.6.2 — Implement `ingest(raw_bytes, filename, knowledge_base_id,
     upload_source, uploaded_by)` method executing the 13-step transaction
     from Section 10.1: sanitize filename → validate size/format → compute
     content hash → dedup check → pending task limit check
     (`MAX_PENDING_TASKS_PER_USER`, reject with 429) → parse → resolve
     lesson identity → deactivate previous revision → INSERT document →
     INSERT pipeline_task → INSERT outbox event → COMMIT.
-  - [ ] 4.6.3 — All steps within a single PostgreSQL transaction.
-  - [ ] 4.6.4 — Return `IngestionResult` with `document_id`, `task_id`,
+  - [x] 4.6.3 — All steps within a single PostgreSQL transaction.
+  - [x] 4.6.4 — Return `IngestionResult` with `document_id`, `task_id`,
     `lesson_id`, `revision`.
 
-- [ ] **4.7 — Implement size and cost guards (Section 10.7)**
-  - [ ] 4.7.1 — Byte size limit per format (configurable, default 10 MB).
-  - [ ] 4.7.2 — Estimated token limit: character count × factor, reject
+- [x] **4.7 — Implement size and cost guards (Section 10.7)**
+  - [x] 4.7.1 — Byte size limit per format (configurable, default 10 MB).
+  - [x] 4.7.2 — Estimated token limit: character count × factor, reject
     if exceeded.
-  - [ ] 4.7.3 — PDF page limit (configurable).
+  - [x] 4.7.3 — PDF page limit (configurable).
 
-- [ ] **4.8 — Write unit tests for parsing and ingestion**
-  - [ ] 4.8.1 — Tests for `UploadSanitizer`: path traversal, absolute paths,
+- [x] **4.8 — Write unit tests for parsing and ingestion**
+  - [x] 4.8.1 — Tests for `UploadSanitizer`: path traversal, absolute paths,
     drive-qualified paths, valid filenames.
-  - [ ] 4.8.2 — Tests for `EgressPolicy`: private IPs, loopback, link-local,
+  - [x] 4.8.2 — Tests for `EgressPolicy`: private IPs, loopback, link-local,
     metadata service, allowed schemes, redirect re-validation.
-  - [ ] 4.8.2a — **Security invariant test:** Verify all outbound fetches
+  - [x] 4.8.2a — **Security invariant test:** Verify all outbound fetches
     (article fetcher, image URLs) go through `EgressPolicy` — no direct
     `httpx.get()` or similar calls bypass the policy.  This is a build-time
     guarantee, not deferred to Phase 18.
-  - [ ] 4.8.3 — Tests for each parser with sample documents.
-  - [ ] 4.8.4 — Tests for chunking: heading-aware splitting, overlap,
+  - [x] 4.8.3 — Tests for each parser with sample documents.
+  - [x] 4.8.4 — Tests for chunking: heading-aware splitting, overlap,
     merge small chunks, deterministic IDs, heading context.
-  - [ ] 4.8.5 — Tests for `LessonIdentity` resolution through the parsers
+  - [x] 4.8.5 — Tests for `LessonIdentity` resolution through the parsers
     (frontmatter, PDF metadata, filename).
-  - [ ] 4.8.6 — Tests for `IngestionService`: dedup rejection, revision
+  - [x] 4.8.6 — Tests for `IngestionService`: dedup rejection, revision
     creation, pending task limit, full transactional flow.
 
 ### Completion Checklist
 
-- [ ] All four parsers extract text and metadata correctly.
-- [ ] Chunker produces deterministic, heading-aware chunks with overlap.
-- [ ] Ingestion flow handles dedup, revision, task submission in one transaction.
-- [ ] Security guards reject path traversal, SSRF, and oversized uploads.
-- [ ] All outbound fetches are verified to go through `EgressPolicy`.
+- [x] All four parsers extract text and metadata correctly.
+- [x] Chunker produces deterministic, heading-aware chunks with overlap.
+- [x] Ingestion flow handles dedup, revision, task submission in one transaction.
+- [x] Security guards reject path traversal, SSRF, and oversized uploads.
+- [x] All outbound fetches are verified to go through `EgressPolicy`.
 
 ---
 
