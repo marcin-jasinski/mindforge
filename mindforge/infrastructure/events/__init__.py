@@ -1,29 +1,38 @@
 """
-Infrastructure — event publisher stub.
+Infrastructure — event system (Phase 8).
 
-Full ``OutboxEventPublisher`` (Phase 8) will write INSERT rows into
-``outbox_events`` within the caller's open database transaction.
-This stub satisfies the ``EventPublisher`` protocol during Phases 5–7
-so the composition root and tests can wire and exercise the orchestrator
-before Phase 8 is implemented.
+Public API surface:
+
+* :class:`~mindforge.infrastructure.events.outbox_publisher.OutboxEventPublisher`
+  — writes domain events to the outbox table inside the caller's transaction.
+* :class:`~mindforge.infrastructure.events.outbox_relay.OutboxRelay`
+  — polls the outbox and forwards events to Redis Pub/Sub.
+* :func:`~mindforge.infrastructure.events.outbox_relay.purge_published_events`
+  — housekeeping: delete events older than the retention window.
+* :class:`~mindforge.infrastructure.events.durable_consumer.DurableEventConsumer`
+  — base class for persistent, cursor-tracked event consumers.
+* :class:`~mindforge.infrastructure.events.durable_consumer.GraphIndexerConsumer`
+  — triggers Neo4j graph projection on ``ProcessingCompleted``.
+* :class:`~mindforge.infrastructure.events.durable_consumer.AuditLoggerConsumer`
+  — logs auditable events.
 """
 
-from __future__ import annotations
+from mindforge.infrastructure.events.durable_consumer import (
+    AuditLoggerConsumer,
+    DurableEventConsumer,
+    GraphIndexerConsumer,
+)
+from mindforge.infrastructure.events.outbox_publisher import OutboxEventPublisher
+from mindforge.infrastructure.events.outbox_relay import (
+    OutboxRelay,
+    purge_published_events,
+)
 
-from typing import Any
-
-
-class OutboxEventPublisher:
-    """No-op event publisher stub used until Phase 8 implements the outbox.
-
-    Phase 8 will replace this with a real implementation that writes to
-    the ``outbox_events`` table within the caller's transaction (the
-    ``connection`` argument).  Until then, events are silently discarded
-    so that the pipeline can run end-to-end without the full event system.
-    """
-
-    def __init__(self, session: Any) -> None:
-        self._session = session
-
-    async def publish_in_tx(self, event: Any, connection: Any) -> None:  # noqa: ARG002
-        """Discard the event.  Phase 8 replaces this with a real INSERT."""
+__all__ = [
+    "AuditLoggerConsumer",
+    "DurableEventConsumer",
+    "GraphIndexerConsumer",
+    "OutboxEventPublisher",
+    "OutboxRelay",
+    "purge_published_events",
+]
