@@ -868,63 +868,65 @@ detection.
 
 ---
 
-## [ ] Phase 8 — Event System
+## [x] Phase 8 — Event System
 
 **Goal:** Implement the transactional outbox, outbox relay, durable consumers
 (Graph Indexer, Audit Logger), and ephemeral subscriber infrastructure.
 
 ### Tasks
 
-- [ ] **8.1 — Implement `mindforge/infrastructure/events/outbox_publisher.py`**
-  - [ ] 8.1.1 — `OutboxEventPublisher` fulfilling `EventPublisher` protocol.
-  - [ ] 8.1.2 — `publish_in_tx(event, connection)`: INSERT into `outbox_events`
+- [x] **8.1 — Implement `mindforge/infrastructure/events/outbox_publisher.py`**
+  - [x] 8.1.1 — `OutboxEventPublisher` fulfilling `EventPublisher` protocol.
+  - [x] 8.1.2 — `publish_in_tx(event, connection)`: INSERT into `outbox_events`
     within the caller's in-flight transaction.  Generate `event_id`, serialize
     event via `to_dict()`, store as JSONB `payload`.
-  - [ ] 8.1.3 — After transaction commit (at the call site), issue
+  - [x] 8.1.3 — After transaction commit (at the call site), issue
     `pg_notify('outbox')` for fast relay wake.
 
-- [ ] **8.2 — Implement `mindforge/infrastructure/events/outbox_relay.py`**
-  - [ ] 8.2.1 — `OutboxRelay` class: poll `outbox_events WHERE NOT published
+- [x] **8.2 — Implement `mindforge/infrastructure/events/outbox_relay.py`**
+  - [x] 8.2.1 — `OutboxRelay` class: poll `outbox_events WHERE NOT published
     ORDER BY created_at LIMIT 100 FOR UPDATE SKIP LOCKED`.
-  - [ ] 8.2.2 — For each row: build envelope `{event_id, event_type, payload,
+  - [x] 8.2.2 — For each row: build envelope `{event_id, event_type, payload,
     created_at}`, publish to Redis Pub/Sub channel `events:{event_type}`,
     then UPDATE `published=TRUE, published_at=now()`.
-  - [ ] 8.2.3 — Listen for `pg_notify('outbox')` for immediate wake; fall back
+  - [x] 8.2.3 — Listen for `pg_notify('outbox')` for immediate wake; fall back
     to polling with configurable interval (default 1s).
-  - [ ] 8.2.4 — `start()` and `stop()` lifecycle methods for integration with
+  - [x] 8.2.4 — `start()` and `stop()` lifecycle methods for integration with
     API lifespan.
 
-- [ ] **8.3 — Implement `mindforge/infrastructure/events/durable_consumer.py`**
-  - [ ] 8.3.1 — `DurableEventConsumer` abstract base class: poll
+- [x] **8.3 — Implement `mindforge/infrastructure/events/durable_consumer.py`**
+  - [x] 8.3.1 — `DurableEventConsumer` abstract base class: poll
     `outbox_events WHERE sequence_num > cursor ORDER BY sequence_num LIMIT 100`,
     call `handle()` for each event, advance cursor in `consumer_cursors` table.
-  - [ ] 8.3.2 — `GraphIndexerConsumer(DurableEventConsumer)`: on
+  - [x] 8.3.2 — `GraphIndexerConsumer(DurableEventConsumer)`: on
     `ProcessingCompleted` events, load artifact from PostgreSQL and call
     `Neo4jGraphIndexer.index_lesson()`.
-  - [ ] 8.3.3 — `AuditLoggerConsumer(DurableEventConsumer)`: record relevant
+  - [x] 8.3.3 — `AuditLoggerConsumer(DurableEventConsumer)`: record relevant
     events in `interaction_turns`.
-  - [ ] 8.3.4 — Both consumers handle events idempotently (keyed by `event_id`).
+  - [x] 8.3.4 — Both consumers handle events idempotently (keyed by `event_id`).
 
-- [ ] **8.4 — Implement outbox retention**
-  - [ ] 8.4.1 — Background task (in pipeline worker or standalone cron):
+- [x] **8.4 — Implement outbox retention**
+  - [x] 8.4.1 — Background task (in pipeline worker or standalone cron):
     `DELETE FROM outbox_events WHERE published = TRUE AND published_at <
     now() - interval '7 days'`.  Never delete unpublished events.
 
-- [ ] **8.5 — Write tests for event system**
-  - [ ] 8.5.1 — Test outbox publisher writes event within caller's transaction.
-  - [ ] 8.5.2 — Test outbox relay publishes and marks events as delivered.
-  - [ ] 8.5.3 — Test durable consumer advances cursor correctly.
-  - [ ] 8.5.4 — Test idempotency: same event delivered twice → no duplicate
+- [x] **8.5 — Write tests for event system**
+  - [x] 8.5.1 — Test outbox publisher writes event within caller's transaction.
+  - [x] 8.5.2 — Test outbox relay publishes and marks events as delivered.
+  - [x] 8.5.3 — Test durable consumer advances cursor correctly.
+  - [x] 8.5.4 — Test idempotency: same event delivered twice → no duplicate
     processing.
-  - [ ] 8.5.5 — Test relay with `FOR UPDATE SKIP LOCKED` prevents
+  - [x] 8.5.5 — Test relay with `FOR UPDATE SKIP LOCKED` prevents
     double-publishing.
 
 ### Completion Checklist
 
-- [ ] Events are written in the same transaction as state changes.
-- [ ] Relay publishes envelopes to Redis Pub/Sub.
-- [ ] Durable consumers process events with at-least-once delivery.
-- [ ] No event is lost on crash; subscribers are idempotent.
+- [x] Events are written in the same transaction as state changes.
+- [x] Relay publishes envelopes to Redis Pub/Sub.
+- [x] Durable consumers process events with at-least-once delivery.
+- [x] No event is lost on crash; subscribers are idempotent.
+
+> **Completed:** 2026-04-18
 
 ---
 
