@@ -13,6 +13,14 @@ Regression tests added for fixed bugs:
     - Poison event skipped after _MAX_RETRIES_PER_EVENT failures.
     - OutboxEventPublisher raises if a different AsyncSession is passed.
     - OutboxRelay.stop() cancels the pg_notify listen task.
+
+Regression tests for Phase-8 review findings:
+    - OutboxRelay._pg_listen_loop used str(engine.url) masking the password.
+    - purge_published_events had a deferred import inside the function body.
+    - OutboxRelay was only started when Redis was present (outbox accumulation).
+    - AuditLoggerConsumer.handle() was not idempotent on re-delivery.
+    - notify_outbox was defined but never called after task commits.
+    - purge_published_events was never scheduled.
 """
 
 from __future__ import annotations
@@ -459,6 +467,12 @@ class TestIdempotency:
         begin_cm.__aenter__ = AsyncMock(return_value=None)
         begin_cm.__aexit__ = AsyncMock(return_value=False)
         session.begin = MagicMock(return_value=begin_cm)
+
+        # Idempotency guard: SELECT returns None (event not yet recorded).
+        check_result = MagicMock()
+        check_result.scalar_one_or_none.return_value = None
+        session.execute = AsyncMock(return_value=check_result)
+
         session_cm = MagicMock()
         session_cm.__aenter__ = AsyncMock(return_value=session)
         session_cm.__aexit__ = AsyncMock(return_value=False)
@@ -484,7 +498,11 @@ class TestIdempotency:
 
     @pytest.mark.asyncio
     async def test_audit_logger_handles_same_event_twice_without_error(self) -> None:
-        """AuditLoggerConsumer does not raise on duplicate event deliveries."""
+        """AuditLoggerConsumer inserts only once for the same event_id (idempotent).
+
+        The second delivery is recognised by the idempotency guard and skipped
+        without raising an exception.  Before the fix this produced a duplicate row.
+        """
         consumer, repo = self._make_audit_consumer()
 
         event_id = uuid.uuid4()
@@ -493,10 +511,20 @@ class TestIdempotency:
             "lesson_id": "test-lesson",
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         }
-        await consumer.handle("ProcessingCompleted", payload, event_id)
+        # First delivery: idempotency check sees no existing record → insert.
         await consumer.handle("ProcessingCompleted", payload, event_id)
 
-        assert repo.create_interaction.await_count == 2
+        # Second delivery: configure the check to return an existing turn_id → skip.
+        existing_turn_id = uuid.uuid4()
+        already_exists = MagicMock()
+        already_exists.scalar_one_or_none.return_value = existing_turn_id
+        consumer._session_factory.return_value.__aenter__.return_value.execute = (
+            AsyncMock(return_value=already_exists)
+        )
+        await consumer.handle("ProcessingCompleted", payload, event_id)
+
+        # Exactly one interaction must have been created (the second call is a no-op).
+        assert repo.create_interaction.await_count == 1
 
     @pytest.mark.asyncio
     async def test_graph_indexer_consumer_skips_unknown_events(self) -> None:
@@ -584,3 +612,157 @@ class TestEnvelopeFormat:
         assert "payload" in envelope
         assert "created_at" in envelope
         assert envelope["event_type"] == "ProcessingCompleted"
+
+
+# ===========================================================================
+# Regression tests — Phase-8 review findings
+# ===========================================================================
+
+
+class TestPgListenLoopPasswordMasking:
+    """Relay must build the asyncpg DSN using render_as_string(hide_password=False).
+
+    Before the fix, str(engine.url) in SQLAlchemy 2.0 hides the password as
+    '***', causing every asyncpg.connect() call to fail authentication.
+    """
+
+    def test_relay_uses_render_as_string_not_str(self) -> None:
+        """OutboxRelay._pg_listen_loop builds the DSN via render_as_string."""
+        import inspect
+        from mindforge.infrastructure.events.outbox_relay import OutboxRelay
+
+        source = inspect.getsource(OutboxRelay._pg_listen_loop)
+        assert "render_as_string" in source, (
+            "_pg_listen_loop must call engine.url.render_as_string(hide_password=False); "
+            "using str(engine.url) masks the password with '***' in SQLAlchemy 2.0"
+        )
+        assert "hide_password=False" in source
+
+
+class TestPurgePublishedEventsTopLevelImport:
+    """purge_published_events must not contain a deferred 'from sqlalchemy import text'."""
+
+    def test_no_deferred_import_in_purge_function(self) -> None:
+        import inspect
+        from mindforge.infrastructure.events.outbox_relay import purge_published_events
+
+        source = inspect.getsource(purge_published_events)
+        assert "from sqlalchemy import text" not in source, (
+            "purge_published_events must not import 'text' inside the function body; "
+            "imports must be at module top level per project conventions"
+        )
+
+
+class TestOutboxRelayStartsWithoutRedis:
+    """OutboxRelay.start() must succeed when redis_client=None (degraded mode).
+
+    Before the fix, the relay was only started inside 'if redis_client is not None',
+    so the outbox table accumulated unpublished rows indefinitely when Redis was absent.
+    """
+
+    @pytest.mark.asyncio
+    async def test_relay_starts_in_degraded_mode_without_redis(self) -> None:
+        """start() succeeds and sets _running=True even with redis_client=None."""
+        relay = OutboxRelay(engine=MagicMock(), redis_client=None)
+        relay._flush_batch = AsyncMock(return_value=0)
+
+        with patch("mindforge.infrastructure.events.outbox_relay.asyncpg", None):
+            await relay.start()
+
+        assert relay._running is True
+        await relay.stop()
+
+    @pytest.mark.asyncio
+    async def test_relay_marks_events_published_in_degraded_mode(self) -> None:
+        """In degraded mode (no Redis) events are still marked published=True.
+
+        This prevents outbox_events from growing unboundedly when Redis is absent.
+        """
+        row = _make_outbox_row(event_type="ProcessingCompleted", sequence_num=1)
+        session_cm, session = _make_wired_session([row])
+        relay = OutboxRelay(engine=MagicMock(), redis_client=None)
+        relay._session_factory = MagicMock(return_value=session_cm)
+
+        published = await relay._flush_batch()
+
+        assert published == 1
+        # Two executes: SELECT (claim) + UPDATE (mark published)
+        assert session.execute.await_count == 2
+
+
+class TestAuditLoggerConsumerIdempotency:
+    """AuditLoggerConsumer.handle() must not insert a duplicate row for the same event_id.
+
+    Before the fix, re-delivering the same event_id produced a second
+    interaction_turns row, violating the at-least-once + idempotent contract.
+    """
+
+    @pytest.mark.asyncio
+    async def test_handle_skips_already_recorded_event_id(self) -> None:
+        """When a turn with the same event_id already exists, handle() does not insert."""
+        engine = MagicMock()
+        factory, repo = _make_audit_repo_factory()
+        consumer = AuditLoggerConsumer(engine=engine, interaction_repo_factory=factory)
+
+        event_id = uuid.uuid4()
+        existing_turn_id = uuid.uuid4()
+
+        # First session: idempotency check returns an existing turn_id.
+        session_with_existing = AsyncMock()
+        begin_cm = MagicMock()
+        begin_cm.__aenter__ = AsyncMock(return_value=None)
+        begin_cm.__aexit__ = AsyncMock(return_value=False)
+        session_with_existing.begin = MagicMock(return_value=begin_cm)
+
+        exists_result = MagicMock()
+        exists_result.scalar_one_or_none.return_value = existing_turn_id
+        session_with_existing.execute = AsyncMock(return_value=exists_result)
+
+        session_cm = MagicMock()
+        session_cm.__aenter__ = AsyncMock(return_value=session_with_existing)
+        session_cm.__aexit__ = AsyncMock(return_value=False)
+        consumer._session_factory = MagicMock(return_value=session_cm)
+
+        await consumer.handle(
+            "ProcessingCompleted",
+            {"document_id": str(uuid.uuid4()), "lesson_id": "x"},
+            event_id,
+        )
+
+        # Interaction repo must NOT be called for a duplicate event_id.
+        repo.create_interaction.assert_not_awaited()
+        repo.add_turn.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_handle_inserts_when_event_id_is_new(self) -> None:
+        """When no existing turn matches the event_id, handle() inserts normally."""
+        engine = MagicMock()
+        factory, repo = _make_audit_repo_factory()
+        consumer = AuditLoggerConsumer(engine=engine, interaction_repo_factory=factory)
+
+        session = AsyncMock()
+        begin_cm = MagicMock()
+        begin_cm.__aenter__ = AsyncMock(return_value=None)
+        begin_cm.__aexit__ = AsyncMock(return_value=False)
+        session.begin = MagicMock(return_value=begin_cm)
+
+        # Idempotency check returns None (event not yet recorded).
+        not_exists_result = MagicMock()
+        not_exists_result.scalar_one_or_none.return_value = None
+        session.execute = AsyncMock(return_value=not_exists_result)
+
+        session_cm = MagicMock()
+        session_cm.__aenter__ = AsyncMock(return_value=session)
+        session_cm.__aexit__ = AsyncMock(return_value=False)
+        consumer._session_factory = MagicMock(return_value=session_cm)
+
+        factory.return_value = repo  # factory returns repo for the new session
+
+        await consumer.handle(
+            "ProcessingCompleted",
+            {"document_id": str(uuid.uuid4()), "lesson_id": "y"},
+            uuid.uuid4(),
+        )
+
+        repo.create_interaction.assert_awaited_once()
+        repo.add_turn.assert_awaited_once()

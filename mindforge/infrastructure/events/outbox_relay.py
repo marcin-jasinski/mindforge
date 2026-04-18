@@ -47,7 +47,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
@@ -150,7 +150,9 @@ class OutboxRelay:
         cross-process pg_notify signals (e.g., from the pipeline worker) work
         in addition to the in-process ``notify()`` call.
         """
-        url = str(self._engine.url).replace("+asyncpg", "")
+        url = self._engine.url.render_as_string(hide_password=False).replace(
+            "+asyncpg", ""
+        )
         while self._running:
             conn: Any = None
             try:
@@ -298,9 +300,7 @@ async def purge_published_events(
 
     Returns the number of rows deleted.
     """
-    from sqlalchemy import text as _text
-
-    sql = _text(
+    sql = text(
         "DELETE FROM outbox_events "
         "WHERE published = TRUE "
         "  AND published_at < now() - make_interval(days => :days)"

@@ -434,6 +434,29 @@ class ConsumerCursorModel(Base):
 # ---------------------------------------------------------------------------
 
 
+class QuizSessionModel(Base):
+    """Server-side quiz session storage. Contains reference_answer — never expose to API responses."""
+
+    __tablename__ = "quiz_sessions"
+
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False, index=True
+    )
+    kb_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("knowledge_bases.kb_id"), nullable=False
+    )
+    questions: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, nullable=False, default=list
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
 class LessonProjectionModel(Base):
     __tablename__ = "lesson_projections"
 

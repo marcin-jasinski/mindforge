@@ -46,6 +46,11 @@ from mindforge.infrastructure.ai.gateway import LiteLLMGateway
 from mindforge.infrastructure.config import AppSettings, load_egress_settings
 from mindforge.infrastructure.db import create_async_engine
 from mindforge.infrastructure.events import OutboxEventPublisher
+from mindforge.infrastructure.events.outbox_publisher import notify_outbox
+from mindforge.infrastructure.events.outbox_relay import (
+    OutboxRelay,
+    purge_published_events,
+)
 from mindforge.infrastructure.graph.neo4j_context import Neo4jContext
 from mindforge.infrastructure.graph.neo4j_retrieval import Neo4jRetrievalAdapter
 from mindforge.infrastructure.security.egress_policy import EgressPolicy
@@ -308,6 +313,15 @@ class PipelineWorker:
             await self._mark_done(task_id, session=session)
             logger.info("Task %s completed successfully", task_id)
 
+        # Wake OutboxRelay immediately after commit so consumers see the event
+        # without waiting for the next poll interval.  Non-critical: relay falls
+        # back to polling if this call fails.
+        try:
+            async with self._engine.begin() as notify_conn:
+                await notify_outbox(notify_conn)
+        except Exception:
+            logger.debug("pg_notify('outbox') failed (non-critical)", exc_info=True)
+
     async def _load_or_create_artifact(
         self, artifact_repo: ArtifactRepository, doc_row: DocumentModel
     ) -> DocumentArtifact:
@@ -533,6 +547,51 @@ def main() -> None:
         else:
             retrieval = _StubRetrieval()
 
+        # Outbox relay — forwards events inserted by this process to Redis Pub/Sub
+        # for any ephemeral subscribers.  Runs in degraded (log-only) mode when
+        # Redis is unavailable; relay is always started so outbox rows do not
+        # accumulate unboundedly.
+        redis_client: Any = None
+        if settings.redis_url:
+            try:
+                import redis.asyncio as aioredis
+
+                redis_client = aioredis.from_url(
+                    settings.redis_url, decode_responses=True
+                )
+                await redis_client.ping()
+                logger.info("Pipeline worker: Redis connected")
+            except Exception:
+                logger.warning(
+                    "Pipeline worker: Redis unavailable, relay running in degraded mode",
+                    exc_info=True,
+                )
+                redis_client = None
+
+        relay: OutboxRelay | None = None
+        try:
+            relay = OutboxRelay(engine=engine, redis_client=redis_client)
+            await relay.start()
+            logger.info("Pipeline worker: OutboxRelay started")
+        except Exception:
+            logger.warning(
+                "Pipeline worker: OutboxRelay failed to start", exc_info=True
+            )
+            relay = None
+
+        # Periodic outbox retention: delete published events older than 7 days.
+        async def _purge_loop() -> None:
+            while True:
+                await asyncio.sleep(3600)  # run every hour
+                try:
+                    deleted = await purge_published_events(engine)
+                    if deleted:
+                        logger.info("Purged %d old published outbox events", deleted)
+                except Exception:
+                    logger.warning("purge_published_events failed", exc_info=True)
+
+        purge_task = asyncio.create_task(_purge_loop(), name="outbox-purge")
+
         # PipelineWorker builds a fresh per-task orchestrator (with its own
         # session) on each _execute_task call, so no long-lived shared session
         # is required here.
@@ -562,6 +621,12 @@ def main() -> None:
                 pass
 
         await worker.run_forever()
+
+        purge_task.cancel()
+        if relay is not None:
+            await relay.stop()
+        if redis_client is not None:
+            await redis_client.aclose()
         if neo4j_ctx is not None:
             await neo4j_ctx.close()
         await engine.dispose()

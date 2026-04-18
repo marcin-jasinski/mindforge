@@ -938,113 +938,113 @@ SPA serving.
 
 ### Tasks
 
-- [ ] **9.1 — Implement `mindforge/api/main.py`**
-  - [ ] 9.1.1 — `lifespan()` async context manager implementing the full
+- [x] **9.1 — Implement `mindforge/api/main.py`**
+  - [x] 9.1.1 — `lifespan()` async context manager implementing the full
     composition root from Section 11.2: load settings → validate → create
     DB engine → run migrations (with advisory lock) → create Neo4j context →
     create AI Gateway → connect Redis (with fallback warning) → create
     outbox publisher → start outbox relay (if Redis) → create all
     repositories → create quiz session store (Redis or PG fallback) →
     create ingestion service → wire onto `app.state`.
-  - [ ] 9.1.2 — `create_app()`: FastAPI instance with lifespan, include all
+  - [x] 9.1.2 — `create_app()`: FastAPI instance with lifespan, include all
     routers, add middleware.
-  - [ ] 9.1.3 — `run()` function for `mindforge-api` entry point: call
+  - [x] 9.1.3 — `run()` function for `mindforge-api` entry point: call
     `uvicorn.run(app, host="0.0.0.0", port=8080)`.
 
-- [ ] **9.2 — Implement `mindforge/api/deps.py`**
-  - [ ] 9.2.1 — FastAPI `Depends()` providers for `get_settings()`,
+- [x] **9.2 — Implement `mindforge/api/deps.py`**
+  - [x] 9.2.1 — FastAPI `Depends()` providers for `get_settings()`,
     `get_db_engine()`, `get_gateway()`, `get_doc_repo()`,
     `get_artifact_repo()`, `get_retrieval()`, `get_quiz_sessions()`,
     `get_event_publisher()`, `get_interaction_store()`,
     `get_study_progress()`, `get_ingestion()`, `get_current_user()`.
   - All providers read from `request.app.state` — no module globals.
 
-- [ ] **9.3 — Implement `mindforge/api/auth.py`**
-  - [ ] 9.3.1 — Define `AuthProvider` Protocol: `name` property,
+- [x] **9.3 — Implement `mindforge/api/auth.py`**
+  - [x] 9.3.1 — Define `AuthProvider` Protocol: `name` property,
     `get_authorization_url(state)`, `exchange_code(code) -> UserInfo`.
-  - [ ] 9.3.2 — Implement `DiscordAuthProvider`: OAuth 2.0 flow with Discord
+  - [x] 9.3.2 — Implement `DiscordAuthProvider`: OAuth 2.0 flow with Discord
     API.  Validate `state` on every callback (CSRF protection).
-  - [ ] 9.3.3 — Implement `BasicAuthProvider`: `register(email, password,
+  - [x] 9.3.3 — Implement `BasicAuthProvider`: `register(email, password,
     display_name)` — hash with bcrypt (cost ≥ 12), `authenticate(email,
     password)` — verify hash.
-  - [ ] 9.3.4 — Implement JWT issuing: access token (configurable TTL, default
+  - [x] 9.3.4 — Implement JWT issuing: access token (configurable TTL, default
     60 min) + refresh token (30 days) stored in `HttpOnly`, `Secure`,
     `SameSite=Lax` cookies.  `Secure` flag configurable for local dev.
-  - [ ] 9.3.5 — Implement auto-refresh: if access token expires within 5 min,
+  - [x] 9.3.5 — Implement auto-refresh: if access token expires within 5 min,
     issue new one in response `Set-Cookie`.
-  - [ ] 9.3.6 — Implement refresh token rotation: each use issues new refresh
+  - [x] 9.3.6 — Implement refresh token rotation: each use issues new refresh
     token and invalidates the old one.
-  - [ ] 9.3.7 — Implement account linking flow: logged-in user can link
+  - [x] 9.3.7 — Implement account linking flow: logged-in user can link
     additional providers; reject if `(provider, external_id)` already linked
     to a different user.
-  - [ ] 9.3.8 — Implement `IdentityResolver` shared between API, Discord, and
+  - [x] 9.3.8 — Implement `IdentityResolver` shared between API, Discord, and
     Slack: resolve external platform ID to internal UUID; auto-provision user
     on first contact.
-  - [ ] 9.3.9 — Rate-limit registration endpoint.
+  - [x] 9.3.9 — Rate-limit registration endpoint.
 
-- [ ] **9.4 — Implement `mindforge/api/schemas.py`**
-  - [ ] 9.4.1 — Pydantic request/response models for all endpoints.  Must stay
+- [x] **9.4 — Implement `mindforge/api/schemas.py`**
+  - [x] 9.4.1 — Pydantic request/response models for all endpoints.  Must stay
     in sync with Angular `api.models.ts` (Phase 12).
-  - [ ] 9.4.2 — Ensure no `reference_answer`, `grounding_context`,
+  - [x] 9.4.2 — Ensure no `reference_answer`, `grounding_context`,
     `raw_prompt`, `raw_completion` fields in any user-facing schema.
 
-- [ ] **9.5 — Implement `mindforge/api/middleware.py`**
-  - [ ] 9.5.1 — CORS middleware: configurable origins.
-  - [ ] 9.5.2 — Rate limiting middleware.
-  - [ ] 9.5.3 — Request ID middleware: generate and propagate request ID.
-  - [ ] 9.5.4 — Request size limiter.
+- [x] **9.5 — Implement `mindforge/api/middleware.py`**
+  - [x] 9.5.1 — CORS middleware: configurable origins.
+  - [x] 9.5.2 — Rate limiting middleware.
+  - [x] 9.5.3 — Request ID middleware: generate and propagate request ID.
+  - [x] 9.5.4 — Request size limiter.
 
-- [ ] **9.6 — Implement routers**
-  - [ ] 9.6.1 — `routers/health.py`: `GET /api/health` — DB connectivity
+- [x] **9.6 — Implement routers**
+  - [x] 9.6.1 — `routers/health.py`: `GET /api/health` — DB connectivity
     check, optional Neo4j/Redis checks.
-  - [ ] 9.6.2 — `routers/auth.py`: `GET /login/{provider}`,
+  - [x] 9.6.2 — `routers/auth.py`: `GET /login/{provider}`,
     `GET /callback/{provider}`, `GET /link/{provider}`, `POST /register`,
     `POST /login`, `GET /me`, `POST /logout`.
-  - [ ] 9.6.3 — `routers/knowledge_bases.py`: CRUD on `/api/knowledge-bases`.
+  - [x] 9.6.3 — `routers/knowledge_bases.py`: CRUD on `/api/knowledge-bases`.
     Scoped to `current_user`.
-  - [ ] 9.6.4 — `routers/documents.py`: upload (`POST`, return 202 with
+  - [x] 9.6.4 — `routers/documents.py`: upload (`POST`, return 202 with
     `task_id`), list, get, reprocess.  Scoped to KB.
-  - [ ] 9.6.5 — `routers/concepts.py`: `GET /api/knowledge-bases/{kb_id}/concepts`
+  - [x] 9.6.5 — `routers/concepts.py`: `GET /api/knowledge-bases/{kb_id}/concepts`
     — return concept graph data for Cytoscape.
-  - [ ] 9.6.6 — `routers/quiz.py`: start session, submit answer, get results.
+  - [x] 9.6.6 — `routers/quiz.py`: start session, submit answer, get results.
     Server-authoritative — never return `grounding_context` or
     `reference_answer`.
-  - [ ] 9.6.7 — `routers/flashcards.py`: due cards, review submission, all
+  - [x] 9.6.7 — `routers/flashcards.py`: due cards, review submission, all
     cards.
-  - [ ] 9.6.8 — `routers/search.py`: `POST /api/knowledge-bases/{kb_id}/search`.
-  - [ ] 9.6.9 — `routers/chat.py`: start session, send message, list sessions.
+  - [x] 9.6.8 — `routers/search.py`: `POST /api/knowledge-bases/{kb_id}/search`.
+  - [x] 9.6.9 — `routers/chat.py`: start session, send message, list sessions.
     No grounding/prompt data in response.
-  - [ ] 9.6.10 — `routers/events.py`: SSE stream
+  - [x] 9.6.10 — `routers/events.py`: SSE stream
     `GET /api/knowledge-bases/{kb_id}/events`.  Subscribe to Redis Pub/Sub;
     fall back to polling `outbox_events` when Redis unavailable (2s interval).
-  - [ ] 9.6.11 — `routers/tasks.py`: pipeline task status polling.
-  - [ ] 9.6.12 — `routers/interactions.py`: user's own interaction history
+  - [x] 9.6.11 — `routers/tasks.py`: pipeline task status polling.
+  - [x] 9.6.12 — `routers/interactions.py`: user's own interaction history
     (redacted).
-  - [ ] 9.6.13 — `routers/admin.py`: system metrics, unredacted interactions
+  - [x] 9.6.13 — `routers/admin.py`: system metrics, unredacted interactions
     (admin-only).
 
-- [ ] **9.7 — Implement SPA serving**
-  - [ ] 9.7.1 — Mount `frontend/dist/frontend/browser` as static files.
-  - [ ] 9.7.2 — Catch-all route returns `index.html` for Angular client-side
+- [x] **9.7 — Implement SPA serving**
+  - [x] 9.7.1 — Mount `frontend/dist/frontend/browser` as static files.
+  - [x] 9.7.2 — Catch-all route returns `index.html` for Angular client-side
     routing.
 
-- [ ] **9.8 — Write API integration tests**
-  - [ ] 9.8.1 — Test auth flows: registration, login, OAuth callback, JWT
+- [x] **9.8 — Write API integration tests**
+  - [x] 9.8.1 — Test auth flows: registration, login, OAuth callback, JWT
     issuance, refresh.
-  - [ ] 9.8.2 — Test KB CRUD with user scoping.
-  - [ ] 9.8.3 — Test document upload returns 202 and creates pipeline task.
-  - [ ] 9.8.4 — Test quiz answer submission → no sensitive fields in response.
-  - [ ] 9.8.5 — Test data isolation: user A cannot access user B's data.
-  - [ ] 9.8.6 — Test SSE event stream.
-  - [ ] 9.8.7 — Test rate limiting on auth endpoints.
+  - [x] 9.8.2 — Test KB CRUD with user scoping.
+  - [x] 9.8.3 — Test document upload returns 202 and creates pipeline task.
+  - [x] 9.8.4 — Test quiz answer submission → no sensitive fields in response.
+  - [x] 9.8.5 — Test data isolation: user A cannot access user B's data.
+  - [x] 9.8.6 — Test SSE event stream.
+  - [x] 9.8.7 — Test rate limiting on auth endpoints.
 
 ### Completion Checklist
 
-- [ ] All routers functional with auth enforcement.
-- [ ] Composition root wires all dependencies correctly.
-- [ ] No business logic in routers — all delegated to application services.
-- [ ] Quiz responses contain no sensitive fields.
-- [ ] `mindforge-api` entry point starts Uvicorn correctly.
+- [x] All routers functional with auth enforcement.
+- [x] Composition root wires all dependencies correctly.
+- [x] No business logic in routers — all delegated to application services.
+- [x] Quiz responses contain no sensitive fields.
+- [x] `mindforge-api` entry point starts Uvicorn correctly.
 
 ---
 
@@ -1670,3 +1670,6 @@ Discord Bot                   Slack Bot                      │
 - Phases 10, 11, 12, 13, 14, 15 can proceed in partial parallel after Phase 9.
 - Phase 16 (Observability) can start partially alongside earlier phases by
   wiring the `LangfuseAdapter` stub and adding tracing progressively.
+
+
+

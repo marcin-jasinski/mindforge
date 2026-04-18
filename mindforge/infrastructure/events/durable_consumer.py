@@ -392,12 +392,27 @@ class AuditLoggerConsumer(DurableEventConsumer):
         )
 
         # Persist to interaction_turns so the audit trail survives process restarts.
-        # ``event_id`` is stored in ``input_data`` to allow idempotency checks:
-        # a re-delivered event produces a duplicate turn row with the same event_id
-        # visible in input_data, but no unique constraint is violated because
-        # turn_id is always a fresh UUID.  Operators can deduplicate via event_id.
+        # Idempotency guard: check whether a turn carrying this event_id was already
+        # written before inserting.  This prevents duplicate audit rows when the
+        # durable-consumer batch is retried (e.g., after a handler failure mid-batch
+        # causes the cursor not to advance).
         async with self._session_factory() as session:
             async with session.begin():
+                existing = await session.execute(
+                    select(InteractionTurnModel.turn_id)
+                    .where(
+                        InteractionTurnModel.input_data["event_id"].astext
+                        == str(event_id)
+                    )
+                    .limit(1)
+                )
+                if existing.scalar_one_or_none() is not None:
+                    log.debug(
+                        "AuditLoggerConsumer: skipping already-recorded event_id=%s",
+                        event_id,
+                    )
+                    return
+
                 repo = self._interaction_repo_factory(session)
                 interaction_id = await repo.create_interaction(
                     interaction_type=f"audit:{event_type}",
