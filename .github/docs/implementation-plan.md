@@ -1186,130 +1186,132 @@ with knowledge base).
 
 ---
 
-## [ ] Phase 12 — Angular Frontend
+## [x] Phase 12 — Angular Frontend
+
+> **Completed:** 2026-04-19
 
 **Goal:** Create the Angular SPA with standalone components, lazy-loaded
 routing, auth integration, and all user-facing pages.
 
 ### Tasks
 
-- [ ] **12.0 — Generate TypeScript API contracts (entry gate)**
-  - [ ] 12.0.1 — Generate `frontend/src/app/core/models/api.models.ts` from
+- [x] **12.0 — Generate TypeScript API contracts (entry gate)**
+  - [x] 12.0.1 — Generate `frontend/src/app/core/models/api.models.ts` from
     FastAPI's `/openapi.json` schema.  Use `openapi-typescript` or a similar
     code generator to produce TypeScript interfaces for all Pydantic
     request/response models defined in `mindforge/api/schemas.py` (Phase 9).
-  - [ ] 12.0.2 — If code generation is impractical, manually write the
+  - [x] 12.0.2 — If code generation is impractical, manually write the
     interfaces with a verified 1:1 mapping to the Pydantic schemas.  Every
     field name, type, and optionality must match.
-  - [ ] 12.0.3 — Add a CI check or test (e.g., `openapi-typescript --check`)
+  - [x] 12.0.3 — Add a CI check or test (e.g., `openapi-typescript --check`)
     that fails if `api.models.ts` drifts from the OpenAPI spec.
   - **Rationale:** This task is a prerequisite for all component and service
     implementation below.  Without it, frontend code is built on assumptions
     about API responses, and Phase 19 task 19.1.1 would discover
     mismatches instead of confirming correctness.
 
-- [ ] **12.1 — Initialize Angular project**
-  - [ ] 12.1.1 — `ng new frontend` with Angular 19+ standalone configuration.
-  - [ ] 12.1.2 — Configure `angular.json` for build output to
+- [x] **12.1 — Initialize Angular project**
+  - [x] 12.1.1 — `ng new frontend` with Angular 19+ standalone configuration.
+  - [x] 12.1.2 — Configure `angular.json` for build output to
     `frontend/dist/frontend/browser`.
 
-- [ ] **12.2 — Implement core services**
-  - [ ] 12.2.1 — `core/models/api.models.ts`: TypeScript interfaces matching
+- [x] **12.2 — Implement core services**
+  - [x] 12.2.1 — `core/models/api.models.ts`: TypeScript interfaces matching
     `mindforge/api/schemas.py`.  Keep in sync.
-  - [ ] 12.2.2 — `core/services/auth.service.ts`: login (OAuth redirect +
+  - [x] 12.2.2 — `core/services/auth.service.ts`: login (OAuth redirect +
     email/password), logout, user state management, token refresh handling.
-  - [ ] 12.2.3 — `core/services/api.service.ts`: base HTTP client with error
+  - [x] 12.2.3 — `core/services/api.service.ts`: base HTTP client with error
     handling.
-  - [ ] 12.2.4 — `core/services/knowledge-base.service.ts`: KB CRUD operations.
-  - [ ] 12.2.5 — `core/services/document.service.ts`: upload, list, status.
-  - [ ] 12.2.6 — `core/services/concept.service.ts`: fetch concept graph.
-  - [ ] 12.2.7 — `core/services/quiz.service.ts`: session management, answer
+  - [x] 12.2.4 — `core/services/knowledge-base.service.ts`: KB CRUD operations.
+  - [x] 12.2.5 — `core/services/document.service.ts`: upload, list, status.
+  - [x] 12.2.6 — `core/services/concept.service.ts`: fetch concept graph.
+  - [x] 12.2.7 — `core/services/quiz.service.ts`: session management, answer
     submission.
-  - [ ] 12.2.8 — `core/services/flashcard.service.ts`: due cards, review.
-  - [ ] 12.2.9 — `core/services/search.service.ts`: knowledge queries.
-  - [ ] 12.2.10 — `core/services/chat.service.ts`: `sendMessage()`,
+  - [x] 12.2.8 — `core/services/flashcard.service.ts`: due cards, review.
+  - [x] 12.2.9 — `core/services/search.service.ts`: knowledge queries.
+  - [x] 12.2.10 — `core/services/chat.service.ts`: `sendMessage()`,
     `listSessions()`.
-  - [ ] 12.2.11 — `core/services/event.service.ts`: SSE subscription via
+  - [x] 12.2.11 — `core/services/event.service.ts`: SSE subscription via
     `EventSource`, real-time notifications.
-  - [ ] 12.2.12 — `core/services/task.service.ts`: pipeline task status.
+  - [x] 12.2.12 — `core/services/task.service.ts`: pipeline task status.
 
-- [ ] **12.3 — Implement interceptors and guards**
-  - [ ] 12.3.1 — `core/interceptors/auth.interceptor.ts`: attach auth cookies
+- [x] **12.3 — Implement interceptors and guards**
+  - [x] 12.3.1 — `core/interceptors/auth.interceptor.ts`: attach auth cookies
     (automatic with `withCredentials`), handle 401 → redirect to login.
-  - [ ] 12.3.2 — `core/guards/auth.guard.ts`: protect routes requiring login.
+  - [x] 12.3.2 — `core/guards/auth.guard.ts`: protect routes requiring login.
 
-- [ ] **12.4 — Implement routes (`app.routes.ts`)**
-  - [ ] 12.4.1 — Lazy-loaded route structure matching Section 12.2:
+- [x] **12.4 — Implement routes (`app.routes.ts`)**
+  - [x] 12.4.1 — Lazy-loaded route structure matching Section 12.2:
     `/` (dashboard), `/login`, `/knowledge-bases`, `/kb/:kbId/documents`,
     `/kb/:kbId/concepts`, `/kb/:kbId/quiz`, `/kb/:kbId/flashcards`,
     `/kb/:kbId/search`, `/kb/:kbId/chat`.
 
-- [ ] **12.5 — Implement pages**
-  - [ ] 12.5.1 — `pages/login/`: auth provider selection + email/password
+- [x] **12.5 — Implement pages**
+  - [x] 12.5.1 — `pages/login/`: auth provider selection + email/password
     registration form.
-  - [ ] 12.5.2 — `pages/dashboard/`: lesson list, stats, recent activity.
+  - [x] 12.5.2 — `pages/dashboard/`: lesson list, stats, recent activity.
     Uses SSE for real-time updates.
-  - [ ] 12.5.3 — `pages/upload/`: drag-and-drop file upload in
+  - [x] 12.5.3 — `pages/upload/`: drag-and-drop file upload in
     `documents` page.  Show progress via SSE events.
-  - [ ] 12.5.4 — `pages/concept-map/`: Cytoscape.js graph visualization of
+  - [x] 12.5.4 — `pages/concept-map/`: Cytoscape.js graph visualization of
     concepts and relationships fetched from `/api/.../concepts`.
-  - [ ] 12.5.5 — `pages/quiz/`: interactive quiz interface — display question,
+  - [x] 12.5.5 — `pages/quiz/`: interactive quiz interface — display question,
     accept answer, show graded feedback.
-  - [ ] 12.5.6 — `pages/flashcards/`: spaced repetition review interface —
+  - [x] 12.5.6 — `pages/flashcards/`: spaced repetition review interface —
     show card front, reveal back, submit rating.
-  - [ ] 12.5.7 — `pages/search/`: knowledge search interface with results.
-  - [ ] 12.5.8 — Chat page (`/kb/:kbId/chat`): conversational RAG interface
+  - [x] 12.5.7 — `pages/search/`: knowledge search interface with results.
+  - [x] 12.5.8 — Chat page (`/kb/:kbId/chat`): conversational RAG interface
     with message input, response display, and source concept indicators.
 
-- [ ] **12.6 — Write frontend tests**
-  - [ ] 12.6.1 — Service tests: verify HTTP calls and response mapping.
-  - [ ] 12.6.2 — Component tests: rendering, user interaction.
-  - [ ] 12.6.3 — Guard tests: auth required enforcement.
+- [x] **12.6 — Write frontend tests**
+  - [x] 12.6.1 — Service tests: verify HTTP calls and response mapping.
+  - [x] 12.6.2 — Component tests: rendering, user interaction.
+  - [x] 12.6.3 — Guard tests: auth required enforcement.
 
-- [ ] **12.7 — Prompt internationalization (i18n)**
+- [x] **12.7 — Prompt internationalization (i18n)**
 
   **Backend tasks:**
-  - [ ] 12.7.1 — Add `prompt_locale: str = "pl"` field to the `KnowledgeBase`
+  - [x] 12.7.1 — Add `prompt_locale: str = "pl"` field to the `KnowledgeBase`
     domain model (`mindforge/domain/models.py`) and to the SQLAlchemy ORM model
     (`mindforge/infrastructure/persistence/models.py`).
-  - [ ] 12.7.2 — Write a database migration (`migrations/versions/`) that adds
+  - [x] 12.7.2 — Write a database migration (`migrations/versions/`) that adds
     the `prompt_locale` column to the `knowledge_bases` table with a default
     of `'pl'`.
-  - [ ] 12.7.3 — Update `ProcessingSettings` (`mindforge/domain/models.py` or
+  - [x] 12.7.3 — Update `ProcessingSettings` (`mindforge/domain/models.py` or
     wherever it lives) to include `prompt_locale: str = "pl"`.  The pipeline
     worker reads `kb.prompt_locale` and passes it through `ProcessingSettings →
     AgentContext`.
-  - [ ] 12.7.4 — Update `load_prompt()` in
+  - [x] 12.7.4 — Update `load_prompt()` in
     `mindforge/infrastructure/ai/prompts/__init__.py` to accept a `locale`
     parameter and resolve locale-suffixed files with fallback to `pl` (see
     ADR-18 and architecture Section 9.7).
-  - [ ] 12.7.5 — Rename all existing `.md` prompt files to the `.pl.md`
+  - [x] 12.7.5 — Rename all existing `.md` prompt files to the `.pl.md`
     convention (e.g., `summarizer_system.md` → `summarizer_system.pl.md`).
     Update each prompt module to call `load_prompt("summarizer_system.md",
     locale)` using the new signature.
-  - [ ] 12.7.6 — Update the `prompt_version` / `VERSION` string in each prompt
+  - [x] 12.7.6 — Update the `prompt_version` / `VERSION` string in each prompt
     module to encode locale (e.g., `f"1.0.0+{locale}"`), so that switching
     locale automatically invalidates `StepFingerprint` checkpoints.
-  - [ ] 12.7.7 — Add `prompt_locale` to the `KnowledgeBase` CRUD schemas in
+  - [x] 12.7.7 — Add `prompt_locale` to the `KnowledgeBase` CRUD schemas in
     `mindforge/api/schemas.py` (request bodies for create/update and the
     response model) and keep `frontend/src/app/core/models/api.models.ts` in
     sync.
 
   **Frontend tasks:**
-  - [ ] 12.7.8 — Add a locale selector (dropdown: Polish / English) to the KB
+  - [x] 12.7.8 — Add a locale selector (dropdown: Polish / English) to the KB
     settings / create form in the Angular SPA.  Bind to the `prompt_locale`
     field via `KnowledgeBaseService`.
-  - [ ] 12.7.9 — Display the current prompt locale on the KB detail/settings
+  - [x] 12.7.9 — Display the current prompt locale on the KB detail/settings
     page.  Show a warning that changing the locale will trigger full pipeline
     re-processing for all documents in that KB.
 
 ### Completion Checklist
 
-- [ ] `npm start` serves SPA on `:4200` with proxy to API `:8080`.
-- [ ] `npm run build` produces output in `frontend/dist/frontend/browser`.
-- [ ] All routes navigable; lazy loading works.
-- [ ] API models match backend schemas.
-- [ ] SSE events update UI in real time.
+- [x] `npm start` serves SPA on `:4200` with proxy to API `:8080`.
+- [x] `npm run build` produces output in `frontend/dist/frontend/browser`.
+- [x] All routes navigable; lazy loading works.
+- [x] API models match backend schemas.
+- [x] SSE events update UI in real time.
 
 ---
 
