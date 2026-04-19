@@ -37,7 +37,7 @@ except ImportError:
     _LITELLM_AVAILABLE = False
 
 from mindforge.domain.models import CompletionResult, DeadlineProfile, DeadlineExceeded
-from mindforge.infrastructure.ai.embeddings import embed_batched
+from mindforge.infrastructure.ai.infra.embeddings import embed_batched
 from mindforge.infrastructure.tracing.stdout_adapter import (
     StdoutTracingAdapter,
     TracingAdapter,

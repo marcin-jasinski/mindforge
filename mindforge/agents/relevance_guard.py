@@ -20,7 +20,7 @@ from mindforge.domain.models import (
     ModelTier,
     ValidationResult,
 )
-from mindforge.infrastructure.ai.prompts import relevance_guard as _prompts
+from mindforge.infrastructure.ai.agents import relevance_guard as _prompts
 
 __version__ = "1.0.0"
 

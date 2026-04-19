@@ -19,7 +19,7 @@ from mindforge.domain.models import (
     ImageDescription,
     ModelTier,
 )
-from mindforge.infrastructure.ai.prompts import image_analyzer as _prompts
+from mindforge.infrastructure.ai.agents import image_analyzer as _prompts
 
 __version__ = "1.0.0"
 

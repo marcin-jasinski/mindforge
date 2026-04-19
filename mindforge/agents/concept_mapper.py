@@ -23,7 +23,7 @@ from mindforge.domain.models import (
     DeadlineProfile,
     ModelTier,
 )
-from mindforge.infrastructure.ai.prompts import concept_mapper as _prompts
+from mindforge.infrastructure.ai.agents import concept_mapper as _prompts
 from mindforge.infrastructure.graph.normalizer import (
     dedupe_key,
 )  # noqa: F401 (re-exported)

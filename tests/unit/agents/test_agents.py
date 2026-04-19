@@ -1106,50 +1106,50 @@ class TestPromptVersionWiring:
 
     def test_preprocessor_has_prompt_version(self):
         from mindforge.agents.preprocessor import PreprocessorAgent
-        from mindforge.infrastructure.ai.prompts import preprocessor as p
+        from mindforge.infrastructure.ai.agents import preprocessor as p
 
         assert PreprocessorAgent.PROMPT_VERSION == p.VERSION
         assert PreprocessorAgent.PROMPT_VERSION != ""
 
     def test_image_analyzer_has_prompt_version(self):
         from mindforge.agents.image_analyzer import ImageAnalyzerAgent
-        from mindforge.infrastructure.ai.prompts import image_analyzer as p
+        from mindforge.infrastructure.ai.agents import image_analyzer as p
 
         assert ImageAnalyzerAgent.PROMPT_VERSION == p.VERSION
 
     def test_relevance_guard_has_prompt_version(self):
         from mindforge.agents.relevance_guard import RelevanceGuardAgent
-        from mindforge.infrastructure.ai.prompts import relevance_guard as p
+        from mindforge.infrastructure.ai.agents import relevance_guard as p
 
         assert RelevanceGuardAgent.PROMPT_VERSION == p.VERSION
 
     def test_summarizer_has_prompt_version(self):
         from mindforge.agents.summarizer import SummarizerAgent
-        from mindforge.infrastructure.ai.prompts import summarizer as p
+        from mindforge.infrastructure.ai.agents import summarizer as p
 
         assert SummarizerAgent.PROMPT_VERSION == p.VERSION
 
     def test_flashcard_generator_has_prompt_version(self):
         from mindforge.agents.flashcard_generator import FlashcardGeneratorAgent
-        from mindforge.infrastructure.ai.prompts import flashcard_gen as p
+        from mindforge.infrastructure.ai.agents import flashcard_gen as p
 
         assert FlashcardGeneratorAgent.PROMPT_VERSION == p.VERSION
 
     def test_concept_mapper_has_prompt_version(self):
         from mindforge.agents.concept_mapper import ConceptMapperAgent
-        from mindforge.infrastructure.ai.prompts import concept_mapper as p
+        from mindforge.infrastructure.ai.agents import concept_mapper as p
 
         assert ConceptMapperAgent.PROMPT_VERSION == p.VERSION
 
     def test_quiz_generator_has_prompt_version(self):
         from mindforge.agents.quiz_generator import QuizGeneratorAgent
-        from mindforge.infrastructure.ai.prompts import quiz_generator as p
+        from mindforge.infrastructure.ai.agents import quiz_generator as p
 
         assert QuizGeneratorAgent.PROMPT_VERSION == p.VERSION
 
     def test_quiz_evaluator_has_prompt_version(self):
         from mindforge.agents.quiz_evaluator import QuizEvaluatorAgent
-        from mindforge.infrastructure.ai.prompts import quiz_evaluator as p
+        from mindforge.infrastructure.ai.agents import quiz_evaluator as p
 
         assert QuizEvaluatorAgent.PROMPT_VERSION == p.VERSION
 
@@ -1168,7 +1168,7 @@ class TestRelevanceGuardUsesPromptModule:
 
     def test_relevance_guard_imports_from_prompt_module(self):
         import mindforge.agents.relevance_guard as rg_mod
-        import mindforge.infrastructure.ai.prompts.relevance_guard as prompt_mod
+        import mindforge.infrastructure.ai.agents.relevance_guard as prompt_mod
 
         # The agent module must use the prompt module's getter function
         assert callable(
@@ -1329,28 +1329,28 @@ class TestLocaleAwarePromptGetters:
     so that the correct locale is used at call time."""
 
     def test_preprocessor_system_prompt_returns_string(self):
-        from mindforge.infrastructure.ai.prompts import preprocessor as p
+        from mindforge.infrastructure.ai.agents import preprocessor as p
 
         result = p.system_prompt("pl")
         assert isinstance(result, str)
         assert len(result) > 0
 
     def test_preprocessor_has_no_module_level_system_prompt_constant(self):
-        from mindforge.infrastructure.ai.prompts import preprocessor as p
+        from mindforge.infrastructure.ai.agents import preprocessor as p
 
         assert not hasattr(
             p, "SYSTEM_PROMPT"
         ), "SYSTEM_PROMPT must not be a module-level constant; use system_prompt() getter"
 
     def test_preprocessor_has_no_dead_version_function(self):
-        from mindforge.infrastructure.ai.prompts import preprocessor as p
+        from mindforge.infrastructure.ai.agents import preprocessor as p
 
         assert not hasattr(
             p, "version"
         ), "version(locale) was dead code and must be removed"
 
     def test_summarizer_all_getters_present(self):
-        from mindforge.infrastructure.ai.prompts import summarizer as p
+        from mindforge.infrastructure.ai.agents import summarizer as p
 
         for fn_name in (
             "system_prompt",

@@ -20,7 +20,7 @@ from mindforge.domain.models import (
     ModelTier,
     ReviewResult,
 )
-from mindforge.infrastructure.ai.prompts import quiz_evaluator as _prompts
+from mindforge.infrastructure.ai.agents import quiz_evaluator as _prompts
 
 __version__ = "1.0.0"
 

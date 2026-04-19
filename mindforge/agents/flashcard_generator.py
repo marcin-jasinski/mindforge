@@ -20,7 +20,7 @@ from mindforge.domain.models import (
     FlashcardData,
     ModelTier,
 )
-from mindforge.infrastructure.ai.prompts import flashcard_gen as _prompts
+from mindforge.infrastructure.ai.agents import flashcard_gen as _prompts
 
 __version__ = "1.0.0"
 

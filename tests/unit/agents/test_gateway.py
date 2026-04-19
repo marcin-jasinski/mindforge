@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 
 from mindforge.domain.models import CompletionResult, DeadlineProfile, DeadlineExceeded
-from mindforge.infrastructure.ai.gateway import (
+from mindforge.infrastructure.ai.infra.gateway import (
     LiteLLMGateway,
     _CircuitBreaker,
     _CBState,
@@ -98,8 +98,9 @@ class TestCompletionResult:
         mock_resp = _mock_litellm_response("Answer text")
 
         with patch(
-            "mindforge.infrastructure.ai.gateway.acompletion",
+            "mindforge.infrastructure.ai.infra.gateway.acompletion",
             new=AsyncMock(return_value=mock_resp),
+            create=True,
         ):
             result = await gw.complete(
                 model="small",
@@ -133,8 +134,9 @@ class TestCompletionResult:
             max_retries=0,
         )
         with patch(
-            "mindforge.infrastructure.ai.gateway.acompletion",
+            "mindforge.infrastructure.ai.infra.gateway.acompletion",
             side_effect=fake_completion,
+            create=True,
         ):
             result = await gw.complete(
                 model=primary_model,
@@ -190,12 +192,13 @@ class TestDeadlineEnforcement:
             return 20.0
 
         with patch(
-            "mindforge.infrastructure.ai.gateway.time.monotonic",
+            "mindforge.infrastructure.ai.infra.gateway.time.monotonic",
             side_effect=patched_monotonic,
         ):
             with patch(
-                "mindforge.infrastructure.ai.gateway.acompletion",
+                "mindforge.infrastructure.ai.infra.gateway.acompletion",
                 new=AsyncMock(return_value=mock_resp),
+                create=True,
             ):
                 with pytest.raises(DeadlineExceeded) as exc_info:
                     await gw.complete(
@@ -248,7 +251,7 @@ class TestCircuitBreaker:
 
         # Simulate 61 seconds passing
         with patch(
-            "mindforge.infrastructure.ai.gateway.time.monotonic",
+            "mindforge.infrastructure.ai.infra.gateway.time.monotonic",
             return_value=cb._opened_at + 61.0,
         ):
             assert not cb.is_open  # transitions to HALF_OPEN → not open
@@ -282,8 +285,9 @@ class TestCircuitBreaker:
             gw._cb_for(primary).record_failure()
 
         with patch(
-            "mindforge.infrastructure.ai.gateway.acompletion",
+            "mindforge.infrastructure.ai.infra.gateway.acompletion",
             side_effect=fake_completion,
+            create=True,
         ):
             result = await gw.complete(
                 model=primary, messages=[{"role": "user", "content": "Q?"}]
@@ -311,8 +315,9 @@ class TestFallbackChain:
 
         gw = LiteLLMGateway(fallback_models=[fallback], max_retries=0)
         with patch(
-            "mindforge.infrastructure.ai.gateway.acompletion",
+            "mindforge.infrastructure.ai.infra.gateway.acompletion",
             side_effect=fake_completion,
+            create=True,
         ):
             result = await gw.complete(
                 model=primary, messages=[{"role": "user", "content": "Q?"}]
@@ -328,8 +333,9 @@ class TestFallbackChain:
 
         gw = LiteLLMGateway(fallback_models=[fallback], max_retries=0)
         with patch(
-            "mindforge.infrastructure.ai.gateway.acompletion",
+            "mindforge.infrastructure.ai.infra.gateway.acompletion",
             side_effect=OSError("all down"),
+            create=True,
         ):
             with pytest.raises(OSError):
                 await gw.complete(
@@ -350,8 +356,9 @@ class TestFallbackChain:
 
         gw = LiteLLMGateway(fallback_models=[fb1, fb2], max_retries=0)
         with patch(
-            "mindforge.infrastructure.ai.gateway.acompletion",
+            "mindforge.infrastructure.ai.infra.gateway.acompletion",
             side_effect=fake_completion,
+            create=True,
         ):
             result = await gw.complete(
                 model=primary, messages=[{"role": "user", "content": "Q?"}]

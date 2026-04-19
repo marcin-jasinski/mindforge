@@ -20,7 +20,7 @@ from mindforge.domain.models import (
     ModelTier,
     QuizQuestion,
 )
-from mindforge.infrastructure.ai.prompts import quiz_generator as _prompts
+from mindforge.infrastructure.ai.agents import quiz_generator as _prompts
 
 __version__ = "1.0.0"
 

@@ -22,7 +22,7 @@ from mindforge.domain.models import (
     FetchedArticle,
     ModelTier,
 )
-from mindforge.infrastructure.ai.prompts import article_fetcher as _prompts
+from mindforge.infrastructure.ai.agents import article_fetcher as _prompts
 from mindforge.infrastructure.security.egress_policy import (
     EgressPolicy,
     EgressViolation,

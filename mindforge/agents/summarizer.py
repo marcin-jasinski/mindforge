@@ -19,7 +19,7 @@ from mindforge.domain.models import (
     ModelTier,
     SummaryData,
 )
-from mindforge.infrastructure.ai.prompts import summarizer as _prompts
+from mindforge.infrastructure.ai.agents import summarizer as _prompts
 
 __version__ = "1.0.0"
 

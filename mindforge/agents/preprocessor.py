@@ -12,7 +12,7 @@ import time
 
 from mindforge.domain.agents import AgentCapability, AgentContext, AgentResult
 from mindforge.domain.models import CostTier, DeadlineProfile, ModelTier
-from mindforge.infrastructure.ai.prompts import preprocessor as _prompts
+from mindforge.infrastructure.ai.agents import preprocessor as _prompts
 
 __version__ = "1.0.0"
 

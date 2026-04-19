@@ -43,7 +43,7 @@ from mindforge.domain.agents import AgentContext, ProcessingSettings
 from dataclasses import replace as _dc_replace
 from mindforge.domain.models import DocumentArtifact
 from mindforge.domain.ports import AIGateway, ArtifactRepository
-from mindforge.infrastructure.ai.gateway import LiteLLMGateway
+from mindforge.infrastructure.ai.infra.gateway import LiteLLMGateway
 from mindforge.infrastructure.config import AppSettings, load_egress_settings
 from mindforge.infrastructure.db import create_async_engine
 from mindforge.infrastructure.events import OutboxEventPublisher
