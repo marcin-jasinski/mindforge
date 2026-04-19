@@ -276,6 +276,7 @@ class KnowledgeBase:
     description: str
     created_at: datetime
     document_count: int = 0
+    prompt_locale: str = "pl"
 
 
 @dataclass

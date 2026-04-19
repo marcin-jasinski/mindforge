@@ -6,6 +6,7 @@ must satisfy, plus the shared context/result dataclasses.
 
 Pure Python only.  Zero I/O, zero framework imports.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -48,6 +49,9 @@ class ProcessingSettings:
     # Logical-name to LiteLLM-string mapping, e.g. {"small": "gpt-4o-mini", ...}
     model_tier_map: dict[str, str] = field(default_factory=dict)
 
+    # Prompt locale — controls which prompt language variant is loaded
+    prompt_locale: str = "pl"
+
     def model_for_tier(self, tier: ModelTier) -> str:
         """Return the LiteLLM model string for a given model tier."""
         return self.model_tier_map.get(tier.value.lower(), "")
@@ -81,7 +85,7 @@ class AgentContext:
     gateway: AIGateway
     retrieval: RetrievalPort
     settings: ProcessingSettings
-    tracer: Any = None          # TracerPort — typed as Any to avoid forward-ref issues
+    tracer: Any = None  # TracerPort — typed as Any to avoid forward-ref issues
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
