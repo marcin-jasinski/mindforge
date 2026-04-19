@@ -10,7 +10,16 @@ Version-tagged — changing prompt files must be reflected in the agent's
 
 from mindforge.infrastructure.ai.prompts import load_prompt
 
-VERSION = "1.0.0"
+_BASE_VERSION = "1.0.0"
 
-SYSTEM_PROMPT = load_prompt("quiz_generator_system.md")
-USER_TEMPLATE = load_prompt("quiz_generator_user.md")
+VERSION = f"{_BASE_VERSION}+pl"
+
+
+def system_prompt(locale: str = "pl") -> str:
+    """Return the system prompt for the given locale, falling back to Polish."""
+    return load_prompt("quiz_generator_system.md", locale)
+
+
+def user_template(locale: str = "pl") -> str:
+    """Return the user message template for the given locale."""
+    return load_prompt("quiz_generator_user.md", locale)

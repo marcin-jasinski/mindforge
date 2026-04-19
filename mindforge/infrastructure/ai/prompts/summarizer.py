@@ -10,10 +10,31 @@ Version-tagged — changing prompt files must be reflected in the agent's
 
 from mindforge.infrastructure.ai.prompts import load_prompt
 
-VERSION = "1.0.0"
+_BASE_VERSION = "1.0.0"
 
-SYSTEM_PROMPT = load_prompt("summarizer_system.md")
-USER_TEMPLATE = load_prompt("summarizer_user.md")
-IMAGE_CONTEXT_TEMPLATE = load_prompt("summarizer_image_context.md")
-ARTICLE_CONTEXT_TEMPLATE = load_prompt("summarizer_article_context.md")
-PRIOR_CONCEPTS_TEMPLATE = load_prompt("summarizer_prior_concepts.md")
+VERSION = f"{_BASE_VERSION}+pl"
+
+
+def system_prompt(locale: str = "pl") -> str:
+    """Return the system prompt for the given locale, falling back to Polish."""
+    return load_prompt("summarizer_system.md", locale)
+
+
+def user_template(locale: str = "pl") -> str:
+    """Return the user message template for the given locale."""
+    return load_prompt("summarizer_user.md", locale)
+
+
+def image_context_template(locale: str = "pl") -> str:
+    """Return the image context snippet template for the given locale."""
+    return load_prompt("summarizer_image_context.md", locale)
+
+
+def article_context_template(locale: str = "pl") -> str:
+    """Return the article context snippet template for the given locale."""
+    return load_prompt("summarizer_article_context.md", locale)
+
+
+def prior_concepts_template(locale: str = "pl") -> str:
+    """Return the prior-concepts snippet template for the given locale."""
+    return load_prompt("summarizer_prior_concepts.md", locale)
