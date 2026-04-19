@@ -130,6 +130,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             log.warning("Retrieval adapter init failed: %s", exc)
     app.state.retrieval = retrieval
 
+    # 8a. Pre-load chat prompt strings once (I/O at startup, never at request time)
+    from mindforge.infrastructure.ai.prompts import chat as _chat_prompts
+
+    app.state.chat_system_with_context = _chat_prompts.SYSTEM_WITH_CONTEXT
+    app.state.chat_system_no_context = _chat_prompts.SYSTEM_NO_CONTEXT
+
+    # 8b. Shared in-memory chat session cache (used when Redis is absent).
+    # Must be a singleton so sessions created in one request are visible in
+    # subsequent requests on the same worker process.
+    from mindforge.application.chat import _InMemorySessionCache
+
+    app.state.chat_memory_cache = _InMemorySessionCache(
+        ttl_seconds=settings.quiz_session_ttl_seconds
+    )
+
     # 9. Quiz session store (Redis preferred, PostgreSQL fallback)
     app.state.quiz_session_store = _make_quiz_store(
         settings, redis_client, session_factory

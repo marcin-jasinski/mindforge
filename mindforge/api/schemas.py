@@ -263,6 +263,17 @@ class ChatSessionResponse(BaseModel):
     turns: list[ChatTurnResponse] = Field(default_factory=list)
 
 
+class ChatMessageResponse(BaseModel):
+    """Response for a single chat message.
+
+    Deliberately excludes grounding context, raw prompts, and raw completions.
+    """
+
+    session_id: UUID
+    answer: str
+    source_concept_keys: list[str] = Field(default_factory=list)
+
+
 # ---------------------------------------------------------------------------
 # SSE / events schemas
 # ---------------------------------------------------------------------------
