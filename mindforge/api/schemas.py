@@ -175,7 +175,7 @@ class AnswerEvaluationResponse(BaseModel):
     """Evaluation result returned to client — reference_answer NOT included."""
 
     question_id: str
-    score: float
+    score: int
     feedback: str
     is_correct: bool
 
