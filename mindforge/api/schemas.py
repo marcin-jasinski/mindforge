@@ -56,11 +56,13 @@ class UserResponse(BaseModel):
 class KnowledgeBaseCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     description: str = Field(default="", max_length=2000)
+    prompt_locale: str = Field(default="pl", pattern="^(pl|en)$")
 
 
 class KnowledgeBaseUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2000)
+    prompt_locale: str | None = Field(default=None, pattern="^(pl|en)$")
 
 
 class KnowledgeBaseResponse(BaseModel):
@@ -70,6 +72,7 @@ class KnowledgeBaseResponse(BaseModel):
     description: str
     created_at: datetime
     document_count: int
+    prompt_locale: str = "pl"
 
 
 # ---------------------------------------------------------------------------
