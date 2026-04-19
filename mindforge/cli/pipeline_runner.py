@@ -40,6 +40,7 @@ from mindforge.agents.summarizer import SummarizerAgent
 from mindforge.application.orchestration import OrchestrationGraph
 from mindforge.application.pipeline import PipelineOrchestrator, StepExecutionError
 from mindforge.domain.agents import AgentContext, ProcessingSettings
+from dataclasses import replace as _dc_replace
 from mindforge.domain.models import DocumentArtifact
 from mindforge.domain.ports import AIGateway, ArtifactRepository
 from mindforge.infrastructure.ai.gateway import LiteLLMGateway
@@ -65,6 +66,7 @@ from mindforge.infrastructure.persistence.interaction_repo import (
 )
 from mindforge.infrastructure.persistence.models import (
     DocumentModel,
+    KnowledgeBaseModel,
     PipelineTaskModel,
 )
 
@@ -283,13 +285,17 @@ class PipelineWorker:
 
             artifact = await self._load_or_create_artifact(artifact_repo, doc_row)
 
+            kb_row = await session.get(KnowledgeBaseModel, doc_row.kb_id)
+            prompt_locale = kb_row.prompt_locale if kb_row is not None else "pl"
+            task_settings = _dc_replace(self._settings, prompt_locale=prompt_locale)
+
             context = AgentContext(
                 document_id=document_id,
-                knowledge_base_id=doc_row.knowledge_base_id,
+                knowledge_base_id=doc_row.kb_id,
                 artifact=artifact,
                 gateway=self._gateway,
                 retrieval=self._retrieval,
-                settings=self._settings,
+                settings=task_settings,
                 metadata={"original_content": doc_row.original_content},
             )
 
