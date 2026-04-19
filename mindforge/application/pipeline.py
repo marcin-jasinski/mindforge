@@ -275,9 +275,20 @@ class PipelineOrchestrator:
                     model_id = context.settings.model_for_tier(tier)
                     break
 
+        # Encode the actual KB locale into the prompt version so that a locale
+        # change automatically invalidates all pipeline checkpoints for the
+        # affected document (ADR-18).  The agent's PROMPT_VERSION carries a
+        # base version string that may already include the default locale suffix
+        # (e.g. "1.0.0+pl").  We replace the suffix with the runtime locale
+        # so that "1.0.0+pl" becomes "1.0.0+en" when the KB uses English prompts.
+        base_prompt_version = getattr(agent, "PROMPT_VERSION", "0")
+        if "+" in base_prompt_version:
+            base_prompt_version = base_prompt_version.rsplit("+", 1)[0]
+        prompt_version = f"{base_prompt_version}+{context.settings.prompt_locale}"
+
         return StepFingerprint(
             input_hash=input_hash,
-            prompt_version=getattr(agent, "PROMPT_VERSION", "0"),
+            prompt_version=prompt_version,
             model_id=model_id,
             agent_version=agent_version,
         )
