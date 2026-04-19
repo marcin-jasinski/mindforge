@@ -394,6 +394,49 @@ def upgrade() -> None:
     )
 
     # ------------------------------------------------------------------
+    # Quiz Sessions (server-side; contains reference_answer — never exposed)
+    # ------------------------------------------------------------------
+    op.create_table(
+        "quiz_sessions",
+        sa.Column(
+            "session_id",
+            sa.UUID(),
+            server_default=sa.text("gen_random_uuid()"),
+            nullable=False,
+        ),
+        sa.Column("user_id", sa.UUID(), nullable=False),
+        sa.Column("kb_id", sa.UUID(), nullable=False),
+        sa.Column(
+            "questions",
+            sa.dialects.postgresql.JSONB(),
+            nullable=False,
+            server_default="[]",
+        ),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column("expires_at", sa.TIMESTAMP(timezone=True), nullable=False),
+        sa.PrimaryKeyConstraint("session_id"),
+        sa.ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["kb_id"], ["knowledge_bases.kb_id"], ondelete="CASCADE"
+        ),
+    )
+    op.create_index(
+        "ix_quiz_sessions_user_id",
+        "quiz_sessions",
+        ["user_id"],
+    )
+    op.create_index(
+        "ix_quiz_sessions_expires_at",
+        "quiz_sessions",
+        ["expires_at"],
+    )
+
+    # ------------------------------------------------------------------
     # Read Model Projections
     # ------------------------------------------------------------------
     op.create_table(
@@ -414,6 +457,9 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("lesson_projections")
+    op.drop_index("ix_quiz_sessions_expires_at", table_name="quiz_sessions")
+    op.drop_index("ix_quiz_sessions_user_id", table_name="quiz_sessions")
+    op.drop_table("quiz_sessions")
     op.drop_table("consumer_cursors")
     op.drop_index("ix_outbox_unpublished", table_name="outbox_events")
     op.drop_table("outbox_events")

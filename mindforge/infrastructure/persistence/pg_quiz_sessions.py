@@ -71,6 +71,32 @@ class PostgresQuizSessionStore:
 
         return self._to_domain(row)
 
+    async def update_session(self, session) -> None:
+        """Replace the stored session row (upsert)."""
+        from mindforge.infrastructure.persistence.models import QuizSessionModel
+
+        row = QuizSessionModel(
+            session_id=session.session_id,
+            user_id=session.user_id,
+            kb_id=session.kb_id,
+            created_at=session.created_at,
+            expires_at=session.expires_at,
+            questions=[
+                {
+                    "question_id": q.question_id,
+                    "question_text": q.question_text,
+                    "question_type": q.question_type,
+                    "reference_answer": q.reference_answer,
+                    "grounding_context": q.grounding_context,
+                    "lesson_id": q.lesson_id,
+                }
+                for q in session.questions
+            ],
+        )
+        async with self._session_factory() as db:
+            await db.merge(row)
+            await db.commit()
+
     async def delete_session(self, session_id: UUID) -> None:
         from mindforge.infrastructure.persistence.models import QuizSessionModel
 

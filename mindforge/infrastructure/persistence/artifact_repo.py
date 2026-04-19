@@ -110,10 +110,56 @@ class PostgresArtifactRepository:
         cards = row.flashcards_json if isinstance(row.flashcards_json, list) else []
         return len(cards)
 
+    async def list_flashcards_for_kb(
+        self,
+        kb_id: uuid.UUID,
+        lesson_id: str | None = None,
+    ) -> list[FlashcardData]:
+        """Return all flashcards from the latest active artifact per document in a KB.
 
-# ---------------------------------------------------------------------------
-# Serialization helpers
-# ---------------------------------------------------------------------------
+        When *lesson_id* is provided, only the artifact for that lesson is loaded.
+        Used by ``FlashcardService`` to join card content with study-progress state.
+        """
+        from mindforge.infrastructure.persistence.models import DocumentModel
+
+        # Subquery: latest version per document_id
+        from sqlalchemy import func as sa_func
+
+        latest_version_sq = (
+            select(
+                DocumentArtifactModel.document_id,
+                sa_func.max(DocumentArtifactModel.version).label("max_version"),
+            )
+            .group_by(DocumentArtifactModel.document_id)
+            .subquery()
+        )
+
+        conditions = [
+            DocumentModel.kb_id == kb_id,
+            DocumentModel.is_active.is_(True),
+        ]
+        if lesson_id is not None:
+            conditions.append(DocumentModel.lesson_id == lesson_id)
+
+        result = await self._session.execute(
+            select(DocumentArtifactModel)
+            .join(
+                DocumentModel,
+                DocumentArtifactModel.document_id == DocumentModel.document_id,
+            )
+            .join(
+                latest_version_sq,
+                (DocumentArtifactModel.document_id == latest_version_sq.c.document_id)
+                & (DocumentArtifactModel.version == latest_version_sq.c.max_version),
+            )
+            .where(*conditions)
+        )
+        rows = result.scalars().all()
+
+        all_cards: list[FlashcardData] = []
+        for row in rows:
+            all_cards.extend(_parse_flashcards(row.flashcards_json or []))
+        return all_cards
 
 
 def _artifact_to_dict(artifact: DocumentArtifact) -> dict[str, Any]:
