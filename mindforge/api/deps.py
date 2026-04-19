@@ -21,8 +21,36 @@ from fastapi import Cookie, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from mindforge.api.auth import JWTService
+from mindforge.application.flashcards import FlashcardService
+from mindforge.application.quiz import QuizService
+from mindforge.domain.agents import ProcessingSettings
 from mindforge.domain.models import User
 from mindforge.infrastructure.config import AppSettings
+from mindforge.infrastructure.events.outbox_publisher import OutboxEventPublisher
+from mindforge.infrastructure.persistence.artifact_repo import (
+    PostgresArtifactRepository,
+)
+from mindforge.infrastructure.persistence.document_repo import (
+    PostgresDocumentRepository,
+)
+from mindforge.infrastructure.persistence.identity_repo import (
+    PostgresIdentityRepository,
+)
+from mindforge.infrastructure.persistence.interaction_repo import (
+    PostgresInteractionStore,
+)
+from mindforge.infrastructure.persistence.kb_repo import (
+    PostgresKnowledgeBaseRepository,
+)
+from mindforge.infrastructure.persistence.models import UserModel
+from mindforge.infrastructure.persistence.pipeline_task_repo import (
+    PostgresPipelineTaskRepository,
+)
+from mindforge.infrastructure.persistence.study_progress_repo import (
+    PostgresStudyProgressRepository,
+)
+from mindforge.infrastructure.security.upload_sanitizer import UploadSanitizer
+from sqlalchemy import select
 
 log = logging.getLogger(__name__)
 
@@ -37,14 +65,21 @@ def get_settings(request: Request) -> AppSettings:
 
 
 # ---------------------------------------------------------------------------
-# Database session — one per request, auto-closed
+# Database session — one per request, auto-committed on success
 # ---------------------------------------------------------------------------
 
 
 async def get_db_session(request: Request) -> AsyncSession:  # type: ignore[return]
-    session_factory: async_sessionmaker[AsyncSession] = request.app.state.session_factory
+    session_factory: async_sessionmaker[AsyncSession] = (
+        request.app.state.session_factory
+    )
     async with session_factory() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 # ---------------------------------------------------------------------------
@@ -60,10 +95,6 @@ def get_artifact_repo(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
-    from mindforge.infrastructure.persistence.artifact_repo import (
-        PostgresArtifactRepository,
-    )
-
     return PostgresArtifactRepository(session)
 
 
@@ -71,10 +102,6 @@ def get_doc_repo(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
-    from mindforge.infrastructure.persistence.document_repo import (
-        PostgresDocumentRepository,
-    )
-
     return PostgresDocumentRepository(session)
 
 
@@ -82,10 +109,6 @@ def get_kb_repo(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
-    from mindforge.infrastructure.persistence.kb_repo import (
-        PostgresKnowledgeBaseRepository,
-    )
-
     return PostgresKnowledgeBaseRepository(session)
 
 
@@ -93,10 +116,6 @@ def get_identity_repo(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
-    from mindforge.infrastructure.persistence.identity_repo import (
-        PostgresIdentityRepository,
-    )
-
     return PostgresIdentityRepository(session)
 
 
@@ -104,10 +123,6 @@ def get_interaction_store(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
-    from mindforge.infrastructure.persistence.interaction_repo import (
-        PostgresInteractionStore,
-    )
-
     return PostgresInteractionStore(session)
 
 
@@ -115,10 +130,6 @@ def get_study_progress(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
-    from mindforge.infrastructure.persistence.study_progress_repo import (
-        PostgresStudyProgressRepository,
-    )
-
     return PostgresStudyProgressRepository(session)
 
 
@@ -126,10 +137,6 @@ def get_pipeline_task_repo(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
-    from mindforge.infrastructure.persistence.pipeline_task_repo import (
-        PostgresPipelineTaskRepository,
-    )
-
     return PostgresPipelineTaskRepository(session)
 
 
@@ -137,8 +144,6 @@ def get_event_publisher(
     request: Request,
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
-    from mindforge.infrastructure.events.outbox_publisher import OutboxEventPublisher
-
     return OutboxEventPublisher(session)
 
 
@@ -156,18 +161,6 @@ def get_ingestion(
 ):
     """Build an IngestionService scoped to the current request's session."""
     from mindforge.application.ingestion import IngestionService
-    from mindforge.infrastructure.events.outbox_publisher import OutboxEventPublisher
-    from mindforge.infrastructure.parsing.registry import ParserRegistry
-    from mindforge.infrastructure.persistence.artifact_repo import (
-        PostgresArtifactRepository,
-    )
-    from mindforge.infrastructure.persistence.document_repo import (
-        PostgresDocumentRepository,
-    )
-    from mindforge.infrastructure.persistence.pipeline_task_repo import (
-        PostgresPipelineTaskRepository,
-    )
-    from mindforge.infrastructure.security.upload_sanitizer import UploadSanitizer
 
     settings: AppSettings = request.app.state.settings
     return IngestionService(
@@ -215,7 +208,7 @@ async def get_current_user(
     if token is None:
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
-            token = auth_header[len("Bearer "):]
+            token = auth_header[len("Bearer ") :]
 
     if not token:
         raise HTTPException(
@@ -244,13 +237,10 @@ async def get_current_user(
         )
 
     # Load user from DB
-    session_factory: async_sessionmaker[AsyncSession] = request.app.state.session_factory
+    session_factory: async_sessionmaker[AsyncSession] = (
+        request.app.state.session_factory
+    )
     async with session_factory() as session:
-        from mindforge.infrastructure.persistence.identity_repo import (
-        PostgresIdentityRepository,
-        from mindforge.infrastructure.persistence.models import UserModel
-        from sqlalchemy import select
-
         result = await session.execute(
             select(UserModel).where(UserModel.user_id == user_id)
         )
@@ -262,9 +252,7 @@ async def get_current_user(
             detail="Użytkownik nie istnieje.",
         )
 
-    from mindforge.domain.models import User as DomainUser
-
-    return DomainUser(
+    return User(
         user_id=user_row.user_id,
         display_name=user_row.display_name,
         email=user_row.email,
@@ -284,3 +272,62 @@ async def get_optional_user(
         return await get_current_user(request, access_token)
     except HTTPException:
         return None
+
+
+# ---------------------------------------------------------------------------
+# Application service providers
+# ---------------------------------------------------------------------------
+
+
+def _build_processing_settings(settings: AppSettings) -> ProcessingSettings:
+    """Construct ProcessingSettings from AppSettings (no I/O)."""
+    return ProcessingSettings(
+        chunk_max_tokens=settings.chunk_max_tokens,
+        chunk_min_tokens=settings.chunk_min_tokens,
+        chunk_overlap_tokens=settings.chunk_overlap_tokens,
+        enable_graph=settings.enable_graph,
+        enable_image_analysis=settings.enable_image_analysis,
+        enable_article_fetch=settings.enable_article_fetch,
+        model_tier_map=settings.model_map,
+    )
+
+
+def get_quiz_service(
+    request: Request,
+    study_progress: Annotated[object, Depends(get_study_progress)],
+    interaction_store: Annotated[object, Depends(get_interaction_store)],
+    event_publisher: Annotated[object, Depends(get_event_publisher)],
+) -> QuizService:
+    """Build a QuizService scoped to the current request.
+
+    Raises HTTP 503 when the graph retrieval adapter is unavailable —
+    quiz targeting depends on Graph RAG weak-concept queries.
+    """
+    retrieval = request.app.state.retrieval
+    if retrieval is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Graf wiedzy nie jest dostępny. Przetwórz najpierw dokumenty.",
+        )
+    settings: AppSettings = request.app.state.settings
+    return QuizService(
+        gateway=request.app.state.gateway,
+        retrieval=retrieval,
+        quiz_sessions=request.app.state.quiz_session_store,
+        study_progress=study_progress,
+        interaction_store=interaction_store,
+        settings=_build_processing_settings(settings),
+        event_publisher=event_publisher,
+        quiz_ttl_seconds=settings.quiz_session_ttl_seconds,
+    )
+
+
+def get_flashcard_service(
+    artifact_repo: Annotated[object, Depends(get_artifact_repo)],
+    study_progress: Annotated[object, Depends(get_study_progress)],
+) -> FlashcardService:
+    """Build a FlashcardService scoped to the current request."""
+    return FlashcardService(
+        artifact_repo=artifact_repo,
+        study_progress=study_progress,
+    )

@@ -930,7 +930,7 @@ detection.
 
 ---
 
-## [ ] Phase 9 — API Layer (FastAPI)
+## [x] Phase 9 — API Layer (FastAPI)
 
 **Goal:** Implement the FastAPI application factory, composition root, auth
 system (Discord OAuth + email/password + JWT), all routers, middleware, and
@@ -1048,7 +1048,7 @@ SPA serving.
 
 ---
 
-## [ ] Phase 10 — Quiz and Flashcard Services
+## [x] Phase 10 — Quiz and Flashcard Services
 
 **Goal:** Implement the Quiz Service (session management, question generation
 via Graph RAG, answer evaluation, SR integration) and Flashcard Service
@@ -1056,18 +1056,18 @@ via Graph RAG, answer evaluation, SR integration) and Flashcard Service
 
 ### Tasks
 
-- [ ] **10.1 — Implement `mindforge/application/quiz.py`**
-  - [ ] 10.1.1 — `QuizService` class: constructor accepts `AIGateway`,
+- [x] **10.1 — Implement `mindforge/application/quiz.py`**
+  - [x] 10.1.1 — `QuizService` class: constructor accepts `AIGateway`,
     `RetrievalPort`, `QuizSessionStore`, `StudyProgressStore`,
     `InteractionStore`.
-  - [ ] 10.1.2 — `start_session(user_id, kb_id, topic)`:
+  - [x] 10.1.2 — `start_session(user_id, kb_id, topic)`:
     (1) query `find_weak_concepts(user_id, kb_id)` for target concepts,
     (2) for each concept: `retrieve_concept_neighborhood()` for grounding
     context, (3) call `QuizGeneratorAgent` to produce question + reference
     answer, (4) store session in `QuizSessionStore` (Redis or PG),
     (5) publish `QuizSessionStarted` event, (6) return question (no
     reference answer, no grounding context).
-  - [ ] 10.1.3 — `submit_answer(session_id, question_id, user_answer)`:
+  - [x] 10.1.3 — `submit_answer(session_id, question_id, user_answer)`:
     (1) load session from `QuizSessionStore`, (2) validate `question_id`
     matches current question, (3) call `QuizEvaluatorAgent` with stored
     `reference_answer` and `grounding_context` (reuse, never regenerate),
@@ -1075,50 +1075,52 @@ via Graph RAG, answer evaluation, SR integration) and Flashcard Service
     (5) record interaction turn in `InteractionStore`,
     (6) publish `QuizAnswerEvaluated` event,
     (7) return evaluation result (score, feedback — no reference answer).
-  - [ ] 10.1.4 — Session TTL: `QUIZ_SESSION_TTL_SECONDS` (default 1800).
+  - [x] 10.1.4 — Session TTL: `QUIZ_SESSION_TTL_SECONDS` (default 1800).
 
-- [ ] **10.2 — Implement `QuizSessionStore` implementations**
-  - [ ] 10.2.1 — `RedisQuizSessionStore`: store as JSON hash in Redis with
+- [x] **10.2 — Implement `QuizSessionStore` implementations**
+  - [x] 10.2.1 — `RedisQuizSessionStore`: store as JSON hash in Redis with
     TTL.  Key format: `quiz:{session_id}`.
-  - [ ] 10.2.2 — `PostgresQuizSessionStore`: fallback when Redis absent.  Same
+  - [x] 10.2.2 — `PostgresQuizSessionStore`: fallback when Redis absent.  Same
     protocol, higher latency.  Store in a dedicated table or temporary rows.
 
-- [ ] **10.3 — Implement SM-2 spaced repetition algorithm**
-  - [ ] 10.3.1 — Pure Python SM-2 implementation (in domain or application
+- [x] **10.3 — Implement SM-2 spaced repetition algorithm**
+  - [x] 10.3.1 — Pure Python SM-2 implementation (in domain or application
     layer): given `ease_factor`, `interval`, `repetitions`, and a `rating`
     (0-5), compute new `ease_factor`, `interval`, `repetitions`,
     `next_review` date.
-  - [ ] 10.3.2 — Rating mapping: quiz scores map to SM-2 ratings.
+  - [x] 10.3.2 — Rating mapping: quiz scores map to SM-2 ratings.
 
-- [ ] **10.4 — Implement `mindforge/application/flashcards.py`**
-  - [ ] 10.4.1 — `FlashcardService` class: constructor accepts
+- [x] **10.4 — Implement `mindforge/application/flashcards.py`**
+  - [x] 10.4.1 — `FlashcardService` class: constructor accepts
     `ArtifactRepository`, `StudyProgressStore`.
-  - [ ] 10.4.2 — `get_due_cards(user_id, kb_id)`: query `StudyProgressStore`
+  - [x] 10.4.2 — `get_due_cards(user_id, kb_id)`: query `StudyProgressStore`
     for cards where `next_review <= today`, join with flashcard data from
     artifacts.
-  - [ ] 10.4.3 — `review_card(user_id, kb_id, card_id, result)`: apply SM-2,
+  - [x] 10.4.3 — `review_card(user_id, kb_id, card_id, result)`: apply SM-2,
     save updated progress.  Record `ReviewRecorded` event.
-  - [ ] 10.4.4 — `list_all_cards(kb_id, lesson_id=None)`: catalog view.
-  - [ ] 10.4.5 — `due_count(user_id, kb_id)`: summary for UI.
+  - [x] 10.4.4 — `list_all_cards(kb_id, lesson_id=None)`: catalog view.
+  - [x] 10.4.5 — `due_count(user_id, kb_id)`: summary for UI.
 
-- [ ] **10.5 — Write unit tests for quiz and flashcard services**
-  - [ ] 10.5.1 — Test SM-2 calculations: various rating inputs, edge cases.
-  - [ ] 10.5.2 — Test quiz session lifecycle: start → answer → evaluation.
-  - [ ] 10.5.3 — Test that reference answer is reused, not regenerated.
-  - [ ] 10.5.4 — Test flashcard due date calculations.
-  - [ ] 10.5.5 — Test quiz session TTL behavior.
-  - [ ] 10.5.6 — **Security invariant test:** Verify quiz answer responses
+- [x] **10.5 — Write unit tests for quiz and flashcard services**
+  - [x] 10.5.1 — Test SM-2 calculations: various rating inputs, edge cases.
+  - [x] 10.5.2 — Test quiz session lifecycle: start → answer → evaluation.
+  - [x] 10.5.3 — Test that reference answer is reused, not regenerated.
+  - [x] 10.5.4 — Test flashcard due date calculations.
+  - [x] 10.5.5 — Test quiz session TTL behavior.
+  - [x] 10.5.6 — **Security invariant test:** Verify quiz answer responses
     never contain `grounding_context`, `reference_answer`, `raw_prompt`, or
     `raw_completion`.  Verify answers are bound to server-side session and
     `question_id`.  This is a build-time guarantee, not deferred to Phase 18.
 
 ### Completion Checklist
 
-- [ ] Quiz sessions use Graph RAG for question targeting.
-- [ ] Reference answers are stored and reused.
-- [ ] SM-2 algorithm produces correct scheduling.
-- [ ] Both Redis and PostgreSQL session stores work.
-- [ ] Quiz responses verified to contain no sensitive fields.
+- [x] Quiz sessions use Graph RAG for question targeting.
+- [x] Reference answers are stored and reused.
+- [x] SM-2 algorithm produces correct scheduling.
+- [x] Both Redis and PostgreSQL session stores work.
+- [x] Quiz responses verified to contain no sensitive fields.
+
+> **Completed:** 2026-04-18
 
 ---
 

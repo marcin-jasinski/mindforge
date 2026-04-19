@@ -26,6 +26,7 @@ from mindforge.domain.models import (
     Document,
     DocumentArtifact,
     DocumentStatus,
+    FlashcardData,
     Interaction,
     KnowledgeBase,
     ParsedDocument,
@@ -134,6 +135,18 @@ class ArtifactRepository(Protocol):
         ...
 
     async def count_flashcards(self, kb_id: UUID, lesson_id: str) -> int: ...
+
+    async def list_flashcards_for_kb(
+        self,
+        kb_id: UUID,
+        lesson_id: str | None = None,
+    ) -> list[FlashcardData]:
+        """Return all flashcards across all active documents in a knowledge base.
+
+        When *lesson_id* is provided, restrict results to that lesson only.
+        Used by ``FlashcardService`` to join card content with study-progress state.
+        """
+        ...
 
 
 # ---------------------------------------------------------------------------

@@ -36,6 +36,10 @@ class InMemoryQuizSessionStore:
                 return None
             return session
 
+    async def update_session(self, session: QuizSession) -> None:
+        async with self._lock:
+            self._sessions[session.session_id] = session
+
     async def delete_session(self, session_id: UUID) -> None:
         async with self._lock:
             self._sessions.pop(session_id, None)
