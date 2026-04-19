@@ -13,6 +13,8 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
+from mindforge.domain.models import QuizQuestion, QuizSession
+
 log = logging.getLogger(__name__)
 
 _SESSION_PREFIX = "quiz:session:"
@@ -33,8 +35,6 @@ class RedisQuizSessionStore:
     @staticmethod
     def _serialize(session) -> str:
         """Serialise a QuizSession domain object to JSON."""
-        from mindforge.domain.models import QuizSession
-
         data = {
             "session_id": str(session.session_id),
             "user_id": str(session.user_id),
@@ -58,11 +58,7 @@ class RedisQuizSessionStore:
     @staticmethod
     def _deserialize(raw: str):
         """Deserialise JSON bytes back to a QuizSession domain object."""
-        from mindforge.domain.models import QuizQuestion, QuizSession
-
         data = json.loads(raw)
-        from datetime import datetime
-
         questions = [
             QuizQuestion(
                 question_id=q["question_id"],
@@ -107,6 +103,16 @@ class RedisQuizSessionStore:
             await self.delete_session(session_id)
             return None
         return session
+
+    async def update_session(self, session) -> None:
+        """Replace the stored session (re-serialise with same TTL)."""
+        now = datetime.now(timezone.utc)
+        ttl_seconds = max(1, int((session.expires_at - now).total_seconds()))
+        await self._redis.setex(
+            self._key(session.session_id),
+            ttl_seconds,
+            self._serialize(session),
+        )
 
     async def delete_session(self, session_id: UUID) -> None:
         await self._redis.delete(self._key(session_id))
