@@ -1170,8 +1170,10 @@ class TestRelevanceGuardUsesPromptModule:
         import mindforge.agents.relevance_guard as rg_mod
         import mindforge.infrastructure.ai.prompts.relevance_guard as prompt_mod
 
-        # The agent module must reference the prompt module's SYSTEM_PROMPT
-        assert hasattr(prompt_mod, "SYSTEM_PROMPT")
+        # The agent module must use the prompt module's getter function
+        assert callable(
+            getattr(prompt_mod, "system_prompt", None)
+        ), "prompt module must expose a system_prompt() getter"
         assert hasattr(prompt_mod, "VERSION")
         # No inline _SYSTEM_PROMPT constant should remain in the agent module
         assert not hasattr(
@@ -1315,3 +1317,71 @@ class TestEnableArticleFetchInConfig:
 
         settings = AppSettings(enable_article_fetch=False)
         assert settings.enable_article_fetch is False
+
+
+# ---------------------------------------------------------------------------
+# 12.x  Locale-aware prompt getters (Finding 1 + 4 regression)
+# ---------------------------------------------------------------------------
+
+
+class TestLocaleAwarePromptGetters:
+    """Prompt modules must expose getter functions, not import-time constants,
+    so that the correct locale is used at call time."""
+
+    def test_preprocessor_system_prompt_returns_string(self):
+        from mindforge.infrastructure.ai.prompts import preprocessor as p
+
+        result = p.system_prompt("pl")
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_preprocessor_has_no_module_level_system_prompt_constant(self):
+        from mindforge.infrastructure.ai.prompts import preprocessor as p
+
+        assert not hasattr(
+            p, "SYSTEM_PROMPT"
+        ), "SYSTEM_PROMPT must not be a module-level constant; use system_prompt() getter"
+
+    def test_preprocessor_has_no_dead_version_function(self):
+        from mindforge.infrastructure.ai.prompts import preprocessor as p
+
+        assert not hasattr(
+            p, "version"
+        ), "version(locale) was dead code and must be removed"
+
+    def test_summarizer_all_getters_present(self):
+        from mindforge.infrastructure.ai.prompts import summarizer as p
+
+        for fn_name in (
+            "system_prompt",
+            "user_template",
+            "image_context_template",
+            "article_context_template",
+            "prior_concepts_template",
+        ):
+            assert callable(
+                getattr(p, fn_name, None)
+            ), f"summarizer.{fn_name} must be a callable getter"
+
+    def test_preprocessor_agent_uses_locale_from_context(self):
+        """PreprocessorAgent must pass context.settings.prompt_locale to the
+        gateway, not a hardcoded 'pl' system message."""
+        import asyncio
+
+        gateway = StubAIGateway()
+        gateway.set_response("*", _stub_result("cleaned"))
+
+        settings = _make_settings(prompt_locale="pl")
+        context = _make_context(
+            gateway=gateway,
+            metadata={"original_content": "raw text"},
+            settings=settings,
+        )
+
+        agent = PreprocessorAgent()
+        asyncio.get_event_loop().run_until_complete(agent.execute(context))
+
+        assert len(gateway.calls) == 1
+        system_msg = gateway.calls[0]["messages"][0]["content"]
+        # System message must be non-empty — it came from the prompt file
+        assert isinstance(system_msg, str) and len(system_msg) > 0
