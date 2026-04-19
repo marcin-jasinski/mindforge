@@ -12,7 +12,7 @@ import time
 
 from mindforge.domain.agents import AgentCapability, AgentContext, AgentResult
 from mindforge.domain.models import CostTier, DeadlineProfile, ModelTier
-from mindforge.infrastructure.ai.prompts import preprocessor as _prompts
+from mindforge.infrastructure.ai.agents import preprocessor as _prompts
 
 __version__ = "1.0.0"
 
@@ -54,9 +54,10 @@ class PreprocessorAgent:
                 error="original_content not available in agent context metadata",
             )
 
+        locale = context.settings.prompt_locale
         model = context.settings.model_for_tier(ModelTier.SMALL)
         messages = [
-            {"role": "system", "content": _prompts.SYSTEM_PROMPT},
+            {"role": "system", "content": _prompts.system_prompt(locale)},
             {"role": "user", "content": content},
         ]
 

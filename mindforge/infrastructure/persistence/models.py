@@ -111,6 +111,9 @@ class KnowledgeBaseModel(Base):
     )
     name: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str] = mapped_column(Text, server_default="", nullable=False)
+    prompt_locale: Mapped[str] = mapped_column(
+        Text, server_default="pl", nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), nullable=False
     )

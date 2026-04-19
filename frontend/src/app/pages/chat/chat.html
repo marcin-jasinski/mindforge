@@ -1,0 +1,76 @@
+<div class="chat-page">
+  @if (starting()) {
+    <div class="chat-starting">
+      <mat-spinner diameter="36" />
+      <span>Starting session…</span>
+    </div>
+  }
+
+  <!-- Message history -->
+  <div #messageList class="message-list">
+    @if (messages().length === 0 && !starting()) {
+      <div class="chat-welcome">
+        <mat-icon>chat</mat-icon>
+        <h2>Chat with your Knowledge Base</h2>
+        <p>Ask any question — answers are grounded in your documents.</p>
+      </div>
+    }
+
+    @for (msg of messages(); track $index) {
+      <div class="message-row" [class.user-row]="msg.role === 'user'">
+        <div
+          class="chat-bubble"
+          [class.user]="msg.role === 'user'"
+          [class.assistant]="msg.role === 'assistant'"
+        >
+          <p class="bubble-text">{{ msg.content }}</p>
+          @if (msg.sourceKeys && msg.sourceKeys.length > 0) {
+            <div class="source-keys">
+              <mat-chip-set>
+                @for (key of msg.sourceKeys; track key) {
+                  <mat-chip>{{ key }}</mat-chip>
+                }
+              </mat-chip-set>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (sending()) {
+      <div class="message-row">
+        <div class="chat-bubble assistant typing-indicator">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Input -->
+  <div class="chat-input-area">
+    <mat-form-field appearance="outline" class="chat-input-field">
+      <textarea
+        matInput
+        [ngModel]="inputText()"
+        (ngModelChange)="inputText.set($event)"
+        (keydown)="onKeydown($event)"
+        placeholder="Ask a question… (Enter to send, Shift+Enter for newline)"
+        rows="2"
+        maxlength="4000"
+        [disabled]="sending() || starting()"
+      ></textarea>
+    </mat-form-field>
+    <button
+      mat-icon-button
+      class="send-btn"
+      (click)="send()"
+      [disabled]="!inputText().trim() || sending() || starting()"
+    >
+      @if (sending()) {
+        <mat-spinner diameter="24" />
+      } @else {
+        <mat-icon>send</mat-icon>
+      }
+    </button>
+  </div>
+</div>

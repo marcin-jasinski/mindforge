@@ -772,3 +772,178 @@ class TestPipelineWorkerExecuteTask:
             await worker._execute_task(task)
 
         mock_session.execute.assert_called()
+
+
+# ---------------------------------------------------------------------------
+# 12.x  Locale-aware fingerprinting & prompt propagation
+# ---------------------------------------------------------------------------
+
+
+class TestLocaleAwareFingerprinting:
+    """Regression tests for Phase 12: per-KB prompt_locale propagation."""
+
+    def test_different_locales_produce_different_fingerprints(self) -> None:
+        """_compute_fingerprint must incorporate prompt_locale so that changing
+        the KB locale invalidates cached steps."""
+        registry = AgentRegistry()
+        agent = _FakeAgent("step_a", "a_out")
+        registry.register(agent)
+        graph = _simple_graph("step_a")
+        orch = _make_orchestrator(registry, graph)
+
+        artifact = _make_artifact()
+
+        ctx_pl = _make_context(artifact)
+        ctx_pl.settings = ProcessingSettings(prompt_locale="pl")
+
+        ctx_en = _make_context(artifact)
+        ctx_en.settings = ProcessingSettings(prompt_locale="en")
+
+        fp_pl = orch._compute_fingerprint("step_a", ctx_pl)
+        fp_en = orch._compute_fingerprint("step_a", ctx_en)
+
+        assert (
+            fp_pl.compute() != fp_en.compute()
+        ), "Fingerprint must differ when prompt_locale differs"
+
+    def test_same_locale_produces_same_fingerprint(self) -> None:
+        """Two contexts with the same locale must yield the same fingerprint."""
+        registry = AgentRegistry()
+        registry.register(_FakeAgent("step_a", "a_out"))
+        graph = _simple_graph("step_a")
+        orch = _make_orchestrator(registry, graph)
+
+        artifact = _make_artifact()
+        ctx1 = _make_context(artifact)
+        ctx1.settings = ProcessingSettings(prompt_locale="en")
+        ctx2 = _make_context(artifact)
+        ctx2.settings = ProcessingSettings(prompt_locale="en")
+
+        assert orch._compute_fingerprint("step_a", ctx1).compute() == (
+            orch._compute_fingerprint("step_a", ctx2).compute()
+        )
+
+    @pytest.mark.asyncio
+    async def test_execute_task_reads_kb_prompt_locale(self) -> None:
+        """_execute_task must read kb.prompt_locale and build task_settings with
+        that locale instead of always using the global worker settings (which
+        default to 'pl')."""
+        gateway = AsyncMock()
+        worker = _make_pipeline_worker(gateway=gateway)
+
+        captured_contexts: list[AgentContext] = []
+
+        mock_orchestrator = AsyncMock()
+
+        async def _capture_run(
+            *, document_id: object, artifact: object, context: AgentContext
+        ) -> None:
+            captured_contexts.append(context)
+
+        mock_orchestrator.run = _capture_run
+
+        doc_row = MagicMock()
+        doc_row.document_id = uuid.uuid4()
+        doc_row.kb_id = uuid.uuid4()
+        doc_row.original_content = "some content"
+
+        kb_row = MagicMock()
+        kb_row.prompt_locale = "en"
+
+        mock_session = AsyncMock()
+
+        async def _session_get(model_class, pk):
+            if model_class.__name__ == "DocumentModel":
+                return doc_row
+            if model_class.__name__ == "KnowledgeBaseModel":
+                return kb_row
+            return None
+
+        mock_session.get = AsyncMock(side_effect=_session_get)
+        mock_session.execute = AsyncMock()
+        worker._session_factory = _make_session_ctx(mock_session)
+
+        mock_artifact_repo = AsyncMock()
+        mock_artifact_repo.load_latest = AsyncMock(return_value=None)
+
+        task = MagicMock()
+        task.task_id = uuid.uuid4()
+        task.document_id = doc_row.document_id
+
+        with (
+            patch(
+                "mindforge.cli.pipeline_runner.PostgresArtifactRepository",
+                return_value=mock_artifact_repo,
+            ),
+            patch("mindforge.cli.pipeline_runner.PostgresDocumentRepository"),
+            patch("mindforge.cli.pipeline_runner.PostgresInteractionRepository"),
+            patch("mindforge.cli.pipeline_runner.OutboxEventPublisher"),
+            patch(
+                "mindforge.cli.pipeline_runner.PipelineOrchestrator",
+                return_value=mock_orchestrator,
+            ),
+        ):
+            await worker._execute_task(task)
+
+        assert len(captured_contexts) == 1
+        assert (
+            captured_contexts[0].settings.prompt_locale == "en"
+        ), "AgentContext must carry the KB's prompt_locale, not the default 'pl'"
+
+    @pytest.mark.asyncio
+    async def test_execute_task_falls_back_to_pl_when_kb_not_found(self) -> None:
+        """If the KB row is unexpectedly missing, prompt_locale must fall back to 'pl'."""
+        gateway = AsyncMock()
+        worker = _make_pipeline_worker(gateway=gateway)
+
+        captured_contexts: list[AgentContext] = []
+
+        mock_orchestrator = AsyncMock()
+
+        async def _capture_run(
+            *, document_id: object, artifact: object, context: AgentContext
+        ) -> None:
+            captured_contexts.append(context)
+
+        mock_orchestrator.run = _capture_run
+
+        doc_row = MagicMock()
+        doc_row.document_id = uuid.uuid4()
+        doc_row.kb_id = uuid.uuid4()
+        doc_row.original_content = "some content"
+
+        mock_session = AsyncMock()
+
+        async def _session_get(model_class, pk):
+            if model_class.__name__ == "DocumentModel":
+                return doc_row
+            return None  # KB not found
+
+        mock_session.get = AsyncMock(side_effect=_session_get)
+        mock_session.execute = AsyncMock()
+        worker._session_factory = _make_session_ctx(mock_session)
+
+        mock_artifact_repo = AsyncMock()
+        mock_artifact_repo.load_latest = AsyncMock(return_value=None)
+
+        task = MagicMock()
+        task.task_id = uuid.uuid4()
+        task.document_id = doc_row.document_id
+
+        with (
+            patch(
+                "mindforge.cli.pipeline_runner.PostgresArtifactRepository",
+                return_value=mock_artifact_repo,
+            ),
+            patch("mindforge.cli.pipeline_runner.PostgresDocumentRepository"),
+            patch("mindforge.cli.pipeline_runner.PostgresInteractionRepository"),
+            patch("mindforge.cli.pipeline_runner.OutboxEventPublisher"),
+            patch(
+                "mindforge.cli.pipeline_runner.PipelineOrchestrator",
+                return_value=mock_orchestrator,
+            ),
+        ):
+            await worker._execute_task(task)
+
+        assert len(captured_contexts) == 1
+        assert captured_contexts[0].settings.prompt_locale == "pl"

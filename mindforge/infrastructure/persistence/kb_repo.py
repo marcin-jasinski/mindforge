@@ -29,12 +29,17 @@ class PostgresKnowledgeBaseRepository:
     # ------------------------------------------------------------------
 
     async def create(
-        self, owner_id: uuid.UUID, name: str, description: str
+        self,
+        owner_id: uuid.UUID,
+        name: str,
+        description: str,
+        prompt_locale: str = "pl",
     ) -> KnowledgeBase:
         row = KnowledgeBaseModel(
             owner_id=owner_id,
             name=name,
             description=description,
+            prompt_locale=prompt_locale,
         )
         self._session.add(row)
         await self._session.flush()
@@ -48,6 +53,7 @@ class PostgresKnowledgeBaseRepository:
         *,
         name: str | None = None,
         description: str | None = None,
+        prompt_locale: str | None = None,
     ) -> KnowledgeBase | None:
         result = await self._session.execute(
             select(KnowledgeBaseModel).where(
@@ -62,6 +68,8 @@ class PostgresKnowledgeBaseRepository:
             row.name = name
         if description is not None:
             row.description = description
+        if prompt_locale is not None:
+            row.prompt_locale = prompt_locale
         await self._session.flush()
         count = await self._count_documents(kb_id)
         return self._to_domain(row, document_count=count)
@@ -137,4 +145,5 @@ class PostgresKnowledgeBaseRepository:
             description=row.description,
             created_at=row.created_at,
             document_count=document_count,
+            prompt_locale=row.prompt_locale,
         )

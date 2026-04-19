@@ -1,0 +1,31 @@
+<div class="concept-map-page">
+  <div class="map-toolbar">
+    <div class="map-stats">
+      <mat-icon>hub</mat-icon>
+      <span>{{ nodeCount() }} concepts · {{ edgeCount() }} relations</span>
+    </div>
+    <div class="map-actions">
+      <button mat-icon-button matTooltip="Fit view" (click)="fitView()">
+        <mat-icon>fit_screen</mat-icon>
+      </button>
+      <button mat-icon-button matTooltip="Zoom in" (click)="zoomIn()">
+        <mat-icon>zoom_in</mat-icon>
+      </button>
+      <button mat-icon-button matTooltip="Zoom out" (click)="zoomOut()">
+        <mat-icon>zoom_out</mat-icon>
+      </button>
+      <button mat-icon-button matTooltip="Reload" (click)="loadGraph()">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-overlay">
+      <mat-spinner diameter="48" />
+      <p>Loading concept graph…</p>
+    </div>
+  }
+
+  <div #cytoscapeContainer class="cytoscape-container"></div>
+</div>

@@ -20,7 +20,7 @@ from mindforge.domain.models import (
     ModelTier,
     ReviewResult,
 )
-from mindforge.infrastructure.ai.prompts import quiz_evaluator as _prompts
+from mindforge.infrastructure.ai.agents import quiz_evaluator as _prompts
 
 __version__ = "1.0.0"
 
@@ -75,7 +75,8 @@ class QuizEvaluatorAgent:
                 error="student_answer not provided.",
             )
 
-        user_message = _prompts.USER_TEMPLATE.format(
+        locale = context.settings.prompt_locale
+        user_message = _prompts.user_template(locale).format(
             question_text=question_text,
             reference_answer=reference_answer,
             grounding_context=grounding_context,
@@ -84,7 +85,7 @@ class QuizEvaluatorAgent:
 
         model = context.settings.model_for_tier(ModelTier.LARGE)
         messages = [
-            {"role": "system", "content": _prompts.SYSTEM_PROMPT},
+            {"role": "system", "content": _prompts.system_prompt(locale)},
             {"role": "user", "content": user_message},
         ]
 

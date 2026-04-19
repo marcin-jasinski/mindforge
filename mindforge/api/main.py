@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.neo4j_context = neo4j_context
 
     # 5. AI Gateway
-    from mindforge.infrastructure.ai.gateway import LiteLLMGateway
+    from mindforge.infrastructure.ai.infra.gateway import LiteLLMGateway
 
     gateway = LiteLLMGateway(
         default_model=settings.model_small,
@@ -131,7 +131,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.retrieval = retrieval
 
     # 8a. Pre-load chat prompt strings once (I/O at startup, never at request time)
-    from mindforge.infrastructure.ai.prompts import chat as _chat_prompts
+    from mindforge.infrastructure.ai.agents import chat as _chat_prompts
 
     app.state.chat_system_with_context = _chat_prompts.SYSTEM_WITH_CONTEXT
     app.state.chat_system_no_context = _chat_prompts.SYSTEM_NO_CONTEXT

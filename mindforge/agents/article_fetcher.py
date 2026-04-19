@@ -22,7 +22,7 @@ from mindforge.domain.models import (
     FetchedArticle,
     ModelTier,
 )
-from mindforge.infrastructure.ai.prompts import article_fetcher as _prompts
+from mindforge.infrastructure.ai.agents import article_fetcher as _prompts
 from mindforge.infrastructure.security.egress_policy import (
     EgressPolicy,
     EgressViolation,
@@ -121,7 +121,10 @@ class ArticleFetcherAgent:
         model = context.settings.model_for_tier(ModelTier.SMALL)
         url_list_json = json.dumps(unique_urls)
         classify_messages = [
-            {"role": "system", "content": _prompts.SYSTEM_PROMPT},
+            {
+                "role": "system",
+                "content": _prompts.system_prompt(context.settings.prompt_locale),
+            },
             {"role": "user", "content": url_list_json},
         ]
 

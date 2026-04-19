@@ -20,7 +20,7 @@ from mindforge.domain.models import (
     ModelTier,
     ValidationResult,
 )
-from mindforge.infrastructure.ai.prompts import relevance_guard as _prompts
+from mindforge.infrastructure.ai.agents import relevance_guard as _prompts
 
 __version__ = "1.0.0"
 
@@ -94,7 +94,10 @@ class RelevanceGuardAgent:
         )
 
         messages = [
-            {"role": "system", "content": _prompts.SYSTEM_PROMPT},
+            {
+                "role": "system",
+                "content": _prompts.system_prompt(context.settings.prompt_locale),
+            },
             {"role": "user", "content": user_message},
         ]
 

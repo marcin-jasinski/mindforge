@@ -27,6 +27,7 @@ def _to_response(kb) -> KnowledgeBaseResponse:
         description=kb.description,
         created_at=kb.created_at,
         document_count=kb.document_count,
+        prompt_locale=kb.prompt_locale,
     )
 
 
@@ -52,6 +53,7 @@ async def create_knowledge_base(
             owner_id=current_user.user_id,
             name=payload.name,
             description=payload.description,
+            prompt_locale=payload.prompt_locale,
         )
         return _to_response(kb)
     except Exception as exc:
@@ -87,6 +89,7 @@ async def update_knowledge_base(
         owner_id=current_user.user_id,
         name=payload.name,
         description=payload.description,
+        prompt_locale=payload.prompt_locale,
     )
     if kb is None:
         raise HTTPException(status_code=404, detail="Baza wiedzy nie istnieje.")

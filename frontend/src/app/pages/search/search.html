@@ -1,0 +1,55 @@
+<div class="page-container search-page">
+  <div class="page-header">
+    <h1>Search</h1>
+  </div>
+
+  <div class="search-bar">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Ask your knowledge base…</mat-label>
+      <input
+        matInput
+        [ngModel]="query()"
+        (ngModelChange)="query.set($event)"
+        (keydown)="onKeydown($event)"
+        autocomplete="off"
+      />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+    <button mat-flat-button (click)="search()" [disabled]="loading() || !query().trim()">
+      @if (loading()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Search
+      }
+    </button>
+  </div>
+
+  @if (searched() && results().length === 0) {
+    <p class="no-results">No results found for "{{ query() }}"</p>
+  }
+
+  <div class="results-list">
+    @for (
+      item of results();
+      track item.source_document_id + item.source_lesson_id;
+      let i = $index
+    ) {
+      <mat-card class="result-card">
+        <mat-card-header>
+          <mat-card-subtitle>
+            <mat-chip-set>
+              <mat-chip>{{ item.source_lesson_id }}</mat-chip>
+              <mat-chip>{{ scorePercent(item.score) }}% match</mat-chip>
+            </mat-chip-set>
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p class="result-content">{{ item.content }}</p>
+        </mat-card-content>
+      </mat-card>
+      @if (i < results().length - 1) {
+        <mat-divider />
+      }
+    }
+  </div>
+</div>
