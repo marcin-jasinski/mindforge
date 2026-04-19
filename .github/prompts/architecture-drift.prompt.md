@@ -187,3 +187,16 @@ For each FAIL dimension, list violations as:
 
 One line per violation. No prose. No suggested fixes (use the Bug Fix agent
 for remediation).
+
+---
+
+### Save the Report
+
+After completing the report, save it as a Markdown file:
+
+- **Path:** `reviews/architecture-drift-<YYYY-MM-DD>.md` (use today's date).
+- The file must contain the full report (the summary table and all violation
+  details) exactly as specified above.
+- **Do NOT modify any application code, test files, migration files,
+  configuration files, or any file outside `reviews/`.** The only write
+  operation permitted is creating or overwriting the report file.

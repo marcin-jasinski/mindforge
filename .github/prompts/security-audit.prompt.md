@@ -212,6 +212,17 @@ verifiable against a deployed environment).
 
 Risk that remains even if all findings are resolved.
 
+### 6. Save the Report
+
+After completing the report, save it as a Markdown file:
+
+- **Path:** `reviews/security-audit-<YYYY-MM-DD>.md` (use today's date).
+- The file must contain the full report output (all sections 1–5) exactly as
+  specified above.
+- **Do NOT modify any application code, test files, migration files,
+  configuration files, or any file outside `reviews/`.** The only write
+  operation permitted is creating or overwriting the report file.
+
 ## Constraints
 
 - Do not write or suggest replacement code. Describe what must change.
@@ -221,3 +232,5 @@ Risk that remains even if all findings are resolved.
   apparent exploitability.
 - If a dimension is genuinely not applicable for the given scope, mark it
   "N/A — no relevant code in scope" and do not invent findings.
+- The only file you may create or overwrite is the report file in `reviews/`.
+  Never edit source code, tests, or configuration files.

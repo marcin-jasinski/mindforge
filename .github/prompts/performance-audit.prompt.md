@@ -219,3 +219,16 @@ For each FAIL dimension, list findings as:
 Format: `[Px] file:line`, severity label, one-sentence description.
 Sort Critical first, then High, Medium, Low. No suggested code — use the
 Bug Fix agent for remediation.
+
+---
+
+### Save the Report
+
+After completing the report, save it as a Markdown file:
+
+- **Path:** `reviews/performance-audit-<YYYY-MM-DD>.md` (use today's date).
+- The file must contain the full report (the summary table and all finding
+  details) exactly as specified above.
+- **Do NOT modify any application code, test files, migration files,
+  configuration files, or any file outside `reviews/`.** The only write
+  operation permitted is creating or overwriting the report file.

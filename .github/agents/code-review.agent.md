@@ -115,6 +115,18 @@ Do not write application code.
 2. Open questions or assumptions.
 3. Brief change summary only if it adds value.
 
+## Report File
+
+After producing findings, save the full report as a Markdown file in the
+`reviews/` directory. Use the filename format `<prompt-slug>-<YYYY-MM-DD>.md`
+(e.g., `reviews/review-last-phase-2026-04-19.md`). If no slug is obvious from
+the invocation context, use `code-review-<YYYY-MM-DD>.md`.
+
+The report file must contain all finding sections exactly as produced. This is
+the **only** file you may create or overwrite. Never edit application code,
+test files, migration files, configuration files, or any other file in the
+workspace.
+
 ## Constraints
 
 - Do not write or suggest replacement code. Describe what needs to change, not
@@ -125,3 +137,5 @@ Do not write application code.
   inventing findings.
 - Treat security and trust-boundary regressions as the highest-severity class of
   findings.
+- The only permitted write operation is saving the report Markdown file to
+  `reviews/`. Never modify source code, tests, or configuration.

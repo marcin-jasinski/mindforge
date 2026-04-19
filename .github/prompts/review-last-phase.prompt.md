@@ -171,6 +171,17 @@ Produce findings in this order:
    running the system.
 5. **Residual Risk** — any risk that remains even if all findings are resolved.
 
+### 7. Save the Report
+
+After completing the report, save it as a Markdown file:
+
+- **Path:** `reviews/review-last-phase-<YYYY-MM-DD>.md` (use today's date).
+- The file must contain the full report output (all sections 1–5) exactly as
+  specified above.
+- **Do NOT modify any application code, test files, migration files,
+  configuration files, or any file outside `reviews/`.** The only write
+  operation permitted is creating or overwriting the report file.
+
 ## Constraints
 
 - Do not write or suggest replacement code. Describe what must change.
@@ -179,3 +190,5 @@ Produce findings in this order:
 - If a dimension has no relevant changes, mark it "N/A — no changes in scope".
 - Security and trust-boundary regressions are always Critical, regardless of
   apparent impact.
+- The only file you may create or overwrite is the report file in `reviews/`.
+  Never edit source code, tests, or configuration files.
