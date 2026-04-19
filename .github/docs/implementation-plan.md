@@ -1124,28 +1124,28 @@ via Graph RAG, answer evaluation, SR integration) and Flashcard Service
 
 ---
 
-## [ ] Phase 11 — Search and Conversational RAG
+## [x] Phase 11 — Search and Conversational RAG
 
 **Goal:** Implement the Search Service and Chat Service (conversational RAG
 with knowledge base).
 
 ### Tasks
 
-- [ ] **11.1 — Implement `mindforge/application/search.py`**
-  - [ ] 11.1.1 — `SearchService` class: constructor accepts `RetrievalPort`,
+- [x] **11.1 — Implement `mindforge/application/search.py`**
+  - [x] 11.1.1 — `SearchService` class: constructor accepts `RetrievalPort`,
     `AIGateway`, `InteractionStore`.
-  - [ ] 11.1.2 — `search(query, kb_id, user_id)`: call
+  - [x] 11.1.2 — `search(query, kb_id, user_id)`: call
     `RetrievalPort.retrieve(query, kb_id)` with the graph-first →
     full-text → vector priority order.  Optionally rerank results using
     LLM (INTERACTIVE deadline).  Record interaction turn.  Return
     `SearchResult` (no raw prompts or grounding snippets to client).
 
-- [ ] **11.2 — Implement `mindforge/application/chat.py`**
-  - [ ] 11.2.1 — `ChatService` class: constructor accepts `AIGateway`,
+- [x] **11.2 — Implement `mindforge/application/chat.py`**
+  - [x] 11.2.1 — `ChatService` class: constructor accepts `AIGateway`,
     `RetrievalPort`, `InteractionStore`, Redis client (optional).
-  - [ ] 11.2.2 — `start_session(user_id, kb_id)`: create `ChatSession`,
+  - [x] 11.2.2 — `start_session(user_id, kb_id)`: create `ChatSession`,
     store in Redis (or in-memory), return `session_id`.
-  - [ ] 11.2.3 — `send_message(session_id, message)`:
+  - [x] 11.2.3 — `send_message(session_id, message)`:
     (1) load chat history (last N turns),
     (2) extract concept mentions from user message (keyword/NER),
     (3) for each concept: `retrieve_concept_neighborhood()`,
@@ -1156,31 +1156,33 @@ with knowledge base).
     (6) LLM completion (INTERACTIVE deadline),
     (7) store turn in session and in `interaction_turns`,
     (8) return answer + source concept keys (no context/prompt leaked).
-  - [ ] 11.2.4 — Session stored in Redis with TTL or in-memory if Redis absent.
+  - [x] 11.2.4 — Session stored in Redis with TTL or in-memory if Redis absent.
     Not persisted to PostgreSQL.  Interaction metadata IS recorded for audit.
-  - [ ] 11.2.5 — `list_sessions(user_id, kb_id)`: list active chat sessions.
+  - [x] 11.2.5 — `list_sessions(user_id, kb_id)`: list active chat sessions.
 
-- [ ] **11.3 — Implement `mindforge/application/knowledge_base.py`**
-  - [ ] 11.3.1 — `KnowledgeBaseService`: CRUD for knowledge bases, scoped to
+- [x] **11.3 — Implement `mindforge/application/knowledge_base.py`**
+  - [x] 11.3.1 — `KnowledgeBaseService`: CRUD for knowledge bases, scoped to
     user.  `create`, `get`, `list_for_user`, `update`, `delete`.
 
-- [ ] **11.4 — Write unit tests**
-  - [ ] 11.4.1 — Test search with mock retrieval: graph-first priority.
-  - [ ] 11.4.2 — Test chat message flow: concept extraction → retrieval →
+- [x] **11.4 — Write unit tests**
+  - [x] 11.4.1 — Test search with mock retrieval: graph-first priority.
+  - [x] 11.4.2 — Test chat message flow: concept extraction → retrieval →
     prompt assembly → response.
-  - [ ] 11.4.3 — Test chat history sliding window.
-  - [ ] 11.4.4 — Test KB service user scoping.
-  - [ ] 11.4.5 — **Security invariant test:** Verify semantic cache keys
+  - [x] 11.4.3 — Test chat history sliding window.
+  - [x] 11.4.4 — Test KB service user scoping.
+  - [x] 11.4.5 — **Security invariant test:** Verify semantic cache keys
     include `kb_id` to prevent cross-KB data leakage.  This is a build-time
     guarantee, not deferred to Phase 18.
 
 ### Completion Checklist
 
-- [ ] Search uses retrieval priority order: graph → full-text → vector.
-- [ ] Chat uses Graph RAG per-turn with concept neighborhoods.
-- [ ] No grounding context or prompts leaked to the client.
-- [ ] Chat sessions are ephemeral (Redis/memory); audit data persisted.
-- [ ] Semantic cache keys verified to include `kb_id`.
+- [x] Search uses retrieval priority order: graph → full-text → vector.
+- [x] Chat uses Graph RAG per-turn with concept neighborhoods.
+- [x] No grounding context or prompts leaked to the client.
+- [x] Chat sessions are ephemeral (Redis/memory); audit data persisted.
+- [x] Semantic cache keys verified to include `kb_id`.
+
+> **Completed:** 2026-04-19
 
 ---
 
@@ -1263,6 +1265,43 @@ routing, auth integration, and all user-facing pages.
   - [ ] 12.6.1 — Service tests: verify HTTP calls and response mapping.
   - [ ] 12.6.2 — Component tests: rendering, user interaction.
   - [ ] 12.6.3 — Guard tests: auth required enforcement.
+
+- [ ] **12.7 — Prompt internationalization (i18n)**
+
+  **Backend tasks:**
+  - [ ] 12.7.1 — Add `prompt_locale: str = "pl"` field to the `KnowledgeBase`
+    domain model (`mindforge/domain/models.py`) and to the SQLAlchemy ORM model
+    (`mindforge/infrastructure/persistence/models.py`).
+  - [ ] 12.7.2 — Write a database migration (`migrations/versions/`) that adds
+    the `prompt_locale` column to the `knowledge_bases` table with a default
+    of `'pl'`.
+  - [ ] 12.7.3 — Update `ProcessingSettings` (`mindforge/domain/models.py` or
+    wherever it lives) to include `prompt_locale: str = "pl"`.  The pipeline
+    worker reads `kb.prompt_locale` and passes it through `ProcessingSettings →
+    AgentContext`.
+  - [ ] 12.7.4 — Update `load_prompt()` in
+    `mindforge/infrastructure/ai/prompts/__init__.py` to accept a `locale`
+    parameter and resolve locale-suffixed files with fallback to `pl` (see
+    ADR-18 and architecture Section 9.7).
+  - [ ] 12.7.5 — Rename all existing `.md` prompt files to the `.pl.md`
+    convention (e.g., `summarizer_system.md` → `summarizer_system.pl.md`).
+    Update each prompt module to call `load_prompt("summarizer_system.md",
+    locale)` using the new signature.
+  - [ ] 12.7.6 — Update the `prompt_version` / `VERSION` string in each prompt
+    module to encode locale (e.g., `f"1.0.0+{locale}"`), so that switching
+    locale automatically invalidates `StepFingerprint` checkpoints.
+  - [ ] 12.7.7 — Add `prompt_locale` to the `KnowledgeBase` CRUD schemas in
+    `mindforge/api/schemas.py` (request bodies for create/update and the
+    response model) and keep `frontend/src/app/core/models/api.models.ts` in
+    sync.
+
+  **Frontend tasks:**
+  - [ ] 12.7.8 — Add a locale selector (dropdown: Polish / English) to the KB
+    settings / create form in the Angular SPA.  Bind to the `prompt_locale`
+    field via `KnowledgeBaseService`.
+  - [ ] 12.7.9 — Display the current prompt locale on the KB detail/settings
+    page.  Show a warning that changing the locale will trigger full pipeline
+    re-processing for all documents in that KB.
 
 ### Completion Checklist
 
@@ -1531,6 +1570,15 @@ catches cross-cutting issues that per-phase tests cannot.
   - [ ] 18.2.8 — JWT with tampered claims → rejected.
   - [ ] 18.2.9 — Expired refresh token reuse → rejected.
   - [ ] 18.2.10 — Slack request with invalid signing secret → rejected.
+  - [ ] 18.2.11 — Adversarial LLM instructions embedded in document content
+    (prompt injection via RAG context) — verify the chat system prompt's
+    "Answer using ONLY provided context" framing prevents instruction
+    leakage to the model and that the response does not follow injected
+    commands.
+  - [ ] 18.2.12 — Semantic cache key omits `kb_id` in `Neo4jRetrievalAdapter`
+    (if a cache layer is added) — verify that cross-KB cache poisoning is
+    structurally impossible at the adapter level, not just at the service
+    layer.
 
 - [ ] **18.3 — Production configuration review**
   - [ ] 18.3.1 — Verify `Secure` flag is ON for JWT cookies in production
@@ -1592,6 +1640,24 @@ evaluations, and verify the complete data flow from upload to quiz.
   - [ ] 19.6.2 — Verify startup warning is emitted.
   - [ ] 19.6.3 — Verify quiz sessions fall back to PostgreSQL.
   - [ ] 19.6.4 — Verify SSE falls back to outbox polling.
+  - [ ] 19.6.5 — **Multi-worker session isolation note:** When Redis is absent
+    and multiple Uvicorn workers are running, each worker holds a separate
+    `_InMemorySessionCache`; chat sessions created on worker A are not
+    visible on worker B.  Verify that `compose.yml` and
+    `scripts/STARTUP_GUIDE.md` document that Redis is **required** in
+    multi-worker deployments, and that the `api` service defaults to a
+    single worker when Redis is absent.
+
+- [ ] **19.7 — Prompt locale end-to-end verification**
+  - [ ] 19.7.1 — Create a KB with `prompt_locale = "pl"`, upload a document,
+    and verify the pipeline processes it using Polish prompt templates
+    (check `StepFingerprint` encodes `+pl`).
+  - [ ] 19.7.2 — Switch the KB's `prompt_locale` to `"en"`, trigger
+    reprocessing, and verify: (a) all step fingerprints are invalidated,
+    (b) pipeline re-runs using English templates, (c) new fingerprints encode
+    `+en`.
+  - [ ] 19.7.3 — Verify that requesting a locale without a corresponding
+    `.{locale}.md` file falls back to `.pl.md` without error.
 
 ### Completion Checklist
 
@@ -1599,6 +1665,7 @@ evaluations, and verify the complete data flow from upload to quiz.
 - [ ] LLM quality evaluations produce baseline scores.
 - [ ] System fully functional with and without Redis.
 - [ ] Idempotency and cost regression tests pass.
+- [ ] Prompt locale switching invalidates checkpoints and reruns pipeline.
 
 ---
 

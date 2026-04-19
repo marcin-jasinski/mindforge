@@ -402,13 +402,26 @@ class GraphIndexer(Protocol):
 
 @runtime_checkable
 class KnowledgeBaseRepository(Protocol):
-    async def save(self, kb: KnowledgeBase, connection: Any) -> None: ...
+    async def create(
+        self, owner_id: UUID, name: str, description: str
+    ) -> KnowledgeBase: ...
 
-    async def get_by_id(self, kb_id: UUID) -> KnowledgeBase | None: ...
+    async def get_by_id(
+        self, kb_id: UUID, owner_id: UUID | None = None
+    ) -> KnowledgeBase | None: ...
 
     async def list_by_owner(self, owner_id: UUID) -> list[KnowledgeBase]: ...
 
-    async def delete(self, kb_id: UUID, connection: Any) -> None: ...
+    async def update(
+        self,
+        kb_id: UUID,
+        owner_id: UUID,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> KnowledgeBase | None: ...
+
+    async def delete(self, kb_id: UUID, owner_id: UUID) -> bool: ...
 
 
 # ---------------------------------------------------------------------------

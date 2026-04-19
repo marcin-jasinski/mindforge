@@ -23,6 +23,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from mindforge.api.auth import JWTService
 from mindforge.application.flashcards import FlashcardService
 from mindforge.application.quiz import QuizService
+from mindforge.application.chat import ChatService, _InMemorySessionCache
+from mindforge.application.search import SearchService
 from mindforge.domain.agents import ProcessingSettings
 from mindforge.domain.models import User
 from mindforge.infrastructure.config import AppSettings
@@ -330,4 +332,54 @@ def get_flashcard_service(
     return FlashcardService(
         artifact_repo=artifact_repo,
         study_progress=study_progress,
+    )
+
+
+def get_chat_service(
+    request: Request,
+    interaction_store: Annotated[object, Depends(get_interaction_store)],
+) -> ChatService:
+    """Build a ChatService scoped to the current request.
+
+    The shared :class:`_InMemorySessionCache` from ``app.state`` is injected so
+    sessions created in one request survive to the next on the same worker.
+    Raises HTTP 503 when the graph retrieval adapter is unavailable.
+    """
+    retrieval = request.app.state.retrieval
+    if retrieval is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Graf wiedzy nie jest dostępny. Przetwórz najpierw dokumenty.",
+        )
+    settings: AppSettings = request.app.state.settings
+    return ChatService(
+        gateway=request.app.state.gateway,
+        retrieval=retrieval,
+        interaction_store=interaction_store,
+        redis_client=request.app.state.redis_client,
+        system_with_context=request.app.state.chat_system_with_context,
+        system_no_context=request.app.state.chat_system_no_context,
+        session_ttl_seconds=settings.quiz_session_ttl_seconds,
+        memory_cache=request.app.state.chat_memory_cache,
+    )
+
+
+def get_search_service(
+    request: Request,
+    interaction_store: Annotated[object, Depends(get_interaction_store)],
+) -> SearchService:
+    """Build a SearchService scoped to the current request.
+
+    Raises HTTP 503 when the graph retrieval adapter is unavailable.
+    """
+    retrieval = request.app.state.retrieval
+    if retrieval is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Graf wiedzy nie jest dostępny. Przetwórz najpierw dokumenty.",
+        )
+    return SearchService(
+        retrieval=retrieval,
+        gateway=request.app.state.gateway,
+        interaction_store=interaction_store,
     )

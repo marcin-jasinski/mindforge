@@ -22,6 +22,7 @@ from mindforge.domain.models import (
     FetchedArticle,
     ModelTier,
 )
+from mindforge.infrastructure.ai.prompts import article_fetcher as _prompts
 from mindforge.infrastructure.security.egress_policy import (
     EgressPolicy,
     EgressViolation,
@@ -45,22 +46,6 @@ _LINK_RE = re.compile(r"(?<!!)\[([^\]]*)\]\((https?://[^)]+)\)")
 
 # Categories the LLM can return; only these are fetched
 _FETCH_CATEGORIES = frozenset({"article", "api_docs"})
-
-_CLASSIFY_SYSTEM = """\
-You are a URL classifier for an educational content system.
-
-Given a list of URLs, classify each one into exactly one of:
-- "article": A blog post, tutorial, documentation page, or educational article
-- "api_docs": API reference or library documentation
-- "video": A video (YouTube, Vimeo, etc.)
-- "social": Social media or forum post
-- "irrelevant": Anything else (images, downloads, login pages, etc.)
-
-Return a JSON array of objects, one per input URL, in the same order:
-[{"url": "<url>", "category": "<category>"}, ...]
-
-Return ONLY the JSON array. Do not include markdown fences or any other text.
-"""
 
 
 def _extract_links(content: str) -> list[tuple[str, str]]:
@@ -136,7 +121,7 @@ class ArticleFetcherAgent:
         model = context.settings.model_for_tier(ModelTier.SMALL)
         url_list_json = json.dumps(unique_urls)
         classify_messages = [
-            {"role": "system", "content": _CLASSIFY_SYSTEM},
+            {"role": "system", "content": _prompts.SYSTEM_PROMPT},
             {"role": "user", "content": url_list_json},
         ]
 

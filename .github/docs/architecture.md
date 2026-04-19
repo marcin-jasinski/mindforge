@@ -314,14 +314,20 @@ mindforge/
 │   │   │   ├── __init__.py
 │   │   │   ├── gateway.py             # AIGateway implementation (wraps LiteLLM)
 │   │   │   ├── embeddings.py          # Embedding adapter
-│   │   │   └── prompts/               # Prompt templates (versioned, externalized)
+│   │   │   └── prompts/               # Prompt templates (versioned, externalized, i18n)
+│   │   │       ├── __init__.py        # load_prompt(filename, locale) loader
 │   │   │       ├── summarizer.py
 │   │   │       ├── flashcard_gen.py
 │   │   │       ├── concept_mapper.py
 │   │   │       ├── quiz_generator.py
 │   │   │       ├── quiz_evaluator.py
 │   │   │       ├── preprocessor.py
-│   │   │       └── image_analyzer.py
+│   │   │       ├── image_analyzer.py
+│   │   │       ├── article_fetcher.py
+│   │   │       ├── chat.py
+│   │   │       ├── summarizer_system.pl.md    # Polish (default locale)
+│   │   │       ├── summarizer_system.en.md    # English
+│   │   │       └── ...                        # one .pl.md + .en.md per template
 │   │   ├── parsing/
 │   │   │   ├── __init__.py
 │   │   │   ├── registry.py            # Format parser registry (Open/Closed)
@@ -1782,6 +1788,124 @@ result into `AgentContext.metadata` before calling the agent.
 
 This is the **Mediator pattern** — the orchestrator is the single point of
 coordination.  Agents remain stateless and independently testable.
+
+### 9.7 Prompt Internationalization
+
+MindForge prompt templates support multiple locales so that agent instructions
+(system prompts, few-shot examples, output schemas) can be delivered in the
+language that best matches the user's knowledge base.  Polish (`pl`) is the
+default locale; English (`en`) is the first additional locale.
+
+#### File Naming Convention
+
+Prompt files follow the pattern `{name}_{locale}.md`, e.g.:
+
+```
+prompts/
+├── summarizer_system.pl.md      # Polish (default)
+├── summarizer_system.en.md      # English
+├── summarizer_user.pl.md
+├── summarizer_user.en.md
+└── ...                          # one .pl.md + .en.md per template
+```
+
+Locale-neutral variants (files without a locale suffix) are not used — every
+template must have at least a `.pl.md` baseline.
+
+#### `load_prompt()` Locale Resolution
+
+```python
+# mindforge/infrastructure/ai/prompts/__init__.py
+from pathlib import Path
+
+_PROMPTS_DIR = Path(__file__).parent
+_DEFAULT_LOCALE = "pl"
+
+def load_prompt(filename: str, locale: str = _DEFAULT_LOCALE) -> str:
+    """Load a prompt template for the requested locale.
+
+    Resolution order:
+      1. {stem}_{locale}{suffix}   — exact locale match
+      2. {stem}_{DEFAULT_LOCALE}{suffix} — fallback to Polish
+
+    Raises FileNotFoundError if neither file exists.
+    """
+    p = Path(filename)
+    stem, suffix = p.stem, p.suffix or ".md"
+    # Strip any existing locale suffix from the stem before resolving
+    for candidate in (f"{stem}.{locale}{suffix}", f"{stem}.{_DEFAULT_LOCALE}{suffix}"):
+        path = _PROMPTS_DIR / candidate
+        if path.exists():
+            return path.read_text(encoding="utf-8")
+    raise FileNotFoundError(
+        f"No prompt file found for '{filename}' in locale '{locale}' "
+        f"or fallback locale '{_DEFAULT_LOCALE}'"
+    )
+```
+
+Prompt modules pass `locale` through from the call site:
+
+```python
+# mindforge/infrastructure/ai/prompts/summarizer.py
+from mindforge.infrastructure.ai.prompts import load_prompt
+
+def get_system_prompt(locale: str = "pl") -> str:
+    return load_prompt("summarizer_system.md", locale)
+
+def get_user_template(locale: str = "pl") -> str:
+    return load_prompt("summarizer_user.md", locale)
+```
+
+#### Locale in `ProcessingSettings` and `AgentContext`
+
+`ProcessingSettings` (domain layer) carries a `prompt_locale` field:
+
+```python
+@dataclass(frozen=True)
+class ProcessingSettings:
+    model_size: Literal["small", "large"] = "large"
+    max_flashcards: int = 20
+    max_concepts: int = 50
+    prompt_locale: str = "pl"          # ← new field; default Polish
+```
+
+The orchestrator injects `ProcessingSettings` into `AgentContext`, so every
+agent automatically receives the correct locale without per-agent changes.
+Agents call `get_system_prompt(context.settings.prompt_locale)` to obtain the
+locale-specific template.
+
+#### Checkpoint Invalidation
+
+The `StepFingerprint` already hashes `prompt_version`.  Because changing a
+locale loads a different file, prompt modules must encode the locale in the
+version string they expose:
+
+```python
+VERSION = f"1.0.0+{locale}"   # e.g. "1.0.0+pl", "1.0.0+en"
+```
+
+This ensures that switching a knowledge base from `pl` to `en` automatically
+invalidates all cached pipeline steps for that KB and triggers full
+re-processing under the new locale — no manual cache flush required.
+
+#### Per-Knowledge-Base Locale
+
+`KnowledgeBase` stores the user's locale preference:
+
+```python
+@dataclass
+class KnowledgeBase:
+    kb_id: UUID
+    owner_id: UUID
+    name: str
+    prompt_locale: str = "pl"   # ← persisted, user-configurable
+    created_at: datetime
+    updated_at: datetime
+```
+
+When the pipeline worker starts a task for a KB, it reads `kb.prompt_locale`
+and passes it through `ProcessingSettings → AgentContext`.  The Angular
+settings page (Phase 12) exposes a locale selector for this field.
 
 ---
 
@@ -3671,6 +3795,28 @@ message is returned.
 **Consequences:** Adds a new application service (`ChatService`) and router.
 Requires turn-level Langfuse tracing for cost attribution.  Conversation history
 is session-scoped (in-memory or Redis), not persisted to PostgreSQL.
+
+### ADR-18: Locale-Aware Prompt Templates
+
+**Context:** All LLM prompt templates were written in Polish, matching the
+product's primary user base.  As MindForge grows, users may want agents to
+reason and output in their preferred language (e.g., English) while keeping
+the underlying knowledge base content in any language.
+
+**Decision:** Prompt templates are stored as locale-suffixed Markdown files
+(`{name}_{locale}.md`).  The default locale is Polish (`pl`).  The
+`load_prompt(filename, locale)` helper resolves the requested locale first and
+falls back to `pl` if no match is found.  `ProcessingSettings.prompt_locale`
+carries the locale through the agent graph; `KnowledgeBase.prompt_locale`
+persists the user's preference.  Locale is encoded into the `StepFingerprint`
+via the prompt version string, so a locale change automatically invalidates
+all affected pipeline checkpoints and triggers re-processing.
+
+**Consequences:** Every prompt module must implement locale-aware loading.
+Prompt files must have at least a `.pl.md` baseline.  Adding a new locale
+means adding new `.{locale}.md` files — no code changes required.  Pipeline
+re-runs triggered by locale changes carry the same cost as any other full
+re-process; users should be informed before switching KB locale.
 
 ---
 
