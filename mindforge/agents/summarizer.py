@@ -67,12 +67,13 @@ class SummarizerAgent:
             )
 
         # Build optional context sections
+        locale = context.settings.prompt_locale
         image_context = ""
         if context.artifact.image_descriptions:
             descriptions_text = "\n".join(
                 f"- {img.description}" for img in context.artifact.image_descriptions
             )
-            image_context = _prompts.IMAGE_CONTEXT_TEMPLATE.format(
+            image_context = _prompts.image_context_template(locale).format(
                 descriptions=descriptions_text
             )
 
@@ -83,18 +84,18 @@ class SummarizerAgent:
                 for art in context.artifact.fetched_articles
                 if art.content
             )
-            article_context = _prompts.ARTICLE_CONTEXT_TEMPLATE.format(
+            article_context = _prompts.article_context_template(locale).format(
                 articles=articles_text
             )
 
         prior_concepts_context = ""
         prior_concepts: list[str] = context.metadata.get("prior_concepts", [])
         if prior_concepts:
-            prior_concepts_context = _prompts.PRIOR_CONCEPTS_TEMPLATE.format(
+            prior_concepts_context = _prompts.prior_concepts_template(locale).format(
                 concepts=", ".join(prior_concepts[:50])
             )
 
-        user_message = _prompts.USER_TEMPLATE.format(
+        user_message = _prompts.user_template(locale).format(
             content=content[:_MAX_CONTENT_CHARS],
             image_context=image_context,
             article_context=article_context,
@@ -103,7 +104,7 @@ class SummarizerAgent:
 
         model = context.settings.model_for_tier(ModelTier.LARGE)
         messages = [
-            {"role": "system", "content": _prompts.SYSTEM_PROMPT},
+            {"role": "system", "content": _prompts.system_prompt(locale)},
             {"role": "user", "content": user_message},
         ]
 

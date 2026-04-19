@@ -121,7 +121,10 @@ class ArticleFetcherAgent:
         model = context.settings.model_for_tier(ModelTier.SMALL)
         url_list_json = json.dumps(unique_urls)
         classify_messages = [
-            {"role": "system", "content": _prompts.SYSTEM_PROMPT},
+            {
+                "role": "system",
+                "content": _prompts.system_prompt(context.settings.prompt_locale),
+            },
             {"role": "user", "content": url_list_json},
         ]
 

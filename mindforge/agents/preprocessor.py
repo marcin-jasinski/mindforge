@@ -54,9 +54,10 @@ class PreprocessorAgent:
                 error="original_content not available in agent context metadata",
             )
 
+        locale = context.settings.prompt_locale
         model = context.settings.model_for_tier(ModelTier.SMALL)
         messages = [
-            {"role": "system", "content": _prompts.SYSTEM_PROMPT},
+            {"role": "system", "content": _prompts.system_prompt(locale)},
             {"role": "user", "content": content},
         ]
 

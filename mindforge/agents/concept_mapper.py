@@ -76,8 +76,9 @@ class ConceptMapperAgent:
             context.metadata.get("original_content", ""),
         )
 
+        locale = context.settings.prompt_locale
         key_points_text = "\n".join(f"- {p}" for p in summary.key_points)
-        user_message = _prompts.USER_TEMPLATE.format(
+        user_message = _prompts.user_template(locale).format(
             summary=summary.summary,
             key_points=key_points_text,
             content_excerpt=content[:_MAX_CONTENT_CHARS],
@@ -85,7 +86,7 @@ class ConceptMapperAgent:
 
         model = context.settings.model_for_tier(ModelTier.LARGE)
         messages = [
-            {"role": "system", "content": _prompts.SYSTEM_PROMPT},
+            {"role": "system", "content": _prompts.system_prompt(locale)},
             {"role": "user", "content": user_message},
         ]
 

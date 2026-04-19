@@ -78,7 +78,10 @@ class ImageAnalyzerAgent:
             b64 = base64.b64encode(image_bytes).decode("ascii")
 
             messages = [
-                {"role": "system", "content": _prompts.SYSTEM_PROMPT},
+                {
+                    "role": "system",
+                    "content": _prompts.system_prompt(context.settings.prompt_locale),
+                },
                 {
                     "role": "user",
                     "content": [

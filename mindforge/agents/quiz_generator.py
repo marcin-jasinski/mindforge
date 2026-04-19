@@ -63,14 +63,15 @@ class QuizGeneratorAgent:
                 error="retrieval_context not available in agent context metadata",
             )
 
-        user_message = _prompts.USER_TEMPLATE.format(
+        locale = context.settings.prompt_locale
+        user_message = _prompts.user_template(locale).format(
             concept_label=concept_label or "unknown",
             retrieval_context=retrieval_context,
         )
 
         model = context.settings.model_for_tier(ModelTier.LARGE)
         messages = [
-            {"role": "system", "content": _prompts.SYSTEM_PROMPT},
+            {"role": "system", "content": _prompts.system_prompt(locale)},
             {"role": "user", "content": user_message},
         ]
 
