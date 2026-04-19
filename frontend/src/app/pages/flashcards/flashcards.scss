@@ -1,0 +1,123 @@
+.flashcards-page {
+  max-width: 640px;
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-progress-bar { flex: 1; border-radius: 4px; }
+}
+
+// 3-D flip card
+.flashcard-scene {
+  perspective: 1000px;
+  width: 100%;
+  cursor: pointer;
+  margin-bottom: 24px;
+
+  .flashcard-inner {
+    position: relative;
+    min-height: 260px;
+    transition: transform 0.55s cubic-bezier(.4,0,.2,1);
+    transform-style: preserve-3d;
+
+    &.flipped { transform: rotateY(180deg); }
+  }
+
+  .flashcard-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 20px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-card-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+      padding: 32px;
+      width: 100%;
+    }
+  }
+
+  .flashcard-back {
+    transform: rotateY(180deg);
+    background: var(--mat-sys-secondary-container) !important;
+    color: var(--mat-sys-on-secondary-container);
+  }
+}
+
+.card-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.card-text {
+  font-size: 20px;
+  line-height: 1.6;
+  font-weight: 500;
+  margin: 0;
+}
+
+.flip-hint {
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.flip-cta {
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 14px;
+}
+
+.rating-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+
+  .rating-prompt {
+    margin: 0;
+    font-size: 14px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.rating-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  button { min-width: 80px; font-weight: 600; border-radius: 24px !important; }
+}
+
+.btn-again { border-color: #e57373 !important; color: #e57373; }
+.btn-hard  { border-color: #ffd54f !important; color: #ffd54f; }
+.btn-good  { border-color: #64b5f6 !important; color: #64b5f6; }
+.btn-easy  { border-color: #81c784 !important; color: #81c784; }
+
+.all-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 64px 24px;
+  gap: 12px;
+
+  mat-icon { font-size: 72px; width: 72px; height: 72px; color: var(--mat-sys-primary); }
+  h2 { margin: 0; }
+  p { color: var(--mat-sys-on-surface-variant); margin: 0; }
+}

@@ -1,0 +1,86 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>Documents</h1>
+  </div>
+
+  <!-- Upload zone -->
+  <div
+    class="upload-zone"
+    [class.drag-active]="dragOver()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+    (click)="fileInput.click()"
+  >
+    <mat-icon class="upload-icon">upload_file</mat-icon>
+    <p class="upload-title">
+      @if (uploading()) {
+        Uploading…
+      } @else {
+        Drop files here or <strong>click to browse</strong>
+      }
+    </p>
+    <p class="upload-hint">Supported: .md, .pdf, .docx, .txt (max 10 MB)</p>
+    @if (uploading()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+  </div>
+  <input
+    #fileInput
+    type="file"
+    multiple
+    accept=".md,.pdf,.docx,.txt"
+    hidden
+    (change)="onFileInput($event)"
+  />
+
+  <!-- Documents table -->
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else {
+    <mat-card class="docs-card">
+      <table mat-table [dataSource]="documents()" class="docs-table">
+        <ng-container matColumnDef="title">
+          <th mat-header-cell *matHeaderCellDef>Title</th>
+          <td mat-cell *matCellDef="let doc">
+            <span class="doc-title">{{ doc.title || doc.source_filename }}</span>
+            <span class="doc-lesson">{{ doc.lesson_id }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let doc">
+            <span [class]="statusClass(doc.status)">{{ doc.status }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="mime_type">
+          <th mat-header-cell *matHeaderCellDef>Format</th>
+          <td mat-cell *matCellDef="let doc">{{ doc.mime_type }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="created_at">
+          <th mat-header-cell *matHeaderCellDef>Uploaded</th>
+          <td mat-cell *matCellDef="let doc">{{ doc.created_at | date: 'short' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let doc">
+            <button mat-icon-button matTooltip="Reprocess" (click)="reprocess(doc.document_id)">
+              <mat-icon>refresh</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="doc-row"></tr>
+      </table>
+
+      @if (documents().length === 0) {
+        <p class="empty-docs">No documents yet. Upload one above.</p>
+      }
+    </mat-card>
+  }
+</div>
