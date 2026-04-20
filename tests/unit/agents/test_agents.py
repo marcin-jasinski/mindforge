@@ -1108,50 +1108,50 @@ class TestPromptVersionWiring:
         from mindforge.agents.preprocessor import PreprocessorAgent
         from mindforge.infrastructure.ai.agents import preprocessor as p
 
-        assert PreprocessorAgent.PROMPT_VERSION == p.VERSION
-        assert PreprocessorAgent.PROMPT_VERSION != ""
+        assert PreprocessorAgent().PROMPT_VERSION == p.VERSION
+        assert PreprocessorAgent().PROMPT_VERSION != ""
 
     def test_image_analyzer_has_prompt_version(self):
         from mindforge.agents.image_analyzer import ImageAnalyzerAgent
         from mindforge.infrastructure.ai.agents import image_analyzer as p
 
-        assert ImageAnalyzerAgent.PROMPT_VERSION == p.VERSION
+        assert ImageAnalyzerAgent().PROMPT_VERSION == p.VERSION
 
     def test_relevance_guard_has_prompt_version(self):
         from mindforge.agents.relevance_guard import RelevanceGuardAgent
         from mindforge.infrastructure.ai.agents import relevance_guard as p
 
-        assert RelevanceGuardAgent.PROMPT_VERSION == p.VERSION
+        assert RelevanceGuardAgent().PROMPT_VERSION == p.VERSION
 
     def test_summarizer_has_prompt_version(self):
         from mindforge.agents.summarizer import SummarizerAgent
         from mindforge.infrastructure.ai.agents import summarizer as p
 
-        assert SummarizerAgent.PROMPT_VERSION == p.VERSION
+        assert SummarizerAgent().PROMPT_VERSION == p.VERSION
 
     def test_flashcard_generator_has_prompt_version(self):
         from mindforge.agents.flashcard_generator import FlashcardGeneratorAgent
         from mindforge.infrastructure.ai.agents import flashcard_gen as p
 
-        assert FlashcardGeneratorAgent.PROMPT_VERSION == p.VERSION
+        assert FlashcardGeneratorAgent().PROMPT_VERSION == p.VERSION
 
     def test_concept_mapper_has_prompt_version(self):
         from mindforge.agents.concept_mapper import ConceptMapperAgent
         from mindforge.infrastructure.ai.agents import concept_mapper as p
 
-        assert ConceptMapperAgent.PROMPT_VERSION == p.VERSION
+        assert ConceptMapperAgent().PROMPT_VERSION == p.VERSION
 
     def test_quiz_generator_has_prompt_version(self):
         from mindforge.agents.quiz_generator import QuizGeneratorAgent
         from mindforge.infrastructure.ai.agents import quiz_generator as p
 
-        assert QuizGeneratorAgent.PROMPT_VERSION == p.VERSION
+        assert QuizGeneratorAgent().PROMPT_VERSION == p.VERSION
 
     def test_quiz_evaluator_has_prompt_version(self):
         from mindforge.agents.quiz_evaluator import QuizEvaluatorAgent
         from mindforge.infrastructure.ai.agents import quiz_evaluator as p
 
-        assert QuizEvaluatorAgent.PROMPT_VERSION == p.VERSION
+        assert QuizEvaluatorAgent().PROMPT_VERSION == p.VERSION
 
     def test_pipeline_orchestrator_reads_prompt_version(self):
         """_compute_fingerprint uses getattr(agent, 'PROMPT_VERSION', '0').
