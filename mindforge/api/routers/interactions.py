@@ -9,6 +9,9 @@ from fastapi import APIRouter, Depends, Request
 from mindforge.api.deps import get_current_user
 from mindforge.api.schemas import InteractionResponse, InteractionTurnResponse
 from mindforge.domain.models import User
+from mindforge.infrastructure.persistence.interaction_repo import (
+    PostgresInteractionStore,
+)
 
 router = APIRouter(prefix="/api/interactions", tags=["interactions"])
 
@@ -21,10 +24,6 @@ async def list_interactions(
     offset: int = 0,
 ) -> list[InteractionResponse]:
     async with request.app.state.session_factory() as session:
-        from mindforge.infrastructure.persistence.interaction_repo import (
-            PostgresInteractionStore,
-        )
-
         store = PostgresInteractionStore(session)
         # list_for_user enforces redaction — no sensitive fields returned
         interactions = await store.list_for_user(

@@ -24,9 +24,10 @@ async def get_concepts(
     request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> ConceptGraphResponse:
-    kb_repo = get_kb_repo(request, await _open_session(request))
-    if await kb_repo.get_by_id(kb_id, owner_id=current_user.user_id) is None:
-        raise HTTPException(status_code=404, detail="Baza wiedzy nie istnieje.")
+    async with request.app.state.session_factory() as session:
+        kb_repo = get_kb_repo(request, session)
+        if await kb_repo.get_by_id(kb_id, owner_id=current_user.user_id) is None:
+            raise HTTPException(status_code=404, detail="Baza wiedzy nie istnieje.")
 
     retrieval = getattr(request.app.state, "retrieval", None)
     if retrieval is None:
@@ -60,8 +61,3 @@ async def get_concepts(
                 )
 
     return ConceptGraphResponse(concepts=concept_responses, edges=edges)
-
-
-async def _open_session(request):
-    async with request.app.state.session_factory() as session:
-        return session

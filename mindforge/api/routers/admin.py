@@ -9,6 +9,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import func, select
 
 from mindforge.api.deps import get_current_user
 from mindforge.api.schemas import (
@@ -17,6 +18,15 @@ from mindforge.api.schemas import (
     SystemMetricsResponse,
 )
 from mindforge.domain.models import User
+from mindforge.infrastructure.persistence.interaction_repo import (
+    PostgresInteractionStore,
+)
+from mindforge.infrastructure.persistence.models import (
+    DocumentModel,
+    InteractionModel,
+    KnowledgeBaseModel,
+    UserModel,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -34,16 +44,7 @@ async def get_metrics(
 ) -> SystemMetricsResponse:
     _require_admin(current_user)
 
-    from sqlalchemy import func, select
-
     async with request.app.state.session_factory() as session:
-        from mindforge.infrastructure.persistence.models import (
-            DocumentModel,
-            InteractionModel,
-            KnowledgeBaseModel,
-            UserModel,
-        )
-
         total_users = (
             await session.execute(select(func.count()).select_from(UserModel))
         ).scalar_one()
@@ -76,21 +77,11 @@ async def list_all_interactions(
     """Return unredacted interaction log for admin tooling."""
     _require_admin(current_user)
 
-    from sqlalchemy import select
-
     async with request.app.state.session_factory() as session:
-        from mindforge.infrastructure.persistence.interaction_repo import (
-            PostgresInteractionStore,
-        )
-
         store = PostgresInteractionStore(session)
-        if user_id is not None:
-            interactions = await store.list_for_user(
-                user_id, limit=limit, offset=offset
-            )
-        else:
-            # Admin path: list all interactions without user filter
-            interactions = await store.list_all(limit=limit, offset=offset)
+        interactions = await store.list_unredacted(
+            user_id=user_id, limit=limit, offset=offset
+        )
 
     return [
         InteractionResponse(

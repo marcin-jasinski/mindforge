@@ -8,15 +8,17 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import AsyncIterator
+from typing import Annotated, AsyncIterator
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from typing import Annotated
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from mindforge.api.deps import get_current_user, get_kb_repo
 from mindforge.domain.models import User
+from mindforge.infrastructure.persistence.models import OutboxEventModel
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/knowledge-bases/{kb_id}/events", tags=["events"])
@@ -59,11 +61,6 @@ async def _polling_event_stream(
     user_id: UUID,
 ) -> AsyncIterator[str]:
     """Poll outbox_events table every 2s as Redis fallback."""
-    from sqlalchemy import select, text
-    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-    from mindforge.infrastructure.persistence.models import OutboxEventModel
-    import time
-
     session_factory = async_sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )
@@ -102,9 +99,10 @@ async def event_stream(
     request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> StreamingResponse:
-    kb_repo = get_kb_repo(request, await _open_session(request))
-    if await kb_repo.get_by_id(kb_id, owner_id=current_user.user_id) is None:
-        raise HTTPException(status_code=404, detail="Baza wiedzy nie istnieje.")
+    async with request.app.state.session_factory() as session:
+        kb_repo = get_kb_repo(request, session)
+        if await kb_repo.get_by_id(kb_id, owner_id=current_user.user_id) is None:
+            raise HTTPException(status_code=404, detail="Baza wiedzy nie istnieje.")
 
     redis_client = getattr(request.app.state, "redis_client", None)
 
@@ -124,8 +122,3 @@ async def event_stream(
             "Connection": "keep-alive",
         },
     )
-
-
-async def _open_session(request):
-    async with request.app.state.session_factory() as session:
-        return session
