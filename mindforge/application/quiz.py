@@ -22,9 +22,7 @@ from datetime import date, datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
-from mindforge.agents.quiz_evaluator import QuizEvaluatorAgent
-from mindforge.agents.quiz_generator import QuizGeneratorAgent
-from mindforge.domain.agents import AgentContext, ProcessingSettings
+from mindforge.domain.agents import Agent, AgentContext, ProcessingSettings
 from mindforge.domain.events import QuizAnswerEvaluated, QuizSessionStarted
 from mindforge.domain.models import (
     DocumentArtifact,
@@ -139,6 +137,8 @@ class QuizService:
         interaction_store: InteractionStore,
         settings: ProcessingSettings,
         *,
+        quiz_generator: Agent,
+        quiz_evaluator: Agent,
         event_publisher: EventPublisher | None = None,
         quiz_ttl_seconds: int = 1800,
     ) -> None:
@@ -150,6 +150,8 @@ class QuizService:
         self._settings = settings
         self._event_publisher = event_publisher
         self._quiz_ttl_seconds = quiz_ttl_seconds
+        self._quiz_generator = quiz_generator
+        self._quiz_evaluator = quiz_evaluator
 
     # ------------------------------------------------------------------
     # Public interface
@@ -222,7 +224,7 @@ class QuizService:
                 "lesson_id": target.key,
             },
         )
-        agent = QuizGeneratorAgent()
+        agent = self._quiz_generator
         agent_result = await agent.execute(ctx)
         if not agent_result.success:
             raise RuntimeError(
@@ -351,7 +353,7 @@ class QuizService:
                 "student_answer": user_answer,
             },
         )
-        eval_agent = QuizEvaluatorAgent()
+        eval_agent = self._quiz_evaluator
         eval_result = await eval_agent.execute(ctx)
         if not eval_result.success:
             raise RuntimeError(f"Nie udało się ocenić odpowiedzi: {eval_result.error}")
