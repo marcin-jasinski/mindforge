@@ -19,7 +19,6 @@ from mindforge.domain.models import (
     ImageDescription,
     ModelTier,
 )
-from mindforge.infrastructure.ai.agents import image_analyzer as _prompts
 
 __version__ = "1.0.0"
 
@@ -39,7 +38,14 @@ class ImageAnalyzerAgent:
     """Produces ``image_descriptions`` in the pipeline artifact."""
 
     __version__ = __version__
-    PROMPT_VERSION = _prompts.VERSION
+
+    def __init__(self, *, prompts=None) -> None:
+        if prompts is None:
+            from mindforge.infrastructure.ai.agents import (
+                image_analyzer as prompts,
+            )  # noqa: PLC0415
+        self._prompts = prompts
+        self.PROMPT_VERSION = prompts.VERSION
 
     @property
     def name(self) -> str:
@@ -80,7 +86,9 @@ class ImageAnalyzerAgent:
             messages = [
                 {
                     "role": "system",
-                    "content": _prompts.system_prompt(context.settings.prompt_locale),
+                    "content": self._prompts.system_prompt(
+                        context.settings.prompt_locale
+                    ),
                 },
                 {
                     "role": "user",

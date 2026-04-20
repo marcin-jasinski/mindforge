@@ -14,6 +14,7 @@ import logging
 import re
 import time
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from mindforge.domain.agents import AgentCapability, AgentContext, AgentResult
 from mindforge.domain.models import (
@@ -22,11 +23,10 @@ from mindforge.domain.models import (
     FetchedArticle,
     ModelTier,
 )
-from mindforge.infrastructure.ai.agents import article_fetcher as _prompts
-from mindforge.infrastructure.security.egress_policy import (
-    EgressPolicy,
-    EgressViolation,
-)
+from mindforge.domain.ports import EgressViolation
+
+if TYPE_CHECKING:
+    from mindforge.infrastructure.security.egress_policy import EgressPolicy
 
 __version__ = "1.0.0"
 
@@ -69,8 +69,13 @@ class ArticleFetcherAgent:
 
     __version__ = __version__
 
-    def __init__(self, egress_policy: EgressPolicy) -> None:
+    def __init__(self, egress_policy: EgressPolicy, *, prompts=None) -> None:
+        if prompts is None:
+            from mindforge.infrastructure.ai.agents import (
+                article_fetcher as prompts,
+            )  # noqa: PLC0415
         self._egress = egress_policy
+        self._prompts = prompts
 
     @property
     def name(self) -> str:
@@ -123,7 +128,7 @@ class ArticleFetcherAgent:
         classify_messages = [
             {
                 "role": "system",
-                "content": _prompts.system_prompt(context.settings.prompt_locale),
+                "content": self._prompts.system_prompt(context.settings.prompt_locale),
             },
             {"role": "user", "content": url_list_json},
         ]
