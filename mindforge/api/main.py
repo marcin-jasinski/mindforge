@@ -219,6 +219,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     app.state.consumers = consumers
 
+    # 13. Quiz agents — constructed once at startup and injected per-request
+    from mindforge.agents.quiz_generator import QuizGeneratorAgent
+    from mindforge.agents.quiz_evaluator import QuizEvaluatorAgent
+    from mindforge.infrastructure.ai.agents import quiz_generator as _qg_prompts
+    from mindforge.infrastructure.ai.agents import quiz_evaluator as _qe_prompts
+
+    app.state.quiz_generator = QuizGeneratorAgent(prompts=_qg_prompts)
+    app.state.quiz_evaluator = QuizEvaluatorAgent(prompts=_qe_prompts)
+
     log.info("MindForge API started — all dependencies wired.")
 
     yield
