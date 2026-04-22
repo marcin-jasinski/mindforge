@@ -35,6 +35,11 @@ from mindforge.api.schemas import (
 )
 from mindforge.domain.models import User
 from mindforge.infrastructure.config import AppSettings
+from mindforge.infrastructure.persistence.identity_repo import (
+    PostgresIdentityRepository,
+)
+from mindforge.infrastructure.persistence.models import ExternalIdentityModel, UserModel
+from sqlalchemy import select
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -187,10 +192,6 @@ async def register(
     password_hash = basic.hash_password(payload.password)
 
     async with request.app.state.session_factory() as session:
-        from mindforge.infrastructure.persistence.identity_repo import (
-            PostgresIdentityRepository,
-        )
-
         repo = PostgresIdentityRepository(session)
         # Check if email already in use
         existing = await repo.find_user_id("basic", payload.email)
@@ -228,15 +229,6 @@ async def login(
         )
 
     async with request.app.state.session_factory() as session:
-        from mindforge.infrastructure.persistence.identity_repo import (
-            PostgresIdentityRepository,
-        )
-        from mindforge.infrastructure.persistence.models import (
-            ExternalIdentityModel,
-            UserModel,
-        )
-        from sqlalchemy import select
-
         repo = PostgresIdentityRepository(session)
         user_id = await repo.find_user_id("basic", payload.email)
         if user_id is None:

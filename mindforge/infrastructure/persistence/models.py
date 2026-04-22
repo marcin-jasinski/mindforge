@@ -59,6 +59,9 @@ class UserModel(Base):
         server_default=func.now(), nullable=False
     )
     last_login_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean, server_default="FALSE", nullable=False
+    )
 
     external_identities: Mapped[list[ExternalIdentityModel]] = relationship(
         back_populates="user", cascade="all, delete-orphan"

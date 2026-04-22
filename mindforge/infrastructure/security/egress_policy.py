@@ -35,13 +35,16 @@ import httpx
 if TYPE_CHECKING:
     from mindforge.infrastructure.config import EgressSettings
 
+from mindforge.domain.ports import EgressViolation  # re-exported for backward compat
+
+__all__ = ["EgressViolation", "EgressPolicy"]
+
 # ---------------------------------------------------------------------------
 # Exceptions
 # ---------------------------------------------------------------------------
 
-
-class EgressViolation(ValueError):
-    """Raised when an outbound URL violates the configured egress policy."""
+# EgressViolation is defined in mindforge.domain.ports and re-exported here.
+# Import from domain to keep agents free of infrastructure dependencies.
 
 
 # ---------------------------------------------------------------------------
@@ -119,7 +122,9 @@ class _PinnedNetworkBackend(httpcore.AsyncNetworkBackend):
         timeout: float | None = None,
         socket_options: object = None,
     ) -> httpcore.AsyncNetworkStream:
-        raise EgressViolation("Unix socket connections are not permitted by egress policy.")
+        raise EgressViolation(
+            "Unix socket connections are not permitted by egress policy."
+        )
 
     async def sleep(self, seconds: float) -> None:
         await self._inner.sleep(seconds)

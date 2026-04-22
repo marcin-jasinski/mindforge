@@ -288,6 +288,7 @@ class User:
     password_hash: str | None = None
     avatar_url: str | None = None
     last_login_at: datetime | None = None
+    is_admin: bool = False
 
 
 # ---------------------------------------------------------------------------

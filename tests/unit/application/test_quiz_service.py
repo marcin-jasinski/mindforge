@@ -60,6 +60,8 @@ def _make_service(
     interaction_store=None,
     settings=None,
     event_publisher=None,
+    quiz_generator=None,
+    quiz_evaluator=None,
     quiz_ttl_seconds: int = 1800,
 ) -> QuizService:
     return QuizService(
@@ -70,6 +72,8 @@ def _make_service(
         interaction_store=interaction_store or AsyncMock(),
         settings=settings or _make_settings(),
         event_publisher=event_publisher,
+        quiz_generator=quiz_generator or AsyncMock(),
+        quiz_evaluator=quiz_evaluator or AsyncMock(),
         quiz_ttl_seconds=quiz_ttl_seconds,
     )
 
@@ -165,16 +169,15 @@ class TestStartSession:
             ctx.metadata["quiz_question"] = q
             return AgentResult(success=True, output_key="quiz_question", tokens_used=10)
 
-        with patch(
-            "mindforge.application.quiz.QuizGeneratorAgent.execute",
-            side_effect=_fake_execute,
-        ):
-            service = _make_service(
-                retrieval=retrieval,
-                quiz_sessions=quiz_sessions,
-                interaction_store=interaction_store,
-            )
-            result = await service.start_session(user_id, kb_id)
+        mock_gen = AsyncMock()
+        mock_gen.execute = AsyncMock(side_effect=_fake_execute)
+        service = _make_service(
+            retrieval=retrieval,
+            quiz_sessions=quiz_sessions,
+            interaction_store=interaction_store,
+            quiz_generator=mock_gen,
+        )
+        result = await service.start_session(user_id, kb_id)
 
         assert isinstance(result, QuizStartResult)
         assert result.session_id is not None
@@ -207,16 +210,15 @@ class TestStartSession:
             )
             return AgentResult(success=True, output_key="quiz_question")
 
-        with patch(
-            "mindforge.application.quiz.QuizGeneratorAgent.execute",
-            side_effect=_fake_execute,
-        ):
-            service = _make_service(
-                retrieval=retrieval,
-                quiz_sessions=AsyncMock(),
-                interaction_store=interaction_store,
-            )
-            result = await service.start_session(user_id, kb_id)
+        mock_gen = AsyncMock()
+        mock_gen.execute = AsyncMock(side_effect=_fake_execute)
+        service = _make_service(
+            retrieval=retrieval,
+            quiz_sessions=AsyncMock(),
+            interaction_store=interaction_store,
+            quiz_generator=mock_gen,
+        )
+        result = await service.start_session(user_id, kb_id)
 
         result_dict = result.__dict__
         assert "reference_answer" not in result_dict
@@ -246,13 +248,13 @@ class TestStartSession:
                 success=False, output_key="quiz_question", error="LLM down"
             )
 
-        with patch(
-            "mindforge.application.quiz.QuizGeneratorAgent.execute",
-            side_effect=_fail,
-        ):
-            service = _make_service(retrieval=retrieval, quiz_sessions=AsyncMock())
-            with pytest.raises(RuntimeError, match="LLM down"):
-                await service.start_session(uuid4(), uuid4())
+        mock_gen = AsyncMock()
+        mock_gen.execute = AsyncMock(side_effect=_fail)
+        service = _make_service(
+            retrieval=retrieval, quiz_sessions=AsyncMock(), quiz_generator=mock_gen
+        )
+        with pytest.raises(RuntimeError, match="LLM down"):
+            await service.start_session(uuid4(), uuid4())
 
     @pytest.mark.asyncio
     async def test_session_stored_server_side_with_reference_answer(self):
@@ -282,16 +284,15 @@ class TestStartSession:
             )
             return AgentResult(success=True, output_key="quiz_question")
 
-        with patch(
-            "mindforge.application.quiz.QuizGeneratorAgent.execute",
-            side_effect=_fake_execute,
-        ):
-            service = _make_service(
-                retrieval=retrieval,
-                quiz_sessions=quiz_sessions,
-                interaction_store=interaction_store,
-            )
-            await service.start_session(user_id, kb_id)
+        mock_gen = AsyncMock()
+        mock_gen.execute = AsyncMock(side_effect=_fake_execute)
+        service = _make_service(
+            retrieval=retrieval,
+            quiz_sessions=quiz_sessions,
+            interaction_store=interaction_store,
+            quiz_generator=mock_gen,
+        )
+        await service.start_session(user_id, kb_id)
 
         assert stored_sessions, "Session should have been persisted"
         stored = stored_sessions[0]
@@ -326,17 +327,16 @@ class TestStartSession:
             )
             return AgentResult(success=True, output_key="quiz_question")
 
-        with patch(
-            "mindforge.application.quiz.QuizGeneratorAgent.execute",
-            side_effect=_fake_execute,
-        ):
-            service = _make_service(
-                retrieval=retrieval,
-                quiz_sessions=quiz_sessions,
-                interaction_store=interaction_store,
-                quiz_ttl_seconds=ttl,
-            )
-            result = await service.start_session(user_id, kb_id)
+        mock_gen = AsyncMock()
+        mock_gen.execute = AsyncMock(side_effect=_fake_execute)
+        service = _make_service(
+            retrieval=retrieval,
+            quiz_sessions=quiz_sessions,
+            interaction_store=interaction_store,
+            quiz_ttl_seconds=ttl,
+            quiz_generator=mock_gen,
+        )
+        result = await service.start_session(user_id, kb_id)
 
         session = stored_sessions[0]
         delta = (session.expires_at - session.created_at).total_seconds()
@@ -371,16 +371,15 @@ class TestStartSession:
             )
             return AgentResult(success=True, output_key="quiz_question")
 
-        with patch(
-            "mindforge.application.quiz.QuizGeneratorAgent.execute",
-            side_effect=_fake_execute,
-        ):
-            service = _make_service(
-                retrieval=retrieval,
-                quiz_sessions=AsyncMock(),
-                interaction_store=interaction_store,
-            )
-            await service.start_session(user_id, kb_id, topic="inheritance")
+        mock_gen = AsyncMock()
+        mock_gen.execute = AsyncMock(side_effect=_fake_execute)
+        service = _make_service(
+            retrieval=retrieval,
+            quiz_sessions=AsyncMock(),
+            interaction_store=interaction_store,
+            quiz_generator=mock_gen,
+        )
+        await service.start_session(user_id, kb_id, topic="inheritance")
 
         assert chosen_label and chosen_label[0] == "Inheritance"
 
@@ -410,17 +409,16 @@ class TestStartSession:
             )
             return AgentResult(success=True, output_key="quiz_question")
 
-        with patch(
-            "mindforge.application.quiz.QuizGeneratorAgent.execute",
-            side_effect=_fake_execute,
-        ):
-            service = _make_service(
-                retrieval=retrieval,
-                quiz_sessions=AsyncMock(),
-                interaction_store=interaction_store,
-                event_publisher=event_publisher,
-            )
-            await service.start_session(user_id, kb_id)
+        mock_gen = AsyncMock()
+        mock_gen.execute = AsyncMock(side_effect=_fake_execute)
+        service = _make_service(
+            retrieval=retrieval,
+            quiz_sessions=AsyncMock(),
+            interaction_store=interaction_store,
+            event_publisher=event_publisher,
+            quiz_generator=mock_gen,
+        )
+        await service.start_session(user_id, kb_id)
 
         event_publisher.publish_in_tx.assert_called_once()
         published_event = event_publisher.publish_in_tx.call_args[0][0]
@@ -458,22 +456,21 @@ class TestSubmitAnswer:
             }
             return AgentResult(success=True, output_key="evaluation")
 
-        with patch(
-            "mindforge.application.quiz.QuizEvaluatorAgent.execute",
-            side_effect=_fake_eval,
-        ):
-            service = _make_service(
-                quiz_sessions=self._make_session_store(session),
-                interaction_store=interaction_store,
-                study_progress=AsyncMock(),
-            )
-            result = await service.submit_answer(
-                user_id,
-                session.kb_id,
-                session.session_id,
-                question.question_id,
-                "My answer",
-            )
+        mock_eval = AsyncMock()
+        mock_eval.execute = AsyncMock(side_effect=_fake_eval)
+        service = _make_service(
+            quiz_sessions=self._make_session_store(session),
+            interaction_store=interaction_store,
+            study_progress=AsyncMock(),
+            quiz_evaluator=mock_eval,
+        )
+        result = await service.submit_answer(
+            user_id,
+            session.kb_id,
+            session.session_id,
+            question.question_id,
+            "My answer",
+        )
 
         assert isinstance(result, QuizEvalResult)
         assert result.score == 4
@@ -508,18 +505,17 @@ class TestSubmitAnswer:
             }
             return AgentResult(success=True, output_key="evaluation")
 
-        with patch(
-            "mindforge.application.quiz.QuizEvaluatorAgent.execute",
-            side_effect=_fake_eval,
-        ):
-            service = _make_service(
-                quiz_sessions=self._make_session_store(session),
-                interaction_store=interaction_store,
-                study_progress=AsyncMock(),
-            )
-            result = await service.submit_answer(
-                user_id, session.kb_id, session.session_id, "qid1", "answer"
-            )
+        mock_eval = AsyncMock()
+        mock_eval.execute = AsyncMock(side_effect=_fake_eval)
+        service = _make_service(
+            quiz_sessions=self._make_session_store(session),
+            interaction_store=interaction_store,
+            study_progress=AsyncMock(),
+            quiz_evaluator=mock_eval,
+        )
+        result = await service.submit_answer(
+            user_id, session.kb_id, session.session_id, "qid1", "answer"
+        )
 
         result_dict = result.__dict__
         assert "reference_answer" not in result_dict
@@ -561,18 +557,17 @@ class TestSubmitAnswer:
         store = AsyncMock()
         store.get_session.return_value = session
 
-        with patch(
-            "mindforge.application.quiz.QuizEvaluatorAgent.execute",
-            side_effect=_capture_eval,
-        ):
-            service = _make_service(
-                quiz_sessions=store,
-                interaction_store=interaction_store,
-                study_progress=AsyncMock(),
-            )
-            await service.submit_answer(
-                user_id, session.kb_id, session.session_id, "q1", "my answer"
-            )
+        mock_eval = AsyncMock()
+        mock_eval.execute = AsyncMock(side_effect=_capture_eval)
+        service = _make_service(
+            quiz_sessions=store,
+            interaction_store=interaction_store,
+            study_progress=AsyncMock(),
+            quiz_evaluator=mock_eval,
+        )
+        await service.submit_answer(
+            user_id, session.kb_id, session.session_id, "q1", "my answer"
+        )
 
         assert passed_reference == [
             stored_ref
@@ -666,18 +661,17 @@ class TestSubmitAnswer:
         store = AsyncMock()
         store.get_session.return_value = session
 
-        with patch(
-            "mindforge.application.quiz.QuizEvaluatorAgent.execute",
-            side_effect=_fake_eval,
-        ):
-            service = _make_service(
-                quiz_sessions=store,
-                study_progress=study_progress,
-                interaction_store=interaction_store,
-            )
-            await service.submit_answer(
-                user_id, session.kb_id, session.session_id, "q42", "perfect answer"
-            )
+        mock_eval = AsyncMock()
+        mock_eval.execute = AsyncMock(side_effect=_fake_eval)
+        service = _make_service(
+            quiz_sessions=store,
+            study_progress=study_progress,
+            interaction_store=interaction_store,
+            quiz_evaluator=mock_eval,
+        )
+        await service.submit_answer(
+            user_id, session.kb_id, session.session_id, "q42", "perfect answer"
+        )
 
         study_progress.save_review.assert_called_once()
         call_kwargs = study_progress.save_review.call_args
@@ -705,22 +699,21 @@ class TestSubmitAnswer:
             }
             return AgentResult(success=True, output_key="evaluation")
 
-        with patch(
-            "mindforge.application.quiz.QuizEvaluatorAgent.execute",
-            side_effect=_fake_eval,
-        ):
-            service = _make_service(
-                quiz_sessions=store,
-                study_progress=AsyncMock(),
-                interaction_store=interaction_store,
-            )
-            await service.submit_answer(
-                user_id,
-                session.kb_id,
-                session.session_id,
-                session.questions[0].question_id,
-                "ans",
-            )
+        mock_eval = AsyncMock()
+        mock_eval.execute = AsyncMock(side_effect=_fake_eval)
+        service = _make_service(
+            quiz_sessions=store,
+            study_progress=AsyncMock(),
+            interaction_store=interaction_store,
+            quiz_evaluator=mock_eval,
+        )
+        await service.submit_answer(
+            user_id,
+            session.kb_id,
+            session.session_id,
+            session.questions[0].question_id,
+            "ans",
+        )
 
         store.delete_session.assert_called_once_with(session.session_id)
 
@@ -747,23 +740,22 @@ class TestSubmitAnswer:
             }
             return AgentResult(success=True, output_key="evaluation")
 
-        with patch(
-            "mindforge.application.quiz.QuizEvaluatorAgent.execute",
-            side_effect=_fake_eval,
-        ):
-            service = _make_service(
-                quiz_sessions=store,
-                study_progress=AsyncMock(),
-                interaction_store=interaction_store,
-                event_publisher=event_publisher,
-            )
-            await service.submit_answer(
-                user_id,
-                session.kb_id,
-                session.session_id,
-                session.questions[0].question_id,
-                "ans",
-            )
+        mock_eval = AsyncMock()
+        mock_eval.execute = AsyncMock(side_effect=_fake_eval)
+        service = _make_service(
+            quiz_sessions=store,
+            study_progress=AsyncMock(),
+            interaction_store=interaction_store,
+            event_publisher=event_publisher,
+            quiz_evaluator=mock_eval,
+        )
+        await service.submit_answer(
+            user_id,
+            session.kb_id,
+            session.session_id,
+            session.questions[0].question_id,
+            "ans",
+        )
 
         event_publisher.publish_in_tx.assert_called_once()
         published_event = event_publisher.publish_in_tx.call_args[0][0]
@@ -793,22 +785,21 @@ class TestSubmitAnswer:
                 }
                 return AgentResult(success=True, output_key="evaluation")
 
-            with patch(
-                "mindforge.application.quiz.QuizEvaluatorAgent.execute",
-                side_effect=_fake_eval,
-            ):
-                service = _make_service(
-                    quiz_sessions=store,
-                    study_progress=AsyncMock(),
-                    interaction_store=interaction_store,
-                )
-                result = await service.submit_answer(
-                    user_id,
-                    session.kb_id,
-                    session.session_id,
-                    session.questions[0].question_id,
-                    "ans",
-                )
+            mock_eval = AsyncMock()
+            mock_eval.execute = AsyncMock(side_effect=_fake_eval)
+            service = _make_service(
+                quiz_sessions=store,
+                study_progress=AsyncMock(),
+                interaction_store=interaction_store,
+                quiz_evaluator=mock_eval,
+            )
+            result = await service.submit_answer(
+                user_id,
+                session.kb_id,
+                session.session_id,
+                session.questions[0].question_id,
+                "ans",
+            )
 
             assert (
                 result.is_correct is expected_correct

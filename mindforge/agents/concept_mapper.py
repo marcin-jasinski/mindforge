@@ -23,16 +23,11 @@ from mindforge.domain.models import (
     DeadlineProfile,
     ModelTier,
 )
-from mindforge.infrastructure.ai.agents import concept_mapper as _prompts
-from mindforge.infrastructure.graph.normalizer import (
-    dedupe_key,
-)  # noqa: F401 (re-exported)
+from mindforge.domain.graph_keys import dedupe_key
 
 __version__ = "1.0.0"
 
 log = logging.getLogger(__name__)
-
-PROMPT_VERSION = _prompts.VERSION
 
 _CAPABILITY = AgentCapability(
     name="concept_mapper",
@@ -50,7 +45,14 @@ class ConceptMapperAgent:
     """Produces ``concept_map`` in the pipeline artifact."""
 
     __version__ = __version__
-    PROMPT_VERSION = _prompts.VERSION
+
+    def __init__(self, *, prompts=None) -> None:
+        if prompts is None:
+            from mindforge.infrastructure.ai.agents import (
+                concept_mapper as prompts,
+            )  # noqa: PLC0415
+        self._prompts = prompts
+        self.PROMPT_VERSION = prompts.VERSION
 
     @property
     def name(self) -> str:
@@ -78,7 +80,7 @@ class ConceptMapperAgent:
 
         locale = context.settings.prompt_locale
         key_points_text = "\n".join(f"- {p}" for p in summary.key_points)
-        user_message = _prompts.user_template(locale).format(
+        user_message = self._prompts.user_template(locale).format(
             summary=summary.summary,
             key_points=key_points_text,
             content_excerpt=content[:_MAX_CONTENT_CHARS],
@@ -86,7 +88,7 @@ class ConceptMapperAgent:
 
         model = context.settings.model_for_tier(ModelTier.LARGE)
         messages = [
-            {"role": "system", "content": _prompts.system_prompt(locale)},
+            {"role": "system", "content": self._prompts.system_prompt(locale)},
             {"role": "user", "content": user_message},
         ]
 

@@ -55,6 +55,15 @@ from mindforge.infrastructure.events.outbox_relay import (
 from mindforge.infrastructure.graph.neo4j_context import Neo4jContext
 from mindforge.infrastructure.graph.neo4j_retrieval import Neo4jRetrievalAdapter
 from mindforge.infrastructure.security.egress_policy import EgressPolicy
+from mindforge.infrastructure.ai.agents import (
+    preprocessor as _preprocessor_prompts,
+    summarizer as _summarizer_prompts,
+    image_analyzer as _image_analyzer_prompts,
+    relevance_guard as _relevance_guard_prompts,
+    article_fetcher as _article_fetcher_prompts,
+    flashcard_gen as _flashcard_gen_prompts,
+    concept_mapper as _concept_mapper_prompts,
+)
 from mindforge.infrastructure.persistence.artifact_repo import (
     PostgresArtifactRepository,
 )
@@ -510,13 +519,17 @@ def main() -> None:
         egress_policy = EgressPolicy(egress_settings)
 
         registry = AgentRegistry()
-        registry.register(PreprocessorAgent())
-        registry.register(ImageAnalyzerAgent())
-        registry.register(RelevanceGuardAgent())
-        registry.register(ArticleFetcherAgent(egress_policy=egress_policy))
-        registry.register(SummarizerAgent())
-        registry.register(FlashcardGeneratorAgent())
-        registry.register(ConceptMapperAgent())
+        registry.register(PreprocessorAgent(prompts=_preprocessor_prompts))
+        registry.register(ImageAnalyzerAgent(prompts=_image_analyzer_prompts))
+        registry.register(RelevanceGuardAgent(prompts=_relevance_guard_prompts))
+        registry.register(
+            ArticleFetcherAgent(
+                egress_policy=egress_policy, prompts=_article_fetcher_prompts
+            )
+        )
+        registry.register(SummarizerAgent(prompts=_summarizer_prompts))
+        registry.register(FlashcardGeneratorAgent(prompts=_flashcard_gen_prompts))
+        registry.register(ConceptMapperAgent(prompts=_concept_mapper_prompts))
 
         graph = OrchestrationGraph.default()
 

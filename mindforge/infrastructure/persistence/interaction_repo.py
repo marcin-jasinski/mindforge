@@ -130,16 +130,19 @@ class PostgresInteractionStore:
     # ------------------------------------------------------------------
 
     async def list_unredacted(
-        self, *, limit: int = 100, offset: int = 0
+        self, *, user_id: uuid.UUID | None = None, limit: int = 100, offset: int = 0
     ) -> list[Interaction]:
         """Admin-only: return full unredacted interaction data."""
-        result = await self._session.execute(
+        stmt = (
             select(InteractionModel)
             .options(selectinload(InteractionModel.turns))
             .order_by(InteractionModel.created_at.desc())
             .limit(limit)
             .offset(offset)
         )
+        if user_id is not None:
+            stmt = stmt.where(InteractionModel.user_id == user_id)
+        result = await self._session.execute(stmt)
         rows = result.scalars().all()
         return [_to_domain(row, redact=False) for row in rows]
 

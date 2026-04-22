@@ -16,6 +16,21 @@ from typing import Any, Protocol, runtime_checkable
 from uuid import UUID
 
 from mindforge.domain.events import DomainEvent
+
+
+# ---------------------------------------------------------------------------
+# Egress exceptions
+# ---------------------------------------------------------------------------
+
+
+class EgressViolation(ValueError):
+    """Raised when an outbound request violates the configured egress policy.
+
+    Defined in the domain so that agents can catch it without importing
+    infrastructure modules.
+    """
+
+
 from mindforge.domain.models import (
     CardState,
     CompletionResult,

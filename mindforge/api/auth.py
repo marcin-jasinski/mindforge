@@ -24,6 +24,7 @@ import hmac
 import logging
 import secrets
 import time
+import urllib.parse
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Protocol
@@ -114,8 +115,6 @@ class DiscordAuthProvider:
         return "discord"
 
     def get_authorization_url(self, state: str) -> str:
-        import urllib.parse
-
         params = {
             "client_id": self._client_id,
             "redirect_uri": "",  # set at call time via redirect_uri param
@@ -127,8 +126,6 @@ class DiscordAuthProvider:
         return f"{_DISCORD_AUTH_URL}?{urllib.parse.urlencode(params)}"
 
     def get_authorization_url_with_redirect(self, state: str, redirect_uri: str) -> str:
-        import urllib.parse
-
         params = {
             "client_id": self._client_id,
             "redirect_uri": redirect_uri,

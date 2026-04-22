@@ -52,6 +52,7 @@ from mindforge.infrastructure.persistence.study_progress_repo import (
     PostgresStudyProgressRepository,
 )
 from mindforge.infrastructure.security.upload_sanitizer import UploadSanitizer
+from mindforge.application.ingestion import IngestionService
 from sqlalchemy import select
 
 log = logging.getLogger(__name__)
@@ -162,8 +163,6 @@ def get_ingestion(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
     """Build an IngestionService scoped to the current request's session."""
-    from mindforge.application.ingestion import IngestionService
-
     settings: AppSettings = request.app.state.settings
     return IngestionService(
         document_repo=PostgresDocumentRepository(session),
@@ -262,6 +261,7 @@ async def get_current_user(
         avatar_url=user_row.avatar_url,
         created_at=user_row.created_at,
         last_login_at=user_row.last_login_at,
+        is_admin=user_row.is_admin,
     )
 
 
@@ -319,6 +319,8 @@ def get_quiz_service(
         study_progress=study_progress,
         interaction_store=interaction_store,
         settings=_build_processing_settings(settings),
+        quiz_generator=request.app.state.quiz_generator,
+        quiz_evaluator=request.app.state.quiz_evaluator,
         event_publisher=event_publisher,
         quiz_ttl_seconds=settings.quiz_session_ttl_seconds,
     )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
@@ -22,7 +23,19 @@ from mindforge.application.ingestion import (
     PendingTaskLimitError,
     UploadRejectedError,
 )
+from mindforge.domain.events import DocumentIngested
 from mindforge.domain.models import DocumentStatus, UploadSource, User
+from mindforge.infrastructure.events.outbox_publisher import OutboxEventPublisher
+from mindforge.infrastructure.persistence.artifact_repo import (
+    PostgresArtifactRepository,
+)
+from mindforge.infrastructure.persistence.document_repo import (
+    PostgresDocumentRepository,
+)
+from mindforge.infrastructure.persistence.pipeline_task_repo import (
+    PostgresPipelineTaskRepository,
+)
+from mindforge.infrastructure.security.upload_sanitizer import UploadSanitizer
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/knowledge-bases/{kb_id}/documents", tags=["documents"])
@@ -53,8 +66,9 @@ async def upload_document(
     file: UploadFile = File(...),
 ) -> UploadResponse:
     # Verify KB ownership
-    kb_repo = get_kb_repo(request, await _open_session(request))
-    kb = await kb_repo.get_by_id(kb_id, owner_id=current_user.user_id)
+    async with request.app.state.session_factory() as _kb_session:
+        kb_repo = get_kb_repo(request, _kb_session)
+        kb = await kb_repo.get_by_id(kb_id, owner_id=current_user.user_id)
     if kb is None:
         raise HTTPException(status_code=404, detail="Baza wiedzy nie istnieje.")
 
@@ -64,21 +78,6 @@ async def upload_document(
     # Build a per-request ingestion service with a fresh session so that the
     # entire ingestion flow runs inside one transaction that the service controls.
     async with request.app.state.session_factory() as session:
-        from mindforge.application.ingestion import IngestionService
-        from mindforge.infrastructure.events.outbox_publisher import (
-            OutboxEventPublisher,
-        )
-        from mindforge.infrastructure.persistence.artifact_repo import (
-            PostgresArtifactRepository,
-        )
-        from mindforge.infrastructure.persistence.document_repo import (
-            PostgresDocumentRepository,
-        )
-        from mindforge.infrastructure.persistence.pipeline_task_repo import (
-            PostgresPipelineTaskRepository,
-        )
-        from mindforge.infrastructure.security.upload_sanitizer import UploadSanitizer
-
         settings = request.app.state.settings
         svc = IngestionService(
             document_repo=PostgresDocumentRepository(session),
@@ -129,15 +128,12 @@ async def list_documents(
     limit: int = 50,
     offset: int = 0,
 ) -> list[DocumentResponse]:
-    kb_repo = get_kb_repo(request, await _open_session(request))
-    if await kb_repo.get_by_id(kb_id, owner_id=current_user.user_id) is None:
-        raise HTTPException(status_code=404, detail="Baza wiedzy nie istnieje.")
+    async with request.app.state.session_factory() as _kb_session:
+        kb_repo = get_kb_repo(request, _kb_session)
+        if await kb_repo.get_by_id(kb_id, owner_id=current_user.user_id) is None:
+            raise HTTPException(status_code=404, detail="Baza wiedzy nie istnieje.")
 
     async with request.app.state.session_factory() as session:
-        from mindforge.infrastructure.persistence.document_repo import (
-            PostgresDocumentRepository,
-        )
-
         repo = PostgresDocumentRepository(session)
         docs = await repo.list_by_knowledge_base(kb_id, limit=limit, offset=offset)
     return [_to_response(d) for d in docs]
@@ -151,10 +147,6 @@ async def get_document(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> DocumentResponse:
     async with request.app.state.session_factory() as session:
-        from mindforge.infrastructure.persistence.document_repo import (
-            PostgresDocumentRepository,
-        )
-
         repo = PostgresDocumentRepository(session)
         doc = await repo.get_by_id(document_id)
     if doc is None or doc.knowledge_base_id != kb_id:
@@ -172,18 +164,6 @@ async def reprocess_document(
 ) -> dict:
     """Enqueue a re-run of the processing pipeline for an existing document."""
     async with request.app.state.session_factory() as session:
-        from mindforge.infrastructure.persistence.document_repo import (
-            PostgresDocumentRepository,
-        )
-        from mindforge.infrastructure.persistence.pipeline_task_repo import (
-            PostgresPipelineTaskRepository,
-        )
-        from mindforge.infrastructure.events.outbox_publisher import (
-            OutboxEventPublisher,
-        )
-        from mindforge.domain.events import DocumentIngested
-        from datetime import datetime, timezone
-
         doc_repo = PostgresDocumentRepository(session)
         doc = await doc_repo.get_by_id(document_id)
         if doc is None or doc.knowledge_base_id != kb_id:
@@ -195,19 +175,16 @@ async def reprocess_document(
         publisher = OutboxEventPublisher(session)
         await publisher.publish_in_tx(
             DocumentIngested(
-                document_id=str(document_id),
-                knowledge_base_id=str(kb_id),
+                document_id=document_id,
+                knowledge_base_id=kb_id,
                 lesson_id=doc.lesson_id,
                 upload_source=doc.upload_source.value,
-                occurred_at=datetime.now(timezone.utc).isoformat(),
+                content_sha256=doc.content_hash.sha256,
+                uploaded_by=doc.uploaded_by,
+                timestamp=datetime.now(timezone.utc),
             ),
             session,
         )
         await session.commit()
 
     return {"task_id": str(task_id), "detail": "Przetwarzanie ponownie zakolejkowane."}
-
-
-async def _open_session(request: Request):
-    async with request.app.state.session_factory() as session:
-        return session
