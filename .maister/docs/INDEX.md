@@ -20,7 +20,10 @@ Located in `.maister/docs/project/`
 What MindForge is and why it exists. Covers the core product concept (AI-powered learning platform that transforms uploaded documents into study artifacts), primary user flows, key capabilities (summaries, flashcards, concept maps, quiz engine, knowledge graph), and the guiding design principles. Read this first for product context before feature work.
 
 ### Roadmap (`project/roadmap.md`)
-Development phase status overview. Documents which phases (0–19) are complete, in-progress, or planned, with brief summaries of what each phase delivers. References the full detail in `.github/docs/implementation-plan.md`. Check here to understand where the project stands and what work remains.
+Development phase status overview. Documents which phases (0–19) are complete, in-progress, or planned, with brief summaries of what each phase delivers. References the full detail in `project/implementation-plan.md`. Check here to understand where the project stands and what work remains.
+
+### Implementation Plan (`project/implementation-plan.md`)
+Complete phase-by-phase breakdown of all development work: phases 0–19, each with detailed task lists, dependencies, completion checklists, and rationale. This is the **source of truth** for structuring development work using `/maister-implement`. Use Maister's implementation-plan-executor to read phases, track checkbox progress, and manage work-logs as you build features.
 
 ### Tech Stack (`project/tech-stack.md`)
 Technology choices with rationale. Covers backend (Python, FastAPI, PostgreSQL, Neo4j, Redis, LiteLLM), frontend (Angular standalone SPA), infrastructure (Docker, Alembic, Langfuse, MinIO), and the reasoning behind each choice. Read before introducing new dependencies or proposing technology changes.
