@@ -23,11 +23,11 @@
 12. [Phase 10 — Quiz and Flashcard Services](#phase-10--quiz-and-flashcard-services)
 13. [Phase 11 — Search and Conversational RAG](#phase-11--search-and-conversational-rag)
 14. [Phase 12 — Angular Frontend](#phase-12--angular-frontend)
-15. [Phase 13 — Discord Bot](#phase-13--discord-bot)
-16. [Phase 14 — Slack Bot](#phase-14--slack-bot)
-17. [Phase 15 — CLI Entry Points](#phase-15--cli-entry-points)
-18. [Phase 16 — Observability and Tracing](#phase-16--observability-and-tracing)
-19. [Phase 17 — Docker and Deployment](#phase-17--docker-and-deployment)
+15. [Phase 13 — Docker and Deployment](#phase-13--docker-and-deployment)
+16. [Phase 14 — Discord Bot](#phase-14--discord-bot)
+17. [Phase 15 — Slack Bot](#phase-15--slack-bot)
+18. [Phase 16 — CLI Entry Points](#phase-16--cli-entry-points)
+19. [Phase 17 — Observability and Tracing](#phase-17--observability-and-tracing)
 20. [Phase 18 — Security Hardening (Penetration Testing and Regression)](#phase-18--security-hardening-penetration-testing-and-regression)
 21. [Phase 19 — End-to-End Testing and Quality Gates](#phase-19--end-to-end-testing-and-quality-gates)
 22. [Dependency Graph](#dependency-graph)
@@ -547,40 +547,53 @@ routing, auth integration, and all user-facing pages.
 
 ---
 
-## [ ] Phase 13 — Discord Bot
+## [ ] Phase 13 — Docker and Deployment
+
+**Goal:** Complete Docker multi-stage build, Docker Compose orchestration,
+and deployment documentation.
+
+### Completion Checklist
+
+- [ ] `docker build` creates multi-stage image.
+- [ ] `docker compose up` starts all services.
+- [ ] All health checks passing.
+
+---
+
+## [ ] Phase 14 — Discord Bot
 
 **Goal:** Implement the Discord bot with quiz, search, upload cogs, identity
 resolution, and auth enforcement.
 
 ### Tasks
 
-- [ ] **13.1 — Implement `mindforge/discord/bot.py`**
-  - [ ] 13.1.1 — Composition root: load settings, create DB engine, create
+- [ ] **14.1 — Implement `mindforge/discord/bot.py`**
+  - [ ] 14.1.1 — Composition root: load settings, create DB engine, create
     gateway, create repositories, create application services (same instances
     as API uses), create `IdentityResolver`, load cogs.
-  - [ ] 13.1.2 — `main()` entry point for `mindforge-discord`.
+  - [ ] 14.1.2 — `main()` entry point for `mindforge-discord`.
 
-- [ ] **13.2 — Implement `mindforge/discord/auth.py`**
-  - [ ] 13.2.1 — Allowlist enforcement: guild IDs, role IDs, user IDs loaded
+- [ ] **14.2 — Implement `mindforge/discord/auth.py`**
+  - [ ] 14.2.1 — Allowlist enforcement: guild IDs, role IDs, user IDs loaded
     lazily after `load_dotenv()`.
-  - [ ] 13.2.2 — Interaction ownership: every view, modal, and button callback
+  - [ ] 14.2.2 — Interaction ownership: every view, modal, and button callback
     validates invoking user matches session owner.
 
-- [ ] **13.3 — Implement cogs**
-  - [ ] 13.3.1 — `cogs/quiz.py`: `/quiz start`, `/quiz answer` commands.
+- [ ] **14.3 — Implement cogs**
+  - [ ] 14.3.1 — `cogs/quiz.py`: `/quiz start`, `/quiz answer` commands.
     Resolve Discord user → internal UUID via `IdentityResolver`.  Resolve KB
     by name or interactive picker.  Delegate to `QuizService`.
-  - [ ] 13.3.2 — `cogs/search.py`: `/search` command.  Delegate to
+  - [ ] 14.3.2 — `cogs/search.py`: `/search` command.  Delegate to
     `SearchService`.
-  - [ ] 13.3.3 — `cogs/upload.py`: upload attachment as document.  Delegate to
+  - [ ] 14.3.3 — `cogs/upload.py`: upload attachment as document.  Delegate to
     `IngestionService`.
-  - [ ] 13.3.4 — `cogs/notifications.py`: per-user SR reminders via DM (not
+  - [ ] 14.3.4 — `cogs/notifications.py`: per-user SR reminders via DM (not
     channel-wide).
 
-- [ ] **13.4 — Write tests for Discord bot**
-  - [ ] 13.4.1 — Test identity resolution: first contact auto-provisions user.
-  - [ ] 13.4.2 — Test allowlist enforcement.
-  - [ ] 13.4.3 — Test interaction ownership validation.
+- [ ] **14.4 — Write tests for Discord bot**
+  - [ ] 14.4.1 — Test identity resolution: first contact auto-provisions user.
+  - [ ] 14.4.2 — Test allowlist enforcement.
+  - [ ] 14.4.3 — Test interaction ownership validation.
 
 ### Completion Checklist
 
@@ -591,7 +604,7 @@ resolution, and auth enforcement.
 
 ---
 
-## [ ] Phase 14 — Slack Bot
+## [ ] Phase 15 — Slack Bot
 
 **Goal:** Implement the Slack bot using Slack Bolt (async mode) with quiz,
 search, upload handlers, identity resolution, and workspace security.
@@ -605,7 +618,7 @@ search, upload handlers, identity resolution, and workspace security.
 
 ---
 
-## [ ] Phase 15 — CLI Entry Points
+## [ ] Phase 16 — CLI Entry Points
 
 **Goal:** Implement all remaining CLI entry points: quiz runner, backfill tool,
 and startup scripts.
@@ -618,7 +631,7 @@ and startup scripts.
 
 ---
 
-## [ ] Phase 16 — Observability and Tracing
+## [ ] Phase 17 — Observability and Tracing
 
 **Goal:** Implement Langfuse integration, tracing spans for all meaningful
 operations, cost tracking, and quality evaluations.
@@ -628,19 +641,6 @@ operations, cost tracking, and quality evaluations.
 - [ ] Langfuse integration traces pipeline and API operations.
 - [ ] Cost tracking per operation.
 - [ ] Quality evaluations deterministic and inline.
-
----
-
-## [ ] Phase 17 — Docker and Deployment
-
-**Goal:** Complete Docker multi-stage build, Docker Compose orchestration,
-and deployment documentation.
-
-### Completion Checklist
-
-- [ ] `docker build` creates multi-stage image.
-- [ ] `docker compose up` starts all services.
-- [ ] All health checks passing.
 
 ---
 

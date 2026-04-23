@@ -23,13 +23,12 @@
 12. [Phase 10 — Quiz and Flashcard Services](#phase-10--quiz-and-flashcard-services)
 13. [Phase 11 — Search and Conversational RAG](#phase-11--search-and-conversational-rag)
 14. [Phase 12 — Angular Frontend](#phase-12--angular-frontend)
-15. [Phase 13 — Discord Bot](#phase-13--discord-bot)
+15. [Phase 13 — Docker and Deployment](#phase-13--docker-and-deployment)
 16. [Phase 14 — Slack Bot](#phase-14--slack-bot)
 17. [Phase 15 — CLI Entry Points](#phase-15--cli-entry-points)
 18. [Phase 16 — Observability and Tracing](#phase-16--observability-and-tracing)
-19. [Phase 17 — Docker and Deployment](#phase-17--docker-and-deployment)
-20. [Phase 18 — Security Hardening (Penetration Testing and Regression)](#phase-18--security-hardening-penetration-testing-and-regression)
-21. [Phase 19 — End-to-End Testing and Quality Gates](#phase-19--end-to-end-testing-and-quality-gates)
+19. [Phase 17 — Security Hardening (Penetration Testing and Regression)](#phase-17--security-hardening-penetration-testing-and-regression)
+20. [Phase 18 — End-to-End Testing and Quality Gates](#phase-18--end-to-end-testing-and-quality-gates)
 22. [Dependency Graph](#dependency-graph)
 
 ---
@@ -1315,47 +1314,16 @@ routing, auth integration, and all user-facing pages.
 
 ---
 
-## [ ] Phase 13 — Discord Bot
+## [ ] Phase 13 — Docker and Deployment
 
-**Goal:** Implement the Discord bot with quiz, search, upload cogs, identity
-resolution, and auth enforcement.
-
-### Tasks
-
-- [ ] **13.1 — Implement `mindforge/discord/bot.py`**
-  - [ ] 13.1.1 — Composition root: load settings, create DB engine, create
-    gateway, create repositories, create application services (same instances
-    as API uses), create `IdentityResolver`, load cogs.
-  - [ ] 13.1.2 — `main()` entry point for `mindforge-discord`.
-
-- [ ] **13.2 — Implement `mindforge/discord/auth.py`**
-  - [ ] 13.2.1 — Allowlist enforcement: guild IDs, role IDs, user IDs loaded
-    lazily after `load_dotenv()`.
-  - [ ] 13.2.2 — Interaction ownership: every view, modal, and button callback
-    validates invoking user matches session owner.
-
-- [ ] **13.3 — Implement cogs**
-  - [ ] 13.3.1 — `cogs/quiz.py`: `/quiz start`, `/quiz answer` commands.
-    Resolve Discord user → internal UUID via `IdentityResolver`.  Resolve KB
-    by name or interactive picker.  Delegate to `QuizService`.
-  - [ ] 13.3.2 — `cogs/search.py`: `/search` command.  Delegate to
-    `SearchService`.
-  - [ ] 13.3.3 — `cogs/upload.py`: upload attachment as document.  Delegate to
-    `IngestionService`.
-  - [ ] 13.3.4 — `cogs/notifications.py`: per-user SR reminders via DM (not
-    channel-wide).
-
-- [ ] **13.4 — Write tests for Discord bot**
-  - [ ] 13.4.1 — Test identity resolution: first contact auto-provisions user.
-  - [ ] 13.4.2 — Test allowlist enforcement.
-  - [ ] 13.4.3 — Test interaction ownership validation.
+**Goal:** Complete Docker multi-stage build, Docker Compose orchestration,
+and deployment documentation.
 
 ### Completion Checklist
 
-- [ ] Bot connects and responds to slash commands.
-- [ ] Identity resolution works for new and existing users.
-- [ ] Auth enforced on all interactions.
-- [ ] `mindforge-discord` entry point is callable.
+- [ ] `docker build` creates multi-stage image.
+- [ ] `docker compose up` starts all services.
+- [ ] All health checks passing.
 
 ---
 
@@ -1487,52 +1455,7 @@ operations, cost tracking, and quality evaluations.
 
 ---
 
-## [ ] Phase 17 — Docker and Deployment
-
-**Goal:** Create the multi-stage Dockerfile, Docker Compose configuration with
-all profiles, and verify the full stack runs in containers.
-
-### Tasks
-
-- [ ] **17.1 — Implement `Dockerfile`**
-  - [ ] 17.1.1 — Stage 1 (`frontend-build`): `node:22-alpine`, `npm ci`,
-    `npm run build`.
-  - [ ] 17.1.2 — Stage 2 (`runtime`): `python:3.13-slim`,
-    `pip install -r requirements.txt`, copy `mindforge/`, copy built frontend,
-    `pip install -e .`.  Entry point selected by compose command.
-
-- [ ] **17.2 — Implement `compose.yml`**
-  - [ ] 17.2.1 — Application services: `api`, `pipeline`, `quiz-agent`,
-    `discord-bot`, `slack-bot`.  Each uses the MindForge image with a
-    different `command`.
-  - [ ] 17.2.2 — Infrastructure services: `postgres` (16-alpine), `neo4j`
-    (5-community), `redis` (7-alpine), `minio`.  With named volumes,
-    healthchecks.
-  - [ ] 17.2.3 — Observability services: `langfuse-web`, `langfuse-worker`,
-    `langfuse-postgres`, `langfuse-clickhouse`, `langfuse-redis`,
-    `langfuse-minio`.
-  - [ ] 17.2.4 — Compose profiles from Section 19.2: `app`, `gui`, `quiz`,
-    `discord`, `slack`, `graph`, `observability`.
-  - [ ] 17.2.5 — `depends_on` with `condition: service_healthy` for all
-    service dependencies.
-  - [ ] 17.2.6 — Pipeline service documented: "separate process, polls
-    pipeline_tasks, multiple replicas safe".
-
-- [ ] **17.3 — Verify full stack in Docker**
-  - [ ] 17.3.1 — `docker compose --profile app up` starts all application services.
-  - [ ] 17.3.2 — API serves Angular SPA at `:8080`.
-  - [ ] 17.3.3 — Pipeline worker picks up tasks.
-  - [ ] 17.3.4 — Health endpoint returns 200.
-
-### Completion Checklist
-
-- [ ] Multi-stage build produces a working image.
-- [ ] All compose profiles functional.
-- [ ] Full stack runs with `docker compose --profile app up`.
-
----
-
-## [ ] Phase 18 — Security Hardening (Penetration Testing and Regression)
+## [ ] Phase 17 — Security Hardening (Penetration Testing and Regression)
 
 **Goal:** Whole-system penetration testing, security regression test suite, and
 production configuration review.  This phase does NOT introduce security
@@ -1544,54 +1467,54 @@ catches cross-cutting issues that per-phase tests cannot.
 
 ### Tasks
 
-- [ ] **18.1 — Penetration test checklist**
-  - [ ] 18.1.1 — OWASP Top 10 review against the running application:
+- [ ] **17.1 — Penetration test checklist**
+  - [ ] 17.1.1 — OWASP Top 10 review against the running application:
     injection, broken auth, sensitive data exposure, XXE, broken access
     control, security misconfiguration, XSS, insecure deserialization,
     insufficient logging, SSRF.
-  - [ ] 18.1.2 — Attempt path traversal, SSRF, cross-user access, session
+  - [ ] 17.1.2 — Attempt path traversal, SSRF, cross-user access, session
     hijacking, JWT manipulation, OAuth state bypass, prompt injection, and
     upload-based attacks against the full deployed stack (Docker Compose).
-  - [ ] 18.1.3 — Verify LLM prompt safety: user input never interpolated
+  - [ ] 17.1.3 — Verify LLM prompt safety: user input never interpolated
     into prompts without context framing; output filtered before client
     delivery.
-  - [ ] 18.1.4 — Verify data isolation end-to-end: user A cannot reach
+  - [ ] 17.1.4 — Verify data isolation end-to-end: user A cannot reach
     user B's KBs or artifacts through any combination of API, Discord,
     Slack, and CLI surfaces.
 
-- [ ] **18.2 — Security regression test suite**
+- [ ] **17.2 — Security regression test suite**
   - Create `tests/security/` as a dedicated test directory that aggregates
     cross-cutting security scenarios into a single runnable suite:
-  - [ ] 18.2.1 — Upload with path traversal → rejected.
-  - [ ] 18.2.2 — Quiz answer response → no sensitive fields.
-  - [ ] 18.2.3 — Discord interaction from non-owner → rejected.
-  - [ ] 18.2.4 — OAuth callback without valid `state` → rejected.
-  - [ ] 18.2.5 — Outbound fetch to private IP → blocked.
-  - [ ] 18.2.6 — Cross-user data access → empty results.
-  - [ ] 18.2.7 — Semantic cache cross-KB poisoning → isolated.
-  - [ ] 18.2.8 — JWT with tampered claims → rejected.
-  - [ ] 18.2.9 — Expired refresh token reuse → rejected.
-  - [ ] 18.2.10 — Slack request with invalid signing secret → rejected.
-  - [ ] 18.2.11 — Adversarial LLM instructions embedded in document content
+  - [ ] 17.2.1 — Upload with path traversal → rejected.
+  - [ ] 17.2.2 — Quiz answer response → no sensitive fields.
+  - [ ] 17.2.3 — Discord interaction from non-owner → rejected.
+  - [ ] 17.2.4 — OAuth callback without valid `state` → rejected.
+  - [ ] 17.2.5 — Outbound fetch to private IP → blocked.
+  - [ ] 17.2.6 — Cross-user data access → empty results.
+  - [ ] 17.2.7 — Semantic cache cross-KB poisoning → isolated.
+  - [ ] 17.2.8 — JWT with tampered claims → rejected.
+  - [ ] 17.2.9 — Expired refresh token reuse → rejected.
+  - [ ] 17.2.10 — Slack request with invalid signing secret → rejected.
+  - [ ] 17.2.11 — Adversarial LLM instructions embedded in document content
     (prompt injection via RAG context) — verify the chat system prompt's
     "Answer using ONLY provided context" framing prevents instruction
     leakage to the model and that the response does not follow injected
     commands.
-  - [ ] 18.2.12 — Semantic cache key omits `kb_id` in `Neo4jRetrievalAdapter`
+  - [ ] 17.2.12 — Semantic cache key omits `kb_id` in `Neo4jRetrievalAdapter`
     (if a cache layer is added) — verify that cross-KB cache poisoning is
     structurally impossible at the adapter level, not just at the service
     layer.
 
-- [ ] **18.3 — Production configuration review**
-  - [ ] 18.3.1 — Verify `Secure` flag is ON for JWT cookies in production
+- [ ] **17.3 — Production configuration review**
+  - [ ] 17.3.1 — Verify `Secure` flag is ON for JWT cookies in production
     config.
-  - [ ] 18.3.2 — Verify CORS origins are explicitly allowlisted (no `*`).
-  - [ ] 18.3.3 — Verify bcrypt cost ≥ 12 in production settings.
-  - [ ] 18.3.4 — Verify rate limiters are active on registration, login,
+  - [ ] 17.3.2 — Verify CORS origins are explicitly allowlisted (no `*`).
+  - [ ] 17.3.3 — Verify bcrypt cost ≥ 12 in production settings.
+  - [ ] 17.3.4 — Verify rate limiters are active on registration, login,
     and upload endpoints.
-  - [ ] 18.3.5 — Verify Docker Compose does not expose internal ports
+  - [ ] 17.3.5 — Verify Docker Compose does not expose internal ports
     (PostgreSQL, Neo4j, Redis) to the host in production profiles.
-  - [ ] 18.3.6 — Verify environment secrets are not baked into the Docker
+  - [ ] 17.3.6 — Verify environment secrets are not baked into the Docker
     image.
 
 ### Completion Checklist
@@ -1602,47 +1525,47 @@ catches cross-cutting issues that per-phase tests cannot.
 
 ---
 
-## [ ] Phase 19 — End-to-End Testing and Quality Gates
+## [ ] Phase 18 — End-to-End Testing and Quality Gates
 
 **Goal:** Implement the full test pyramid, contract tests, LLM quality
 evaluations, and verify the complete data flow from upload to quiz.
 
 ### Tasks
 
-- [ ] **19.1 — Implement contract tests**
-  - [ ] 19.1.1 — Verify API response schemas match `api.models.ts` TypeScript
+- [ ] **18.1 — Implement contract tests**
+  - [ ] 18.1.1 — Verify API response schemas match `api.models.ts` TypeScript
     interfaces.
 
-- [ ] **19.2 — Implement idempotency tests**
-  - [ ] 19.2.1 — Submit same content twice → no duplicate processing.
-  - [ ] 19.2.2 — Pipeline interrupted and resumed → checkpoint works, no
+- [ ] **18.2 — Implement idempotency tests**
+  - [ ] 18.2.1 — Submit same content twice → no duplicate processing.
+  - [ ] 18.2.2 — Pipeline interrupted and resumed → checkpoint works, no
     duplicate LLM calls.
-  - [ ] 19.2.3 — Re-index to Neo4j → no duplicate nodes.
+  - [ ] 18.2.3 — Re-index to Neo4j → no duplicate nodes.
 
-- [ ] **19.3 — Implement cost regression tests**
-  - [ ] 19.3.1 — Reference answer reused during evaluation (no extra LLM call).
-  - [ ] 19.3.2 — Summarizer context bounded (not entire knowledge index).
-  - [ ] 19.3.3 — Deterministic operations don't trigger LLM calls.
+- [ ] **18.3 — Implement cost regression tests**
+  - [ ] 18.3.1 — Reference answer reused during evaluation (no extra LLM call).
+  - [ ] 18.3.2 — Summarizer context bounded (not entire knowledge index).
+  - [ ] 18.3.3 — Deterministic operations don't trigger LLM calls.
 
-- [ ] **19.4 — Implement E2E scenarios**
-  - [ ] 19.4.1 — Full flow: upload document → pipeline processes →
+- [ ] **18.4 — Implement E2E scenarios**
+  - [ ] 18.4.1 — Full flow: upload document → pipeline processes →
     artifact created → graph indexed → lesson projection updated →
     quiz session started → answer evaluated → SR state updated.
-  - [ ] 19.4.2 — Full flow: upload → search → results returned.
-  - [ ] 19.4.3 — Full flow: upload → chat → conversational response.
+  - [ ] 18.4.2 — Full flow: upload → search → results returned.
+  - [ ] 18.4.3 — Full flow: upload → chat → conversational response.
 
-- [ ] **19.5 — Set up LLM quality evaluations (offline)**
-  - [ ] 19.5.1 — Dataset of test documents with expected outputs.
-  - [ ] 19.5.2 — Summary coherence evaluation (LLM-as-judge).
-  - [ ] 19.5.3 — Quiz question quality evaluation.
-  - [ ] 19.5.4 — Retrieval relevance evaluation (embedding distance).
+- [ ] **18.5 — Set up LLM quality evaluations (offline)**
+  - [ ] 18.5.1 — Dataset of test documents with expected outputs.
+  - [ ] 18.5.2 — Summary coherence evaluation (LLM-as-judge).
+  - [ ] 18.5.3 — Quiz question quality evaluation.
+  - [ ] 18.5.4 — Retrieval relevance evaluation (embedding distance).
 
-- [ ] **19.6 — Redis-absent verification**
-  - [ ] 19.6.1 — Verify system starts correctly without Redis.
-  - [ ] 19.6.2 — Verify startup warning is emitted.
-  - [ ] 19.6.3 — Verify quiz sessions fall back to PostgreSQL.
-  - [ ] 19.6.4 — Verify SSE falls back to outbox polling.
-  - [ ] 19.6.5 — **Multi-worker session isolation note:** When Redis is absent
+- [ ] **18.6 — Redis-absent verification**
+  - [ ] 18.6.1 — Verify system starts correctly without Redis.
+  - [ ] 18.6.2 — Verify startup warning is emitted.
+  - [ ] 18.6.3 — Verify quiz sessions fall back to PostgreSQL.
+  - [ ] 18.6.4 — Verify SSE falls back to outbox polling.
+  - [ ] 18.6.5 — **Multi-worker session isolation note:** When Redis is absent
     and multiple Uvicorn workers are running, each worker holds a separate
     `_InMemorySessionCache`; chat sessions created on worker A are not
     visible on worker B.  Verify that `compose.yml` and
@@ -1650,15 +1573,15 @@ evaluations, and verify the complete data flow from upload to quiz.
     multi-worker deployments, and that the `api` service defaults to a
     single worker when Redis is absent.
 
-- [ ] **19.7 — Prompt locale end-to-end verification**
-  - [ ] 19.7.1 — Create a KB with `prompt_locale = "pl"`, upload a document,
+- [ ] **18.7 — Prompt locale end-to-end verification**
+  - [ ] 18.7.1 — Create a KB with `prompt_locale = "pl"`, upload a document,
     and verify the pipeline processes it using Polish prompt templates
     (check `StepFingerprint` encodes `+pl`).
-  - [ ] 19.7.2 — Switch the KB's `prompt_locale` to `"en"`, trigger
+  - [ ] 18.7.2 — Switch the KB's `prompt_locale` to `"en"`, trigger
     reprocessing, and verify: (a) all step fingerprints are invalidated,
     (b) pipeline re-runs using English templates, (c) new fingerprints encode
     `+en`.
-  - [ ] 19.7.3 — Verify that requesting a locale without a corresponding
+  - [ ] 18.7.3 — Verify that requesting a locale without a corresponding
     `.{locale}.md` file falls back to `.pl.md` without error.
 
 ### Completion Checklist
