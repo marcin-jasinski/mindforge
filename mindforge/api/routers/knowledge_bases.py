@@ -7,14 +7,21 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from mindforge.api.deps import get_current_user, get_db_session, get_kb_repo
+from mindforge.api.deps import (
+    get_current_user,
+    get_db_session,
+    get_kb_repo,
+    get_read_model_repo,
+)
 from mindforge.api.schemas import (
     KnowledgeBaseCreate,
     KnowledgeBaseResponse,
     KnowledgeBaseUpdate,
+    LessonResponse,
 )
 from mindforge.domain.models import User
 from mindforge.infrastructure.persistence.kb_repo import PostgresKnowledgeBaseRepository
+from mindforge.infrastructure.persistence.read_models import PostgresReadModelRepository
 
 router = APIRouter(prefix="/api/knowledge-bases", tags=["knowledge-bases"])
 
@@ -63,6 +70,32 @@ async def create_knowledge_base(
                 detail="Baza wiedzy o tej nazwie już istnieje.",
             )
         raise
+
+
+@router.get("/{kb_id}/lessons", response_model=list[LessonResponse])
+async def list_lessons(
+    kb_id: UUID,
+    current_user: Annotated[User, Depends(get_current_user)],
+    kb_repo: Annotated[PostgresKnowledgeBaseRepository, Depends(get_kb_repo)],
+    read_model_repo: Annotated[
+        PostgresReadModelRepository, Depends(get_read_model_repo)
+    ],
+) -> list[LessonResponse]:
+    kb = await kb_repo.get_by_id(kb_id, owner_id=current_user.user_id)
+    if kb is None:
+        raise HTTPException(status_code=404, detail="Baza wiedzy nie istnieje.")
+    rows = await read_model_repo.list_lessons(kb_id)
+    return [
+        LessonResponse(
+            lesson_id=row["lesson_id"],
+            title=row["title"],
+            document_count=1,
+            flashcard_count=row["flashcard_count"],
+            concept_count=row["concept_count"],
+            last_processed_at=row["processed_at"],
+        )
+        for row in rows
+    ]
 
 
 @router.get("/{kb_id}", response_model=KnowledgeBaseResponse)

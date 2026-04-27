@@ -44,6 +44,9 @@ from mindforge.infrastructure.persistence.interaction_repo import (
 from mindforge.infrastructure.persistence.kb_repo import (
     PostgresKnowledgeBaseRepository,
 )
+from mindforge.infrastructure.persistence.read_models import (
+    PostgresReadModelRepository,
+)
 from mindforge.infrastructure.persistence.models import UserModel
 from mindforge.infrastructure.persistence.pipeline_task_repo import (
     PostgresPipelineTaskRepository,
@@ -113,6 +116,13 @@ def get_kb_repo(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ):
     return PostgresKnowledgeBaseRepository(session)
+
+
+def get_read_model_repo(
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+):
+    return PostgresReadModelRepository(session)
 
 
 def get_identity_repo(

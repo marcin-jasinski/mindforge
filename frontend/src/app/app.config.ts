@@ -5,12 +5,13 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { authRefreshInterceptor } from './core/interceptors/auth-refresh.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
-    provideHttpClient(withInterceptors([authInterceptor]), withFetch()),
+    provideHttpClient(withInterceptors([authInterceptor, authRefreshInterceptor]), withFetch()),
     provideAnimations(),
   ],
 };
