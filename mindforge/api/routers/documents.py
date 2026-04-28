@@ -80,11 +80,11 @@ async def upload_document(
     async with request.app.state.session_factory() as session:
         settings = request.app.state.settings
         svc = IngestionService(
-            document_repo=PostgresDocumentRepository(session),
+            doc_repo=PostgresDocumentRepository(session),
             sanitizer=UploadSanitizer(
-                max_size_bytes=settings.max_document_size_mb * 1024 * 1024
+                global_max_bytes=settings.max_document_size_mb * 1024 * 1024
             ),
-            parser_registry=request.app.state.parser_registry,
+            parsers=request.app.state.parser_registry,
             task_store=PostgresPipelineTaskRepository(session),
             event_publisher=OutboxEventPublisher(session),
         )

@@ -17,6 +17,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 log = logging.getLogger(__name__)
 
+_DEFAULT_JWT_SECRET = "change-me-in-production-min-32-bytes"
+_MIN_JWT_SECRET_BYTES = 32
+
 
 # ---------------------------------------------------------------------------
 # EgressSettings (used by EgressPolicy in Phase 4)
@@ -76,7 +79,7 @@ class AppSettings(BaseSettings):
     # -- Auth (Basic / JWT) -------------------------------------------------
     enable_basic_auth: bool = True
     bcrypt_cost_factor: int = 12
-    jwt_secret: str = "change-me-in-production"
+    jwt_secret: str = _DEFAULT_JWT_SECRET
     jwt_access_token_ttl_minutes: int = 60
     jwt_refresh_token_ttl_days: int = 30
     auth_secure_cookies: bool = False
@@ -119,6 +122,9 @@ class AppSettings(BaseSettings):
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
     langfuse_host: str = "http://localhost:3000"
+
+    # -- Logging ------------------------------------------------------------
+    log_level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"] = "INFO"
 
     # -- Chunking -----------------------------------------------------------
     chunk_max_tokens: int = 512
@@ -198,8 +204,16 @@ def validate_settings(settings: AppSettings) -> None:
             "tracing will use stdout adapter"
         )
 
-    _DEFAULT_JWT_SECRET = "change-me-in-production"
-    if settings.jwt_secret == _DEFAULT_JWT_SECRET:
+    jwt_secret = settings.jwt_secret.strip()
+    if not jwt_secret:
+        errors.append(
+            "JWT_SECRET must not be empty. Generate one with: "
+            'python -c "import secrets; print(secrets.token_hex(32))"'
+        )
+    elif len(jwt_secret.encode("utf-8")) < _MIN_JWT_SECRET_BYTES:
+        errors.append("JWT_SECRET must be at least 32 bytes for HS256")
+
+    if jwt_secret == _DEFAULT_JWT_SECRET:
         if settings.auth_secure_cookies:
             errors.append(
                 "JWT_SECRET is set to the default placeholder value. "

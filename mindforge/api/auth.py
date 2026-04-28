@@ -220,6 +220,7 @@ class JWTService:
 
     _ACCESS_SUBJECT = "access"
     _REFRESH_SUBJECT = "refresh"
+    _MIN_HS256_KEY_BYTES = 32
 
     def __init__(
         self,
@@ -231,7 +232,13 @@ class JWTService:
             raise ImportError(
                 "PyJWT package is required. Install it with: pip install pyjwt[crypto]"
             )
-        self._secret = secret
+        normalized_secret = secret.strip()
+        if not normalized_secret:
+            raise ValueError("JWT secret must not be empty")
+        if len(normalized_secret.encode("utf-8")) < self._MIN_HS256_KEY_BYTES:
+            raise ValueError("JWT secret must be at least 32 bytes for HS256")
+
+        self._secret = normalized_secret
         self._access_ttl_minutes = access_ttl_minutes
         self._refresh_ttl_days = refresh_ttl_days
 
