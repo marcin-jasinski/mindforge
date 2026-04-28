@@ -18,6 +18,7 @@ from sqlalchemy import (
     Boolean,
     CHAR,
     Date,
+    DateTime,
     Float,
     ForeignKey,
     Identity,
@@ -37,7 +38,9 @@ from sqlalchemy.sql import func
 
 
 class Base(DeclarativeBase):
-    pass
+    type_annotation_map = {
+        datetime: DateTime(timezone=True),
+    }
 
 
 # ---------------------------------------------------------------------------

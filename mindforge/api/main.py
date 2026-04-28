@@ -14,18 +14,79 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from mindforge.api.middleware import add_middleware
 from mindforge.infrastructure.config import (
     AppSettings,
-    load_egress_settings,
     validate_settings,
 )
 
 log = logging.getLogger(__name__)
+
+
+def _configure_app_logging(level_name: str) -> None:
+    """Ensure MindForge application logs are always emitted to container stdout."""
+    level = getattr(logging, level_name.upper(), logging.INFO)
+    app_log = logging.getLogger("mindforge")
+    app_log.setLevel(level)
+    app_log.propagate = False
+
+    for handler in app_log.handlers:
+        if getattr(handler, "_mindforge_managed", False):
+            return
+
+    handler = logging.StreamHandler()
+    handler._mindforge_managed = True  # type: ignore[attr-defined]
+    handler.setLevel(level)
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    )
+    app_log.addHandler(handler)
+
+
+def register_exception_handlers(app: FastAPI) -> None:
+    """Register centralized API exception handlers with consistent logging."""
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_exception_handler(
+        request: Request, exc: StarletteHTTPException
+    ) -> JSONResponse:
+        request_id = getattr(request.state, "request_id", "-")
+        if exc.status_code >= 500:
+            log.error(
+                "HTTP %s during %s %s [request_id=%s]",
+                exc.status_code,
+                request.method,
+                request.url.path,
+                request_id,
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+            headers=exc.headers,
+        )
+
+    @app.exception_handler(Exception)
+    async def _unhandled_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
+        request_id = getattr(request.state, "request_id", "-")
+        log.exception(
+            "Unhandled exception during %s %s [request_id=%s]",
+            request.method,
+            request.url.path,
+            request_id,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Wewnętrzny błąd serwera."},
+        )
 
 
 @asynccontextmanager
@@ -36,6 +97,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = AppSettings()
     validate_settings(settings)
     app.state.settings = settings
+    _configure_app_logging(settings.log_level)
 
     # 2. Database engine + session factory
     from mindforge.infrastructure.db import create_async_engine, run_migrations
@@ -84,6 +146,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         fallback_models=[settings.model_fallback],
         timeout_seconds=30.0,
         max_retries=3,
+        api_key=settings.openrouter_api_key,
     )
     app.state.gateway = gateway
 
@@ -286,6 +349,8 @@ def create_app() -> FastAPI:
         redoc_url="/api/redoc",
         openapi_url="/api/openapi.json",
     )
+
+    register_exception_handlers(app)
 
     # Register middleware
     add_middleware(app)

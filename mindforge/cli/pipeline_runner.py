@@ -346,7 +346,7 @@ class PipelineWorker:
             return existing
         return DocumentArtifact(
             document_id=doc_row.document_id,
-            knowledge_base_id=doc_row.knowledge_base_id,
+            knowledge_base_id=doc_row.kb_id,
             lesson_id=doc_row.lesson_id,
             version=1,
             created_at=datetime.now(timezone.utc),
@@ -503,6 +503,7 @@ def main() -> None:
             fallback_models=[settings.model_fallback],
             timeout_seconds=300,
             max_retries=3,
+            api_key=settings.openrouter_api_key,
         )
 
         processing_settings = ProcessingSettings(

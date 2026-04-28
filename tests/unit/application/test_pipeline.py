@@ -947,3 +947,37 @@ class TestLocaleAwareFingerprinting:
 
         assert len(captured_contexts) == 1
         assert captured_contexts[0].settings.prompt_locale == "pl"
+
+
+# ---------------------------------------------------------------------------
+# Regression: _load_or_create_artifact uses doc_row.kb_id
+# ---------------------------------------------------------------------------
+
+
+class TestLoadOrCreateArtifactKbId:
+    """Regression test for AttributeError: 'DocumentModel' object has no
+    attribute 'knowledge_base_id' — the correct column is kb_id."""
+
+    @pytest.mark.asyncio
+    async def test_creates_artifact_with_kb_id_when_no_existing_artifact(
+        self,
+    ) -> None:
+        """_load_or_create_artifact must read doc_row.kb_id (not
+        doc_row.knowledge_base_id) when creating a fresh DocumentArtifact."""
+        worker = _make_pipeline_worker()
+
+        kb_id = uuid.uuid4()
+        doc_row = MagicMock()
+        doc_row.document_id = uuid.uuid4()
+        doc_row.kb_id = kb_id
+        doc_row.lesson_id = "regression-lesson"
+        # Ensure the wrong attribute does NOT exist on this mock so the test
+        # fails with AttributeError if the bug is present.
+        del doc_row.knowledge_base_id
+
+        mock_artifact_repo = AsyncMock()
+        mock_artifact_repo.load_latest = AsyncMock(return_value=None)
+
+        artifact = await worker._load_or_create_artifact(mock_artifact_repo, doc_row)
+
+        assert artifact.knowledge_base_id == kb_id

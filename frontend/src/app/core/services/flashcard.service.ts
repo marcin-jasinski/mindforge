@@ -23,10 +23,10 @@ export class FlashcardService {
   }
 
   reviewCard(kbId: string, req: ReviewRequest): Observable<void> {
-    return this.api.post<void>(`/api/knowledge-bases/${kbId}/flashcards/review`, req);
+    return this.api.post<void>(`/api/knowledge-bases/${kbId}/flashcards/${req.card_id}/review`, req);
   }
 
   getDueCount(kbId: string): Observable<DueCountResponse> {
-    return this.api.get<DueCountResponse>(`/api/knowledge-bases/${kbId}/flashcards/due-count`);
+    return this.api.get<DueCountResponse>(`/api/knowledge-bases/${kbId}/flashcards/due/count`);
   }
 }
