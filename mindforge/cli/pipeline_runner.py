@@ -503,6 +503,7 @@ def main() -> None:
             fallback_models=[settings.model_fallback],
             timeout_seconds=300,
             max_retries=3,
+            api_key=settings.openrouter_api_key,
         )
 
         processing_settings = ProcessingSettings(

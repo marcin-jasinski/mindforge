@@ -146,6 +146,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         fallback_models=[settings.model_fallback],
         timeout_seconds=30.0,
         max_retries=3,
+        api_key=settings.openrouter_api_key,
     )
     app.state.gateway = gateway
 

@@ -206,6 +206,7 @@ class LiteLLMGateway:
         timeout_seconds: float = 30.0,
         max_retries: int = 3,
         tracer: TracingAdapter | None = None,
+        api_key: str | None = None,
     ) -> None:
         self._default_model = default_model
         self._model_map: dict[str, str] = model_map or {}
@@ -214,6 +215,7 @@ class LiteLLMGateway:
         self._max_retries = max_retries
         self._tracer: TracingAdapter = tracer or StdoutTracingAdapter()
         self._circuit_breakers: dict[str, _CircuitBreaker] = {}
+        self._api_key = api_key  # passed to acompletion for OpenRouter models
 
         if not _LITELLM_AVAILABLE:
             log.warning(
@@ -290,6 +292,8 @@ class LiteLLMGateway:
             "timeout": timeout_s,
             "num_retries": 0,  # we manage retries ourselves
         }
+        if self._api_key is not None and model.startswith("openrouter/"):
+            kwargs["api_key"] = self._api_key
         if max_tokens is not None:
             kwargs["max_tokens"] = max_tokens
         if response_format is not None:

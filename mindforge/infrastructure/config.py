@@ -155,16 +155,54 @@ class AppSettings(BaseSettings):
 
     # -----------------------------------------------------------------------
 
+    # Provider prefixes that route to a specific backend — never rewrite these.
+    _LOCAL_PREFIXES: tuple[str, ...] = (
+        "ollama/",
+        "openrouter/",
+        "vertex_ai/",
+        "bedrock/",
+        "azure/",
+        "anthropic/",  # keep explicit Anthropic calls as-is if user set them
+    )
+
+    @staticmethod
+    def _openrouter_prefix(model: str) -> str:
+        """Prepend ``openrouter/`` to *model* unless it already targets a
+        specific backend (Ollama, Azure, etc.)."""
+        _local = (
+            "ollama/",
+            "openrouter/",
+            "vertex_ai/",
+            "bedrock/",
+            "azure/",
+        )
+        if any(model.startswith(p) for p in _local):
+            return model
+        return f"openrouter/{model}"
+
     @property
     def model_map(self) -> dict[str, str]:
-        """Logical model name → LiteLLM model string."""
-        return {
+        """Logical model name → LiteLLM model string.
+
+        When ``OPENROUTER_API_KEY`` is provided, completion models (small,
+        large, vision, fallback) are automatically routed through OpenRouter
+        by prepending the ``openrouter/`` provider prefix.  The embedding
+        model is left unchanged because OpenRouter does not proxy OpenAI
+        embedding endpoints.
+        """
+        raw = {
             "small": self.model_small,
             "large": self.model_large,
             "vision": self.model_vision,
             "embedding": self.model_embedding,
             "fallback": self.model_fallback,
         }
+        if self.openrouter_api_key:
+            return {
+                k: (self._openrouter_prefix(v) if k != "embedding" else v)
+                for k, v in raw.items()
+            }
+        return raw
 
     @property
     def slack_allowed_workspace_list(self) -> list[str]:
@@ -197,6 +235,26 @@ def validate_settings(settings: AppSettings) -> None:
 
     if settings.enable_graph and not settings.neo4j_uri:
         errors.append("enable_graph=true requires NEO4J_URI to be set")
+
+    # Warn when OpenRouter is the only key: it does not proxy OpenAI embeddings,
+    # so MODEL_EMBEDDING must point to a locally-reachable or Ollama model, or
+    # the user must also supply OPENAI_API_KEY / another embedding provider key.
+    import os as _os
+
+    has_openai_key = bool(_os.environ.get("OPENAI_API_KEY"))
+    if (
+        settings.openrouter_api_key
+        and not has_openai_key
+        and settings.enable_embeddings
+        and not settings.model_embedding.startswith("ollama/")
+    ):
+        log.warning(
+            "OPENROUTER_API_KEY is set but OPENAI_API_KEY is absent. "
+            "Embedding calls to %r will still target OpenAI directly — "
+            "set OPENAI_API_KEY or switch MODEL_EMBEDDING to an Ollama model "
+            "(e.g. ollama/nomic-embed-text) to avoid auth errors.",
+            settings.model_embedding,
+        )
 
     if settings.enable_tracing and not settings.langfuse_public_key:
         log.warning(
