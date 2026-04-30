@@ -30,6 +30,7 @@ export class FlashcardsComponent implements OnInit {
   readonly flipped = signal(false);
   readonly loading = signal(true);
   readonly done = signal(false);
+  readonly errorMessage = signal<string | null>(null);
 
   readonly currentCard = computed(() => this.cards()[this.currentIndex()] ?? null);
   readonly progress = computed(() =>
@@ -47,14 +48,24 @@ export class FlashcardsComponent implements OnInit {
     this.done.set(false);
     this.currentIndex.set(0);
     this.flipped.set(false);
+    this.errorMessage.set(null);
     this.flashcardService.getDueCards(this.kbId()).subscribe({
-      next: cards => { this.cards.set(cards); this.loading.set(false); if (!cards.length) this.done.set(true); },
-      error: () => this.loading.set(false),
+      next: (cards) => {
+        this.cards.set(cards);
+        this.loading.set(false);
+        if (!cards.length) this.done.set(true);
+      },
+      error: (err: Error) => {
+        const message = err?.message || 'Nie udało się załadować fiszek.';
+        this.errorMessage.set(message);
+        this.snackbarService.show(message, 'error');
+        this.loading.set(false);
+      },
     });
   }
 
   flip() {
-    this.flipped.update(v => !v);
+    this.flipped.update((v) => !v);
   }
 
   rate(rating: number) {

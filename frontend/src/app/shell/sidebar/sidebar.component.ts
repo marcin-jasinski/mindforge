@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   inject,
   signal,
+  computed,
   input,
   output,
   effect,
@@ -44,16 +45,32 @@ export class SidebarComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   isMobile = input(false);
+  currentKbId = input<string | null>(null);
   toggle = output<void>();
 
   sidebarCollapsed = signal(localStorage.getItem('mf-sidebar-collapsed') === 'true');
   stats = signal<UserStatsResponse | null>(null);
   statsLoading = signal(true);
 
-  readonly navItems = [
-    { label: 'Pulpit', icon: 'layout-dashboard', route: '/' },
-    { label: 'Bazy wiedzy', icon: 'library', route: '/knowledge-bases' },
-  ];
+  readonly navItems = computed(() => {
+    const base = [
+      { label: 'Pulpit', icon: 'layout-dashboard', route: '/' },
+      { label: 'Bazy wiedzy', icon: 'library', route: '/knowledge-bases' },
+    ];
+
+    const kbId = this.currentKbId();
+    if (!kbId) {
+      return base;
+    }
+
+    return [
+      ...base,
+      { label: 'Dokumenty', icon: 'library', route: `/kb/${kbId}/documents` },
+      { label: 'Concept map', icon: 'library', route: `/kb/${kbId}/concepts` },
+      { label: 'Quiz', icon: 'library', route: `/kb/${kbId}/quiz` },
+      { label: 'Flashcards', icon: 'library', route: `/kb/${kbId}/flashcards` },
+    ];
+  });
 
   constructor() {
     effect(() => {

@@ -13,7 +13,7 @@
   </div>
 
   <div class="mf-sidebar-nav">
-    @for (item of navItems; track item.route) {
+    @for (item of navItems(); track item.route) {
       <a
         class="mf-nav-item"
         [class.mf-nav-item-active]="isActive(item.route)"

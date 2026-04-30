@@ -62,45 +62,57 @@ export class ConceptMapComponent implements OnInit, AfterViewInit {
     effect(() => {
       const dark = this.isDark();
       if (!this.cy) return;
-      this.cy.style([
-        {
-          selector: 'node',
-          style: {
-            label: 'data(label)',
-            'background-color': dark ? '#7c3aed' : '#5b4fe9',
-            color: '#ffffff',
-            'text-valign': 'center',
-            'text-halign': 'center',
-            'font-size': '12px',
-            'font-weight': 600 as unknown as cytoscape.Css.FontWeight,
-            padding: '10px',
-            'min-zoomed-font-size': 8,
-            'border-width': 2,
-            'border-color': dark ? '#a78bfa' : '#8b76f0',
-          },
-        },
-        {
-          selector: 'node:selected',
-          style: { 'background-color': '#06b6d4', 'border-color': '#67e8f9' },
-        },
-        {
-          selector: 'edge',
-          style: {
-            label: 'data(label)',
-            'font-size': '10px',
-            color: dark ? '#94a3b8' : '#64748b',
-            width: 1.5,
-            'line-color': dark ? '#4c1d95' : '#7c3aed',
-            'target-arrow-color': dark ? '#4c1d95' : '#7c3aed',
-            'target-arrow-shape': 'triangle',
-            'curve-style': 'bezier',
-            'text-background-color': dark ? '#1e1b4b' : '#f1f5f9',
-            'text-background-opacity': 0.8,
-            'text-background-padding': '2px',
-          },
-        },
-      ]);
+      this.cy.style(this.buildStyles(dark));
     });
+  }
+
+  private buildStyles(dark: boolean): cytoscape.StylesheetJson {
+    return [
+      {
+        selector: 'node',
+        style: {
+          label: 'data(label)',
+          'background-color': dark ? '#7c3aed' : '#5b4fe9',
+          color: '#ffffff',
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'text-wrap': 'wrap',
+          'text-max-width': '140px',
+          'font-size': '13px',
+          'font-weight': 600 as unknown as cytoscape.Css.FontWeight,
+          'line-height': 1.2,
+          shape: 'round-rectangle',
+          width: 'label',
+          height: 'label',
+          padding: '14px',
+          'min-zoomed-font-size': 6,
+          'border-width': 2,
+          'border-color': dark ? '#a78bfa' : '#8b76f0',
+        },
+      },
+      {
+        selector: 'node:selected',
+        style: { 'background-color': '#06b6d4', 'border-color': '#67e8f9' },
+      },
+      {
+        selector: 'edge',
+        style: {
+          label: 'data(label)',
+          'font-size': '10px',
+          color: dark ? '#cbd5e1' : '#475569',
+          width: 1.8,
+          'line-color': dark ? '#6d28d9' : '#a78bfa',
+          'target-arrow-color': dark ? '#6d28d9' : '#a78bfa',
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier',
+          'text-background-color': dark ? '#1e1b4b' : '#f8fafc',
+          'text-background-opacity': 0.9,
+          'text-background-padding': '3px',
+          'text-background-shape': 'round-rectangle',
+          'text-rotation': 'autorotate',
+        },
+      },
+    ] as cytoscape.StylesheetJson;
   }
 
   ngOnInit() {
@@ -114,7 +126,7 @@ export class ConceptMapComponent implements OnInit, AfterViewInit {
   loadGraph() {
     this.loading.set(true);
     this.conceptService.getGraph(this.kbId).subscribe({
-      next: graph => this.renderGraph(graph),
+      next: (graph) => this.renderGraph(graph),
       error: (err: Error) => {
         this.snackbarService.show(err.message, 'error');
         this.loading.set(false);
@@ -129,7 +141,7 @@ export class ConceptMapComponent implements OnInit, AfterViewInit {
     this.loading.set(false);
 
     const elements: cytoscape.ElementDefinition[] = [
-      ...graph.concepts.map(n => ({
+      ...graph.concepts.map((n) => ({
         data: { id: n.key, label: n.label, description: n.description },
       })),
       ...graph.edges.map((e, i) => ({
@@ -137,7 +149,8 @@ export class ConceptMapComponent implements OnInit, AfterViewInit {
           id: `e${i}`,
           source: e.source,
           target: e.target,
-          label: e.relation,
+          // Hide noisy generic relation label; keep specific ones.
+          label: e.relation && e.relation !== 'related_to' ? e.relation : '',
         },
       })),
     ];
@@ -147,57 +160,29 @@ export class ConceptMapComponent implements OnInit, AfterViewInit {
     this.cy = cytoscape({
       container: this.container.nativeElement,
       elements,
-      style: [
-        {
-          selector: 'node',
-          style: {
-            label: 'data(label)',
-            'background-color': dark ? '#7c3aed' : '#5b4fe9',
-            color: '#ffffff',
-            'text-valign': 'center',
-            'text-halign': 'center',
-            'font-size': '12px',
-            'font-weight': 600 as unknown as cytoscape.Css.FontWeight,
-            padding: '10px',
-            'min-zoomed-font-size': 8,
-            'border-width': 2,
-            'border-color': dark ? '#a78bfa' : '#8b76f0',
-          },
-        },
-        {
-          selector: 'node:selected',
-          style: { 'background-color': '#06b6d4', 'border-color': '#67e8f9' },
-        },
-        {
-          selector: 'edge',
-          style: {
-            label: 'data(label)',
-            'font-size': '10px',
-            color: dark ? '#94a3b8' : '#64748b',
-            width: 1.5,
-            'line-color': dark ? '#4c1d95' : '#7c3aed',
-            'target-arrow-color': dark ? '#4c1d95' : '#7c3aed',
-            'target-arrow-shape': 'triangle',
-            'curve-style': 'bezier',
-            'text-background-color': dark ? '#1e1b4b' : '#f1f5f9',
-            'text-background-opacity': 0.8,
-            'text-background-padding': '2px',
-          },
-        },
-      ],
-      layout: { name: 'cose', animate: false, padding: 30 } as cytoscape.LayoutOptions,
+      style: this.buildStyles(dark),
+      layout: {
+        name: 'cose',
+        animate: false,
+        padding: 40,
+        nodeRepulsion: () => 12000,
+        idealEdgeLength: () => 140,
+        nodeOverlap: 20,
+        gravity: 0.25,
+        fit: true,
+      } as cytoscape.LayoutOptions,
     });
 
     // Tooltip on hover
-    this.cy.on('mouseover', 'node', evt => {
+    this.cy.on('mouseover', 'node', (evt) => {
       evt.target.style({ 'border-width': 4 });
     });
-    this.cy.on('mouseout', 'node', evt => {
+    this.cy.on('mouseout', 'node', (evt) => {
       evt.target.style({ 'border-width': 2 });
     });
 
     // Node selection panel
-    this.cy.on('tap', 'node', evt => {
+    this.cy.on('tap', 'node', (evt) => {
       const node = evt.target;
       const data = node.data();
       this.selectedNode.set({
@@ -208,7 +193,7 @@ export class ConceptMapComponent implements OnInit, AfterViewInit {
       });
       // Compute relations for selected node
       const relations: ConceptRelation[] = this.graphEdges
-        .filter(e => e.source === data.id)
+        .filter((e) => e.source === data.id)
         .map((e, i) => ({ id: `r${i}`, type: e.relation, target: e.target }));
       this.nodeRelations.set(relations);
     });

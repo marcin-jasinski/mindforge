@@ -5,7 +5,16 @@
     </div>
   }
 
-  @if (!loading() && done() && cards().length === 0) {
+  @if (!loading() && errorMessage()) {
+    <div class="mf-flash-done">
+      <div class="mf-flash-done-icon">⚠️</div>
+      <h2 class="mf-flash-done-title">Błąd ładowania fiszek</h2>
+      <p class="mf-flash-done-text">{{ errorMessage() }}</p>
+      <button class="mf-btn-primary" (click)="loadDueCards()">Spróbuj ponownie</button>
+    </div>
+  }
+
+  @if (!loading() && !errorMessage() && done() && cards().length === 0) {
     <div class="mf-flash-done">
       <div class="mf-flash-done-icon">🎉</div>
       <h2 class="mf-flash-done-title">Wszystko gotowe!</h2>
