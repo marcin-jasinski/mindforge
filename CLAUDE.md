@@ -100,3 +100,19 @@ These apply to every code change regardless of scope.
 
 See `docs/project/roadmap.md` for which phases (0–19) are complete and what work remains.
 See `docs/project/implementation-plan.md` for the full phase-by-phase task breakdown.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`github.com/marcin-jasinski/mindforge`); external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default canonical label strings (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
