@@ -2,6 +2,7 @@ package dev.mindforge.domain.model;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -98,10 +99,13 @@ public record LessonIdentity(String lessonId, String title) {
     }
 
     private static String slugify(String raw) {
-        String lower = raw.trim().toLowerCase();
+        String lower = raw.trim().toLowerCase(Locale.ROOT);
         String collapsed = SLUG_SEPARATORS.matcher(lower).replaceAll("-");
         String trimmed = EDGE_HYPHENS.matcher(collapsed).replaceAll("");
-        return trimmed.length() > MAX_LENGTH ? trimmed.substring(0, MAX_LENGTH) : trimmed;
+        if (trimmed.length() > MAX_LENGTH) {
+            trimmed = EDGE_HYPHENS.matcher(trimmed.substring(0, MAX_LENGTH)).replaceAll("");
+        }
+        return trimmed;
     }
 
     private static String stemOf(String filename) {
