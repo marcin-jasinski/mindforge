@@ -1,0 +1,37 @@
+# Local development overrides.
+# Activate with: --spring.profiles.active=dev
+# or: SPRING_PROFILES_ACTIVE=dev
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mindforge_dev
+    username: mindforge
+    password: mindforge
+
+  neo4j:
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: mindforge
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+  flyway:
+    enabled: true
+
+  ai:
+    openai:
+      # LM Studio local inference — no API key required
+      base-url: http://localhost:1234/v1
+      api-key: lm-studio
+
+mindforge:
+  ai:
+    model:
+      small: local-model
+      large: local-model
+      vision: local-model

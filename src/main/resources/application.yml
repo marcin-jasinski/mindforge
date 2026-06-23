@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: mindforge
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/mindforge}
+    username: ${DATABASE_USERNAME:mindforge}
+    password: ${DATABASE_PASSWORD:mindforge}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  neo4j:
+    uri: ${NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:mindforge}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope: openid,profile,email
+          github:
+            client-id: ${GITHUB_CLIENT_ID:}
+            client-secret: ${GITHUB_CLIENT_SECRET:}
+            scope: read:user,user:email
+
+  ai:
+    openai:
+      base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
+      api-key: ${OPENROUTER_API_KEY:}
+
+  cache:
+    type: caffeine
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+mindforge:
+  security:
+    jwt-secret: ${JWT_SECRET:}
+    jwt-expiry-seconds: ${JWT_EXPIRY_SECONDS:86400}
+  ai:
+    model:
+      small: ${AI_MODEL_SMALL:openai/gpt-4o-mini}
+      large: ${AI_MODEL_LARGE:openai/gpt-4o}
+      vision: ${AI_MODEL_VISION:openai/gpt-4o}
