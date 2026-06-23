@@ -32,9 +32,9 @@ and developer reviewability — every line of code must be understandable by the
 
 | Framework | Version | Rationale |
 |---|---|---|
-| **Spring Boot** | 3.2+ | Auto-configuration, production-ready defaults; virtual threads via one config line |
+| **Spring Boot** | 4.1 | Auto-configuration, production-ready defaults; virtual threads via one config line |
 | **Spring MVC** | (bundled) | Synchronous-style HTTP handlers running on virtual threads; readable stack traces |
-| **Spring AI** | 1.x | Provider-agnostic LLM access; structured output; pgvector vector store integration |
+| **Spring AI** | 2.0 | Provider-agnostic LLM access; structured output; pgvector vector store integration |
 | **Spring Security** | 6.x | OAuth2 login (Google / GitHub) + JWT issuance for Angular API calls |
 | **Spring Data JPA** | 3.x | Hibernate ORM; `@Entity` classes isolated in `infrastructure/`; domain uses records |
 | **Spring Data Neo4j** | 7.x | Cypher repositories for concept graph traversal |
@@ -101,7 +101,7 @@ and developer reviewability — every line of code must be understandable by the
 
 ## AI & LLM
 
-### Spring AI (1.x)
+### Spring AI (2.0)
 - **Role**: Provider-agnostic LLM access with structured output and vector store integration
 - **Default provider**: OpenRouter (`https://openrouter.ai/api/v1`) — access to GPT-4o,
   Claude, Llama, and others through a single API key
@@ -123,7 +123,7 @@ and developer reviewability — every line of code must be understandable by the
 | Component | Library | Notes |
 |---|---|---|
 | OAuth2 login | Spring Security 6 `oauth2Login()` | Google + GitHub providers |
-| JWT issuance | `nimbus-jose-jwt` | Issued after OAuth2 callback for Angular API calls |
+| JWT issuance | `jjwt-api` / `jjwt-impl` | Issued after OAuth2 callback for Angular API calls |
 | JWT validation | Spring Security `oauth2ResourceServer()` | Validates JWT on every REST request |
 
 ---
@@ -197,7 +197,7 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 | `flyway-core` | SQL schema migrations |
 | `testcontainers` | Real database containers in integration tests |
 | `caffeine` | In-memory caching |
-| `nimbus-jose-jwt` | JWT issuance after OAuth2 login |
+| `jjwt-api` + `jjwt-impl` | JWT issuance after OAuth2 login |
 | `flexmark-all` | Markdown + frontmatter parsing |
 | `pdfbox` | PDF text + metadata extraction |
 | `poi-ooxml` | DOCX parsing |
@@ -207,4 +207,4 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 ---
 
 *Last Updated*: 2026-05-26
-*Stack*: Java 21 / Spring Boot 3.2+ / Angular 21 / PostgreSQL + pgvector / Neo4j / Spring AI
+*Stack*: Java 21 / Spring Boot 4.1 / Angular 21 / PostgreSQL + pgvector / Neo4j / Spring AI

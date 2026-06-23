@@ -69,7 +69,7 @@ loading via `@ConfigurationProperties`, developer environment, and CI prerequisi
 
 - [ ] **0.1 — Create `pom.xml` with Maven project metadata**
   - Group: `dev.mindforge`, artifact: `mindforge`, Java source: `21`.
-  - Declare Spring Boot parent BOM (`spring-boot-starter-parent 3.2+`).
+  - Declare Spring Boot parent BOM (`spring-boot-starter-parent 4.1`).
   - Include all runtime dependencies: `spring-boot-starter-web`,
     `spring-boot-starter-data-jpa`, `spring-boot-starter-data-neo4j`,
     `spring-boot-starter-security`, `spring-boot-starter-oauth2-client`,
@@ -196,7 +196,7 @@ serve later phases are added when those phases begin.
   - Each event is a `record` implementing `DomainEvent`, carrying the fields from architecture Section 6.3.
 
 - [ ] **1.6 — Agent interface and context types**
-  - [ ] 1.6.1 — `Agent` interface: `String name()`, `String version()`,
+  - [ ] 1.6.1 — `Agent` interface: `String name()`, `AgentCapability capability()`,
     `AgentResult execute(AgentContext context)`.
   - [ ] 1.6.2 — `AgentCapability` record: `String name`, `String description`,
     `ModelTier requiredModelTier`, `CostTier estimatedCostTier`.
@@ -411,7 +411,7 @@ and fingerprint invalidation, and the background worker that processes documents
 
 - [ ] **5.4 — Background worker** (`dev.mindforge.infrastructure`)
   - Polls `DocumentRepository` for documents with `PENDING` or `FAILED` status.
-  - Executed on a virtual thread (`@Async` with a virtual-thread executor from Spring Boot 3.2).
+  - Executed on a virtual thread (`@Async` with a virtual-thread executor from Spring Boot 4.1).
   - Stale recovery: documents stuck in `PROCESSING` for > configurable threshold are reset to `PENDING`.
 
 - [ ] **5.5 — Unit tests**
@@ -451,8 +451,8 @@ interface, declares a `VERSION` constant, and is registered in `AgentRegistry`.
 ### Tasks
 
 - [ ] **6.1 — Prompt templates** (`src/main/resources/prompts/pl/`)
-  - One `.txt` file per agent: `preprocessor.txt`, `relevance_guard.txt`, `summarizer.txt`,
-    `flashcard_generator.txt`, `concept_mapper.txt`, `quiz_generator.txt`, `quiz_evaluator.txt`.
+  - One `.{locale}.md` file per agent per locale: `preprocessor.pl.md`, `relevance_guard.pl.md`, `summarizer.pl.md`,
+    `flashcard_generator.pl.md`, `concept_mapper.pl.md`, `quiz_generator.pl.md`, `quiz_evaluator.pl.md`.
   - Templates use `{placeholder}` syntax compatible with Spring AI `PromptTemplate`.
 
 - [ ] **6.2 — `PreprocessorAgent`** (`dev.mindforge.agent`)

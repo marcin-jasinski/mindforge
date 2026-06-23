@@ -42,12 +42,13 @@ Request models by role, never by provider string:
 
 ```java
 // CORRECT
-ChatResponse response = context.gateway().complete("large", messages);
-ChatResponse response = context.gateway().complete("small", messages);
-ChatResponse response = context.gateway().complete("vision", messages);
+ChatResponse response = context.gateway().complete(ModelTier.LARGE, messages);
+ChatResponse response = context.gateway().complete(ModelTier.SMALL, messages);
+ChatResponse response = context.gateway().complete(ModelTier.VISION, messages);
 
 // NEVER
 context.gateway().complete("openai/gpt-4o", messages);  // ❌ hardcoded provider
+context.gateway().complete("large", messages);  // ❌ string literal, use ModelTier enum
 ```
 
 ## LLM Gateway
@@ -56,7 +57,7 @@ All LLM calls flow through `AIGateway`. Never instantiate or call a provider SDK
 
 ```java
 // CORRECT
-ChatResponse response = context.gateway().complete("large", messages);
+ChatResponse response = context.gateway().complete(ModelTier.LARGE, messages);
 
 // NEVER
 OpenAiApi openAi = new OpenAiApi(apiKey);
@@ -76,8 +77,8 @@ src/main/resources/prompts/summarizer_system.md         ❌ (locale-neutral)
 ## Lesson Identity
 
 Resolve `lessonId` via the five-step deterministic algorithm:
-1. PDF frontmatter `lesson_id`
-2. PDF frontmatter `title` (slugified)
+1. Markdown frontmatter `lesson_id`
+2. Markdown frontmatter `title` (slugified)
 3. PDF metadata `Title`
 4. Filename (without extension)
 5. **REJECT** — throw `LessonIdentityException`; never fall back to `"unknown"`

@@ -1,6 +1,6 @@
 ﻿# Java Code Conventions
 
-MindForge-specific Java conventions enforced across the entire `com.mindforge` package.
+MindForge-specific Java conventions enforced across the entire `dev.mindforge` package.
 
 ## File Structure
 

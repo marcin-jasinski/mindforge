@@ -95,3 +95,32 @@ public DocumentResponse get(@PathVariable UUID id, @AuthenticationPrincipal User
 
 // NEVER: return resource without ownership check
 ```
+
+## CORS Configuration
+
+Cross-origin requests are configured via a `CorsConfigurationSource` bean. The allowed
+origin is injected from an environment variable, never hardcoded.
+
+```java
+// CORRECT
+@Bean
+CorsConfigurationSource corsConfigurationSource(
+        @Value("${CORS_ALLOWED_ORIGIN:http://localhost:4200}") String allowedOrigin) {
+    CorsConfiguration config = new CorsConfiguration();
+    config.setAllowedOrigins(List.of(allowedOrigin));
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    config.setAllowedHeaders(List.of("*"));
+    config.setAllowCredentials(true);
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", config);
+    return source;
+}
+
+// NEVER
+config.setAllowedOrigins(List.of("*"));  // ❌ wildcard in production
+```
+
+In production, the Angular SPA and the Spring Boot API are served from the same origin
+(single JAR with embedded Angular build), so CORS is a development-only concern. The
+`CORS_ALLOWED_ORIGIN` env var defaults to `http://localhost:4200` for local development
+and must not be set to `*` in production.

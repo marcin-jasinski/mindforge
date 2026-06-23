@@ -13,7 +13,7 @@ and then exposes this knowledge through a web UI, an interactive quiz engine, an
 - **Version**: 1.0.0 (Phase 1 — in development)
 - **Status**: Active development — core pipeline and API in progress
 - **Users**: Solo developer / personal learning tool
-- **Tech Stack**: Java 21 / Spring Boot 3.2 / Spring AI / Angular 21 / PostgreSQL + pgvector / Neo4j / OpenRouter
+- **Tech Stack**: Java 21 / Spring Boot 4.1 / Spring AI / Angular 21 / PostgreSQL + pgvector / Neo4j / OpenRouter
 
 ## Purpose
 

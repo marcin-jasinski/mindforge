@@ -1,6 +1,6 @@
 # Spring AI with OpenRouter as the LLM gateway
 
-MindForge uses Spring AI 1.x as its LLM integration layer, with OpenRouter
+MindForge uses Spring AI 2.0 as its LLM integration layer, with OpenRouter
 (`https://openrouter.ai/api/v1`) as the default provider in production and LM Studio
 (`http://localhost:1234/v1`) for local development. Both are OpenAI-compatible endpoints,
 so the same Spring AI client configuration applies to both; switching between them is a

@@ -1,11 +1,11 @@
-# Java 21 + Spring Boot 3.2 as the application platform
+# Java 21 + Spring Boot 4.1 as the application platform
 
-MindForge uses Java 21 LTS and Spring Boot 3.2+ as its backend application platform.
+MindForge uses Java 21 LTS and Spring Boot 4.1 as its backend application platform.
 The primary constraint driving this choice is developer reviewability: every line of code
 must be understandable and auditable by the sole developer. Java 21 LTS provides virtual
 threads (eliminating the need for a reactive programming model), records and sealed
 interfaces for immutable domain objects, and a mature, stable ecosystem with long-term
-support. Spring Boot 3.2 pairs auto-configuration and production-ready defaults with
+support. Spring Boot 4.1 pairs auto-configuration and production-ready defaults with
 direct support for virtual threads via a single configuration flag
 (`spring.threads.virtual.enabled=true`).
 

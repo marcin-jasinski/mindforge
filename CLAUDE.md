@@ -10,7 +10,7 @@ Read `docs/INDEX.md` before starting any work. It lists all available project do
 
 **MindForge** is an AI-powered learning platform that transforms uploaded documents into study artifacts (summaries, flashcards, concept maps, quizzes, knowledge graph).
 
-- **Backend**: Java 21 + Spring Boot 3.2, Spring AI, Spring Data JPA/Hibernate, Flyway, Maven
+- **Backend**: Java 21 + Spring Boot 4.1, Spring AI, Spring Data JPA/Hibernate, Flyway, Maven
 - **Frontend**: Angular 21 standalone SPA, Angular Material, Cytoscape.js, Signals
 - **Databases**: PostgreSQL (source of truth), Neo4j (derived read projection), Caffeine (in-process cache)
 - **Build**: `mvn package` produces a single deployable JAR with the Angular build embedded
@@ -53,7 +53,7 @@ These apply to every code change regardless of scope.
 
 ### AI Agents
 - **All LLM calls through `AIGateway`** — never instantiate a provider SDK directly
-- **Request models by role** (`"large"`, `"small"`, `"vision"`) — never by provider string
+- **Request models by role** (`ModelTier.LARGE`, `ModelTier.SMALL`, `ModelTier.VISION`) — never by provider string
 - **`VERSION` bumped only on logic/prompt change** — not for style fixes
 
 ### Security (read `docs/standards/security/web-security.md` before any auth/upload work)

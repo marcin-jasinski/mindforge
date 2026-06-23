@@ -3,7 +3,7 @@
 ## Overview
 
 MindForge follows **Hexagonal Architecture** (Ports and Adapters). The backend is a
-Spring Boot 3 application with strict layer boundaries. A separate Angular SPA frontend
+Spring Boot 4 application with strict layer boundaries. A separate Angular SPA frontend
 communicates exclusively via the Spring MVC REST API.
 
 ## Architecture Pattern

@@ -14,7 +14,7 @@ Coding standards, conventions, and best practices organized by domain (global, b
 
 ## Project Documentation
 
-Located in `.maister/docs/project/`
+Located in `docs/project/`
 
 ### Vision (`project/vision.md`)
 What MindForge is and why it exists. Covers the core product concept (AI-powered learning platform that transforms uploaded documents into study artifacts), primary user flows, key capabilities (summaries, flashcards, concept maps, quiz engine, knowledge graph), and the guiding design principles. Read this first for product context before feature work.
@@ -26,7 +26,7 @@ Development phase status overview. Documents which phases (0–19) are complete,
 Complete phase-by-phase breakdown of all development work: phases 0–19, each with detailed task lists, dependencies, completion checklists, and rationale. This is the **source of truth** for structuring development work using `/maister-implement`. Use Maister's implementation-plan-executor to read phases, track checkbox progress, and manage work-logs as you build features.
 
 ### Tech Stack (`project/tech-stack.md`)
-Technology choices with rationale. Covers backend (Java 21, Spring Boot 3.2, Spring AI, Spring Data JPA/Hibernate, PostgreSQL, Neo4j, Caffeine), frontend (Angular standalone SPA), infrastructure (Docker, Flyway, Maven), and the reasoning behind each choice. Read before introducing new dependencies or proposing technology changes.
+Technology choices with rationale. Covers backend (Java 21, Spring Boot 4.1, Spring AI, Spring Data JPA/Hibernate, PostgreSQL, Neo4j, Caffeine), frontend (Angular standalone SPA), infrastructure (Docker, Flyway, Maven), and the reasoning behind each choice. Read before introducing new dependencies or proposing technology changes.
 
 ### Architecture (`project/architecture.md`)
 Navigable summary of the hexagonal architecture design — layers, boundaries, composition roots, data flow, and key conventions. Read before touching layer boundaries, adding adapters, or working on the pipeline.
@@ -37,7 +37,7 @@ Navigable summary of the hexagonal architecture design — layers, boundaries, c
 
 ### Global Standards
 
-Located in `.maister/docs/standards/global/`
+Located in `docs/standards/global/`
 
 #### Coding Style (`standards/global/coding-style.md`)
 Naming consistency, automatic formatting, descriptive names, focused functions, no dead code, DRY principle.
@@ -61,16 +61,16 @@ Server-side always, validate early, specific errors, allowlists over blocklists,
 
 ### Backend Standards
 
-Located in `.maister/docs/standards/backend/`
+Located in `docs/standards/backend/`
 
 #### API Design (`standards/backend/api.md`)
 RESTful principles, consistent naming, versioning, plural nouns, limited nesting, query parameters, proper status codes, rate limit headers. Also covers Spring MVC conventions: thin `@RestController` methods, constructor injection (never field `@Autowired`), and virtual thread blocking rules.
 
 #### Java Conventions (`standards/backend/java-conventions.md`)
-MindForge-specific Java conventions: package and import ordering, class-level `private static final` constants (SCREAMING_SNAKE_CASE), 79-char section dividers, `log` (not `logger`) naming for SLF4J loggers, domain-specific exception hierarchy, `record` types for value objects and results, and `sealed interface` for discriminated unions. Read before writing any new Java class in the `com.mindforge` package.
+MindForge-specific Java conventions: package and import ordering, class-level `private static final` constants (SCREAMING_SNAKE_CASE), 79-char section dividers, `log` (not `logger`) naming for SLF4J loggers, domain-specific exception hierarchy, `record` types for value objects and results, and `sealed interface` for discriminated unions. Read before writing any new Java class in the `dev.mindforge` package.
 
 #### Agent Standards (`standards/backend/ai_agents.md`)
-Mandatory `Agent` interface for all AI agents (`VERSION`, `PROMPT_VERSION`, `execute()`), `CAPABILITY` constant placement, version-bump rules (only on logic/prompt changes), model selection by role (`"large"`, `"small"`, `"vision"`) not provider string, and the rule that all LLM calls flow through `AIGateway` — never a provider SDK directly.
+Mandatory `Agent` interface for all AI agents (`VERSION`, `PROMPT_VERSION`, `execute()`), `CAPABILITY` constant placement, version-bump rules (only on logic/prompt changes), model selection by `ModelTier` enum (`LARGE`, `SMALL`, `VISION`) not provider string, and the rule that all LLM calls flow through `AIGateway` — never a provider SDK directly.
 
 #### Models (`standards/backend/models.md`)
 Clear naming, timestamps, database constraints, appropriate types, index foreign keys, multi-layer validation, clear relationships, practical normalization.
@@ -85,7 +85,7 @@ Reversible migrations, small and focused, zero-downtime awareness, separate sche
 
 ### Frontend Standards
 
-Located in `.maister/docs/standards/frontend/`
+Located in `docs/standards/frontend/`
 
 #### Components (`standards/frontend/components.md`)
 Single responsibility, reusability, composability, clear interface, encapsulation, consistent naming, local state, minimal props.
@@ -106,7 +106,7 @@ Mobile-first, standard breakpoints, fluid layouts, relative units, cross-device 
 
 ### Architecture Standards
 
-Located in `.maister/docs/standards/architecture/`
+Located in `docs/standards/architecture/`
 
 #### Hexagonal Architecture (`standards/architecture/hexagonal.md`)
 Non-negotiable rules for MindForge's Hexagonal Architecture (Ports and Adapters). Covers layer boundaries and forbidden cross-layer imports (`dev.mindforge.domain` must not import framework/I/O classes), composition root placement (`@Configuration` beans, no static singletons), Open/Closed principle for parsers and agents, data store roles (PostgreSQL as source of truth, Neo4j as derived projection, Caffeine as in-process cache), pipeline idempotency and the transactional checkpoint pattern, retrieval cost discipline (graph first → lexical second → vector last), agent communication rules (no direct agent-to-agent calls), and the transactional outbox guarantee.
@@ -115,7 +115,7 @@ Non-negotiable rules for MindForge's Hexagonal Architecture (Ports and Adapters)
 
 ### Security Standards
 
-Located in `.maister/docs/standards/security/`
+Located in `docs/standards/security/`
 
 #### Web Security (`standards/security/web-security.md`)
 MindForge-specific security rules: server-authoritative state (fields forbidden in API responses: `reference_answer`, `grounding_context`, `raw_prompt`, `raw_completion`, `cost`), bcrypt password hashing via Spring Security's `BCryptPasswordEncoder` at cost ≥ 12, JWT in HttpOnly/Secure/SameSite=Lax cookies (never response body), OAuth CSRF handled by Spring Security OAuth2 client (never disabled), uploaded filename and URL sanitization, and resource ownership checks in every `@RestController` method. Read before any auth, file upload, or API response work.
@@ -124,7 +124,7 @@ MindForge-specific security rules: server-authoritative state (fields forbidden 
 
 ### Testing Standards
 
-Located in `.maister/docs/standards/testing/`
+Located in `docs/standards/testing/`
 
 #### Test Writing (`standards/testing/test-writing.md`)
 Test behavior not implementation, clear names, mock external dependencies, fast unit tests, risk-based testing, critical path focus, appropriate depth. Also covers Java testing conventions: test folder structure (`unit/`, `integration/`, `e2e/`), no Spring context in unit tests, `StubAIGateway` as the LLM test double, Mockito for port mocking, `make*` factory methods for domain objects and services, Testcontainers for integration tests, and AssertJ fluent assertions.
