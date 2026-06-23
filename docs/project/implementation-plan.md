@@ -60,14 +60,14 @@ in order because later phases depend on the artifacts of earlier ones.
 
 ---
 
-## [ ] Phase 0 — Project Scaffolding and Tooling
+## [x] Phase 0 — Project Scaffolding and Tooling
 
 **Goal:** Establish the Maven project skeleton, Spring Boot bootstrap, configuration
 loading via `@ConfigurationProperties`, developer environment, and CI prerequisites.
 
 ### Tasks
 
-- [ ] **0.1 — Create `pom.xml` with Maven project metadata**
+- [x] **0.1 — Create `pom.xml` with Maven project metadata**
   - Group: `dev.mindforge`, artifact: `mindforge`, Java source: `21`.
   - Declare Spring Boot parent BOM (`spring-boot-starter-parent 4.1`).
   - Include all runtime dependencies: `spring-boot-starter-web`,
@@ -81,7 +81,7 @@ loading via `@ConfigurationProperties`, developer environment, and CI prerequisi
   - Configure `frontend-maven-plugin` to integrate Angular build into Maven lifecycle.
   - Add `jacoco-maven-plugin` with minimum 70% instruction coverage gate.
 
-- [ ] **0.2 — Create the package directory tree**
+- [x] **0.2 — Create the package directory tree**
   - Scaffold all Java source directories under `src/main/java/dev/mindforge/`:
     `domain/model/`, `domain/port/`,
     `application/service/`,
@@ -97,37 +97,37 @@ loading via `@ConfigurationProperties`, developer environment, and CI prerequisi
   - Scaffold `src/main/resources/db/migration/` (Flyway SQL migrations — prefix `V`).
   - Scaffold `frontend/` (Angular project created in Phase 12).
 
-- [ ] **0.3 — Create `env.example`**
+- [x] **0.3 — Create `env.example`**
   - Include every environment variable the app needs, with comments indicating required vs. optional.
   - Must cover: `DATABASE_URL`, `NEO4J_URI`, `OPENROUTER_API_KEY`, `JWT_SECRET`,
     `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`.
 
-- [ ] **0.4 — Create `.gitignore`**
+- [x] **0.4 — Create `.gitignore`**
   - Java: `target/`, `*.class`, `*.jar`.
   - Node: `node_modules/`, `frontend/dist/`.
   - IDE: `.vscode/`, `.idea/`.
   - Environment: `.env` (not `env.example`).
 
-- [ ] **0.5 — Verify Maven build**
+- [x] **0.5 — Verify Maven build**
   - `mvn compile` succeeds in a clean checkout.
   - All Spring Boot auto-configuration resolves without errors.
   - No static-init side effects at class load time.
 
-- [ ] **0.6 — Scaffold test utilities**
+- [x] **0.6 — Scaffold test utilities**
   - Create `StubAIGateway` (implements `AIGateway`; returns configurable canned responses).
   - Create `make*` static factory methods for future domain objects (bodies return `null`; filled in per phase).
   - Create `@Testcontainers` base configuration (`PostgreSQLContainer`, `Neo4jContainer`).
 
 ### Completion Checklist
 
-- [ ] `mvn compile` succeeds on a clean checkout.
-- [ ] `mvn test` runs with zero tests and zero errors.
-- [ ] `env.example` documents all required environment variables.
-- [ ] Package directory tree matches architecture Section 5.
+- [x] `mvn compile` succeeds on a clean checkout.
+- [x] `mvn test` runs with zero tests and zero errors.
+- [x] `env.example` documents all required environment variables.
+- [x] Package directory tree matches architecture Section 5.
 
 ---
 
-## [ ] Phase 1 — Domain Layer
+## [x] Phase 1 — Domain Layer
 
 **Goal:** Implement the pure Java domain layer (`dev.mindforge.domain`) with zero I/O and
 zero framework imports. Only the types needed for Phases 2–6 are defined here; types that
@@ -135,7 +135,7 @@ serve later phases are added when those phases begin.
 
 ### Tasks
 
-- [ ] **1.1 — Core enums** (`dev.mindforge.domain.model`)
+- [x] **1.1 — Core enums** (`dev.mindforge.domain.model`)
   - `DocumentStatus`: `PENDING`, `PROCESSING`, `DONE`, `FAILED`
   - `UploadSource`: `API`, `FILE_WATCHER` (delivery channels added in Phase 18–19)
   - `BlockType`: `TEXT`, `IMAGE`, `CODE`, `AUDIO`, `VIDEO`
@@ -144,71 +144,71 @@ serve later phases are added when those phases begin.
   - `CostTier`: `LOW`, `MEDIUM`, `HIGH`
   - `DeadlineProfile`: `INTERACTIVE`, `BATCH`, `BACKGROUND`
 
-- [ ] **1.2 — Value objects**
-  - [ ] 1.2.1 — `ContentHash` record: `String sha256`. Static `compute(byte[] raw)` method
+- [x] **1.2 — Value objects**
+  - [x] 1.2.1 — `ContentHash` record: `String sha256`. Static `compute(byte[] raw)` method
     using `MessageDigest.getInstance("SHA-256")`. Immutable.
-  - [ ] 1.2.2 — `LessonIdentity` record: `String lessonId`, `String title`. Static
+  - [x] 1.2.2 — `LessonIdentity` record: `String lessonId`, `String title`. Static
     `resolve(Map<String, String> metadata, String filename)` implementing the five-step
     deterministic resolution algorithm (architecture Section 6.2): frontmatter `lesson_id` →
     frontmatter `title` (slugified) → PDF metadata `Title` → filename stem. Validation:
     max 80 chars, `[a-z0-9\-_]` only, not empty, not in reserved names (`index`, `default`).
     Throws `LessonIdentityException` on failure.
 
-- [ ] **1.3 — Core entities**
-  - [ ] 1.3.1 — `ContentBlock` record: `BlockType blockType`, `String content`,
+- [x] **1.3 — Core entities**
+  - [x] 1.3.1 — `ContentBlock` record: `BlockType blockType`, `String content`,
     `String mediaRef`, `String mediaType`, `Map<String, Object> metadata`, `int position`.
-  - [ ] 1.3.2 — `Document` record: `UUID documentId`, `UUID knowledgeBaseId`,
+  - [x] 1.3.2 — `Document` record: `UUID documentId`, `UUID knowledgeBaseId`,
     `LessonIdentity lessonIdentity`, `ContentHash contentHash`, `String sourceFilename`,
     `String mimeType`, `String originalContent`, `List<ContentBlock> contentBlocks`,
     `UploadSource uploadSource`, `UUID uploadedBy`, `DocumentStatus status`,
     `Instant createdAt`, `Instant updatedAt`.
-  - [ ] 1.3.3 — `KnowledgeBase` record: `UUID kbId`, `UUID ownerId`, `String name`,
+  - [x] 1.3.3 — `KnowledgeBase` record: `UUID kbId`, `UUID ownerId`, `String name`,
     `String description`, `Instant createdAt`, `int documentCount`.
-  - [ ] 1.3.4 — `User` record: `UUID userId`, `String displayName`, `String email`,
+  - [x] 1.3.4 — `User` record: `UUID userId`, `String displayName`, `String email`,
     `String passwordHash`, `String avatarUrl`, `Instant createdAt`, `Instant lastLoginAt`.
 
-- [ ] **1.4 — Pipeline and artifact types**
-  - [ ] 1.4.1 — `StepFingerprint` record: `String inputHash`, `String promptVersion`,
+- [x] **1.4 — Pipeline and artifact types**
+  - [x] 1.4.1 — `StepFingerprint` record: `String inputHash`, `String promptVersion`,
     `String modelId`, `String agentVersion`. Static `compute(...)` returns
     `sha256("inputHash|promptVersion|modelId|agentVersion")[:16]`.
-  - [ ] 1.4.2 — `StepCheckpoint` record: `String outputKey`, `String fingerprint`,
+  - [x] 1.4.2 — `StepCheckpoint` record: `String outputKey`, `String fingerprint`,
     `Instant completedAt`.
-  - [ ] 1.4.3 — `SummaryData` record: `String summary`, `List<String> keyPoints`.
-  - [ ] 1.4.4 — `FlashcardData` record: `String cardId`, `CardType cardType`,
+  - [x] 1.4.3 — `SummaryData` record: `String summary`, `List<String> keyPoints`.
+  - [x] 1.4.4 — `FlashcardData` record: `String cardId`, `CardType cardType`,
     `String front`, `String back`. Deterministic `cardId` via
     `sha256("kbId|lessonId|cardType|front|back")[:16]`.
-  - [ ] 1.4.5 — `ConceptMapData` record: `List<ConceptNode> nodes`,
+  - [x] 1.4.5 — `ConceptMapData` record: `List<ConceptNode> nodes`,
     `List<ConceptEdge> edges`. Inner records `ConceptNode` and `ConceptEdge`.
-  - [ ] 1.4.6 — `ValidationResult` record: `boolean passed`, `String reason`,
+  - [x] 1.4.6 — `ValidationResult` record: `boolean passed`, `String reason`,
     `float confidence`.
-  - [ ] 1.4.7 — `DocumentArtifact` record: `UUID artifactId`, `UUID documentId`,
+  - [x] 1.4.7 — `DocumentArtifact` record: `UUID artifactId`, `UUID documentId`,
     `UUID knowledgeBaseId`, `SummaryData summary`, `List<FlashcardData> flashcards`,
     `ConceptMapData conceptMap`, `List<String> quizQuestions`,
     `ValidationResult relevanceValidation`, `Map<String, StepCheckpoint> stepFingerprints`,
     `String completedStep`, `Instant createdAt`.
-  - [ ] 1.4.8 — `CompletionResult` record: `String content`, `int inputTokens`,
+  - [x] 1.4.8 — `CompletionResult` record: `String content`, `int inputTokens`,
     `int outputTokens`, `String model`, `String provider`, `long latencyMs`,
     `double costUsd`.
 
-- [ ] **1.5 — Domain events** (sealed interface hierarchy)
+- [x] **1.5 — Domain events** (sealed interface hierarchy)
   - `sealed interface DomainEvent permits DocumentIngested, PipelineStepCompleted,
     ProcessingCompleted, ProcessingFailed, GraphProjectionUpdated`
   - Each event is a `record` implementing `DomainEvent`, carrying the fields from architecture Section 6.3.
 
-- [ ] **1.6 — Agent interface and context types**
-  - [ ] 1.6.1 — `Agent` interface: `String name()`, `AgentCapability capability()`,
+- [x] **1.6 — Agent interface and context types**
+  - [x] 1.6.1 — `Agent` interface: `String name()`, `AgentCapability capability()`,
     `AgentResult execute(AgentContext context)`.
-  - [ ] 1.6.2 — `AgentCapability` record: `String name`, `String description`,
+  - [x] 1.6.2 — `AgentCapability` record: `String name`, `String description`,
     `ModelTier requiredModelTier`, `CostTier estimatedCostTier`.
-  - [ ] 1.6.3 — `AgentContext` record: `UUID documentId`, `UUID knowledgeBaseId`,
+  - [x] 1.6.3 — `AgentContext` record: `UUID documentId`, `UUID knowledgeBaseId`,
     `DocumentArtifact artifact`, `AIGateway gateway`, `ProcessingSettings settings`.
-  - [ ] 1.6.4 — `AgentResult` sealed interface: `record Success(String outputKey,
+  - [x] 1.6.4 — `AgentResult` sealed interface: `record Success(String outputKey,
     int tokensUsed, double costUsd, long durationMs) implements AgentResult`,
     `record Failure(String error, boolean retryable) implements AgentResult`.
-  - [ ] 1.6.5 — `ProcessingSettings` record: chunk size, overlap, feature flags,
+  - [x] 1.6.5 — `ProcessingSettings` record: chunk size, overlap, feature flags,
     model-tier mappings.
 
-- [ ] **1.7 — Port interfaces** (`dev.mindforge.domain.port`)
+- [x] **1.7 — Port interfaces** (`dev.mindforge.domain.port`)
   - `DocumentRepository`: `save`, `findById`, `findByContentHash`, `updateStatus`,
     `listByKnowledgeBase`.
   - `ArtifactRepository`: `saveCheckpoint`, `loadLatest`, `countFlashcards`.
@@ -217,7 +217,7 @@ serve later phases are added when those phases begin.
   - `GraphIndexer`: `indexArtifact(DocumentArtifact artifact)`, `removeByLesson(UUID kbId, String lessonId)`.
   - `EventPublisher`: `publish(DomainEvent event)` — called within an active transaction.
 
-- [ ] **1.8 — Unit tests for domain layer**
+- [x] **1.8 — Unit tests for domain layer**
   - `LessonIdentity.resolve()`: all five resolution steps, validation rules, reserved name rejection.
   - `ContentHash.compute()`: determinism, different inputs → different hashes.
   - `FlashcardData.cardId`: same inputs → same ID; different `kbId` → different ID.
@@ -226,10 +226,10 @@ serve later phases are added when those phases begin.
 
 ### Completion Checklist
 
-- [ ] Zero framework imports anywhere in `dev.mindforge.domain`.
-- [ ] All domain types are `record` or `interface` — no mutable state.
-- [ ] `mvn test -Dtest="**/unit/domain/**"` passes.
-- [ ] `StepFingerprint` and `LessonIdentity` have full validation coverage.
+- [x] Zero framework imports anywhere in `dev.mindforge.domain`.
+- [x] All domain types are `record` or `interface` — no mutable state.
+- [x] `mvn test -Dtest="**/unit/domain/**"` passes.
+- [x] `StepFingerprint` and `LessonIdentity` have full validation coverage.
 
 ---
 
