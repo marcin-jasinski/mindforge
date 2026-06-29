@@ -233,19 +233,19 @@ serve later phases are added when those phases begin.
 
 ---
 
-## [ ] Phase 2 — Infrastructure Foundation
+## [x] Phase 2 — Infrastructure Foundation
 
 **Goal:** Implement Spring Boot configuration, PostgreSQL schema via Flyway migrations,
 JPA entities, and all Spring Data JPA repository adapters.
 
 ### Tasks
 
-- [ ] **2.1 — Configuration** (`dev.mindforge.infrastructure.config`)
+- [x] **2.1 — Configuration** (`dev.mindforge.infrastructure.config`)
   - `AppProperties` class annotated `@ConfigurationProperties(prefix = "mindforge")`.
   - Fields: `ai` (OpenRouter URL, key), `security` (JWT secret, expiry), `db` (datasource).
   - Validated via `@Validated` + JSR-380 annotations on all required fields.
 
-- [ ] **2.2 — Flyway migrations** (`src/main/resources/db/migration/`)
+- [x] **2.2 — Flyway migrations** (`src/main/resources/db/migration/`)
   - `V1__create_users.sql`
   - `V2__create_knowledge_bases.sql`
   - `V3__create_documents.sql`
@@ -255,18 +255,18 @@ JPA entities, and all Spring Data JPA repository adapters.
   - `V7__create_embeddings.sql` — `content_embeddings` table with `vector(1536)` column
   - Each migration is irreversible; never use `DROP` without a compensating up-migration.
 
-- [ ] **2.3 — JPA entities** (`dev.mindforge.infrastructure.persistence.entity`)
+- [x] **2.3 — JPA entities** (`dev.mindforge.infrastructure.persistence.entity`)
   - `DocumentEntity`, `KnowledgeBaseEntity`, `UserEntity`, `ArtifactEntity`,
     `StepCheckpointEntity`, `ContentEmbeddingEntity`.
   - Use `@MappedSuperclass` `BaseEntity` with `@CreatedDate`, `@LastModifiedDate`.
   - Bidirectional mapping only where queries require it.
 
-- [ ] **2.4 — Repository adapters** (`dev.mindforge.infrastructure.persistence`)
+- [x] **2.4 — Repository adapters** (`dev.mindforge.infrastructure.persistence`)
   - `DocumentRepositoryAdapter implements DocumentRepository` — wraps `DocumentJpaRepository`.
   - `ArtifactRepositoryAdapter implements ArtifactRepository` — wraps `ArtifactJpaRepository`.
   - All adapters translate between JPA entities and domain records.
 
-- [ ] **2.5 — Integration tests**
+- [x] **2.5 — Integration tests**
   - `@Testcontainers` with real PostgreSQL 15.
   - `DocumentRepositoryAdapterTest`: save, findById, findByContentHash, updateStatus, deduplication.
   - `ArtifactRepositoryAdapterTest`: saveCheckpoint, loadLatest, fingerprint comparison.
@@ -274,10 +274,10 @@ JPA entities, and all Spring Data JPA repository adapters.
 
 ### Completion Checklist
 
-- [ ] `mvn flyway:migrate` creates the full schema against a real PostgreSQL instance.
-- [ ] All repository adapters pass integration tests with real PostgreSQL.
-- [ ] `@ConfigurationProperties` validation fails fast on missing required environment variables.
-- [ ] No raw SQL in Java code — all queries via JPA or `@Query`-annotated interfaces.
+- [x] `mvn flyway:migrate` creates the full schema against a real PostgreSQL instance.
+- [x] All repository adapters pass integration tests with real PostgreSQL.
+- [x] `@ConfigurationProperties` validation fails fast on missing required environment variables.
+- [x] No raw SQL in Java code — all queries via JPA or `@Query`-annotated interfaces.
 
 ---
 
