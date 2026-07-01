@@ -4,9 +4,12 @@
 
 ## Current State
 
-- **Version**: 1.0.0-SNAPSHOT (greenfield — implementation not started)
-- **Completed Phases**: None
-- **Remaining Phases (0–21)**: All phases pending
+- **Version**: 1.0.0-SNAPSHOT
+- **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
+  2b (Persistence Cleanup & DTO Foundation — one checklist item open, see below)
+- **In Progress**: Phase 2b close-out on `feature/phase_2`; `GET /v3/api-docs` still
+  needs to be verified as valid OpenAPI 3.1 JSON
+- **Remaining Phases (3–21)**: All phases pending
 
 ---
 
@@ -18,13 +21,17 @@ Angular SPA, and Docker deployment.
 
 ### Foundation (Phases 0–8)
 
-- [ ] **Phase 0 — Project Scaffolding** — Maven multi-module layout, Spring Boot bootstrap,
+- [x] **Phase 0 — Project Scaffolding** — Maven multi-module layout, Spring Boot bootstrap,
   Flyway, Docker Compose for local dev, `StubAIGateway` test helper. `[Effort: S]`
-- [ ] **Phase 1 — Domain Layer** — Core entities, value objects (`ContentHash`, `LessonIdentity`),
+- [x] **Phase 1 — Domain Layer** — Core entities, value objects (`ContentHash`, `LessonIdentity`),
   domain events (sealed interface), `Agent` interface, port interfaces. Zero framework imports.
   Only types needed for ingestion are defined here; others added phase-by-phase. `[Effort: M]`
-- [ ] **Phase 2 — Infrastructure Foundation** — JPA entities, Flyway migrations (V1–V7
+- [x] **Phase 2 — Infrastructure Foundation** — JPA entities, Flyway migrations (V1–V7
   including pgvector), Spring Data JPA repository adapters. `[Effort: M]`
+- [ ] **Phase 2b — Persistence Cleanup & DTO Foundation** — Persistence split into
+  `entity/`/`jpa/`/`mapper/`/`adapter/` sub-packages, MapStruct entity↔domain mappers,
+  API DTO layer (`api/dto/request`, `api/dto/response`) with MapStruct DtoMappers,
+  `OpenApiConfig`. Nearly done — only `GET /v3/api-docs` validity remains. `[Effort: S]`
 - [ ] **Phase 3 — AI Gateway** — `AIGateway` interface + `AIGatewayAdapter` (Spring AI +
   OpenRouter), model-tier routing (SMALL/LARGE), deadline profiles, `StubAIGateway`. `[Effort: S]`
 - [ ] **Phase 4 — Document Parsing & Ingestion** — `UploadSanitizer`, MIME-dispatch
@@ -131,6 +138,6 @@ running and deployed, so effort is focused on demonstrating the learning loop fi
 
 ---
 
-*Last Updated*: 2026-06-15
+*Last Updated*: 2026-07-01
 *Effort Scale*: `S` 2–3 days | `M` 1 week | `L` 2+ weeks
 *Reference*: [implementation-plan.md](./implementation-plan.md)
