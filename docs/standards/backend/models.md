@@ -23,3 +23,6 @@ Define relationships with appropriate cascade behaviors and naming.
 
 ### Practical Normalization
 Balance normalization with query performance needs.
+
+### MapStruct for Entity↔Domain Mapping
+Use `@Mapper(componentModel = "spring")` interfaces in `infrastructure.persistence.mapper` for all entity↔domain translation. Never write manual `toEntity`/`toDomain`/`populateEntity` methods in adapter classes — the mapper is the single place field-by-field translation lives. Let Spring inject mappers via constructor; never call `Mappers.getMapper()`.

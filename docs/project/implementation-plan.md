@@ -233,19 +233,19 @@ serve later phases are added when those phases begin.
 
 ---
 
-## [ ] Phase 2 — Infrastructure Foundation
+## [x] Phase 2 — Infrastructure Foundation
 
 **Goal:** Implement Spring Boot configuration, PostgreSQL schema via Flyway migrations,
 JPA entities, and all Spring Data JPA repository adapters.
 
 ### Tasks
 
-- [ ] **2.1 — Configuration** (`dev.mindforge.infrastructure.config`)
+- [x] **2.1 — Configuration** (`dev.mindforge.infrastructure.config`)
   - `AppProperties` class annotated `@ConfigurationProperties(prefix = "mindforge")`.
   - Fields: `ai` (OpenRouter URL, key), `security` (JWT secret, expiry), `db` (datasource).
   - Validated via `@Validated` + JSR-380 annotations on all required fields.
 
-- [ ] **2.2 — Flyway migrations** (`src/main/resources/db/migration/`)
+- [x] **2.2 — Flyway migrations** (`src/main/resources/db/migration/`)
   - `V1__create_users.sql`
   - `V2__create_knowledge_bases.sql`
   - `V3__create_documents.sql`
@@ -255,18 +255,18 @@ JPA entities, and all Spring Data JPA repository adapters.
   - `V7__create_embeddings.sql` — `content_embeddings` table with `vector(1536)` column
   - Each migration is irreversible; never use `DROP` without a compensating up-migration.
 
-- [ ] **2.3 — JPA entities** (`dev.mindforge.infrastructure.persistence.entity`)
+- [x] **2.3 — JPA entities** (`dev.mindforge.infrastructure.persistence.entity`)
   - `DocumentEntity`, `KnowledgeBaseEntity`, `UserEntity`, `ArtifactEntity`,
     `StepCheckpointEntity`, `ContentEmbeddingEntity`.
   - Use `@MappedSuperclass` `BaseEntity` with `@CreatedDate`, `@LastModifiedDate`.
   - Bidirectional mapping only where queries require it.
 
-- [ ] **2.4 — Repository adapters** (`dev.mindforge.infrastructure.persistence`)
+- [x] **2.4 — Repository adapters** (`dev.mindforge.infrastructure.persistence`)
   - `DocumentRepositoryAdapter implements DocumentRepository` — wraps `DocumentJpaRepository`.
   - `ArtifactRepositoryAdapter implements ArtifactRepository` — wraps `ArtifactJpaRepository`.
   - All adapters translate between JPA entities and domain records.
 
-- [ ] **2.5 — Integration tests**
+- [x] **2.5 — Integration tests**
   - `@Testcontainers` with real PostgreSQL 15.
   - `DocumentRepositoryAdapterTest`: save, findById, findByContentHash, updateStatus, deduplication.
   - `ArtifactRepositoryAdapterTest`: saveCheckpoint, loadLatest, fingerprint comparison.
@@ -274,10 +274,43 @@ JPA entities, and all Spring Data JPA repository adapters.
 
 ### Completion Checklist
 
-- [ ] `mvn flyway:migrate` creates the full schema against a real PostgreSQL instance.
-- [ ] All repository adapters pass integration tests with real PostgreSQL.
-- [ ] `@ConfigurationProperties` validation fails fast on missing required environment variables.
-- [ ] No raw SQL in Java code — all queries via JPA or `@Query`-annotated interfaces.
+- [x] `mvn flyway:migrate` creates the full schema against a real PostgreSQL instance.
+- [x] All repository adapters pass integration tests with real PostgreSQL.
+- [x] `@ConfigurationProperties` validation fails fast on missing required environment variables.
+- [x] No raw SQL in Java code — all queries via JPA or `@Query`-annotated interfaces.
+
+---
+
+## [ ] Phase 2b — Persistence Cleanup & DTO Foundation
+
+**Goal:** Restructure the persistence layer into clean sub-packages, introduce MapStruct
+compile-time mappers for all entity↔domain translations, scaffold the API DTO layer, and
+wire OpenAPI spec generation.
+
+### Tasks
+
+- [x] 2b.1 — Add MapStruct 1.6.3 and springdoc-openapi 2.8.9 to pom.xml
+- [x] 2b.2 — Split persistence into adapter/ jpa/ mapper/ sub-packages
+- [x] 2b.3 — Create MapStruct entity mappers (Document, Artifact, User, KnowledgeBase)
+- [x] 2b.4 — Delete old flat-package persistence files
+- [x] 2b.5 — Update PersistenceConfig for new package paths + mapper injection
+- [x] 2b.6 — Scaffold api/dto/response/ records (Document, Artifact, User, KnowledgeBase)
+- [x] 2b.7 — Scaffold api/dto/request/ records (DocumentUpload, Login, Register)
+- [x] 2b.8 — Create MapStruct DtoMappers in api/mapper/ (domain → response DTO)
+- [x] 2b.9 — Create OpenApiConfig bean
+- [x] 2b.10 — Update docs/standards/architecture/hexagonal.md
+- [x] 2b.11 — Update docs/standards/backend/models.md
+- [x] 2b.12 — Update docs/standards/backend/api.md
+- [x] 2b.13 — Create docs/standards/backend/openapi.md
+- [x] 2b.14 — Run mvn compile to verify MapStruct generates correctly
+
+### Completion Checklist
+
+- [x] mvn compile succeeds with zero errors
+- [x] No manual toEntity/toDomain methods remain in any adapter class
+- [x] All persistence sub-packages contain only their designated type (no mixing)
+- [x] api/dto/response/ types contain no forbidden fields (passwordHash, referenceAnswer, cost)
+- [ ] GET /v3/api-docs returns a valid OpenAPI 3.1 JSON document
 
 ---
 
