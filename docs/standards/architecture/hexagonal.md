@@ -61,6 +61,26 @@ registry.register("application/epub", new EpubParser());
 // NEVER: add new format by modifying PipelineService.ingest()
 ```
 
+## Persistence Sub-Package Convention
+
+`dev.mindforge.infrastructure.persistence` splits into four sub-packages — never mix types across them:
+
+| Sub-package | Contains |
+|---|---|
+| `persistence.entity` | JPA `@Entity` classes |
+| `persistence.jpa` | Spring Data `JpaRepository` interfaces |
+| `persistence.mapper` | MapStruct entity↔domain mapper interfaces |
+| `persistence.adapter` | Domain port implementations (`implements XxxRepository`), depend on `jpa` + `mapper` |
+
+```java
+// CORRECT: adapter depends on jpa repository + mapper, implements the domain port
+package dev.mindforge.infrastructure.persistence.adapter;
+
+public class DocumentRepositoryAdapter implements DocumentRepository {
+    public DocumentRepositoryAdapter(DocumentJpaRepository jpaRepository, DocumentEntityMapper mapper) { ... }
+}
+```
+
 ## Data Store Roles
 
 - **PostgreSQL**: Single source of truth for all business data. All writes go here first.

@@ -64,7 +64,7 @@ Server-side always, validate early, specific errors, allowlists over blocklists,
 Located in `docs/standards/backend/`
 
 #### API Design (`standards/backend/api.md`)
-RESTful principles, consistent naming, versioning, plural nouns, limited nesting, query parameters, proper status codes, rate limit headers. Also covers Spring MVC conventions: thin `@RestController` methods, constructor injection (never field `@Autowired`), and virtual thread blocking rules.
+RESTful principles, consistent naming, versioning, plural nouns, limited nesting, query parameters, proper status codes, rate limit headers. Also covers Spring MVC conventions: thin `@RestController` methods, constructor injection (never field `@Autowired`), and virtual thread blocking rules. Also covers the DTO layer: `api/dto/response/` and `api/dto/request/` records, forbidden response fields, and MapStruct `api/mapper/` DtoMappers (domain → DTO only, no entity types).
 
 #### Java Conventions (`standards/backend/java-conventions.md`)
 MindForge-specific Java conventions: package and import ordering, class-level `private static final` constants (SCREAMING_SNAKE_CASE), 79-char section dividers, `log` (not `logger`) naming for SLF4J loggers, domain-specific exception hierarchy, `record` types for value objects and results, and `sealed interface` for discriminated unions. Read before writing any new Java class in the `dev.mindforge` package.
@@ -73,13 +73,16 @@ MindForge-specific Java conventions: package and import ordering, class-level `p
 Mandatory `Agent` interface for all AI agents (`VERSION`, `PROMPT_VERSION`, `execute()`), `CAPABILITY` constant placement, version-bump rules (only on logic/prompt changes), model selection by `ModelTier` enum (`LARGE`, `SMALL`, `VISION`) not provider string, and the rule that all LLM calls flow through `AIGateway` — never a provider SDK directly.
 
 #### Models (`standards/backend/models.md`)
-Clear naming, timestamps, database constraints, appropriate types, index foreign keys, multi-layer validation, clear relationships, practical normalization.
+Clear naming, timestamps, database constraints, appropriate types, index foreign keys, multi-layer validation, clear relationships, practical normalization. Also covers MapStruct: `@Mapper(componentModel = "spring")` interfaces for entity↔domain mapping, no manual `toEntity`/`toDomain` methods in adapters.
 
 #### Database Queries (`standards/backend/queries.md`)
 Parameterized queries, avoid N+1, select only needed columns, index strategic columns, transactions, query timeouts, cache expensive queries.
 
 #### Database Migrations (`standards/backend/migrations.md`)
 Reversible migrations, small and focused, zero-downtime awareness, separate schema and data, careful indexing, descriptive names, version control.
+
+#### OpenAPI (`standards/backend/openapi.md`)
+springdoc-openapi annotation conventions (`@Operation`, `@ApiResponse`, `@Schema`), forbidden fields in schemas, the contract-first workflow, and the `openapi-typescript` generation command for the Angular frontend.
 
 ---
 
@@ -109,7 +112,7 @@ Mobile-first, standard breakpoints, fluid layouts, relative units, cross-device 
 Located in `docs/standards/architecture/`
 
 #### Hexagonal Architecture (`standards/architecture/hexagonal.md`)
-Non-negotiable rules for MindForge's Hexagonal Architecture (Ports and Adapters). Covers layer boundaries and forbidden cross-layer imports (`dev.mindforge.domain` must not import framework/I/O classes), composition root placement (`@Configuration` beans, no static singletons), Open/Closed principle for parsers and agents, data store roles (PostgreSQL as source of truth, Neo4j as derived projection, Caffeine as in-process cache), pipeline idempotency and the transactional checkpoint pattern, retrieval cost discipline (graph first → lexical second → vector last), agent communication rules (no direct agent-to-agent calls), and the transactional outbox guarantee.
+Non-negotiable rules for MindForge's Hexagonal Architecture (Ports and Adapters). Covers layer boundaries and forbidden cross-layer imports (`dev.mindforge.domain` must not import framework/I/O classes), composition root placement (`@Configuration` beans, no static singletons), Open/Closed principle for parsers and agents, the persistence sub-package convention (`entity/`, `jpa/`, `mapper/`, `adapter/`), data store roles (PostgreSQL as source of truth, Neo4j as derived projection, Caffeine as in-process cache), pipeline idempotency and the transactional checkpoint pattern, retrieval cost discipline (graph first → lexical second → vector last), agent communication rules (no direct agent-to-agent calls), and the transactional outbox guarantee.
 
 ---
 

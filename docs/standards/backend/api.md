@@ -74,3 +74,19 @@ private QuizService quizService;  // ❌ field injection
 ### Virtual Thread Blocking
 
 All controllers run on virtual threads (`spring.threads.virtual.enabled=true`) — blocking I/O is permitted and expected. Never introduce `CompletableFuture` chains or reactive types in controllers.
+
+## DTO Layer
+
+MindForge uses a three-tier object model: domain records (`domain.model`) → JPA entities (`persistence.entity`) → view DTOs (`api.dto`). Controllers never accept or return domain or entity types directly.
+
+- `api/dto/response/` — `record` types returned from controllers. Must never expose the fields forbidden by `docs/standards/security/web-security.md` (`passwordHash`, `referenceAnswer`, `groundingContext`, `rawPrompt`, `rawCompletion`, `cost`), and never expose internal pipeline state (e.g. step checkpoints/fingerprints).
+- `api/dto/request/` — `record` types accepted as `@RequestBody`, annotated with `jakarta.validation` constraints.
+- `api/mapper/` — `@Mapper(componentModel = "spring")` MapStruct interfaces mapping domain → response DTO. These import domain types only; entity types never cross into the `api` package.
+
+```java
+// CORRECT
+@Mapper(componentModel = "spring")
+public interface DocumentDtoMapper {
+    DocumentResponse toResponse(Document d);
+}
+```
