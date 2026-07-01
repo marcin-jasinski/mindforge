@@ -9,9 +9,10 @@ import dev.mindforge.domain.model.FlashcardData;
 
 /**
  * View of a {@link dev.mindforge.domain.model.DocumentArtifact} for API responses.
- * Excludes {@code stepFingerprints} (internal pipeline resume state) and any
- * reference-answer, grounding, or cost fields per
- * {@code docs/standards/security/web-security.md}.
+ * Excludes {@code stepFingerprints} (internal pipeline resume state). Fields
+ * forbidden by {@code docs/standards/security/web-security.md} (reference
+ * answer, grounding context, cost) don't exist on the domain model yet — this
+ * mapper must not gain them if a future quiz-grading feature adds them there.
  */
 public record ArtifactResponse(
     UUID artifactId,

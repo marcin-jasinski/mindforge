@@ -18,7 +18,7 @@ MindForge generates its OpenAPI spec from annotated Spring MVC controllers via `
 
 ### Forbidden Fields
 
-The same fields forbidden from API responses generally (`docs/standards/security/web-security.md`) are forbidden from OpenAPI schemas: `passwordHash`, `referenceAnswer`, `groundingContext`, `rawPrompt`, `rawCompletion`, `cost`. If a field can't appear in the JSON response, it can't appear in the schema either — a `@Schema`-documented forbidden field is a leak with extra steps.
+The same fields forbidden from API responses generally (`docs/standards/security/web-security.md`) are forbidden from OpenAPI schemas: `reference_answer`, `grounding_context`, `raw_prompt`, `raw_completion`, `cost`, and the password hash. If a field can't appear in the JSON response, it can't appear in the schema either — a `@Schema`-documented forbidden field is a leak with extra steps.
 
 ### Generation Command
 
