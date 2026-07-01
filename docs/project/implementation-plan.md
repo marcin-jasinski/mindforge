@@ -281,6 +281,39 @@ JPA entities, and all Spring Data JPA repository adapters.
 
 ---
 
+## [ ] Phase 2b — Persistence Cleanup & DTO Foundation
+
+**Goal:** Restructure the persistence layer into clean sub-packages, introduce MapStruct
+compile-time mappers for all entity↔domain translations, scaffold the API DTO layer, and
+wire OpenAPI spec generation.
+
+### Tasks
+
+- [x] 2b.1 — Add MapStruct 1.6.3 and springdoc-openapi 2.8.9 to pom.xml
+- [x] 2b.2 — Split persistence into adapter/ jpa/ mapper/ sub-packages
+- [x] 2b.3 — Create MapStruct entity mappers (Document, Artifact, User, KnowledgeBase)
+- [x] 2b.4 — Delete old flat-package persistence files
+- [x] 2b.5 — Update PersistenceConfig for new package paths + mapper injection
+- [x] 2b.6 — Scaffold api/dto/response/ records (Document, Artifact, User, KnowledgeBase)
+- [x] 2b.7 — Scaffold api/dto/request/ records (DocumentUpload, Login, Register)
+- [x] 2b.8 — Create MapStruct DtoMappers in api/mapper/ (domain → response DTO)
+- [x] 2b.9 — Create OpenApiConfig bean
+- [x] 2b.10 — Update docs/standards/architecture/hexagonal.md
+- [x] 2b.11 — Update docs/standards/backend/models.md
+- [x] 2b.12 — Update docs/standards/backend/api.md
+- [x] 2b.13 — Create docs/standards/backend/openapi.md
+- [x] 2b.14 — Run mvn compile to verify MapStruct generates correctly
+
+### Completion Checklist
+
+- [x] mvn compile succeeds with zero errors
+- [x] No manual toEntity/toDomain methods remain in any adapter class
+- [x] All persistence sub-packages contain only their designated type (no mixing)
+- [x] api/dto/response/ types contain no forbidden fields (passwordHash, referenceAnswer, cost)
+- [ ] GET /v3/api-docs returns a valid OpenAPI 3.1 JSON document
+
+---
+
 ## [ ] Phase 3 — AI Gateway
 
 **Goal:** Implement the Spring AI–backed `AIGateway` adapter with model-tier routing,
