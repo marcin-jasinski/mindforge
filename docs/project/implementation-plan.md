@@ -314,47 +314,59 @@ wire OpenAPI spec generation.
 
 ---
 
-## [ ] Phase 3 — AI Gateway
+## [x] Phase 3 — AI Gateway
 
 **Goal:** Implement the Spring AI–backed `AIGateway` adapter with model-tier routing,
 retry, deadline enforcement, cost tracking, and the `StubAIGateway` for tests.
 
 ### Tasks
 
-- [ ] **3.1 — `AIGatewayAdapter`** (`dev.mindforge.infrastructure.ai`)
+- [x] **3.1 — `AIGatewayAdapter`** (`dev.mindforge.infrastructure.ai`)
   - Implements `AIGateway` (domain port).
   - Injected via `@Configuration` — not constructed directly anywhere.
   - Routes `ModelTier` → specific model strings via `AppProperties` (e.g., `LARGE` →
     `"openai/gpt-4o"`, `SMALL` → `"openai/gpt-4o-mini"`).
-  - Uses `ChatClient` from Spring AI to call OpenRouter endpoint.
-  - Enforces `DeadlineProfile` via a `RestTemplate` timeout per profile:
-    `INTERACTIVE` ≤ 10 s, `BATCH` ≤ 60 s, `BACKGROUND` ≤ 300 s.
-  - Tracks token counts and cost via `CompletionResult`.
+  - Uses `ChatModel` from Spring AI to call OpenRouter endpoint.
+  - Enforces `DeadlineProfile` via a per-call virtual-thread timeout race, with the
+    timeout durations themselves configuration-driven via `AppProperties`
+    (`INTERACTIVE` default 10 s, `BATCH` default 60 s, `BACKGROUND` default 300 s) —
+    the underlying OpenAI client only accepts a timeout at client-construction time,
+    not per request, so a `RestTemplate`-level timeout could not vary per call.
+  - Tracks token counts and cost via `CompletionResult` (cost accounting deferred to
+    Phase 14 — OpenRouter's chat-completions response carries no per-call cost field).
 
-- [ ] **3.2 — `EmbeddingAdapter`** (`dev.mindforge.infrastructure.ai`)
-  - Wraps Spring AI `EmbeddingClient` for pgvector operations.
+- [x] **3.2 — Embedding support** (`dev.mindforge.infrastructure.ai`)
+  - Folded into `AIGatewayAdapter` rather than a separate `EmbeddingAdapter` class —
+    `AIGateway.embed()` is a single method delegating directly to Spring AI's
+    `EmbeddingModel.embed(String)`, and a second adapter class would only wrap that
+    one line.
   - Returns `float[]` embedding vectors — no domain-layer type pollution.
 
-- [ ] **3.3 — `DeadlineExceededException`**
+- [x] **3.3 — `DeadlineExceededException`**
   - Domain exception (extends `RuntimeException`); thrown when a gateway call exceeds
     its `DeadlineProfile` timeout.
 
-- [ ] **3.4 — `StubAIGateway`** (`src/test/java/.../support/`)
+- [x] **3.4 — `StubAIGateway`** (`src/test/java/.../support/`)
   - Implements `AIGateway`.
   - Builder API: `StubAIGateway.builder().willReturn(ModelTier.LARGE, "my response").build()`.
   - Captures all calls for assertion in tests.
   - Never makes real HTTP calls.
 
-- [ ] **3.5 — Unit tests**
-  - `AIGatewayAdapterTest`: model-tier routing resolves correct model strings.
-  - `StubAIGatewayTest`: canned response delivery, call capture.
+- [x] **3.5 — Unit tests**
+  - `AIGatewayAdapterTest`: model-tier routing resolves correct model strings; response
+    mapping into `CompletionResult`; deadline timeout throws `DeadlineExceededException`
+    (exercised fast via injected millisecond-scale deadlines, not real 10s waits); embed
+    delegation.
+  - `StubAIGatewayTest`: canned response delivery, default fallback, call capture, no
+    real HTTP calls.
 
 ### Completion Checklist
 
-- [ ] `AIGateway` is never instantiated directly — always resolved via Spring DI.
-- [ ] `ModelTier` routing is configuration-driven, not hardcoded strings.
-- [ ] Deadline profiles enforce correct timeouts (verified by timeout test with mock HTTP).
-- [ ] `StubAIGateway` is available for all downstream phases.
+- [x] `AIGateway` is never instantiated directly — always resolved via Spring DI
+  (`AiConfig` `@Bean`).
+- [x] `ModelTier` routing is configuration-driven, not hardcoded strings.
+- [x] Deadline profiles enforce correct timeouts (verified by timeout test with mock HTTP).
+- [x] `StubAIGateway` is available for all downstream phases.
 
 ---
 

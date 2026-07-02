@@ -6,10 +6,11 @@
 
 - **Version**: 1.0.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
-  2b (Persistence Cleanup & DTO Foundation — one checklist item open, see below)
+  2b (Persistence Cleanup & DTO Foundation — one checklist item open, see below),
+  3 (AI Gateway)
 - **In Progress**: Phase 2b close-out on `feature/phase_2`; `GET /v3/api-docs` still
   needs to be verified as valid OpenAPI 3.1 JSON
-- **Remaining Phases (3–21)**: All phases pending
+- **Remaining Phases (4–21)**: All phases pending
 
 ---
 
@@ -32,7 +33,7 @@ Angular SPA, and Docker deployment.
   `entity/`/`jpa/`/`mapper/`/`adapter/` sub-packages, MapStruct entity↔domain mappers,
   API DTO layer (`api/dto/request`, `api/dto/response`) with MapStruct DtoMappers,
   `OpenApiConfig`. Nearly done — only `GET /v3/api-docs` validity remains. `[Effort: S]`
-- [ ] **Phase 3 — AI Gateway** — `AIGateway` interface + `AIGatewayAdapter` (Spring AI +
+- [x] **Phase 3 — AI Gateway** — `AIGateway` interface + `AIGatewayAdapter` (Spring AI +
   OpenRouter), model-tier routing (SMALL/LARGE), deadline profiles, `StubAIGateway`. `[Effort: S]`
 - [ ] **Phase 4 — Document Parsing & Ingestion** — `UploadSanitizer`, MIME-dispatch
   `ParserRegistry`, Markdown/PDF/DOCX/TXT parsers, heading-aware chunker,
@@ -138,6 +139,6 @@ running and deployed, so effort is focused on demonstrating the learning loop fi
 
 ---
 
-*Last Updated*: 2026-07-01
+*Last Updated*: 2026-07-03
 *Effort Scale*: `S` 2–3 days | `M` 1 week | `L` 2+ weeks
 *Reference*: [implementation-plan.md](./implementation-plan.md)
