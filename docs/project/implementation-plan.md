@@ -346,6 +346,22 @@ retry, deadline enforcement, cost tracking, and the `StubAIGateway` for tests.
   - Domain exception (extends `RuntimeException`); thrown when a gateway call exceeds
     its `DeadlineProfile` timeout.
 
+- [x] **3.3b — Resilience4j Retry + CircuitBreaker** (`AiConfig` + `AIGatewayAdapter`) — see ADR-0009.
+  - Programmatic decoration (`Retry.decorateSupplier` / `CircuitBreaker.decorateSupplier`),
+    no `resilience4j-spring-boot3` starter, so it stays unit-testable without a Spring context.
+  - Retry fires only on `TransientAiException` + `IOException`; `NonTransientAiException`
+    (bad request/auth/unknown model) and an open-circuit rejection are never retried.
+  - Retry sits **inside** the `callWithDeadline` race — all attempts for one logical call
+    share a single `DeadlineProfile` budget rather than each getting a fresh deadline.
+  - One shared `CircuitBreaker` across all tiers (single upstream provider). A deadline
+    timeout is recorded as a breaker failure; `DeadlineExceededException` is in its
+    `recordExceptions` set.
+  - When the circuit is open, `CallNotPermittedException` is caught and rethrown as the
+    domain `AIGatewayUnavailableException`, so callers never see a resilience4j type.
+  - Spring AI's own built-in retry is disabled (`spring.ai.retry.max-attempts=1`) so
+    Resilience4j is the sole retry authority — attempts are not multiplied.
+  - All thresholds tunable via `mindforge.ai.resilience.*` (`AppProperties.Ai.Resilience`).
+
 - [x] **3.4 — `StubAIGateway`** (`src/test/java/.../support/`)
   - Implements `AIGateway`.
   - Builder API: `StubAIGateway.builder().willReturn(ModelTier.LARGE, "my response").build()`.
@@ -356,7 +372,9 @@ retry, deadline enforcement, cost tracking, and the `StubAIGateway` for tests.
   - `AIGatewayAdapterTest`: model-tier routing resolves correct model strings; response
     mapping into `CompletionResult`; deadline timeout throws `DeadlineExceededException`
     (exercised fast via injected millisecond-scale deadlines, not real 10s waits); embed
-    delegation.
+    delegation; retry on transient failure then success; no retry on non-transient failure;
+    open circuit throws `AIGatewayUnavailableException`; deadline timeout recorded as a
+    circuit-breaker failure.
   - `StubAIGatewayTest`: canned response delivery, default fallback, call capture, no
     real HTTP calls.
 
@@ -366,6 +384,8 @@ retry, deadline enforcement, cost tracking, and the `StubAIGateway` for tests.
   (`AiConfig` `@Bean`).
 - [x] `ModelTier` routing is configuration-driven, not hardcoded strings.
 - [x] Deadline profiles enforce correct timeouts (verified by timeout test with mock HTTP).
+- [x] Retry + circuit breaker guard every provider call; Spring AI's built-in retry is
+  disabled so Resilience4j is the single retry authority (ADR-0009).
 - [x] `StubAIGateway` is available for all downstream phases.
 
 ---
