@@ -43,6 +43,10 @@ spring:
     openai:
       base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
       api-key: ${OPENROUTER_API_KEY:}
+    # Resilience4j owns retries in AIGatewayAdapter; disable Spring AI's built-in retry so
+    # attempts aren't multiplied (Resilience4j retries × Spring AI retries). See ADR-0009.
+    retry:
+      max-attempts: 1
     vectorstore:
       pgvector:
         initialize-schema: false
@@ -71,3 +75,18 @@ mindforge:
       small: ${AI_MODEL_SMALL:openai/gpt-4o-mini}
       large: ${AI_MODEL_LARGE:openai/gpt-4o}
       vision: ${AI_MODEL_VISION:openai/gpt-4o}
+    deadlines:
+      interactive: ${AI_DEADLINE_INTERACTIVE:10s}
+      batch: ${AI_DEADLINE_BATCH:60s}
+      background: ${AI_DEADLINE_BACKGROUND:300s}
+    resilience:
+      retry:
+        max-attempts: ${AI_RETRY_MAX_ATTEMPTS:3}
+        initial-interval: ${AI_RETRY_INITIAL_INTERVAL:250ms}
+        multiplier: ${AI_RETRY_MULTIPLIER:2.0}
+      circuit-breaker:
+        failure-rate-threshold: ${AI_CB_FAILURE_RATE:50}
+        sliding-window-size: ${AI_CB_WINDOW_SIZE:20}
+        minimum-number-of-calls: ${AI_CB_MIN_CALLS:10}
+        wait-duration-in-open-state: ${AI_CB_OPEN_WAIT:30s}
+        permitted-calls-in-half-open-state: ${AI_CB_HALF_OPEN_CALLS:5}
