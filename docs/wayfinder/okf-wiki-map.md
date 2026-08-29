@@ -58,7 +58,11 @@ grep -l 'status: open' docs/wayfinder/tickets/*.md
 
 <!-- one line per closed ticket -->
 
-_None yet._
+- [What transfers from the demo agent to a Java server](tickets/01-demo-transfer-research.md) —
+  model-failure ADRs transfer, runtime ADRs don't (9 / 6 / 12); the four that change the design:
+  store links as page identity not text, supersession is the whole compounding story now Verify
+  is out, a run that wrote nothing must fail, and the LLM proposes content while membership and
+  deletion stay code's. Notes: [`docs/wiki/demo-transfer-notes.md`](../wiki/demo-transfer-notes.md).
 
 ## Not yet specified
 
@@ -71,6 +75,11 @@ _None yet._
 - **Cost and latency.** One upload becoming 10–15 LLM-driven page writes instead of 7 agent
   calls changes the budget shape. `DeadlineProfile` and `CostTier` may need re-cutting; can't
   say how until the Ingest execution model is decided.
+- **The guard layer.** The demo's reliability comes from a dozen mechanical guards around the
+  model (a required write must *succeed*, Lint may only grow a page, index membership is code's,
+  a dangling link is reported not removed). Which of those MindForge needs, and at what layer —
+  domain invariant, DB constraint, service check — only sharpens once the Ingest execution model
+  is decided. See T01's notes.
 - **Caffeine's role** once the unit of caching is a wiki page rather than a query result.
 - **Whether the CLI, Discord and Slack phases (15, 18–19) shift** once Query is the read path.
 
