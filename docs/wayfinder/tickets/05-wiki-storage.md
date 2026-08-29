@@ -40,4 +40,11 @@ Also settle:
 - **Multi-tenancy.** Every read and write is scoped to one bundle owned by one user. This is
   the hard boundary, not a filter you remember to apply.
 
+
+**Inherited from T02.** `WikiStore` speaks pages, not file primitives, and every method takes `kbId`
+as its first argument — multi-tenancy is structural rather than a filter to remember. `PageRevision`
+is named in the domain but its **retention policy** (keep all, keep N, keep since) is this ticket's
+call, because that is where the storage cost is visible. Page bodies are prose only: frontmatter,
+`index.md` and `log.md` are projected on export, so the store never holds them.
+
 ## Answer

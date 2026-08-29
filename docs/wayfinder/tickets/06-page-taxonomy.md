@@ -33,4 +33,11 @@ MindForge is a product, not an agent you point at your own repo. Decide:
   unknowns. Provenance, quiz-generation state and SM-2 anchors are candidates — but frontmatter
   a *foreign* consumer cannot act on is arguably database state that leaked into the format.
 
+
+**Inherited from T02.** The slug is page identity *and* the stored form of every inbound link (link
+targets live as slugs inside page bodies), so a rename is an N-body rewrite — slug policy carries a
+real price tag, not a cosmetic one. `index` and `log` must be reserved names. `PageType` is a
+normalising value object; this ticket produces its constants and decides fixed-vs-per-`KnowledgeBase`.
+Supersession anchors to a **heading slug**, so heading-slug rules belong here too.
+
 ## Answer

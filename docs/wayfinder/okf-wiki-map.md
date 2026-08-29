@@ -63,6 +63,14 @@ grep -l 'status: open' docs/wayfinder/tickets/*.md
   store links as page identity not text, supersession is the whole compounding story now Verify
   is out, a run that wrote nothing must fail, and the LLM proposes content while membership and
   deletion stay code's. Notes: [`docs/wiki/demo-transfer-notes.md`](../wiki/demo-transfer-notes.md).
+- [What a wiki page is in the domain model](tickets/02-wiki-page-domain-model.md) — a typed record
+  with an opaque prose body: identity, links, provenance and supersession are fields, prose is one
+  `String`. Links are truth in the body (rows derived, resolved by join at read); metadata is truth
+  in rows (frontmatter projected on export). `PageType` is a normalising value object;
+  `KnowledgeBase` stays thin with `kbId` first on every `WikiStore` method; `index.md` and `log.md`
+  are projections; pages are mutable with `PageRevision` beside them; supersession never touches the
+  superseded page's prose. `DocumentArtifact`, `SummaryData` and `ConceptMapData` die — the run
+  record is a new ingest-run entity.
 
 ## Not yet specified
 

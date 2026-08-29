@@ -35,4 +35,11 @@ Inventory to rule on:
 Output should be a table: file → keep / change / delete, with one-line reasons. That table is
 the input to T13's phase re-cut.
 
+
+**Inherited from T02** (the knowledge-model rows only — the rest of the table is still this ticket's).
+Ruled dead: `DocumentArtifact`, `SummaryData`, `ConceptMapData`. Ruled surviving: `Document`,
+`ContentBlock`, `BlockType`, `ContentHash`, `Hashes`, `LessonIdentity`. `ArtifactRepository` is
+superseded by the `WikiStore` port. `StepCheckpoint` / `StepFingerprint` await T07 and
+`FlashcardData` awaits T08, so neither is ruled on yet.
+
 ## Answer
