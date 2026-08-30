@@ -36,7 +36,11 @@ Also settle:
   (`[title](/path/page.md)`) is canonical above the store, and each store rewrites on write and
   reverses on read. If pages are Postgres rows, "the stored link form" is a real question, not
   a theoretical one.
-- **Page history**, if T03 said revisions land automatically.
+- **Page history.** T03 said automatic, so this is required, not optional. `PageRevision` retention must
+  support **tip-only run revert**: every page a run touched needs its pre-run revision retrievable until a
+  later run touches that page. "Keep N" is viable; "keep current only" is not. Revert is restore-forward —
+  it writes a new revision carrying the old body and never deletes revision rows, so `revision` stays
+  monotonic for T08's cache key.
 - **Multi-tenancy.** Every read and write is scoped to one bundle owned by one user. This is
   the hard boundary, not a filter you remember to apply.
 

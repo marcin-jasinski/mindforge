@@ -30,8 +30,9 @@ Decide:
   the bundle and Neo4j goes.
 - **Is `ConceptMapperAgent` dead?** Almost certainly — cross-linking is Ingest's job now.
   Confirm and record it, because Phase 6 lists it as one of seven agents.
-- **Does Query file its answers back into the wiki?** The spec argues yes and the demo does it
-  with a `y/n` gate. This interacts with T03.
+- **Does Query file its answers back into the wiki?** The spec argues yes and the demo does it with a
+  `y/n` gate. T03 removed gating, so if Query writes, it writes automatically — meaning it needs a run
+  record and revert like any other write, and Query stops being a pure read path. Weigh that here.
 - **Citations.** Query answers cite pages; pages cite sources via OKF `# Citations`. Decide
   whether a Query answer can cite through to the original upload.
 

@@ -44,3 +44,13 @@ These are not reconcilable by compromise. Decide:
   cross-linking it is what Ingest *is*. They probably stop existing as separate agents.
 
 ## Answer
+
+**Inherited from T03.** Ingest's input is **not homogeneous**: it must accept a conversation turn as a
+source, not only a parsed document, because T03 made every user edit an Ingest run rather than a fourth
+Operation. A document is a *source*; a correction is an *instruction*. An agent loop takes both as a
+different opening message and pays nothing; a rigid typed pipeline takes the instruction as a second
+entry shape and pays for it. Weigh that here — it is a real cost on the typed-pipeline branch that did
+not exist when this ticket was written.
+
+Also T03's: there is no approval gate to design around, so the loop's writes land as they are made;
+whether a supersession is a typed output mid-run or a later pass is still this ticket's call.

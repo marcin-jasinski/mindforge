@@ -71,6 +71,13 @@ grep -l 'status: open' docs/wayfinder/tickets/*.md
   are projections; pages are mutable with `PageRevision` beside them; supersession never touches the
   superseded page's prose. `DocumentArtifact`, `SummaryData` and `ConceptMapData` die — the run
   record is a new ingest-run entity.
+- [Whether wiki revisions need human approval](tickets/03-human-approval-of-revisions.md) — automatic,
+  with no pending state anywhere in the system. Recovery is a per-run revert: restore-forward, and offered
+  only while the run is still the tip, so undo has a window that closes at the next ingest touching the same
+  page. Supersession follows the same rule, gated by nothing but given its own removable line in the run
+  report because it is the only write whose damage is silent. No hand-editing of page bodies — the LLM stays
+  sole author of prose, so the ownership claim holds literally and there is no merge story. All user edits,
+  deletion included, are an Ingest run sourced from a conversation turn, not a fourth Operation.
 
 ## Not yet specified
 
@@ -78,8 +85,11 @@ grep -l 'status: open' docs/wayfinder/tickets/*.md
   uses overridable per-Operation prompt files plus a per-wiki conventions doc. Whether
   MindForge needs a per-`KnowledgeBase` conventions layer, and whether Polish-locale pages
   can stay OKF-conformant, only sharpens after the taxonomy is fixed.
-- **SPA surfaces.** Page browser, cross-link graph view, revision review UI — which of these
-  Phase 12 owes depends on the approval and taxonomy decisions.
+- **SPA surfaces.** Page browser, cross-link graph view, the **run report** (pages written with diffs,
+  claims superseded with per-row removal, revert control), and the **conversational edit surface** T03
+  made the only way a user changes a page. T03 replaced the approval queue with an after-the-fact report,
+  so what Phase 12 owes is a diff view and a revert control rather than a queue — and whether revert is a
+  control there or an "undo that" in chat is open. Shape still depends on the taxonomy decision.
 - **Cost and latency.** One upload becoming 10–15 LLM-driven page writes instead of 7 agent
   calls changes the budget shape. `DeadlineProfile` and `CostTier` may need re-cutting; can't
   say how until the Ingest execution model is decided.

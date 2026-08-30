@@ -28,7 +28,9 @@ Decide:
   This may be the strongest product argument in the whole map; decide whether to keep it here
   or spin it out.
 - **Cost.** Lint reads the whole bundle. On demand is affordable; after every ingest may not be.
-- **Does Lint respect the approval gate from T03?** If revisions are gated, self-healing lint
-  writes are revisions too.
+- **Does a Lint run get a run record?** T03 killed the approval gate, so the live question is not
+  gating but bookkeeping: a self-healing Lint write is a revision like any other, so it needs a run
+  record to be revertible on the same tip-only window. Decide whether a Lint pass is its own run or
+  rides the ingest run that triggered it.
 
 ## Answer
