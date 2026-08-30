@@ -51,4 +51,12 @@ is named in the domain but its **retention policy** (keep all, keep N, keep sinc
 call, because that is where the storage cost is visible. Page bodies are prose only: frontmatter,
 `index.md` and `log.md` are projected on export, so the store never holds them.
 
+**Inherited from T04.** The pages-versus-primitives question is closed: with no tool loop there is no
+caller for `read` / `write` / `list` / `grep`, so `WikiStore` speaks pages only, as T02 chose. Two more
+constraints land here. Bodies are generated outside any transaction and the whole run commits in one
+`@Transactional` boundary, so the store must support writing N pages, their revisions, the run record and
+the outbox event together. And ingest runs **serialize per `KnowledgeBase`** — the constraint is T04's, the
+mechanism (advisory lock, queue table, in-process semaphore) is T07's, but whichever it is has to sit
+where this ticket puts the store.
+
 ## Answer

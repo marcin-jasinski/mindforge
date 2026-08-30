@@ -36,4 +36,18 @@ Decide:
 - **Does the outbox rule still bind?** If Neo4j's projection changes shape (T09), what the
   outbox carries changes with it.
 
+**Inherited from T04.** Three things land here.
+
+1. **Step fingerprints have no home.** T04 deleted `Agent`, `AgentContext`, `AgentResult` and
+   `AgentCapability`, and `AgentResult.Success.outputKey` indexed the accumulator T02 already killed.
+   Whatever replaces checkpointing cannot hang off the agent interface, because there isn't one.
+2. **Partial success is the settled semantics**, so idempotency is defined against it: a run generates
+   bodies outside a transaction and commits in one, failed page writes are recorded on the run, and zero
+   successes fails the run. Making a re-run idempotent against a partially-landed predecessor is this
+   ticket's question — T03 already ruled that revert, not rollback, is the compensating action.
+3. **Per-`KnowledgeBase` serialization needs a mechanism.** T04 fixed the constraint — one ingest run at a
+   time per KB, queue the rest — because Resolve reads wiki state minutes before commit. Advisory lock,
+   queue table or in-process semaphore is this ticket's call, and it interacts with whether the app ever
+   runs more than one instance.
+
 ## Answer

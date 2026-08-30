@@ -33,4 +33,14 @@ Deliverables:
 Do not start until every blocking ticket is closed. Read each one's `## Answer` first — this
 ticket writes down decisions, it does not make them.
 
+**Inherited from T04.** Concrete document work now known.
+
+- `docs/standards/backend/ai_agents.md` is largely rewritten: the `Agent` interface section and the
+  `AgentCapability` example go; the `AIGateway`, `ModelTier`, prompt-file and lesson-identity sections stay
+  verbatim.
+- CLAUDE.md's agent rules survive except the open/closed line, which must be re-scoped to parsers.
+- Phases 5 and 6 are re-cut around four concrete services and a fan-out, not seven agents and a DAG.
+- `architecture.md`'s data-flow block is rewritten end to end: the step-fingerprint line, the
+  `DocumentArtifact` checkpoint line and the seven-agent pipeline all go.
+
 ## Answer

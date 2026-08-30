@@ -40,4 +40,10 @@ real price tag, not a cosmetic one. `index` and `log` must be reserved names. `P
 normalising value object; this ticket produces its constants and decides fixed-vs-per-`KnowledgeBase`.
 Supersession anchors to a **heading slug**, so heading-slug rules belong here too.
 
+**Inherited from T04.** Slug and taxonomy policy is now a **retrieval** input, not only an identity
+decision. T04's Resolve step matches extracted claims against existing pages to decide create-or-revise,
+so a taxonomy that makes pages hard to match produces duplicate pages on every ingest — the compounding
+failure mode. Judge candidate taxonomies by how well Resolve can hit them, not only by how well they
+export.
+
 ## Answer

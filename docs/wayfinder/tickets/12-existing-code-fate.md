@@ -42,4 +42,14 @@ Ruled dead: `DocumentArtifact`, `SummaryData`, `ConceptMapData`. Ruled surviving
 superseded by the `WikiStore` port. `StepCheckpoint` / `StepFingerprint` await T07 and
 `FlashcardData` awaits T08, so neither is ruled on yet.
 
+**Inherited from T04.** Adds to the inventory.
+
+- **Delete**: `Agent`, `AgentContext`, `AgentResult`, `AgentCapability` (Phase 1), plus the planned
+  `AgentRegistry` and `OrchestrationGraph` from unbuilt Phase 5.
+- **Keep untouched**: `AIGateway`, `AIGatewayAdapter`, `CompletionResult`, `DeadlineProfile`, `CostTier`,
+  `ModelTier`, `ProcessingSettings` — keeping every call single-shot is what preserves them.
+- **Keep**: `ParserRegistry`'s MIME dispatch, the one genuinely open extension point. CLAUDE.md's
+  open/closed rule was doing real work for parsers and imagined work for agents; the rule needs rewording,
+  not dropping.
+
 ## Answer

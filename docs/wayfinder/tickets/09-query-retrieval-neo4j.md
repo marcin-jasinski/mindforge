@@ -36,4 +36,13 @@ Decide:
 - **Citations.** Query answers cite pages; pages cite sources via OKF `# Citations`. Decide
   whether a Query answer can cite through to the original upload.
 
+**Inherited from T04.** `ConceptMapperAgent` is **dead** — confirmed, not still open. Cross-linking is what
+Ingest is now, and the graph is `PageLink` rows.
+
+The bigger inheritance: retrieval is no longer only the read path. T04's Resolve step matches claims
+against existing pages to decide create-or-revise, which puts Phase 7/11 retrieval **on the ingest critical
+path**. Retrieval quality now determines whether the wiki compounds or accretes duplicates, and retrieval
+latency is inside every upload's completion time. Weigh the graph-first / lexical / vector ordering against
+that load, not only against Query.
+
 ## Answer

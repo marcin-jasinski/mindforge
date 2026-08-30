@@ -33,4 +33,12 @@ Decide:
   record to be revertible on the same tip-only window. Decide whether a Lint pass is its own run or
   rides the ingest run that triggered it.
 
+**Inherited from T04.** Lint gained real load. T04 chose single-shot page writes, which cannot
+self-correct, and bought that back explicitly by making **Lint the second pass**. That is now the argument
+for running Lint after ingest rather than purely on demand — and it collides directly with this ticket's
+cost concern, since Lint reads the whole bundle. Reconciling the two is the live question: a cheaper
+ingest-scoped Lint over only the pages a run touched, versus a full-bundle pass on demand, versus both.
+
+Supersession is **not** Lint's — T04 made it its own ingest step, scoped by retrieval.
+
 ## Answer

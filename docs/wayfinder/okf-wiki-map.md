@@ -79,25 +79,38 @@ grep -l 'status: open' docs/wayfinder/tickets/*.md
   sole author of prose, so the ownership claim holds literally and there is no merge story. All user edits,
   deletion included, are an Ingest run sourced from a conversation turn, not a fourth Operation.
 
+- [Whether Ingest is an agent loop or a typed pipeline](tickets/04-ingest-execution-model.md) — a typed
+  pipeline with a dynamic fan-out over pages: Extract (LLM) -> Resolve (code, retrieval) -> Write (LLM, xN)
+  -> Supersede (LLM, x1). Retrieval replaces the loop's wandering and Lint replaces its iteration, so every
+  call stays single-shot and `AIGateway`, `DeadlineProfile` and `CostTier` survive untouched. T01 §24's whole
+  guard inventory becomes unrepresentable rather than guarded. `SummarizerAgent` and `ConceptMapperAgent`
+  die, flashcards and quizzes relocate to on-demand services, and the `Agent` / `AgentContext` /
+  `AgentResult` / `AgentCapability` abstraction is deleted for four concrete services — `ParserRegistry`
+  stays, as the only genuinely open extension point. Bodies generate outside a transaction and commit in
+  one; partial success lands, zero pages fails the run; ingest serializes per `KnowledgeBase`; the claim set
+  is capped at Extract and a hit fails loudly rather than truncating.
+
 ## Not yet specified
 
-- **The prompt layer.** MindForge versions Markdown prompts under `ai/prompts/pl/`; the demo
-  uses overridable per-Operation prompt files plus a per-wiki conventions doc. Whether
-  MindForge needs a per-`KnowledgeBase` conventions layer, and whether Polish-locale pages
-  can stay OKF-conformant, only sharpens after the taxonomy is fixed.
+- **The prompt layer.** MindForge versions Markdown prompts under `ai/prompts/pl/`; the demo uses
+  overridable per-Operation prompt files plus a per-wiki conventions doc. Whether MindForge needs a
+  per-`KnowledgeBase` conventions layer, and whether Polish-locale pages can stay OKF-conformant, only
+  sharpens after the taxonomy is fixed. T04 narrowed it to four ingest prompts and removed `PROMPT_VERSION`'s
+  home along with the `Agent` interface, so where prompt versioning now lives is part of this patch.
 - **SPA surfaces.** Page browser, cross-link graph view, the **run report** (pages written with diffs,
   claims superseded with per-row removal, revert control), and the **conversational edit surface** T03
   made the only way a user changes a page. T03 replaced the approval queue with an after-the-fact report,
   so what Phase 12 owes is a diff view and a revert control rather than a queue — and whether revert is a
   control there or an "undo that" in chat is open. Shape still depends on the taxonomy decision.
-- **Cost and latency.** One upload becoming 10–15 LLM-driven page writes instead of 7 agent
-  calls changes the budget shape. `DeadlineProfile` and `CostTier` may need re-cutting; can't
-  say how until the Ingest execution model is decided.
-- **The guard layer.** The demo's reliability comes from a dozen mechanical guards around the
-  model (a required write must *succeed*, Lint may only grow a page, index membership is code's,
-  a dangling link is reported not removed). Which of those MindForge needs, and at what layer —
-  domain invariant, DB constraint, service check — only sharpens once the Ingest execution model
-  is decided. See T01's notes.
+- **Cost and latency.** Mostly resolved by T04: calls stay single-shot so `DeadlineProfile` and `CostTier`
+  need no re-cutting, N is bounded by the claim cap, and writes fan out in parallel over virtual threads.
+  What is left is empirical — whether the cap sits in the right place, and what one upload actually costs
+  once a real run exists. No per-run cost budget until then.
+- **The guard layer, at which layer.** T04 dissolved most of it: with no tool loop and no paths, T01 §24's
+  inventory is unrepresentable rather than guarded, and source immutability is a type. What survives is
+  placement — whether "zero pages fails the run", the claim cap, slug uniqueness and per-`KnowledgeBase`
+  serialization land as domain invariants, DB constraints or service checks. T05, T07 and T12 each own a
+  slice; whether that needs stating in one place is still open.
 - **Caffeine's role** once the unit of caching is a wiki page rather than a query result.
 - **Whether the CLI, Discord and Slack phases (15, 18–19) shift** once Query is the read path.
 
