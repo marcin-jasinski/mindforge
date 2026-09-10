@@ -13,13 +13,15 @@ The server owns all grading, scoring, and session state. Client payloads must ne
 
 ```java
 // NEVER in any API response
-return Map.of("referenceAnswer", artifact.getSummaryData().getReferenceAnswer());  // ❌
+return Map.of("referenceAnswer", session.question(index).referenceAnswer());  // ❌
 
 // CORRECT: return only evaluated results
-return new EvaluationResponse(result.getScore(), result.getFeedback());
+return new EvaluationResponse(result.score(), result.feedback());
 ```
 
 Redaction is enforced in `InteractionStore.listForUser()` — **not only in controllers** (defense-in-depth). The store never returns unredacted interaction data for user-facing queries.
+
+**An export is a client too.** Reference answers and grounding excerpts exist only in `quiz_sessions`, and no study data (flashcards, SM-2 state, study events, quiz sessions) is ever written into a wiki page body or frontmatter. The bundle exporter never queries those tables, and it never selects `cost`, `step_versions`, `failures` or `findings` from `ingest_runs`. Keep sensitive data out of what gets rendered, rather than redacting it on the way out.
 
 ## Password Hashing
 

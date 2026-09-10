@@ -1,6 +1,7 @@
 # Development Roadmap
 
 > Full phase-by-phase detail: [implementation-plan.md](./implementation-plan.md)
+> Why the plan changed: [wiki re-cut map](../wayfinder/okf-wiki-map.md) and ADRs 0010–0018
 
 ## Current State
 
@@ -8,136 +9,137 @@
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway)
 - **In Progress**: None
-- **Remaining Phases (4–21)**: All phases pending; ready to start Phase 4 (Document Parsing)
+- **Next**: Phase 3b (Wiki Pivot Cleanup), then Phase 4
+
+## The Wiki Re-cut (2026-09-10)
+
+MindForge moved from per-document study artifacts to a **per-knowledge-base wiki that
+compounds**, with study material cut from the wiki. Phase numbering is kept stable where a
+phase's purpose survived. Where it did not:
+
+| Phase | Change |
+|---|---|
+| **3b** | **New** — removes what Phases 1–2 built for the old model |
+| 5 | **Re-cut** — was Agent Framework & Pipeline Orchestration; now Wiki Domain & Store |
+| 6 | **Re-cut** — was seven Core Processing Agents; now the Ingest Pipeline |
+| 7 | **Number reused** — Neo4j Graph Layer deleted (ADR 0016); the slot is now Lint |
+| **9b** | **New** — Bundle Export |
+| 11 | **Re-cut** — was Search & Conversational RAG; now Query |
+| 4, 8, 9, 10, 12–19, 21 | Changed in place (details below) |
+
+The plan got shorter where it mattered: two databases became one, seven agents and a DAG became
+one fixed pipeline, and the checkpoint, outbox, graph-indexing and embedding machinery is gone.
 
 ---
 
 ## Core System (Phases 0–13)
 
-Delivers a fully deployable, agentic learning platform: document ingestion, 7-agent AI
-pipeline with checkpointing, knowledge graph, quiz/flashcard engine with SM-2, RAG chat,
-Angular SPA, and Docker deployment.
+Delivers a fully deployable learning platform: document ingestion into a compounding wiki with
+automatic revisions and revert, Lint, OKF export, flashcards and quizzes cut from the wiki,
+Query, the Angular SPA and Docker deployment.
 
 ### Foundation (Phases 0–8)
 
-- [x] **Phase 0 — Project Scaffolding** — Maven multi-module layout, Spring Boot bootstrap,
-  Flyway, Docker Compose for local dev, `StubAIGateway` test helper. `[Effort: S]`
-- [x] **Phase 1 — Domain Layer** — Core entities, value objects (`ContentHash`, `LessonIdentity`),
-  domain events (sealed interface), `Agent` interface, port interfaces. Zero framework imports.
-  Only types needed for ingestion are defined here; others added phase-by-phase. `[Effort: M]`
-- [x] **Phase 2 — Infrastructure Foundation** — JPA entities, Flyway migrations (V1–V7
-  including pgvector), Spring Data JPA repository adapters. `[Effort: M]`
-- [x] **Phase 2b — Persistence Cleanup & DTO Foundation** — Persistence split into
-  `entity/`/`jpa/`/`mapper/`/`adapter/` sub-packages, MapStruct entity↔domain mappers,
-  API DTO layer (`api/dto/request`, `api/dto/response`) with MapStruct DtoMappers,
-  `OpenApiConfig`. `[Effort: S]`
-- [x] **Phase 3 — AI Gateway** — `AIGateway` interface + `AIGatewayAdapter` (Spring AI +
-  OpenRouter), model-tier routing (SMALL/LARGE/VISION), deadline profiles, Resilience4j
-  retry + circuit breaker, `StubAIGateway`. `[Effort: S]`
-- [ ] **Phase 4 — Document Parsing & Ingestion** — `UploadSanitizer`, MIME-dispatch
-  `ParserRegistry`, Markdown/PDF/DOCX/TXT parsers, heading-aware chunker,
-  `IngestionService` with deduplication and revision management. `[Effort: M]`
-- [ ] **Phase 5 — Agent Framework & Pipeline Orchestration** — `Agent` interface, `AgentRegistry`,
-  `OrchestrationGraph`, `PipelineOrchestrator` with step-fingerprint checkpointing and
-  DAG-aware invalidation, background virtual-thread worker. `[Effort: M]`
-- [ ] **Phase 6 — Core Processing Agents** — 7 agents: `PreprocessorAgent`, `RelevanceGuardAgent`
-  (SMALL — filters non-learning content), `SummarizerAgent`, `FlashcardGeneratorAgent`,
-  `ConceptMapperAgent`, `QuizGeneratorAgent`, `QuizEvaluatorAgent`. Each declares `VERSION`
-  constant; all tested with `StubAIGateway`. `[Effort: L]`
-- [ ] **Phase 7 — Neo4j Graph Layer** — Spring Data Neo4j derived projection, `GraphIndexer`
-  adapter, Cypher queries for concept neighborhoods and weak-concept detection,
-  `StubRetrievalAdapter`. `[Effort: M]`
-- [ ] **Phase 8 — Event System** — `@TransactionalEventListener` for Neo4j indexing after
-  commit; in-memory `SseEmitter` registry for pipeline progress updates. No Redis, no outbox
-  relay. `[Effort: S]`
+- [x] **Phase 0 — Project Scaffolding** — Maven layout, Spring Boot bootstrap, Flyway,
+  `StubAIGateway` test helper. `[Effort: S]`
+- [x] **Phase 1 — Domain Layer** — Core records, value objects (`ContentHash`, `LessonIdentity`),
+  domain events, port interfaces. Zero framework imports. *(Parts removed in 3b.)* `[Effort: M]`
+- [x] **Phase 2 — Infrastructure Foundation** — JPA entities, Flyway migrations, repository
+  adapters. *(Migrations squashed in 3b.)* `[Effort: M]`
+- [x] **Phase 2b — Persistence Cleanup & DTO Foundation** — `entity/`/`jpa/`/`mapper/`/`adapter/`
+  sub-packages, MapStruct mappers, API DTO layer, `OpenApiConfig`. `[Effort: S]`
+- [x] **Phase 3 — AI Gateway** — `AIGateway` + `AIGatewayAdapter` (Spring AI + OpenRouter),
+  model tiers, deadline profiles, Resilience4j retry + circuit breaker. *(`embed` removed in 3b.)*
+  `[Effort: S]`
+- [ ] **Phase 3b — Wiki Pivot Cleanup** *(new)* — Delete the artifact model, `Agent` abstraction,
+  step fingerprints, Neo4j and pgvector wiring; fix the cross-tenant dedup lookup and Polish slugs;
+  squash V1–V7 into one baseline. No new behaviour. `[Effort: S]`
+- [ ] **Phase 4 — Document Parsing & Ingestion** *(changed)* — `UploadSanitizer`, `ParserRegistry`,
+  Markdown/PDF/DOCX/TXT parsers, heading-aware chunker, `IngestionService` with per-knowledge-base
+  dedup by constraint and one `Document` per uploaded lesson version. `[Effort: M]`
+- [ ] **Phase 5 — Wiki Domain & Store** *(re-cut)* — Pages, paths, links, sources, revisions,
+  supersessions and ingest runs; `WikiStore`; the lease; index and log renderers; restore-forward,
+  tip-only revert. `[Effort: M]`
+- [ ] **Phase 6 — Ingest Pipeline** *(re-cut)* — Relevance guard → claim extraction against the index
+  → resolve → parallel page writes → link check → commit → supersession; startup sweep; conversation
+  edits' entry point. `[Effort: L]`
+- [ ] **Phase 7 — Lint** *(number reused)* — Live SQL health checks and an on-demand full review that
+  inserts links and reports findings and study suggestions. `[Effort: S]`
+- [ ] **Phase 8 — Event System** *(changed)* — Run events and the in-memory SSE progress registry.
+  No Redis, no outbox. `[Effort: S]`
 
 ### Core Product (Phases 9–12)
 
-- [ ] **Phase 9 — API Layer (Spring MVC)** — `SecurityConfig` (JWT in HttpOnly cookies,
-  OAuth2 for Google/GitHub, BCrypt cost 12), 8 thin `@RestController`s, `GlobalExceptionHandler`,
-  SPA serving. Ownership check on every endpoint. `[Effort: L]`
-- [ ] **Phase 10 — Quiz & Flashcard Services** — Server-authoritative quiz sessions
-  (single `QuizSessionStore` backed by PostgreSQL + Caffeine cache), SM-2 spaced repetition
-  scheduler, `QuizService` with Graph RAG question targeting, `FlashcardService`. `[Effort: M]`
-- [ ] **Phase 11 — Search & Conversational RAG** — Full-text + pgvector semantic search,
-  multi-turn `ChatService` with `TokenBudget` management and grounding-context redaction.
-  Chat domain types (`Interaction`, `InteractionTurn`, `TokenBudget`, `WeakConcept`) added
-  here (not in Phase 1). `[Effort: M]`
-- [ ] **Phase 12 — Angular Frontend** — Angular 21 SPA with Angular Material, Cytoscape.js
-  concept map, Signals, standalone components, SSE progress stepper, full routing. `[Effort: L]`
+- [ ] **Phase 9 — API Layer (Spring MVC)** *(changed)* — Security config, thin controllers for
+  documents, knowledge bases, wiki pages, the page-link graph, run reports and revert, and health.
+  Ownership check on every endpoint. `[Effort: L]`
+- [ ] **Phase 9b — Bundle Export** *(new)* — Synchronous zip of the OKF bundle from one snapshot,
+  validated against OKF §9 before sending. `[Effort: S]`
+- [ ] **Phase 10 — Quiz & Flashcard Services** *(changed)* — Flashcards cut lazily from Concept pages
+  with content-derived identity, SM-2, server-authoritative quiz sessions targeting weak pages.
+  `[Effort: M]`
+- [ ] **Phase 11 — Query** *(re-cut)* — Multi-turn questions answered from wiki pages chosen via the
+  index, with citations; conversation edits; page search. `[Effort: M]`
+- [ ] **Phase 12 — Angular Frontend** *(changed)* — Page browser, graph view, run reports with diffs
+  and revert, health view, study, chat and export. `[Effort: L]`
 
 ### Deployment (Phase 13)
 
-- [ ] **Phase 13 — Docker & Deployment** — Multi-stage Dockerfile (Node → Maven → JRE),
-  `compose.yml` with health checks for all services, Railway/Render deployment config.
-  **Core system complete after this phase.** `[Effort: M]`
+- [ ] **Phase 13 — Docker & Deployment** *(changed)* — Multi-stage Dockerfile, `compose.yml` with the
+  app and PostgreSQL, Railway/Render config. **Core system complete after this phase.** `[Effort: M]`
 
 ---
 
 ## Post-MVP Enhancements (Phases 14–21)
 
-All features below exist in the design — they are deferred until the core system is
-running and deployed, so effort is focused on demonstrating the learning loop first.
-
 ### Observability & CLI (Phases 14–15)
 
-- [ ] **Phase 14 — Observability & Tracing** — Langfuse integration: trace spans per LLM call
-  and per pipeline run, per-operation cost tracking, cost anomaly alerting. Graceful no-op
-  when Langfuse env vars absent. `[Effort: S]`
-- [ ] **Phase 15 — CLI Entry Points** — `mindforge-pipeline` (local file ingestion),
-  `mindforge-backfill` (rebuild Neo4j from PostgreSQL), `mindforge-quiz` (terminal quiz
-  using the same `QuizService` as the web UI). `[Effort: S]`
+- [ ] **Phase 14 — Observability & Tracing** *(changed)* — Langfuse spans per LLM call and per ingest
+  run; per-run cost anomaly warnings. `[Effort: S]`
+- [ ] **Phase 15 — CLI Entry Points** *(changed)* — `mindforge-pipeline` (local file ingestion) and
+  `mindforge-quiz`. The Neo4j backfill CLI is deleted. `[Effort: S]`
 
-### Extended Agents (Phases 16–17)
+### Extended Sources (Phases 16–17)
 
-- [ ] **Phase 16 — Image Analysis Agent** — `ImageAnalyzerAgent` with VISION model tier,
-  PDF/DOCX image extraction, `ImageDescription` domain type added to `DocumentArtifact`.
-  `[Effort: M]`
-- [ ] **Phase 17 — Article Fetcher Agent** — `ArticleFetcherAgent` (fetches external URLs
-  referenced in documents), `EgressPolicy` (SSRF prevention via allowlist + private-IP
-  blocking), `FetchedArticle` domain type. Disabled by default. `[Effort: M]`
+- [ ] **Phase 16 — Image Analysis** *(changed)* — `ImageDescriber` (VISION) turns image blocks into
+  text blocks before extraction. `[Effort: M]`
+- [ ] **Phase 17 — Article Fetcher** *(changed)* — Referenced articles fetched through `EgressPolicy`
+  become documents of their own, ingested as sources. Disabled by default. `[Effort: M]`
 
 ### Delivery Channels (Phases 18–19)
 
-- [ ] **Phase 18 — Discord Bot** — JDA-based Discord integration: `/quiz`, `/search`,
-  `/upload` slash commands; guild allowlist; identity resolution via
-  `ExternalIdentityRepository`; SR reminder DMs. `[Effort: M]`
-- [ ] **Phase 19 — Slack Bot** — Slack Bolt for Java via Socket Mode: `/mf-quiz`,
-  `/mf-search`, file upload handler; workspace allowlist; shared `ExternalIdentityRepository`
-  with Discord. `[Effort: M]`
+- [ ] **Phase 18 — Discord Bot** *(changed)* — `/ask`, `/quiz`, `/upload`; guild allowlist; identity
+  resolution; SR reminder DMs. `[Effort: M]`
+- [ ] **Phase 19 — Slack Bot** *(changed)* — `/mf-ask`, `/mf-quiz`, file upload; workspace allowlist.
+  `[Effort: M]`
 
 ### Quality Gates (Phases 20–21)
 
-- [ ] **Phase 20 — Security Hardening** — Security checklist pass against
-  `docs/standards/security/web-security.md`, OWASP dependency-check Maven plugin
-  (block CVSS ≥ 7.0), Caffeine-backed rate limiter on auth endpoints. `[Effort: S]`
-- [ ] **Phase 21 — E2E Testing & CI/CD** — GitHub Actions (Checkstyle + SpotBugs + Testcontainers
-  on PRs, JaCoCo 70% coverage gate), Playwright E2E smoke tests for the upload-to-quiz
-  journey, ArchUnit fitness functions for hexagonal layer boundaries. `[Effort: M]`
+- [ ] **Phase 20 — Security Hardening** — Checklist pass against `web-security.md` (now including
+  export and tenancy rules), OWASP dependency check, auth rate limiting. `[Effort: S]`
+- [ ] **Phase 21 — E2E Testing & CI/CD** *(changed)* — GitHub Actions, JaCoCo gate, a Playwright journey
+  from upload through pages, study and export, and ArchUnit layer rules. `[Effort: M]`
 
 ---
 
 ## Technical Debt Backlog
 
-- [ ] **English locale prompts** — Add `prompts/en/` alongside `prompts/pl/`; Polish-only
-  prompts limit non-Polish users.
-- [ ] **Integration API tests** — The `integration/api/` test directory starts minimal;
-  expand to cover all endpoint paths.
-- [ ] **Multi-tenant hardening** — Currently designed for personal use; rate limiting and
-  tenant isolation need review before opening to external users.
+- [ ] **English locale prompts** — Add `prompts/en/` alongside `prompts/pl/`.
+- [ ] **Integration API tests** — Expand `integration/api/` to cover all endpoint paths.
+- [ ] **Multi-tenant hardening** — Rate limiting and isolation review before opening to external users.
 
 ## Future Considerations (Post Phase 21)
 
-- **Knowledge graph export**: JSON-LD / RDF export of concept maps
-- **Mobile frontend**: Responsive layout improvements for small screens
-- **Multi-instance deployment**: Caffeine → Redis upgrade for distributed rate limiting and
-  distributed `QuizSessionStore`
-- **Full transactional outbox**: If multiple independent event consumers emerge, replace
-  `@TransactionalEventListener` with a proper outbox table + relay
-- **FSRS scheduling**: Replace SM-2 with the more accurate FSRS algorithm
+- **Lexical prefilter** — `pg_trgm` narrowing when a knowledge base's index passes 20K tokens (ADR 0016)
+- **Vector search / graph store** — only on the measured conditions named in ADR 0016
+- **Git-history export** — per-run commits from `page_revisions`, if users ask for history outside the app
+- **Multi-instance deployment** — lease expiry for ingest runs; Caffeine → Redis for sessions and rate limiting
+- **Shared knowledge bases** — per-user flashcard schedules
+- **FSRS scheduling** — replace SM-2
+- **Mobile frontend** — responsive layout improvements for small screens
 
 ---
 
-*Last Updated*: 2026-07-04
+*Last Updated*: 2026-09-10
 *Effort Scale*: `S` 2–3 days | `M` 1 week | `L` 2+ weeks
 *Reference*: [implementation-plan.md](./implementation-plan.md)

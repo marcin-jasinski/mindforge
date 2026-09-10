@@ -17,19 +17,35 @@ Coding standards, conventions, and best practices organized by domain (global, b
 Located in `docs/project/`
 
 ### Vision (`project/vision.md`)
-What MindForge is and why it exists. Covers the core product concept (AI-powered learning platform that transforms uploaded documents into study artifacts), primary user flows, key capabilities (summaries, flashcards, concept maps, quiz engine, knowledge graph), and the guiding design principles. Read this first for product context before feature work.
+What MindForge is and why it exists: a learning platform where uploaded documents are ingested into a per-knowledge-base wiki that compounds, with flashcards, quizzes and Query answers cut from the wiki and the wiki exportable as an OKF bundle. Covers the core value loop, principles and goals. Read this first for product context before feature work.
 
 ### Roadmap (`project/roadmap.md`)
-Development phase status overview. Documents which phases (0–19) are complete, in-progress, or planned, with brief summaries of what each phase delivers. References the full detail in `project/implementation-plan.md`. Check here to understand where the project stands and what work remains.
+Development phase status overview. Documents which phases (0–21, including 2b, 3b and 9b) are complete, in progress or planned, with brief summaries of what each delivers, and states plainly which phases the wiki re-cut changed, reused or removed. References the full detail in `project/implementation-plan.md`.
 
 ### Implementation Plan (`project/implementation-plan.md`)
-Complete phase-by-phase breakdown of all development work: phases 0–19, each with detailed task lists, dependencies, completion checklists, and rationale. This is the **source of truth** for structuring development work using `/maister-implement`. Use Maister's implementation-plan-executor to read phases, track checkbox progress, and manage work-logs as you build features.
+Complete phase-by-phase breakdown of all development work: phases 0–21, each with detailed task lists, dependencies, completion checklists and rationale. This is the **source of truth** for structuring development work. Phase 3b (wiki pivot cleanup) is where work resumes.
 
 ### Tech Stack (`project/tech-stack.md`)
-Technology choices with rationale. Covers backend (Java 21, Spring Boot 4.1, Spring AI, Spring Data JPA/Hibernate, PostgreSQL, Neo4j, Caffeine), frontend (Angular standalone SPA), infrastructure (Docker, Flyway, Maven), and the reasoning behind each choice. Read before introducing new dependencies or proposing technology changes.
+Technology choices with rationale. Covers backend (Java 21, Spring Boot 4.1, Spring AI, Spring Data JPA/Hibernate, PostgreSQL as the only data store, Caffeine), frontend (Angular standalone SPA), bundle export, infrastructure (Docker, Flyway, Maven), and what was removed (Neo4j, pgvector, object storage). Read before introducing new dependencies or proposing technology changes.
 
 ### Architecture (`project/architecture.md`)
-Navigable summary of the hexagonal architecture design — layers, boundaries, composition roots, data flow, and key conventions. Read before touching layer boundaries, adding adapters, or working on the pipeline.
+Navigable summary of the hexagonal architecture — layers, model services, the ingest/query/study/revert/export data flows, the wiki model, history and revert, idempotency and the ingest lease, retrieval, and the guard table ("every rule stated in the prompt and enforced in code"). Read before touching layer boundaries, adding adapters, or working on ingest.
+
+---
+
+## Domain Language and Decisions
+
+### Glossary (`../CONTEXT.md`)
+The ubiquitous language: Knowledge Base, Page, Page Path, Page Type, Concept, Source Summary, Ingest Run, Page Revision, Tombstone, Revert, Supersession, Index, Bundle, Flashcard, Study Scope, and the operations Ingest, Query and Lint — with terms to avoid. Use these names in code, docs and conversation.
+
+### Architecture Decision Records (`adr/`)
+One file per load-bearing decision. 0001–0009 cover the original stack; 0010–0018 record the wiki re-cut (knowledge model, taxonomy and path identity, automatic revisions and revert, typed ingest pipeline, Postgres-only wiki storage, runs/lease/no outbox, index retrieval, Lint link insertions, flashcard identity). 0005 and 0006 are superseded by 0016.
+
+### Wiki Re-cut Map (`wayfinder/okf-wiki-map.md`)
+The decision map that produced the wiki re-cut: destination, every decision with a link to the ticket holding its full reasoning (`wayfinder/tickets/`), and what was ruled out of scope. Read a ticket's `## Answer` when you need the *why* behind an ADR.
+
+### LLM Wiki Background (`wiki/`)
+`llm_wiki.md` describes the LLM Wiki pattern MindForge adopts; `demo-transfer-notes.md` records what transferred from the reference implementation and why.
 
 ---
 
@@ -69,8 +85,16 @@ RESTful principles, consistent naming, versioning, plural nouns, limited nesting
 #### Java Conventions (`standards/backend/java-conventions.md`)
 MindForge-specific Java conventions: package and import ordering, class-level `private static final` constants (SCREAMING_SNAKE_CASE), 79-char section dividers, `log` (not `logger`) naming for SLF4J loggers, domain-specific exception hierarchy, `record` types for value objects and results, and `sealed interface` for discriminated unions. Read before writing any new Java class in the `dev.mindforge` package.
 
-#### Agent Standards (`standards/backend/ai_agents.md`)
-Mandatory `Agent` interface for all AI agents (`VERSION`, `PROMPT_VERSION`, `execute()`), `CAPABILITY` constant placement, version-bump rules (only on logic/prompt changes), model selection by `ModelTier` enum (`LARGE`, `SMALL`, `VISION`) not provider string, and the rule that all LLM calls flow through `AIGateway` — never a provider SDK directly.
+#### Model Service Standards (`standards/backend/ai_agents.md`)
+How code that calls an LLM is written:
+
+- concrete model services in `dev.mindforge.agent`, with no `Agent` interface;
+- a `VERSION` constant, bumped only on logic or prompt changes and recorded on every run in `step_versions`;
+- model selection by `ModelTier` enum (`LARGE`, `SMALL`, `VISION`), never by provider string;
+- all calls single-shot through `AIGateway`;
+- prompt file naming;
+- the "every rule stated in the prompt is enforced in code" discipline — code owns type, path, membership and deletion;
+- lesson identity resolution.
 
 #### Models (`standards/backend/models.md`)
 Clear naming, timestamps, database constraints, appropriate types, index foreign keys, multi-layer validation, clear relationships, practical normalization. Also covers MapStruct: `@Mapper(componentModel = "spring")` interfaces for entity↔domain mapping, no manual `toEntity`/`toDomain` methods in adapters.
@@ -112,7 +136,18 @@ Mobile-first, standard breakpoints, fluid layouts, relative units, cross-device 
 Located in `docs/standards/architecture/`
 
 #### Hexagonal Architecture (`standards/architecture/hexagonal.md`)
-Non-negotiable rules for MindForge's Hexagonal Architecture (Ports and Adapters). Covers layer boundaries and forbidden cross-layer imports (`dev.mindforge.domain` must not import framework/I/O classes), composition root placement (`@Configuration` beans, no static singletons), Open/Closed principle for parsers and agents, the persistence sub-package convention (`entity/`, `jpa/`, `mapper/`, `adapter/`), data store roles (PostgreSQL as source of truth, Neo4j as derived projection, Caffeine as in-process cache), pipeline idempotency and the transactional checkpoint pattern, retrieval cost discipline (graph first → lexical second → vector last), agent communication rules (no direct agent-to-agent calls), and the transactional outbox guarantee.
+Non-negotiable rules for MindForge's Hexagonal Architecture (Ports and Adapters). Covers:
+
+- layer boundaries and forbidden cross-layer imports (`dev.mindforge.domain` must not import framework/I/O classes), including the model-services package;
+- composition root placement (`@Configuration` beans, no static singletons);
+- where Open/Closed applies — parsers and auth providers, but not the deliberately closed ingest pipeline;
+- the persistence sub-package convention (`entity/`, `jpa/`, `mapper/`, `adapter/`);
+- structural tenancy (`kbId` first on every `WikiStore` method);
+- data store roles (PostgreSQL only, plus Caffeine);
+- ingest runs and idempotency (lease; generate outside, commit in one transaction);
+- retrieval cost discipline (rendered index first, lexical prefilter past 20K tokens, no vector store);
+- model-service communication (no service calls another);
+- domain events after commit, with no outbox.
 
 ---
 

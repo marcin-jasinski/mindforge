@@ -20,3 +20,6 @@ Use names that indicate what the migration does.
 
 ### Version Control
 Commit migrations; never modify existing ones after deployment.
+
+### Pre-deployment squash (2026-09-10) — one-time exception
+Before anything was deployed, V1–V7 (which created the per-document artifact model, step checkpoints, pgvector and embeddings) were squashed into a single `V1__baseline.sql` holding only the tables that survived the wiki re-cut (Phase 3b; see `docs/wayfinder/tickets/12-existing-code-fate.md`). This was allowed only because no environment held data worth keeping. Every local database had to be dropped and recreated. The forward-only rule above applies without exception from the baseline on.
