@@ -89,30 +89,97 @@ grep -l 'status: open' docs/wayfinder/tickets/*.md
   stays, as the only genuinely open extension point. Bodies generate outside a transaction and commit in
   one; partial success lands, zero pages fails the run; ingest serializes per `KnowledgeBase`; the claim set
   is capped at Extract and a hit fails loudly rather than truncating.
+- [Where the wiki bundle physically lives](tickets/05-wiki-storage.md) — Postgres rows only; the bundle exists
+  only as an export output and `StoragePort` plays no part. History is an append-only post-write snapshot
+  (title, type, body) stamped with its run and kept forever; `PageSource` and `PageSupersession` carry the run
+  id too, so revert is restore-forward plus a delete by run. Deletion hard-deletes the page row behind a
+  tombstone revision while history tables outlive it without an FK, so no read path filters `deleted_at`.
+  Tenancy is `knowledge_base_id` on every table plus a composite key, not RLS; the store scopes and never
+  authorizes, holds links in canonical form without rewriting, and leaves the transaction on the application
+  service.
+- [The page taxonomy and bundle layout](tickets/06-page-taxonomy.md) — two types, `Concept` and `Source Summary`,
+  fixed by MindForge and assigned by code, so the model never classifies. A page's **path** (renamed from slug)
+  is its identity and its OKF Concept ID: directory fixed by immutable type, name transliterated from the title
+  once, never renamed. The model authors title, a new one-sentence `description`, and prose in the KB's
+  language; paths, types and headings are English protocol. One projected root `index.md` serves export and the
+  model alike; `log.md` is projected from runs for export only. Frontmatter is OKF's recommended keys with no
+  extensions, and `# Citations` is projected from `page_sources`.
+- [What replaces step-fingerprint checkpointing](tickets/07-idempotency-and-failure.md) — nothing: a re-run is a
+  new run, so nothing is skipped. Identical uploads dedup on `UNIQUE (kb, content_hash)`, which also fixes a
+  cross-tenant dedup bug in today's port. A revised upload is a new `Document` of the same lesson and a new run,
+  with no retraction. The ingest run is the one record: statuses RUNNING/WRITTEN/COMPLETED/FAILED with a startup
+  sweep, revert is a run of its own, counts are derived from revisions, and `step_versions` is where prompt
+  versioning now lives. A lease column on `knowledge_bases` serializes every page-writing run and pending
+  documents are the queue. No outbox table: `AFTER_COMMIT` listeners, as Phase 8 already said. Fingerprints,
+  checkpoints and `DocumentStatus` are deleted.
+- [How flashcards and quizzes are cut from the wiki](tickets/08-study-artifacts-from-wiki.md) — never wiki pages.
+  Flashcards are rows cut lazily from Concept pages, a bounded number of new pages per session. Each is identified
+  by a hash of its content and restamped when its page's revision moves, so unchanged cards keep their SM-2
+  history, changed answers reset, and revert brings the old cards back with their history. Superseded sections are
+  skipped by joining on the card's `section_anchor`. Quizzes are one generation call per session, held only in the
+  server-side session row with their reference answers. Scope is the whole KB, a lesson or a page, and weakness is
+  a per-page event log targeted through `page_links`, with no Graph RAG. Nothing study-related reaches an export.
+- [What Query does to pgvector and Neo4j](tickets/09-query-retrieval-neo4j.md) — both go. The rendered index is the
+  retrieval system: Postgres has no Polish stemmer and no lexical tier matches synonyms, so every miss would be a
+  duplicate page. Extract reads the index and proposes a target path per claim, and Resolve stays code and verifies
+  the paths (a refinement of T04 with no new LLM call). A trigram prefilter waits behind a 20K-token ceiling, and
+  vector search returns only on measured prefilter misses. The graph is `page_links` in SQL. Query replaces Phase
+  11's RAG as two single-shot calls per turn and never files answers back — "save that" is a conversation edit.
+  Citations stop at pages. There is no cache in front of the wiki, and the CLI and bot phases only swap `/search`
+  for `/ask` and drop the Neo4j backfill.
+- [When and how Lint runs](tickets/10-lint-operation.md) — three tiers. Structural checks (dangling, wrong-directory,
+  orphan, duplicate title, dangling supersession) are live SQL with no run. A SMALL link check runs inside every ingest
+  on in-memory bodies before commit, so the ingest keeps its own revert window. A full Lint runs only on request as a
+  `LINT` run behind the lease. Lint never writes prose: the model proposes `LinkInsertion`s, code applies them and
+  verifies the text is unchanged once links are stripped, and headings are never linked. Contradictions are reported,
+  never fixed. Suggestions stay as study prompts, never generated pages. Findings go to a health view, not `log.md`.
+- [How a bundle gets exported](tickets/11-bundle-export.md) — a synchronous zip built with the standard library, with no
+  git and no new dependency. It holds the wiki layer only: raw sources are excluded because MindForge does not keep the
+  bytes, and for size, copyright and privacy. Pages are SnakeYAML frontmatter plus the body verbatim, with supersession
+  notes as a blockquote under the heading (anchors stay stable, amending T02) and a `# Citations` section projected from
+  `page_sources`. The `log.md` vocabulary is final. Rendered files are checked against OKF §9 before sending, and a
+  violation is a 500, never a shipped bundle. Nothing is stripped because study tables are never read. Everything comes
+  from one read-only REPEATABLE READ snapshot, without the lease.
+- [What of Phases 0-3 survives](tickets/12-existing-code-fate.md) — a new Phase 3b cleanup, shaped like 2b: delete 22 of
+  the 71 main files and 4 of the 13 test classes, change 14, and squash V1–V7 into one baseline holding only the
+  surviving tables — a dated, one-time, pre-deployment exception. The rule: delete a dead design, change what is wrong,
+  keep what the new design uses unchanged. Contradicting T04's assumption, `AIGateway` changes: `embed` goes. The
+  cross-tenant dedup lookup gets a regression test. `dev.mindforge.agent` keeps its name as the home of services that
+  call a model. `FlashcardData` is deleted now and written as `Flashcard` in Phase 10.
+- [Re-cut the architecture and roadmap docs](tickets/13-recut-architecture-and-roadmap.md) — the destination documents
+  are written:
+  - rewritten: architecture, vision, roadmap, tech stack, the hexagonal and model-service standards;
+  - `implementation-plan.md` v3.0 — new 3b and 9b, 5/6/11 re-cut, 7 reused for Lint;
+  - new: ADRs 0010–0018, with 0005 and 0006 superseded;
+  - updated: `CLAUDE.md`, `INDEX.md` and four other standards.
+
+  Three small gaps were filled while writing and are flagged in the ticket: conversation edits as an explicit action,
+  the reshaping of Phases 16–17, and the phase numbering. No code changed.
 
 ## Not yet specified
 
-- **The prompt layer.** MindForge versions Markdown prompts under `ai/prompts/pl/`; the demo uses
-  overridable per-Operation prompt files plus a per-wiki conventions doc. Whether MindForge needs a
-  per-`KnowledgeBase` conventions layer, and whether Polish-locale pages can stay OKF-conformant, only
-  sharpens after the taxonomy is fixed. T04 narrowed it to four ingest prompts and removed `PROMPT_VERSION`'s
-  home along with the `Agent` interface, so where prompt versioning now lives is part of this patch.
+> **Map complete (2026-09-10).** Every ticket is closed and the destination documents are written. The patches below
+> are not open decisions on this route; each is handed to the phase that can settle it: the prompt layer → Phase 6.1,
+> SPA surfaces → Phase 12, cost and latency → Phase 14 once a real run exists.
+
+- **The prompt layer.** MindForge versions Markdown prompts under `prompts/pl/`. T06 settled that there is no
+  per-`KnowledgeBase` conventions layer (the taxonomy is fixed and assigned by code) and that Polish pages are
+  OKF-conformant. T04 narrowed it to four ingest prompts and removed `PROMPT_VERSION`'s home along with the
+  `Agent` interface; T07 put versioning back as a `VERSION` constant per service, recorded on each run. What is
+  left: section conventions per page type, and which language the prose is written in when a source's
+  language differs from the prompt locale.
 - **SPA surfaces.** Page browser, cross-link graph view, the **run report** (pages written with diffs,
   claims superseded with per-row removal, revert control), and the **conversational edit surface** T03
   made the only way a user changes a page. T03 replaced the approval queue with an after-the-fact report,
   so what Phase 12 owes is a diff view and a revert control rather than a queue — and whether revert is a
-  control there or an "undo that" in chat is open. Shape still depends on the taxonomy decision.
+  control there or an "undo that" in chat is open. The taxonomy is fixed now (T06: two types, paths, one root index),
+  T09 put the graph view on `page_links` and the chat on Query, T08 added the study scopes, and T10 added a
+  knowledge-base **health view** (live SQL findings plus the latest full Lint's findings and suggestions). What
+  remains is layout and flow, which Phase 12 can design directly.
 - **Cost and latency.** Mostly resolved by T04: calls stay single-shot so `DeadlineProfile` and `CostTier`
   need no re-cutting, N is bounded by the claim cap, and writes fan out in parallel over virtual threads.
   What is left is empirical — whether the cap sits in the right place, and what one upload actually costs
   once a real run exists. No per-run cost budget until then.
-- **The guard layer, at which layer.** T04 dissolved most of it: with no tool loop and no paths, T01 §24's
-  inventory is unrepresentable rather than guarded, and source immutability is a type. What survives is
-  placement — whether "zero pages fails the run", the claim cap, slug uniqueness and per-`KnowledgeBase`
-  serialization land as domain invariants, DB constraints or service checks. T05, T07 and T12 each own a
-  slice; whether that needs stating in one place is still open.
-- **Caffeine's role** once the unit of caching is a wiki page rather than a query result.
-- **Whether the CLI, Discord and Slack phases (15, 18–19) shift** once Query is the read path.
 
 ## Out of scope
 
