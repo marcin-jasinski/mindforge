@@ -9,7 +9,7 @@ Dependencies always point inward: adapters → application → domain. Never cro
 | Layer | Package | Allowed Imports |
 |---|---|---|
 | Domain | `dev.mindforge.domain` | JDK stdlib only; zero I/O, zero framework imports |
-| Application | `dev.mindforge.application` | `dev.mindforge.domain.*` only |
+| Application | `dev.mindforge.application` | `dev.mindforge.domain.*`, plus Spring's transaction API (`org.springframework.transaction.*`) — transaction boundaries are part of a use case |
 | Infrastructure | `dev.mindforge.infrastructure` | `dev.mindforge.domain.*`, `dev.mindforge.application.*`, any third-party |
 | Model services | `dev.mindforge.agent` | `dev.mindforge.domain.*`, `dev.mindforge.infrastructure.ai.*` |
 | Adapters | `dev.mindforge.api`, `dev.mindforge.cli` | All layers (thin; no business logic) |
@@ -56,8 +56,10 @@ public class SomeService {
 Adding a new **document format parser** or **auth provider** means registering a new adapter — **never** modifying `ParserRegistry` or the auth framework. These are genuinely open: new formats arrive from outside the design.
 
 ```java
-// CORRECT: register new format
-registry.register("application/epub", new EpubParser());
+// CORRECT: register the new format where the registry is built (IngestionConfig)
+new ParserRegistry(Map.of(
+    MarkdownParser.MIME_TYPE, new MarkdownParser(),
+    EpubParser.MIME_TYPE, new EpubParser()));
 
 // NEVER: add new format by modifying IngestionService
 ```

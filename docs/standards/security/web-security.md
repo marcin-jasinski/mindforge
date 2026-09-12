@@ -74,7 +74,7 @@ All uploaded filenames, external URLs, and image URLs are **untrusted**. Always 
 
 ```java
 // CORRECT
-uploadSanitizer.sanitizeFilename(userProvidedFilename);
+uploadPolicy.admit(userProvidedFilename, mimeType, sizeBytes);  // UploadSanitizer
 egressPolicy.check(externalUrl);
 
 // NEVER

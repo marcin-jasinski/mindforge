@@ -27,7 +27,7 @@ Dependencies always point **inward**: adapters → application → domain.
 | Layer | Package | Allowed imports |
 |---|---|---|
 | Domain | `dev.mindforge.domain` | JDK only — zero I/O, zero framework |
-| Application | `dev.mindforge.application` | `dev.mindforge.domain.*` only |
+| Application | `dev.mindforge.application` | `dev.mindforge.domain.*`, plus Spring's transaction API (`org.springframework.transaction.*`) |
 | Infrastructure | `dev.mindforge.infrastructure` | domain + application + any third-party |
 | Model services | `dev.mindforge.agent` | domain + `infrastructure.ai.*` — concrete services that call a model; no `Agent` interface |
 | Adapters | `dev.mindforge.api`, `dev.mindforge.cli` | all layers (thin; no business logic) |
@@ -104,7 +104,7 @@ These apply to every code change regardless of scope.
 
 ## Project State
 
-See `docs/project/roadmap.md` for which phases (0–21, including 2b, 3b and 9b) are complete and what work remains. Work resumes at Phase 4 (document parsing and ingestion).
+See `docs/project/roadmap.md` for which phases (0–21, including 2b, 3b and 9b) are complete and what work remains. Work resumes at Phase 5 (wiki domain and store).
 See `docs/project/implementation-plan.md` for the full phase-by-phase task breakdown.
 
 ---
