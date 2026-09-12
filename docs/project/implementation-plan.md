@@ -1,9 +1,9 @@
 # MindForge — Implementation Plan
 
-> **Version:** 2.0
-> **Date:** 2026-06-15
+> **Version:** 3.1 — wiki re-cut, with the 2026-09-12 spec review folded in
+> **Date:** 2026-09-12
 > **Status:** Active
-> **Reference:** [architecture.md](./architecture.md)
+> **Reference:** [architecture.md](./architecture.md) · [CONTEXT.md](../../CONTEXT.md) · [wiki re-cut map](../wayfinder/okf-wiki-map.md) · ADRs 0010–0018
 
 ---
 
@@ -15,38 +15,52 @@
 2. [Phase 1 — Domain Layer](#phase-1--domain-layer)
 3. [Phase 2 — Infrastructure Foundation](#phase-2--infrastructure-foundation)
 4. [Phase 3 — AI Gateway](#phase-3--ai-gateway)
-5. [Phase 4 — Document Parsing and Ingestion](#phase-4--document-parsing-and-ingestion)
-6. [Phase 5 — Agent Framework and Pipeline Orchestration](#phase-5--agent-framework-and-pipeline-orchestration)
-7. [Phase 6 — Core Processing Agents](#phase-6--core-processing-agents)
-8. [Phase 7 — Neo4j Graph Layer](#phase-7--neo4j-graph-layer)
-9. [Phase 8 — Event System](#phase-8--event-system)
-10. [Phase 9 — API Layer (Spring MVC)](#phase-9--api-layer-spring-mvc)
-11. [Phase 10 — Quiz and Flashcard Services](#phase-10--quiz-and-flashcard-services)
-12. [Phase 11 — Search and Conversational RAG](#phase-11--search-and-conversational-rag)
-13. [Phase 12 — Angular Frontend](#phase-12--angular-frontend)
-14. [Phase 13 — Docker and Deployment](#phase-13--docker-and-deployment)
+5. [Phase 3b — Wiki Pivot Cleanup](#phase-3b--wiki-pivot-cleanup) *(new)*
+6. [Phase 4 — Document Parsing and Ingestion](#phase-4--document-parsing-and-ingestion) *(changed)*
+7. [Phase 5 — Wiki Domain and Store](#phase-5--wiki-domain-and-store) *(re-cut)*
+8. [Phase 6 — Ingest Pipeline](#phase-6--ingest-pipeline) *(re-cut)*
+9. [Phase 7 — Lint](#phase-7--lint) *(number reused)*
+10. [Phase 8 — Event System](#phase-8--event-system-retired-in-v31) *(retired in v3.1)*
+11. [Phase 9 — API Layer (Spring MVC)](#phase-9--api-layer-spring-mvc) *(changed)*
+12. [Phase 9b — Bundle Export](#phase-9b--bundle-export) *(new)*
+13. [Phase 10 — Quiz and Flashcard Services](#phase-10--quiz-and-flashcard-services) *(changed)*
+14. [Phase 11 — Query](#phase-11--query) *(re-cut)*
+15. [Phase 12 — Angular Frontend](#phase-12--angular-frontend) *(changed)*
+16. [Phase 13 — Docker and Deployment](#phase-13--docker-and-deployment) *(changed)*
 
 **Post-MVP Enhancements (Phases 14–21)**
 
-15. [Phase 14 — Observability and Tracing](#phase-14--observability-and-tracing)
-16. [Phase 15 — CLI Entry Points](#phase-15--cli-entry-points)
-17. [Phase 16 — Image Analysis Agent](#phase-16--image-analysis-agent)
-18. [Phase 17 — Article Fetcher Agent](#phase-17--article-fetcher-agent)
-19. [Phase 18 — Discord Bot](#phase-18--discord-bot)
-20. [Phase 19 — Slack Bot](#phase-19--slack-bot)
-21. [Phase 20 — Security Hardening](#phase-20--security-hardening)
-22. [Phase 21 — End-to-End Testing and CI/CD](#phase-21--end-to-end-testing-and-cicd)
+17. [Phase 14 — Observability and Tracing](#phase-14--observability-and-tracing) *(changed)*
+18. [Phase 15 — CLI Entry Points](#phase-15--cli-entry-points) *(changed)*
+19. [Phase 16 — Image Analysis](#phase-16--image-analysis) *(changed)*
+20. [Phase 17 — Article Fetcher](#phase-17--article-fetcher) *(changed)*
+21. [Phase 18 — Discord Bot](#phase-18--discord-bot) *(changed)*
+22. [Phase 19 — Slack Bot](#phase-19--slack-bot) *(changed)*
+23. [Phase 20 — Security Hardening](#phase-20--security-hardening)
+24. [Phase 21 — End-to-End Testing and CI/CD](#phase-21--end-to-end-testing-and-cicd) *(changed)*
 
-23. [Dependency Graph](#dependency-graph)
+25. [Dependency Graph](#dependency-graph)
 
 ---
 
 ## Overview
 
-This plan decomposes MindForge into 22 sequential phases. Phases 0–13 deliver the core
-learning system: document ingestion, AI pipeline, knowledge graph, quiz/flashcard engine,
-RAG chat, Angular SPA, and Docker deployment. Phases 14–21 layer in observability,
-delivery channels, and quality gates after the core system is running.
+This plan decomposes MindForge into sequential phases. Phases 0–13 deliver the core
+learning system: documents ingested into a per-knowledge-base wiki that compounds, Lint,
+OKF bundle export, flashcards and quizzes cut from the wiki, Query, the Angular SPA and
+Docker deployment. Phases 14–21 layer in observability, extended sources, delivery channels
+and quality gates after the core system is running.
+
+**Version 3.0 is the wiki re-cut.** Phases 0–3 are recorded as they were built. Phase 3b
+then removes or changes the parts of them that encoded the old per-document artifact model.
+Phase numbering is stable where a phase's purpose survived, and each phase heading says
+plainly when it was changed, re-cut, reused or added. The reasoning for every change lives in
+[`docs/wayfinder/okf-wiki-map.md`](../wayfinder/okf-wiki-map.md) and ADRs 0010–0018; use the
+vocabulary in [`CONTEXT.md`](../../CONTEXT.md).
+
+**Version 3.1 folds in the 2026-09-12 spec review** (map tickets T14–T29). No phase is added; Phase 8 is retired
+into Phases 6 and 9; the tasks of 3b–7, 9–14, 17 and 21 state the review's answers and cite the tickets behind
+them, and the most-changed phases (3b, 4, 6, 7, 9, 9b) say so in their headings.
 
 Each phase is self-contained and produces verifiable deliverables. Phases must be completed
 in order because later phases depend on the artifacts of earlier ones.
@@ -390,10 +404,107 @@ retry, deadline enforcement, cost tracking, and the `StubAIGateway` for tests.
 
 ---
 
+## [ ] Phase 3b — Wiki Pivot Cleanup
+
+> **New in v3.0.** Executes the keep / change / delete table in
+> [T12](../wayfinder/tickets/12-existing-code-fate.md). Builds no new behaviour.
+
+**Goal:** Remove everything Phases 1–3 built for the per-document artifact model, fix the defects the
+re-cut and its review exposed, and squash the migration chain into a baseline — ending green.
+
+> **Changed in v3.1:** `KnowledgeBase.documentCount` goes (T24), `DomainEvent` drops `documentId()` (T20), and
+> `LessonIdentity` adopts the shared identifier grammar and text rules (T18, T19).
+
+### Tasks
+
+- [x] **3b.1 — Delete domain types** (`dev.mindforge.domain.model`)
+  - `Agent`, `AgentCapability`, `AgentContext`, `AgentResult` (ADR 0013).
+  - `DocumentArtifact`, `SummaryData`, `ConceptMapData` (ADR 0010).
+  - `StepCheckpoint`, `StepFingerprint`, `DocumentStatus` (ADR 0015).
+  - `FlashcardData` — Phase 10 writes `Flashcard` keyed on `pageId` (ADR 0018).
+
+- [x] **3b.2 — Change domain types**
+  - `Document`: drop `status`.
+  - `KnowledgeBase`: drop `documentCount` — counts are derived at read (T24).
+  - `DomainEvent`: drop `documentId()` from the interface (each record keeps its own ids); keep `DocumentIngested`;
+    delete `PipelineStepCompleted`, `ProcessingCompleted`, `ProcessingFailed`, `GraphProjectionUpdated` (T20).
+  - New pure `Identifier` (T18): `PATTERN` `[a-z0-9]+(-[a-z0-9]+)*`, 1–80 characters; `index` and `log` reserved
+    everywhere, `default` and `conversation` for lesson ids. `slugify`: NFC; NFD base letters; `ł→l`, `ø→o`, `ß→ss`,
+    `đ→d`, `æ→ae`, `œ→oe`, `þ→th`; Greek letters by Polish name; any other letter or digit dropped **and** an 8-hex
+    SHA-256 suffix appended (`x-<hex>` when nothing is left); capped at 80 keeping the suffix.
+  - New pure `TextRules` (T19): `singleLine` (NFC, whitespace runs → one space, `Cc`/`Cf` removed, trimmed).
+  - `LessonIdentity`: validates with `Identifier` — an explicit `lesson_id` must match and is never rewritten; a derived
+    id uses `Identifier.slugify` and gains `-lesson` on a reserved word; the title passes `TextRules.singleLine` and is
+    cut to 200 characters with `…`.
+
+- [x] **3b.3 — Ports** (`dev.mindforge.domain.port`)
+  - Delete `ArtifactRepository`, `GraphIndexer`.
+  - `AIGateway`: delete `embed` (ADR 0016).
+  - `DocumentRepository`: `findByContentHash(UUID knowledgeBaseId, ContentHash hash)` — today's
+    unscoped lookup deduplicates across tenants; `findById(UUID knowledgeBaseId, UUID documentId)`; delete
+    `updateStatus` (T25: `kbId` first on every tenant-scoped port).
+
+- [x] **3b.4 — Infrastructure**
+  - Delete `ArtifactEntity`, `StepCheckpointEntity`, `ContentEmbeddingEntity`, `ArtifactJpaRepository`,
+    `StepCheckpointJpaRepository`, `ArtifactEntityMapper`, `ArtifactRepositoryAdapter`.
+  - `AIGatewayAdapter` and `AiConfig`: drop `EmbeddingModel`.
+  - `PersistenceConfig`: drop the `ArtifactRepository` bean.
+  - `DocumentEntity`, `DocumentJpaRepository`, `DocumentEntityMapper`, `DocumentRepositoryAdapter`:
+    no status; hash lookup and `findById` scoped by knowledge base.
+  - `KnowledgeBaseEntity`: drop `documentCount`.
+
+- [x] **3b.5 — API DTOs**
+  - Delete `ArtifactResponse`, `ArtifactDtoMapper`.
+  - `DocumentResponse`, `DocumentDtoMapper`: drop `status` (Phase 9 adds a run-status view).
+  - `KnowledgeBaseResponse`: drop `documentCount` (Phase 9 derives counts).
+
+- [x] **3b.6 — Migration baseline** (`src/main/resources/db/migration/`)
+  - Delete `V1`–`V7`; add `V1__baseline.sql` with `users`, `knowledge_bases` and `documents` only.
+  - `knowledge_bases`: no `document_count`.
+  - `documents`: no `status`; `UNIQUE (knowledge_base_id, content_hash) WHERE upload_source <> 'CONVERSATION'`;
+    plain index on `(knowledge_base_id, lesson_id)`; no global `content_hash` index; `uploaded_by` FK
+    `DEFERRABLE INITIALLY DEFERRED` (a user delete cascades through `knowledge_bases`, T24).
+  - Record the one-time squash in `docs/standards/backend/migrations.md` (done in v3.0).
+
+- [x] **3b.7 — Configuration and build**
+  - `application.yml`: delete `spring.neo4j.*` and `spring.ai.vectorstore.*`. `application-dev.yml`: delete `spring.neo4j.*`.
+  - `pom.xml`: delete `spring-boot-starter-data-neo4j`, `spring-ai-starter-vector-store-pgvector`, `testcontainers-neo4j`.
+  - `env.example`: delete the `NEO4J_*` block.
+
+- [x] **3b.8 — Tests**
+  - Delete `AgentResultTest`, `StepFingerprintTest`, `FlashcardDataTest`, `ArtifactRepositoryAdapterTest`,
+    `integration/graph/`.
+  - `DocumentRepositoryAdapterTest`: drop status; **add** "the same hash in two knowledge bases is not
+    a duplicate across them" and "`findById` with another knowledge base's id returns empty".
+  - `LessonIdentityTest`: Polish transliteration (`Mitoza komórkowa` → `mitoza-komorkowa`); `log` and `conversation`
+    reserved; explicit `bio_3` rejected; a file named `index.md` resolves to `index-lesson`; a newline in a PDF title
+    is flattened.
+  - New `IdentifierTest`: `α-helisa` → `alfa-helisa`; `π` → `pi`; `細胞` → `x-` + hash; `細胞 A` ≠ `細胞 B`; 80-character
+    cap keeps the suffix; `PATTERN` rejects `a--b`, `-x`, uppercase.
+  - `StubAIGateway`, `StubAIGatewayTest`, `AIGatewayAdapterTest`: drop `embed` and the embedding tests.
+  - `TestContainerBase`: drop the Neo4j container; `pgvector/pgvector:pg15` → `postgres:15`.
+  - `TestFixtures`: drop `makeDocumentArtifact` and the `status` parameter.
+
+### Completion Checklist
+
+- [x] `mvn verify` passes.
+- [x] No reference remains to `DocumentArtifact`, `Agent`, `StepFingerprint`, `GraphIndexer`, Neo4j,
+  pgvector or `embed` in `src/`.
+- [x] Cross-knowledge-base dedup test passes.
+- [x] No identifier is validated or slugified outside `Identifier`.
+- [ ] Local databases dropped and recreated (the squash invalidates Flyway checksums).
+
+---
+
 ## [ ] Phase 4 — Document Parsing and Ingestion
 
+> **Changed in v3.0:** 4.5 and 4.6 — dedup per knowledge base, one `Document` per
+> uploaded lesson version, no status, no checkpoints (ADR 0015).
+> **Changed in v3.1:** chunk defaults sized for Extract (T23); lesson collisions need an explicit new version and
+> dedup is checked under the knowledge-base row lock (T18, T24).
+
 **Goal:** Implement the `ParserRegistry`, all four document format parsers, `UploadSanitizer`,
-heading-aware chunking, and `IngestionService` with deduplication and revision management.
+heading-aware chunking, and `IngestionService` with per-knowledge-base deduplication.
 
 ### Tasks
 
@@ -411,271 +522,384 @@ heading-aware chunking, and `IngestionService` with deduplication and revision m
 - [ ] **4.3 — Format parsers** (`dev.mindforge.infrastructure.parsing`)
   - `MarkdownParser`: extracts heading tree, code blocks, front-matter metadata.
   - `PdfParser`: wraps Apache PDFBox; extracts text per-page, document metadata.
-  - `DocxParser`: wraps Apache POI; extracts paragraphs and heading styles.
+  - `DocxParser`: wraps Apache POI; extracts paragraphs and heading styles, **in document order**
+    (tables stay where the prose places them).
   - `PlainTextParser`: line-based extraction, best-effort heading detection.
 
-- [ ] **4.4 — Heading-aware chunker** (`dev.mindforge.infrastructure.parsing`)
-  - Splits `ContentBlock` list into overlapping chunks respecting heading boundaries.
-  - Configurable chunk size (tokens) and overlap (tokens) via `ProcessingSettings`.
+- [ ] **4.4 — Heading-aware chunker** (`dev.mindforge.infrastructure.parsing`) — T23
+  - Splits the `ContentBlock` list into chunks at heading boundaries, each at most `ProcessingSettings.chunkSizeTokens`.
+  - Defaults change to **12 000 tokens, overlap 0** — sized for Extract, the chunker's only consumer (overlap would
+    duplicate claims).
+  - Token counts via a new pure `TokenEstimate.of(String) = ceil(chars / 3)` in the domain — the one estimate
+    `TokenBudget`, Supersede and the index ceiling also use.
   - Produces deterministic chunks — same input always produces same chunks.
 
-- [ ] **4.5 — `IngestionService`** (`dev.mindforge.application.service`)
-  - Validates upload via `UploadSanitizer`.
-  - Computes `ContentHash`; checks `DocumentRepository.findByContentHash()` for dedup.
-  - On dedup: returns existing document ID without reprocessing.
-  - On new document: persists `Document` with `PENDING` status, publishes
-    `DocumentIngested` event via `EventPublisher` — both in the same `@Transactional` boundary.
-  - On re-upload of same lesson with new content (hash differs): creates a new revision,
-    invalidates stale checkpoints for affected pipeline steps.
+- [ ] **4.5 — `IngestionService`** (`dev.mindforge.application.service`) — T18, T24
+  - Validates upload via `UploadSanitizer`; parses via `ParserRegistry`; resolves `LessonIdentity`, honouring an optional
+    `lessonId` override (validated by `Identifier`) and a `newVersion` flag.
+  - One `@Transactional` boundary, opened with `SELECT … FROM knowledge_bases WHERE kb_id = :kb FOR UPDATE`, which
+    serializes uploads into one knowledge base:
+    1. An identical upload (same `ContentHash`, not a conversation turn) returns the existing document id. Under the
+       lock this check cannot race; `UNIQUE (knowledge_base_id, content_hash) WHERE upload_source <> 'CONVERSATION'`
+       is the backstop, and a violation is a bug (500).
+    2. Lesson rule: the lesson id already has a document and `newVersion` is false → `LessonAlreadyExistsException`
+       (409, carrying the lesson's id and title); `newVersion` with no such lesson → 422.
+    3. Persist the `Document` — `DocumentEntity` implements `Persistable<UUID>` so `save()` inserts — and publish
+       `DocumentIngested`. Phase 6.8 adds the `QUEUED` run to this transaction and replaces the event.
+  - A revised upload of the same lesson (different hash, `newVersion`) is a **new** `Document`; there is no
+    retraction of the old version's contributions.
+  - Returns HTTP 202 semantics: the ingest run starts after commit (Phase 6).
 
 - [ ] **4.6 — Unit tests**
-  - `IngestionServiceTest`: dedup returns existing ID; new document persists + publishes event;
-    revision invalidates stale checkpoints.
+  - `IngestionServiceTest`: identical upload returns existing id; same bytes into another knowledge
+    base create a new document; an upload whose lesson id exists is rejected unless `newVersion`, which creates a
+    second `Document`; `newVersion` for an unknown lesson is rejected; save + event publish together.
+  - Integration: two concurrent uploads of the same new lesson into one knowledge base — one succeeds, the other gets
+    409 (or its identical-content id).
   - Parser unit tests: each parser extracts expected text and metadata from fixture files.
   - `UploadSanitizerTest`: MIME rejection, oversized rejection, path traversal rejection.
 
 ### Completion Checklist
 
 - [ ] All four parsers extract text and metadata correctly from fixture files.
-- [ ] Chunker produces deterministic, heading-aware chunks.
-- [ ] Ingestion deduplication and revision management work correctly.
+- [ ] Chunker produces deterministic, heading-aware chunks sized by `TokenEstimate`.
+- [ ] Dedup is per knowledge base, checked under the knowledge-base row lock, with the constraint as backstop.
+- [ ] No upload silently becomes a version of an existing lesson.
 - [ ] `UploadSanitizer` rejects disallowed MIME types, oversized files, and path traversal.
 - [ ] `DocumentIngested` event is published in the same transaction as the document save.
 
 ---
 
-## [ ] Phase 5 — Agent Framework and Pipeline Orchestration
+## [ ] Phase 5 — Wiki Domain and Store
 
-**Goal:** Implement `AgentRegistry`, `PipelineOrchestrator` with DAG-aware checkpointing
-and fingerprint invalidation, and the background worker that processes documents.
+> **Re-cut in v3.0.** This phase was *Agent Framework and Pipeline Orchestration* (`AgentRegistry`,
+> `OrchestrationGraph`, step-fingerprint checkpointing). All of that is deleted (ADRs 0013, 0015).
+> The phase now builds the wiki model, its storage, run records and revert.
+
+**Goal:** Implement pages, paths, links, provenance, revisions, supersessions and ingest runs in the
+domain; their PostgreSQL schema and `WikiStore` adapter; the ingest lease; the index and log renderers;
+and restore-forward, tip-only revert.
 
 ### Tasks
 
-- [ ] **5.1 — `AgentRegistry`** (`dev.mindforge.agent`)
-  - Holds a `Map<String, Agent>` of all registered agents.
-  - Populated via `@Configuration` — each `Agent` bean is registered by name.
-  - `get(String name)` throws if agent is not registered (fail fast).
+- [ ] **5.1 — Wiki domain types** (`dev.mindforge.domain.model`) — ADRs 0010, 0011
+  - `WikiPage(pageId, knowledgeBaseId, path, title, description, type, markdownBody, revision, createdAt, updatedAt)`.
+  - `PageType` value object (non-empty, normalised) with constants `CONCEPT`, `SOURCE_SUMMARY`.
+  - `PagePath`: `concepts/<name>` or `sources/<lesson-id>`, built only from `Identifier` (3b.2); a derived Concept name
+    on a reserved word gains `-concept`; directory fixed by type.
+  - `PageLink(pageId, targetPath, fragment)`, `PageSource(pageId, documentId, ingestRunId)`,
+    `PageRevision(pageId, revision, ingestRunId, title, description, type, markdownBody /* null = tombstone */, createdAt)`,
+    `PageSupersession(supersessionId, supersededPageId, sectionAnchor, supersedingPageId, ingestRunId, createdAt)`.
+  - `IngestRun(runId, knowledgeBaseId, kind INGEST|REVERT|LINT, documentId, revertsRunId, status
+    QUEUED|RUNNING|WRITTEN|COMPLETED|FAILED, attempt, failureReason, retryable, failures, supersessionSkipped,
+    supersessionCount, stepVersions, findings, createdAt, startedAt, finishedAt)` (T17, T16).
+  - `KnowledgeBase`: add a derived `pageCount`.
+  - `MarkdownStructure` (pure, T26) — the only parser of page bodies:
+    - fences (up to three spaces, then three or more `` ` `` or `~`; closed by at least as many of the same);
+    - sections = level-1 ATX headings at column 0 outside fences; anchor `Identifier.slugify(stripLinks(text))`, first
+      duplicate wins; deeper headings are prose;
+    - inline links outside fences and code spans classified as internal (`/(concepts|sources)/<id>.md(#<anchor>)?` →
+      `PageLink`), external (`http(s)://`, autolinks) or invalid (anything else, images, reference definitions);
+    - `stripLinks`, the spans eligible for link insertion, and section ranges for marking or stripping.
+  - `TextRules` (3b.2) gains `normaliseBody`: `\r\n` → `\n`, trailing whitespace stripped per line, one final newline.
 
-- [ ] **5.2 — `OrchestrationGraph`** (`dev.mindforge.agent`)
-  - Defines the DAG of agent execution order as a `List<List<String>>` (steps × parallel group).
-  - Default pipeline: `[preprocessor]` → `[relevance_guard]` → `[summarizer, flashcard_generator,
-    concept_mapper]` → `[quiz_generator]`.
-  - Configurable via `@ConfigurationProperties` (agents can be enabled/disabled per environment).
+- [ ] **5.2 — Migration `V2__create_wiki_and_runs.sql`** — ADRs 0014, 0015
+  - `wiki_pages` (`UNIQUE (knowledge_base_id, path)`, `UNIQUE (knowledge_base_id, page_id)`).
+  - `page_links` with FK `(knowledge_base_id, source_page_id)` → `wiki_pages` `ON DELETE CASCADE`;
+    index `(knowledge_base_id, target_path)`.
+  - `page_revisions`, `page_sources`, `page_supersessions` — FK to `knowledge_bases` only, **no FK to `wiki_pages`**.
+  - `ingest_runs` per T07 plus T10's `findings` and the review's columns: `status` includes `QUEUED`;
+    `attempt SMALLINT NOT NULL DEFAULT 1`; `retryable BOOLEAN NULL`; `supersession_count INT NOT NULL DEFAULT 0`;
+    `created_at NOT NULL`; `started_at` nullable; `step_versions JSONB NOT NULL DEFAULT '{}'`; index
+    `(knowledge_base_id, status, created_at)`.
+  - `knowledge_bases.active_run_id` FK → `ingest_runs`.
+  - **FK rule (T24):** every FK whose two sides are removed by the same cascade is `NO ACTION DEFERRABLE INITIALLY
+    DEFERRED` — `page_sources.document_id`, `ingest_runs.document_id`, `ingest_runs.reverts_run_id`, and every
+    `ingest_run_id`. (Replaces `page_sources.document_id ON DELETE RESTRICT`.)
 
-- [ ] **5.3 — `PipelineOrchestrator`** (`dev.mindforge.application.service`)
-  - Loaded with the `OrchestrationGraph` and `AgentRegistry`.
-  - For each pipeline step:
-    - Computes `StepFingerprint` from current inputs.
-    - If fingerprint matches stored `StepCheckpoint` → skips the step (resume semantics).
-    - If fingerprint differs or no checkpoint → executes the `Agent`.
-    - On `AgentResult.Success` → saves `StepCheckpoint`; publishes `PipelineStepCompleted`.
-    - On `AgentResult.Failure(retryable=true)` → reschedules (exponential back-off, max 3 retries).
-    - On `AgentResult.Failure(retryable=false)` → marks document `FAILED`; publishes `ProcessingFailed`.
-  - Fingerprint invalidation: when an upstream step's output changes, all downstream checkpoints
-    are deleted before re-execution.
+- [ ] **5.3 — Ports** (`dev.mindforge.domain.port`) — `kbId` first on every tenant-scoped method; signatures in
+  [T25](../wayfinder/tickets/25-port-read-surface.md)
+  - `WikiStore` (page-shaped): `findByPath`, `findById`, `findByPaths`, `listIndex`, `listBodies(type)`,
+    `pageIdsForLesson`, `savePage` (page + revision + re-derived links), `deletePage` (tombstone + row delete),
+    `reinsertPage`, `addSources`, `addSupersessions`, `deleteSources(runId, pageIds)`,
+    `deleteSupersessionsBySuperseding(runId, pageIds)`, `deleteSupersession(id)`, `tipRevisions(pageIds)`,
+    `revisionsByRun`, `findRevision`, `listRevisions`, `outboundLinks`, `inboundLinks`, `graph`, `liveSupersessionsOf`.
+  - `RunReportQuery` (read-only projections): `listRuns`, `report(runId)`, `logEntries`.
+  - `IngestRunRepository`: `enqueue`; `claim` (lease + `QUEUED` → `RUNNING`, one transaction; returns whether claimed);
+    `oldestQueued`; `markWritten`, `complete`, `fail` (fenced on status and lease; `complete` and `fail` release the
+    lease); `findById`; `latestForDocument`; `hasQueuedOrActive`. System methods, for the sweep only:
+    `findUnfinished`, `knowledgeBasesWithQueuedRuns`.
+  - `DocumentRepository`: add `lessonExists`, `insert` (3b scoped `findById` and `findByContentHash`).
 
-- [ ] **5.4 — Background worker** (`dev.mindforge.infrastructure`)
-  - Polls `DocumentRepository` for documents with `PENDING` or `FAILED` status.
-  - Executed on a virtual thread (`@Async` with a virtual-thread executor from Spring Boot 4.1).
-  - Stale recovery: documents stuck in `PROCESSING` for > configurable threshold are reset to `PENDING`.
+- [ ] **5.4 — Persistence adapters** (`dev.mindforge.infrastructure.persistence`)
+  - Entities, JPA repositories, MapStruct mappers, port and query-port adapters for all of 5.2, per the sub-package
+    convention; entities with assigned ids implement `Persistable<UUID>`.
+  - Every query binds `knowledge_base_id`.
 
-- [ ] **5.5 — Unit tests**
-  - `PipelineOrchestratorTest`: checkpoint hit → agent skipped; checkpoint miss → agent called;
-    upstream change → downstream checkpoints invalidated; retry logic on transient failure.
-  - `OrchestrationGraphTest`: topological order is valid; disabled agents are excluded.
+- [ ] **5.5 — Renderers** (`dev.mindforge.application.wiki`)
+  - `IndexRenderer`: root index — `okf_version` frontmatter; always both `# Concepts` and `# Sources`, even empty;
+    `* [title](/path.md) - description`, sorted by a Polish `Collator` then path; `\`, `[` and `]` in titles escaped.
+    Logs WARN with the `TokenEstimate` when the index passes 20K tokens. Used by model prompts, the SPA and export.
+  - `LogRenderer`: `# Update Log`, then `## YYYY-MM-DD` groups (UTC, newest first) with one line per `COMPLETED` run that
+    changed something, in T16's final vocabulary — **Ingest** / **Edit** (created, revised, deleted, claims superseded),
+    **Lint** (links added to N pages), **Revert** (undid the ingest / edit / Lint of … — pages restored, pages removed,
+    supersessions removed; or removed N supersessions from …). Page counts derived from `page_revisions`; supersession
+    counts from `ingest_runs.supersession_count`; titles escaped.
+
+- [ ] **5.6 — `RevertService`** (`dev.mindforge.application.service`) — ADR 0012, T16
+  - **One transaction, no model call:** insert the `REVERT` run; claim the lease (0 rows → rollback,
+    `KnowledgeBaseBusyException`); do the work; set `COMPLETED` and `supersession_count`; release the lease.
+  - **Revert of run R** — a `COMPLETED` `INGEST` or `LINT` run, never a `REVERT`: P = pages whose highest revision carries
+    R (a tombstone additionally needs its path free). Empty P → `RevertNotAllowedException`.
+  - Restore-forward for P: append revision `r + 1` carrying `r − 1`'s content; a created page gets a tombstone;
+    a deleted page is re-inserted under its `page_id`.
+  - Delete R's `page_sources` for P and R's `page_supersessions` whose superseding page is in P — nothing for pages R no
+    longer tips.
+  - **Supersession removal:** the same transaction shape, `reverts_run_id` = the row's run, deleting that one row.
+
+- [ ] **5.7 — Tests**
+  - Unit: `PagePath` (reserved suffix); `PageType` normalisation; `MarkdownStructure` (a `# comment` inside a fence is
+    not a heading; `##` is not a section; each link class; eligible spans exclude fences, autolinks and tags);
+    `IndexRenderer` (escaping, empty sections, Polish order) and `LogRenderer` (every line shape); tip check.
+  - Integration (`@Testcontainers`): path uniqueness; a link row cannot reference another knowledge base's page;
+    delete → tombstone → revert re-inserts with sources intact; revert keeps the sources of pages it does not restore;
+    a `REVERT` run is not revertible; revert while a run holds the lease → 409; two concurrent `claim` calls — exactly
+    one wins and the loser stays `QUEUED`; deleting a knowledge base holding every kind of row, and deleting its owner,
+    leave nothing behind.
 
 ### Completion Checklist
 
-- [ ] Orchestrator executes agent graph in correct topological order.
-- [ ] Checkpoint skip works when fingerprint matches; invalidation cascades downstream.
-- [ ] Retry with exponential back-off works for transient failures.
-- [ ] Background worker claims tasks on virtual threads without blocking the API thread pool.
+- [ ] No `deleted_at` filter exists anywhere — a deleted page is absent because its row is.
+- [ ] Every tenant-scoped port method takes `kbId` first.
+- [ ] No page body is parsed outside `MarkdownStructure`.
+- [ ] Revert is restore-forward: no revision row is ever deleted and `revision` is monotonic.
+- [ ] The lease admits one active run per knowledge base under concurrency.
+- [ ] Every cross-cascade FK is deferred, and root deletes succeed.
 
 ---
 
-## [ ] Phase 6 — Core Processing Agents
+## [ ] Phase 6 — Ingest Pipeline
 
-**Goal:** Implement the seven core pipeline agents. Each agent implements the `Agent`
-interface, declares a `VERSION` constant, and is registered in `AgentRegistry`.
+> **Re-cut in v3.0.** This phase was *Core Processing Agents* — seven agents behind an `Agent`
+> interface. Now: a fixed pipeline of concrete model services (ADR 0013). `SummarizerAgent` and
+> `ConceptMapperAgent` are gone; flashcard and quiz generation move to Phase 10.
+> **Changed in v3.1:** conversation edits enter at Extract (T15); chunked Extract, two caps and writer inputs (T23);
+> Resolve and title rules (T22); draft validation and heading preservation (T19, T21, T26); Supersede inputs and checks
+> (T14); the run queue, fencing, sweep and permit pool (T17); progress and run events, absorbed from Phase 8 (T20).
 
-> **Deferred to later phases**: `ImageAnalyzerAgent` (Phase 16), `ArticleFetcherAgent` (Phase 17).
+**Goal:** Ingest one document (or conversation turn) into its knowledge base's wiki end to end —
+relevance guard, chunked claim extraction against the index, resolve, parallel page writes, link check,
+commit, supersession — with the run queue, fenced commits, partial-success semantics, the sweep and progress.
 
-### RelevanceGuardAgent contract (defined here before implementation)
+### Ingest contract
 
-- **Input**: preprocessed `ContentBlock` list + document metadata (from `AgentContext`).
-- **Output**: writes `ValidationResult` to `DocumentArtifact.relevanceValidation`.
-- **Model tier**: `SMALL` — binary classification task.
-- **Pass behavior**: pipeline continues to next step.
-- **Fail behavior**: sets `DocumentStatus` to `FAILED` with reason
-  `ProcessingFailedReason.IRRELEVANT_CONTENT`; publishes `ProcessingFailed` event;
-  stops the pipeline. The API surfaces the `reason` string to the user ("document rejected:
-  does not appear to be a learning resource").
-- **Purpose**: prevent accidentally uploaded files (invoices, photos, binary exports) from
-  consuming expensive LARGE-model pipeline steps downstream.
+- **Input**: an `INGEST` run for a `Document` — parsed `ContentBlock`s, or a `CONVERSATION` turn whose instruction
+  goes through Extract's edit prompt (T15).
+- **Output**: the run `COMPLETED` or `FAILED`, plus the pages, revisions, sources, links and supersessions it committed.
+- **A run fails when no page task succeeded** — a task succeeds when its draft passed validation (changed or not), or its
+  delete or retitle applied. Partial success lands and records `failures`. A run whose drafts were all unchanged
+  completes with no revisions (T21).
+- **Caps fail loudly, never truncate**: claims per Extract call (`retryable`) and page tasks per run (not `retryable`)
+  (T23).
 
 ### Tasks
 
-- [ ] **6.1 — Prompt templates** (`src/main/resources/prompts/pl/`)
-  - One `.{locale}.md` file per agent per locale: `preprocessor.pl.md`, `relevance_guard.pl.md`, `summarizer.pl.md`,
-    `flashcard_generator.pl.md`, `concept_mapper.pl.md`, `quiz_generator.pl.md`, `quiz_evaluator.pl.md`.
-  - Templates use `{placeholder}` syntax compatible with Spring AI `PromptTemplate`.
+- [ ] **6.1 — Prompt files** (`src/main/resources/prompts/pl/`)
+  - `relevance_guard.pl.md`, `claim_extractor.pl.md`, `claim_extractor_edit.pl.md`, `page_writer.pl.md`,
+    `link_checker.pl.md`, `supersession_detector.pl.md`.
+  - Decide and write down here: section conventions per page type, and the prose language when a source's
+    language differs from the prompt locale (handed off from the re-cut map's fog).
+  - Every rule a prompt teaches is also enforced in code (see `ai_agents.md`).
 
-- [ ] **6.2 — `PreprocessorAgent`** (`dev.mindforge.agent`)
-  - `VERSION = "1.0"`. Model tier: none (deterministic, no LLM call).
-  - Normalizes whitespace, detects and extracts headings, produces cleaned `ContentBlock` list.
+- [ ] **6.2 — `Preprocessor` and `RelevanceGuard`**
+  - `Preprocessor` (`dev.mindforge.application.ingest`): plain code, no LLM, no `VERSION` — whitespace, headings,
+    cleaned blocks (T28).
+  - `RelevanceGuard` (`dev.mindforge.agent`, SMALL): returns `ValidationResult`; a rejection fails the run with its
+    reason and `retryable = false`. Skipped for conversation turns (T15).
 
-- [ ] **6.3 — `RelevanceGuardAgent`** (`dev.mindforge.agent`)
-  - `VERSION = "1.0"`. Model tier: `SMALL`.
-  - Calls `AIGateway.complete(SMALL, ...)` with relevance classification prompt.
-  - Parses response to populate `ValidationResult`.
-  - On `passed == false`: throws `IrrelevantContentException` (pipeline catches this and
-    marks the document `FAILED`).
+- [ ] **6.3 — `ClaimExtractor`** (LARGE) — T23, T22, T15
+  - `extract(chunk, renderedIndex, plannedPages)` → `ExtractResult(List<Claim(text, title, targetPath?, firstBlock,
+    lastBlock)>, chunkDigest)`. One call per heading-aware chunk (4.4), **sequentially**; each call also sees the paths
+    and titles planned by earlier chunks. `DeadlineProfile.BACKGROUND` applies per call.
+  - `extractEdit(instruction, quotedAnswer, renderedIndex)` → `List<EditItem>` — `Claim`, `Delete(path)`,
+    `Retitle(path, title)` — from its own prompt. The document method cannot return a deletion.
+  - Over `ProcessingSettings.maxClaimsPerExtractCall` (default 40) → run `FAILED`, `retryable = true`.
+  - Titles pass `TextRules.singleLine` and must be 1–200 characters; block ranges outside the chunk are ignored.
 
-- [ ] **6.4 — `SummarizerAgent`** (`dev.mindforge.agent`)
-  - `VERSION = "1.0"`. Model tier: `LARGE`.
-  - Generates `SummaryData` from `ContentBlock` list.
+- [ ] **6.4 — Resolve** (code, in `IngestPipeline`) — T22, T15, T28
+  - A claim's `targetPath` counts only if it is a live `Concept` or a path planned by an earlier chunk; otherwise its
+    path is `concepts/` + `Identifier.slugify(title)` — a revision if that path is live, else a create.
+  - Group claims by final path into **exactly one `PageWriteTask` per path**; a create takes the title of the group's
+    first claim in document order; a create with an invalid title fails its task.
+  - Over `ProcessingSettings.maxPageTasksPerRun` (default 100 Concept tasks) → run `FAILED`, `retryable = false`, before
+    any write call.
+  - Edit items: `Delete` and `Retitle` only of a live Concept; a path both deleted and written drops both; dropped items
+    are recorded in `failures`.
+  - `ARTICLE` documents are create-only: claims resolving to a live page are dropped and recorded (T28).
+  - Add the document's `Source Summary` task (`sources/<lesson-id>`, title = the document's `lessonTitle`), unless the
+    document is a conversation turn.
 
-- [ ] **6.5 — `FlashcardGeneratorAgent`** (`dev.mindforge.agent`)
-  - `VERSION = "1.0"`. Model tier: `LARGE`.
-  - Generates `List<FlashcardData>` with deterministic `cardId` computation.
+- [ ] **6.5 — `PageWriter`** (LARGE) — T21, T23, T26, T19, T22
+  - Input:
+    - the task: its claims and, for a Concept, their source blocks (de-duplicated, document order, trimmed to
+      `ProcessingSettings.writerSourceTokens`, default 16 000, by dropping whole blocks from the end); for a Source
+      Summary, the whole document if it fits `chunkSizeTokens`, else the chunk digests in order;
+    - the existing body verbatim, and its superseded sections as a separate list
+      `SupersededSection(heading, anchor, supersedingPath, supersedingTitle)`;
+    - the linkable index: live pages minus this run's deletions, plus this run's planned creates.
+  - Output: `PageDraft(description, body)` — no title; code owns titles.
+  - Code validation, over `MarkdownStructure` — a failure fails that page task and is recorded in `failures`:
+    - description passes `TextRules.singleLine`, 1–300 characters; body passes `TextRules.normaliseBody` and is not blank;
+    - no frontmatter; no level-1 `Citations` heading; no level-1 heading whose anchor equals the title's;
+    - no invalid link, image or reference definition;
+    - an `INGEST` run whose document is not a conversation turn, revising a Concept, keeps every existing level-1
+      anchor — superseded sections included.
+  - A draft whose title, description and normalised body equal the live page writes nothing (no revision, source row or
+    link re-derivation). The run report shows each written body's length before and after.
 
-- [ ] **6.6 — `ConceptMapperAgent`** (`dev.mindforge.agent`)
-  - `VERSION = "1.0"`. Model tier: `LARGE`.
-  - Generates `ConceptMapData` with typed nodes and edges.
+- [ ] **6.6 — `LinkChecker`** (SMALL) **and `LinkInsertionApplier`** (code) — ADR 0017, T26
+  - The model returns `List<LinkInsertion>`; code wraps the first eligible occurrence — outside links and autolinks, code
+    spans, fenced blocks, heading lines and `<…>` spans — only if the target is live and not deleted by this run, or was
+    successfully drafted in this run; the target is not the page itself; any fragment is a level-1 anchor of the target's
+    body. Asserts strip-links equality.
+  - Runs on in-memory bodies before commit; a failure records `{"step":"linkCheck"}` and commits without extra links.
 
-- [ ] **6.7 — `QuizGeneratorAgent`** (`dev.mindforge.agent`)
-  - `VERSION = "1.0"`. Model tier: `LARGE`.
-  - Generates quiz questions targeting concept weaknesses (initially from concept map;
-    full Graph RAG in Phase 10).
+- [ ] **6.7 — `SupersessionDetector`** (LARGE ×1) — T14
+  - Runs after commit 1, under the lease. Skipped for `ARTICLE` documents and for runs with no revisions.
+  - Input: this run's claims with their resolved paths (only pages that got a revision), and the level-1 sections of
+    candidate pages — live Concepts written by this run or one `page_links` hop from one, in either direction — shown with
+    path, anchor and heading. Sections already superseded are left out. Pages are ranked by connecting-link count, then
+    path, and added whole up to `ProcessingSettings.supersessionContextTokens` (default 30 000); omitted pages are
+    recorded as `{"step":"supersede","omittedPages":N}`.
+  - Output: `SupersessionProposal(supersededPath, sectionAnchor, supersedingPath)`. Kept only if the section was among the
+    candidates shown, the superseding path is a Concept this run revised, the two differ, and no live supersession or
+    earlier proposal covers that section. Drops are recorded as `{"step":"supersede","dropped":N}`.
 
-- [ ] **6.8 — `QuizEvaluatorAgent`** (`dev.mindforge.agent`)
-  - `VERSION = "1.0"`. Model tier: `SMALL`.
-  - Evaluates a user's free-text answer against a reference answer.
-  - Returns score (0–5) and feedback string.
+- [ ] **6.8 — Run worker, `IngestPipeline` and progress** (`dev.mindforge.application.service`) — ADR 0015, T17, T20
+  - **Events**: `SpringEventPublisher implements EventPublisher`. `DomainEvent.DocumentIngested` is replaced by
+    `IngestRunQueued(runId, knowledgeBaseId, occurredAt)`, published by every transaction that inserts a `QUEUED` run;
+    an `@TransactionalEventListener(AFTER_COMMIT)` calls `RunWorker.drain(kbId)`.
+  - **Queue**: the upload transaction (4.5) also inserts a `QUEUED` `INGEST` run. `drain(kbId)` takes the oldest
+    `QUEUED` run, adds its id to the in-memory active set, then claims it (lease + `QUEUED` → `RUNNING` in one
+    transaction; a lost claim removes the id and leaves the run queued), and dispatches `INGEST` to `IngestPipeline` and
+    `LINT` to `LintService`. A finishing run drains again.
+  - **Throttling**: every model call of an `INGEST` or `LINT` run takes a permit from one global `Semaphore`
+    (`mindforge.ai.background-permits`, default 4); writes fan out on virtual threads within it.
+  - **Commit 1** (`@Transactional`, fenced `RUNNING` → `WRITTEN`): pages, revisions, sources, links.
+  - **Commit 2** (fenced `WRITTEN` → `COMPLETED`): supersessions, `supersession_count`, lease released.
+  - **Failure**, from a `finally`: before or at commit 1, or no page task succeeded → `FAILED` with `failure_reason`,
+    `retryable` and `failures`, lease released; Supersede or commit 2 → `COMPLETED` + `supersession_skipped`, lease
+    released; a fence that matches 0 rows → `RunFencedException`, WARN, nothing written, released or notified.
+  - **Sweep** on `ApplicationReadyEvent` and `@Scheduled(fixedDelay = 60 s)`, over runs not in the active set:
+    `WRITTEN` → `COMPLETED` + `supersession_skipped`; `RUNNING` → `FAILED` "interrupted", `retryable`, and an `INGEST`
+    run with `attempt < 3` is re-queued as a new run with `attempt + 1`; leases released; every knowledge base with
+    `QUEUED` runs drained. Stops claiming on `ContextClosedEvent`. Ceiling: one live instance.
+  - **Progress**: `ProgressNotifier` port (best-effort, never throws), called at each step boundary, for write fan-out
+    progress, and after each status transaction returns. `SseProgressNotifier` (`dev.mindforge.infrastructure.event`)
+    keeps `Map<kbId, Set<SseEmitter>>` and drops dead emitters. The endpoint is 9.7.
+  - Record each model service's `VERSION` + model id in `step_versions`. `cost` stays `NULL` until Phase 14 (T28).
+  - `UploadSource` gains `CONVERSATION`; the conversation entry point is exposed by Phase 11.
 
-- [ ] **6.9 — Register all agents** in `@Configuration`
-
-- [ ] **6.10 — Unit tests**
-  - Each agent tested with `StubAIGateway` returning well-formed fixture responses.
-  - `RelevanceGuardAgent`: `passed=true` continues; `passed=false` throws `IrrelevantContentException`.
-  - `FlashcardGeneratorAgent`: same inputs produce same `cardId`.
-  - `VERSION` constant present on each agent class.
+- [ ] **6.9 — Tests** (`StubAIGateway` fixtures, no real HTTP)
+  - No successful page task fails the run; partial success lands and records failures; all-unchanged drafts complete with
+    no revisions and no log line.
+  - The claims-per-call cap (retryable) and the page-task cap (not retryable) fail loudly.
+  - A hallucinated or `sources/` target becomes a create from the claim's title; two claims reaching one path make one
+    task and one revision.
+  - A chunk can target a page planned by an earlier chunk.
+  - Draft validation: an invalid link, an image, frontmatter, `# Citations`, a title heading and a dropped section each
+    fail their page task; a `# comment` inside a fence is not a heading.
+  - A link insertion that would change prose, target a failed create, or sit inside a fenced block is rejected.
+  - Supersession proposals outside the candidates, on a Source Summary, or self-referencing are dropped; omitted
+    candidates are recorded.
+  - Edits: a `Delete` tombstones a live Concept; a `Delete` of a Source Summary is dropped; an edit naming no page fails
+    with `retryable = false`; a `Retitle` changes only the title.
+  - Two uploads into one knowledge base serialize; into two they run concurrently; a Lint queued behind an ingest runs
+    next.
+  - Fencing: a run swept while generating cannot commit.
+  - The sweep settles `RUNNING` and `WRITTEN` runs and re-queues an interrupted ingest at most twice.
+  - `SseProgressNotifier`: a subscriber receives step messages; a dead emitter is dropped; no subscriber is a no-op.
+  - Revert after an ingest restores every page it still tips.
+  - `VERSION` constant present on each model service.
 
 ### Completion Checklist
 
-- [ ] All 7 agents implemented and registered.
-- [ ] Each agent declares `static final String VERSION`.
-- [ ] All agents tested with `StubAIGateway` — zero real HTTP calls in unit tests.
-- [ ] `RelevanceGuardAgent` failure propagates correctly through orchestrator.
+- [ ] A real document ingests into pages end to end against `StubAIGateway` fixtures.
+- [ ] No LLM call happens inside a database transaction.
+- [ ] Pages written are counted from inserted rows, never from model output.
+- [ ] Every model service declares `static final String VERSION`, recorded on the run.
+- [ ] No work is lost while the lease is held: every waiting run is `QUEUED`.
+- [ ] Every commit is fenced on the run's status and the lease.
 
 ---
 
-## [ ] Phase 7 — Neo4j Graph Layer
+## [ ] Phase 7 — Lint
 
-**Goal:** Implement the Neo4j graph adapter, indexer, retrieval port, and Cypher queries
-for concept graph management, Graph RAG, and weak concept detection.
+> **Number reused in v3.0.** Phase 7 was the *Neo4j Graph Layer*, deleted by ADR 0016 (the graph is
+> `page_links`). Lint occupies the same position in the dependency graph, right after ingest.
+
+**Goal:** Implement live structural health checks and the on-demand full review (ADR 0017). The link
+check inside ingest is already built in Phase 6.
+
+> **Changed in v3.1:** health reads through `WikiHealthQuery`, checks dangling supersessions in Java and shows the index
+> against its ceiling (T25, T26, T23); duplicate titles are reported for Concepts only (T22); a full Lint is a queued run
+> (T17).
 
 ### Tasks
 
-- [ ] **7.1 — `Neo4jIndexerAdapter implements GraphIndexer`**
-  (`dev.mindforge.infrastructure.graph`)
-  - `indexArtifact()`: writes/merges `Concept` nodes and `RELATES_TO` edges from `ConceptMapData`
-    using `UNWIND` batches for efficiency.
-  - `removeByLesson()`: deletes all nodes/edges scoped to the lesson on revision.
-  - All writes scoped to `kbId` property on nodes.
+- [ ] **7.1 — Health** (`WikiHealthQuery` adapter + `HealthService`)
+  - SQL: dangling links; wrong-directory links (a dangling link whose final segment matches a live page elsewhere);
+    orphan Concepts (no inbound links); duplicate titles among live Concepts.
+  - Java over SQL rows: dangling supersessions — the anchor is not a level-1 anchor of the superseded body
+    (`MarkdownStructure`), or the superseding page is gone.
+  - Index size: `TokenEstimate` of the rendered index against the 20K-token ceiling ("prefilter due" past it).
+  - `KnowledgeBaseHealth` record. No run, nothing stored.
 
-- [ ] **7.2 — Cypher queries** (`dev.mindforge.infrastructure.graph`)
-  - `findConceptNeighborhood(UUID kbId, String concept, int depth)`: returns `ConceptNode` list.
-  - `findWeakConcepts(UUID kbId, UUID userId)`: returns concepts with below-threshold retention.
-  - Queries are constants on a `CypherQueries` utility class — never inline strings.
+- [ ] **7.2 — `WikiReviewer`** (LARGE) **and `LintService`**
+  - A `LINT` run, inserted `QUEUED` and claimed like any run (6.8); reads live Concept bodies in chunks with the
+    (prefiltered) index.
+  - Link insertions through `LinkChecker` + `LinkInsertionApplier`; findings (contradictions, unmarked
+    supersessions) and suggestions (missing pages, questions to investigate) stored in `ingest_runs.findings`.
+  - Never writes prose; never inserts supersessions; never generates a page from a suggestion.
 
-- [ ] **7.3 — Add domain types for retrieval** (`dev.mindforge.domain.model`)
-  - `ConceptNode` record: `String id`, `String label`, `float retentionScore`.
-  - `ConceptNeighborhood` record: `ConceptNode center`, `List<ConceptNode> neighbors`, `List<ConceptEdge> edges`.
-  - `RetrievalPort` interface in `dev.mindforge.domain.port`: `retrieveNeighborhood`,
-    `findWeakConcepts`, `getLessonConcepts`.
-
-- [ ] **7.4 — `Neo4jRetrievalAdapter implements RetrievalPort`**
-  - Implements all retrieval queries, scoped to `kb_id`.
-  - Follows retrieval priority: graph-first, then falls back to full-text, then to vector.
-
-- [ ] **7.5 — `StubRetrievalAdapter`** (`src/test/java/.../support/`)
-  - Returns configurable fixture data for unit tests without a Neo4j container.
-
-- [ ] **7.6 — Neo4j indexes and constraints**
-  - Created on first run via `schema.cypher` executed at startup via `@EventListener(ApplicationReadyEvent.class)`.
-  - `CONSTRAINT concept_id UNIQUE ON (c:Concept) ASSERT c.id IS UNIQUE`.
-  - Index on `(:Concept {kbId})` and `(:Concept {label})`.
-
-- [ ] **7.7 — Integration tests**
-  - `@Testcontainers` with real Neo4j 5.
-  - Round-trip: index artifact → verify nodes/edges created → remove lesson → verify deleted.
-  - Neighborhood retrieval returns correct depth-N results.
+- [ ] **7.3 — Tests**
+  - Each health query against fixture data; a supersession whose anchor exists only inside a fenced block is reported
+    dangling.
+  - `LintService` with `StubAIGateway`: insertions applied, prose unchanged, findings stored, queued behind an active run.
 
 ### Completion Checklist
 
-- [ ] Graph indexer writes correct nodes/edges using `UNWIND` batches.
-- [ ] Lesson revision cleanup removes stale nodes/edges scoped to that lesson.
-- [ ] Retrieval follows graph-first → full-text → vector priority.
-- [ ] All queries scoped to `kbId` — no cross-KB data leakage.
+- [ ] Health checks run without an LLM call or a run.
+- [ ] A full review's insertions are revertible like any run.
+- [ ] Lint has no code path that writes a page body other than link insertion.
 
 ---
 
-## [ ] Phase 8 — Event System
+## Phase 8 — Event System *(retired in v3.1)*
 
-**Goal:** Implement lightweight event wiring: Spring `@TransactionalEventListener` for
-Neo4j indexing after commit, and in-memory SSE emitter registry for real-time pipeline
-progress updates to the browser.
-
-> **Design decision**: A full transactional outbox with a relay process and Redis Pub/Sub
-> is not justified here — Neo4j is the only consumer and it is optional/rebuildable.
-> The full outbox pattern is documented in Future Considerations for when multiple
-> independent consumers exist.
-
-### Tasks
-
-- [ ] **8.1 — `SpringEventPublisher implements EventPublisher`**
-  (`dev.mindforge.infrastructure.event`)
-  - Wraps `ApplicationEventPublisher`.
-  - `publish(DomainEvent event)` calls `applicationEventPublisher.publishEvent(event)`.
-
-- [ ] **8.2 — `GraphIndexingListener`**
-  - `@TransactionalEventListener(phase = AFTER_COMMIT)` on `ProcessingCompleted`.
-  - Calls `GraphIndexer.indexArtifact(artifact)`.
-  - On `Neo4jException`: logs warning and schedules a retry via `@Scheduled` (simple
-    exponential back-off, max 3 attempts). Failure does not roll back the document.
-
-- [ ] **8.3 — `SseProgressEmitter`** (`dev.mindforge.infrastructure.event`)
-  - In-memory registry: `Map<UUID, SseEmitter> activeEmitters` (document ID → emitter).
-  - `@EventListener` on `PipelineStepCompleted`: looks up emitter for `documentId`,
-    sends step name + status as JSON.
-  - Emitter is cleaned up on `ProcessingCompleted` or `ProcessingFailed`.
-
-- [ ] **8.4 — Unit tests**
-  - `SpringEventPublisherTest`: events are forwarded to Spring's `ApplicationEventPublisher`.
-  - `GraphIndexingListenerTest` (with `StubGraphIndexer`): `AFTER_COMMIT` fires indexer;
-    `Neo4jException` triggers retry without rolling back the transaction.
-  - `SseProgressEmitterTest`: emitter receives step events; cleaned up on completion/failure.
-
-### Completion Checklist
-
-- [ ] Domain events published via `EventPublisher` reach their listeners.
-- [ ] `GraphIndexingListener` fires after transaction commit (not during).
-- [ ] Neo4j unavailability does not roll back document state.
-- [ ] SSE emitter sends step-level progress without Redis or an external broker.
+> **Retired in v3.1** ([T20](../wayfinder/tickets/20-progress-and-domain-events.md)). Progress is not a domain event, and
+> the pipeline needs its notifier from the start. The `ProgressNotifier` port, the in-memory `SseProgressNotifier` and the
+> `IngestRunQueued` event are built in Phase 6.8; the progress endpoint in Phase 9.7. The number is retired, as Phase 7's
+> Neo4j slot was.
+>
+> **Design decision** (unchanged, ADR 0015): no transactional outbox and no Redis. Listeners run after commit and
+> tolerate a missed event; progress is best-effort.
 
 ---
 
 ## [ ] Phase 9 — API Layer (Spring MVC)
 
-**Goal:** Implement the Spring Boot application entry point, auth system
-(Google/GitHub OAuth2 + email/password + JWT), all REST controllers, security config,
-global exception handler, and SPA serving.
+> **Changed in v3.0:** 9.6 and 9.7 — controllers for the wiki, runs, revert and health replace
+> `ArtifactController`; documents cannot be deleted individually (ADR 0015).
+> **Changed in v3.1:** retry and Lint-start endpoints, synchronous revert and supersession removal, per-knowledge-base
+> progress, lesson collisions and busy knowledge-base deletes as 409 (T16, T17, T18, T20, T24).
+
+**Goal:** Implement the auth system (Google/GitHub OAuth2 + email/password + JWT), all REST controllers,
+security config, global exception handler, and SPA serving.
 
 ### Tasks
 
-- [ ] **9.1 — `MindForgeApplication.java`** (`dev.mindforge`)
-  - `@SpringBootApplication` entry point. No business logic.
+- [ ] **9.1 — `MindForgeApplication.java`** (`dev.mindforge`) — `@SpringBootApplication` entry point. No business logic.
 
 - [ ] **9.2 — `SecurityConfig.java`** (`dev.mindforge.api.config`)
   - Spring Security filter chain: CSRF disabled for API paths, JWT cookie filter,
@@ -686,42 +910,49 @@ global exception handler, and SPA serving.
 - [ ] **9.3 — `JwtFilter.java`** — reads JWT from cookie, validates, sets `SecurityContext`.
 
 - [ ] **9.4 — `AuthController.java`** (`dev.mindforge.api.controller`)
-  - `POST /api/auth/register` — email/password registration.
-  - `POST /api/auth/login` — email/password login; sets JWT cookie on success.
-  - `POST /api/auth/logout` — clears JWT cookie.
-  - `GET /api/auth/me` — returns authenticated user info (never includes `passwordHash`).
-  - OAuth2 callbacks handled by Spring Security auto-config.
+  - `POST /api/auth/register`, `POST /api/auth/login` (sets JWT cookie), `POST /api/auth/logout`,
+    `GET /api/auth/me` (never includes `passwordHash`). OAuth2 callbacks handled by Spring Security.
 
 - [ ] **9.5 — Request/response DTOs** (`dev.mindforge.api.dto`) — all Java `record` types.
-  - Never expose: `referenceAnswer`, `groundingContext`, `rawPrompt`, `rawCompletion`, `cost`.
+  - Never expose: `referenceAnswer`, `groundingContext`, `rawPrompt`, `rawCompletion`, `cost`,
+    `step_versions`, raw `failures` internals.
 
 - [ ] **9.6 — `GlobalExceptionHandler.java`** (`@ControllerAdvice`)
-  - Maps domain exceptions to HTTP status codes:
-    - `LessonIdentityException` → 422
-    - `IrrelevantContentException` → 422 (with `reason` field)
-    - `DocumentNotFoundException` → 404
-    - `AccessDeniedException` → 403
-    - `DeadlineExceededException` → 503
-  - All error responses use a uniform `{ "error": "...", "code": "...", "detail": "..." }` shape.
+  - `LessonIdentityException` → 422; `PageNotFoundException` / `DocumentNotFoundException` → 404;
+    `RevertNotAllowedException`, `KnowledgeBaseBusyException`, `LessonAlreadyExistsException` (with the lesson's id
+    and title), `RetryNotAllowedException` → 409; `AccessDeniedException` → 403; `DeadlineExceededException` → 503.
+  - Uniform `{ "error": "...", "code": "...", "detail": "..." }` shape. Ingest failures are run
+    state, not HTTP errors.
 
-- [ ] **9.7 — REST controllers** (`dev.mindforge.api.controller`)
-  - `DocumentController`: upload, list, get, delete — all verify resource ownership.
-  - `KnowledgeBaseController`: CRUD for knowledge bases.
-  - `ArtifactController`: get summary, flashcards, concept map for a document.
-  - `PipelineController`: get pipeline status, SSE progress stream (`GET /api/docs/{id}/progress`).
+- [ ] **9.7 — REST controllers** (`dev.mindforge.api.controller`) — T17, T18, T20, T24, T28
+  - `DocumentController`:
+    - upload with optional `lessonId` and `newVersion` (202 + document id; 409 on a lesson collision);
+    - list, get — with latest-run status and `retryable`;
+    - retry `POST /api/documents/{id}/runs` (202 + run id; 409 unless the latest run is `FAILED`).
+  - `KnowledgeBaseController`: CRUD for knowledge bases; document and page counts derived at read; delete cascades
+    everything and is 409 while a run is active (`DELETE … WHERE active_run_id IS NULL`).
+  - `WikiController`: rendered index; page by path (body with supersession notes and citations); page revisions, each
+    with its prior revision (the SPA diffs them); the graph (live pages + `page_links`).
+  - `RunController`:
+    - list runs `GET /api/knowledge-bases/{kbId}/runs`;
+    - run report (pages written with prior revisions and body-length deltas, supersessions, failures);
+    - revert `POST /api/runs/{id}/revert` — synchronous; 409 when busy or not offered;
+    - remove one supersession `DELETE /api/knowledge-bases/{kbId}/supersessions/{id}` — synchronous; 409 when busy;
+    - progress `GET /api/knowledge-bases/{kbId}/progress` — SSE, every run of the knowledge base (T20).
+  - `HealthController`: `GET /api/knowledge-bases/{kbId}/health`; start a full Lint
+    `POST /api/knowledge-bases/{kbId}/lint-runs` (202; 409 if a `LINT` run is already queued or active).
   - `UserController`: profile management.
-  - Every controller method: thin — input validation + auth check + delegate to service.
-  - Constructor injection only — no `@Autowired` on fields.
+  - Every method thin: validation + ownership check + delegate. Constructor injection only.
 
 - [ ] **9.8 — SPA serving**
-  - Static Angular build served from classpath under `/static/`.
-  - All non-API paths fall through to `index.html` for client-side routing.
+  - Static Angular build served from classpath under `/static/`; non-API paths fall through to `index.html`.
 
 - [ ] **9.9 — API integration tests** (`integration/api/`)
-  - `@SpringBootTest(webEnvironment = RANDOM_PORT)` + `@Testcontainers`.
   - Auth flow: register → login → access protected resource → logout.
-  - Upload flow: upload file → poll status → verify artifact fields (no sensitive fields leaked).
-  - Ownership: user A cannot access user B's documents (expects 403).
+  - Upload flow: upload → run completes (stub gateway) → pages listed → no sensitive fields in any response.
+  - Upload with an existing lesson id → 409; the same with `newVersion` → 202.
+  - Deleting a knowledge base while a run is active → 409; a queued upload and a retry both run in order.
+  - Ownership: user A cannot read user B's pages, runs, progress stream or health (403).
 
 ### Completion Checklist
 
@@ -729,484 +960,524 @@ global exception handler, and SPA serving.
 - [ ] JWT stored in `HttpOnly` cookie only — never in response body.
 - [ ] No sensitive fields in any API response (verified by integration tests).
 - [ ] Ownership check present on every `@RestController` method.
-- [ ] `mvn spring-boot:run` starts the application and serves `GET /health`.
+
+---
+
+## [ ] Phase 9b — Bundle Export
+
+> **New in v3.0.** Decided in [T11](../wayfinder/tickets/11-bundle-export.md).
+
+**Goal:** Download a knowledge base as a conformant OKF bundle.
+
+> **Changed in v3.1:** reads through `BundleQuery`, escapes titles, re-worded `log.md` rule, `timestamp` source and a
+> never-empty filename (T19, T25).
+
+### Tasks
+
+- [ ] **9b.1 — `BundleExporter`** (`dev.mindforge.infrastructure.export`)
+  - One `@Transactional(readOnly = true, isolation = REPEATABLE_READ)` snapshot; no lease.
+  - Per page: SnakeYAML frontmatter (`type`, `title`, `description`, `timestamp` = `wiki_pages.updated_at`) + stored
+    body verbatim + supersession notes as a blockquote under the superseded level-1 heading
+    (`MarkdownStructure`) + projected `# Citations`. Titles in link text escape `\`, `[` and `]`.
+  - `index.md` from `IndexRenderer`; `log.md` from `LogRenderer`.
+  - Reads through `WikiStore.listBodies`, `BundleQuery` (citations, supersession notes) and
+    `RunReportQuery.logEntries` — never study tables, `cost`, `step_versions`, `failures` or `findings`.
+
+- [ ] **9b.2 — `BundleConformanceValidator`** (pure function over rendered files)
+  - OKF §9 rule 1: every non-reserved `.md` has parseable YAML frontmatter. Rule 2: non-empty `type`.
+  - Rule 3, re-worded (T19): `index.md` has optional frontmatter holding only `okf_version`, then `# ` sections each
+    followed by zero or more `* [title](url)` lines optionally ending ` - description`; `log.md` has one `# ` heading,
+    then `## YYYY-MM-DD` headings each followed by one or more `* ` lines; blank lines anywhere.
+  - Rule 4: every path is `(concepts|sources)/` + a name matching `Identifier.PATTERN`, not reserved.
+  - A violation is a 500 and is logged — never a shipped bundle.
+
+- [ ] **9b.3 — Endpoint**
+  - `GET /api/knowledge-bases/{kbId}/export` → `application/zip`, `Content-Disposition: attachment;
+    filename="<Identifier.slugify(kb name)>-okf.zip"` (never empty), the zip's root directory named the same; streamed
+    via `StreamingResponseBody`; ownership checked.
+
+- [ ] **9b.4 — Tests**
+  - Validator as oracle over exporter output; YAML escaping of titles with `: ` and quotes; a title containing `]` and
+    a lesson title that arrived with a newline still validate; an empty knowledge base exports a valid bundle; a
+    concurrent ingest commit does not tear the bundle; no study data in any file.
+
+### Completion Checklist
+
+- [ ] Every exported bundle passes the conformance validator.
+- [ ] No new dependency added.
 
 ---
 
 ## [ ] Phase 10 — Quiz and Flashcard Services
 
-**Goal:** Implement the Quiz Service (server-authoritative session management, Graph RAG
-question targeting, answer evaluation, SM-2 integration) and Flashcard Service (card
-catalog, SM-2 spaced repetition scheduling).
+> **Changed in v3.0.** Study material is cut from Concept pages (ADR 0018). `FlashcardGenerator`,
+> `QuizGenerator` and `QuizEvaluator` arrive here as model services, not Phase 6 agents. Graph RAG
+> targeting is replaced by weak-page SQL.
+
+**Goal:** Implement flashcards with SM-2 that survive page rewrites, and server-authoritative quizzes
+targeting weak pages.
 
 ### Tasks
 
-- [ ] **10.1 — Add domain types** (`dev.mindforge.domain.model`)
-  - `ReviewResult` record: `int rating` (0–5), `String qualityFlag`.
-  - Add to domain ports: `StudyProgressStore` (get due cards, save review, due count),
-    `QuizSessionStore` (create session, get session, update session, delete session).
+- [ ] **10.1 — Domain types** (`dev.mindforge.domain.model`)
+  - `ReviewResult` record: `int rating` (0–5).
+  - `Flashcard(cardId, pageId, sectionAnchor, cardType, front, back, sourceHash)`;
+    `cardId = sha256(kbId|pageId|cardType|front|back)[:16]`;
+    `sourceHash = sha256(title + "\n" + stripLinks(body))[:16]` of the page the card was generated or reused from (T21).
+  - `StudyScope` sealed interface: `WholeKnowledgeBase`, `Lesson(lessonId)` (pages via `WikiStore.pageIdsForLesson`;
+    the reserved `conversation` lesson is never offered), `Page(pageId)`.
+  - Ports: `StudyProgressStore` (due cards, save review, weak pages), `QuizSessionStore` — `kbId` first.
+  - `ProcessingSettings.cardPagesPerSession` (default 10) — one generation budget for new and stale pages (T27).
+  - Weakness: a page's score is the mean of its last 5 `study_events`; weak below 3.0.
 
-- [ ] **10.2 — `QuizSessionStore` implementation (PostgreSQL-backed)**
-  (`dev.mindforge.infrastructure.persistence`)
-  - Sessions persisted to `quiz_sessions` table via Flyway migration `V8__create_quiz_sessions.sql`.
-  - TTL enforced by scheduled cleanup job (`@Scheduled`).
-  - Caffeine cache wraps the PostgreSQL store for low-latency reads.
+- [ ] **10.2 — Migration `V3__create_study.sql` and stores**
+  - `flashcards` (PK `(knowledge_base_id, card_id)`, `page_id` without FK to `wiki_pages`, `section_anchor`,
+    `source_hash CHAR(16)`, `retired_at`, SM-2 columns). Inserts are `ON CONFLICT (knowledge_base_id, card_id) DO NOTHING`.
+  - `study_events (knowledge_base_id, page_id, card_id, kind CARD|QUIZ, score, occurred_at)`.
+  - `quiz_sessions` — questions JSONB with reference answers and grounding; TTL via `@Scheduled` cleanup;
+    Caffeine wraps the PostgreSQL store.
 
 - [ ] **10.3 — SM-2 algorithm** (`dev.mindforge.application.service`)
-  - `SM2Scheduler` pure Java class (no framework dependencies — unit-testable in isolation).
-  - Input: `ReviewResult.rating` (0–5). Output: next review interval and new ease factor.
-  - Algorithm per the SM-2 specification: `EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))`.
-  - `EF` minimum clamped to 1.3.
+  - `SM2Scheduler` pure Java class. `EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))`, EF ≥ 1.3.
 
-- [ ] **10.4 — `QuizService`** (`dev.mindforge.application.service`)
-  - `startSession(UUID kbId, UUID userId)`: creates `QuizSession`, persists via `QuizSessionStore`.
-  - `nextQuestion(UUID sessionId)`: targets weak concepts via `RetrievalPort.findWeakConcepts()`,
-    fetches a question from the artifact, returns question without reference answer.
-  - `submitAnswer(UUID sessionId, String answer)`: calls `QuizEvaluatorAgent` to score answer,
-    updates SM-2 state via `StudyProgressStore.saveReview()`, returns score and feedback
-    (never the reference answer).
+- [ ] **10.4 — `FlashcardGenerator`** (LARGE) **and `FlashcardService`** — ADR 0018, T21, T27
+  - Stale: the page's current hash differs from its cards' `source_hash`. A link-only or supersession-only change is
+    never stale.
+  - Lazy: when a deck opens for a scope, spend at most `cardPagesPerSession` generation calls — stale pages with due
+    cards (oldest due first), then Concept pages without cards (by `created_at`). Calls run in parallel on virtual
+    threads with `DeadlineProfile.BATCH`; the request waits for them. Stale pages past the budget keep serving their cards.
+  - Per-page `ReentrantLock` in a `ConcurrentHashMap` (not `synchronized`); staleness re-checked after acquiring it.
+  - The generator receives the page with superseded sections stripped, its current cards, and its retired cards whose
+    `source_hash` equals the current hash, for verbatim reuse.
+  - Returned cards are stamped with the current `source_hash` and their `section_anchor`; a returned id that was retired
+    is un-retired with its SM-2 history and `due_at = now`; cards not returned get `retired_at`.
+  - Due query inner-joins `wiki_pages` and excludes cards whose `(page_id, section_anchor)` has a live supersession.
+  - `reviewCard` updates SM-2 and appends a `study_events` row.
 
-- [ ] **10.5 — `FlashcardService`** (`dev.mindforge.application.service`)
-  - `getDueCards(UUID kbId, UUID userId)`: returns flashcards due per SM-2 schedule.
-  - `reviewCard(UUID cardId, UUID userId, int rating)`: updates SM-2 state.
-  - `listCards(UUID kbId)`: returns all cards for a knowledge base.
+- [ ] **10.5 — `QuizGenerator`** (LARGE), **`QuizEvaluator`** (SMALL) **and `QuizService`** — T27
+  - `startSession(kbId, userId, scope)`: whole-knowledge-base order is weak pages by ascending mean, then unstudied
+    Concepts by `created_at`, then the rest by ascending mean; then 1-hop `page_links` neighbours; one generation call
+    with superseded sections stripped; batch stored in the session.
+  - `nextQuestion`: question text only. `submitAnswer`: grade against the session's reference answer and
+    grounding excerpt on SM-2's 0–5 rubric (clamped); return score + feedback; append `study_events`.
 
-- [ ] **10.6 — Quiz and Flashcard controllers** (added to Phase 9 controllers)
-  - `QuizController`: `POST /api/quiz/sessions`, `GET /api/quiz/sessions/{id}/next`,
-    `POST /api/quiz/sessions/{id}/answers`.
-  - `FlashcardController`: `GET /api/flashcards`, `POST /api/flashcards/{id}/reviews`.
+- [ ] **10.6 — Controllers**
+  - `QuizController`: `POST /api/quiz/sessions`, `GET /api/quiz/sessions/{id}/next`, `POST /api/quiz/sessions/{id}/answers`.
+  - `FlashcardController`: `GET /api/flashcards?kbId&scope`, `POST /api/flashcards/{id}/reviews`.
 
-- [ ] **10.7 — Unit tests**
-  - `SM2SchedulerTest`: rating 5 → EF increases; rating 0 → reset to 1-day interval;
-    EF never drops below 1.3.
-  - `QuizServiceTest` with `StubAIGateway` and `StubRetrievalAdapter`: no reference answer
-    in responses.
-  - `FlashcardServiceTest`: SM-2 scheduling produces correct next-review dates.
+- [ ] **10.7 — Tests**
+  - `SM2SchedulerTest`: rating 5 → EF increases; rating 0 → reset; EF never below 1.3.
+  - `FlashcardServiceTest`: a revision keeps unchanged cards' history; a changed answer retires the old card;
+    revert revives it with history and `due_at = now`; a link-only revision regenerates nothing; superseded sections
+    are skipped; the generation budget covers new and stale pages together; two concurrent deck opens make one
+    generation call per page; a reused card's `section_anchor` follows its section.
+  - `QuizServiceTest` with `StubAIGateway`: no reference answer in responses; weak pages targeted first; a knowledge base
+    with no study events orders by creation.
 
 ### Completion Checklist
 
-- [ ] SM-2 algorithm produces correct scheduling for all rating values (0–5).
-- [ ] Quiz responses contain no sensitive fields (`referenceAnswer`, `groundingContext`).
-- [ ] Single `QuizSessionStore` implementation (PostgreSQL + Caffeine cache).
-- [ ] Due card list is always scoped to `kbId` and `userId`.
+- [ ] SM-2 produces correct scheduling for all ratings (0–5).
+- [ ] Quiz responses contain no `referenceAnswer` or `groundingContext`.
+- [ ] Flashcards are never written into a page and never exported.
+- [ ] Due cards are always scoped to `kbId`.
 
 ---
 
-## [ ] Phase 11 — Search and Conversational RAG
+## [ ] Phase 11 — Query
 
-**Goal:** Implement the Search Service and Chat Service with multi-turn conversational
-RAG over the knowledge base.
+> **Re-cut in v3.0.** This phase was *Search and Conversational RAG* over `content_embeddings`. Query
+> reads curated pages chosen from the rendered index instead (ADR 0016). pgvector is gone.
+
+**Goal:** Answer multi-turn questions from the wiki with page citations; accept conversation edits to the
+wiki; provide page search for the SPA.
 
 ### Tasks
 
-- [ ] **11.1 — Add domain types** (`dev.mindforge.domain.model`)
-  - `Interaction` record: `UUID interactionId`, `UUID userId`, `UUID kbId`, `Instant startedAt`.
-  - `InteractionTurn` record: `UUID turnId`, `String question`, `String answer`,
-    `List<ConceptNode> usedConcepts`, `Instant createdAt`.
-  - `TokenBudget` record: `int totalTokens`, `int reservedForResponse`. Computed property
-    `availableForContext()`.
-  - `WeakConcept` record: `String label`, `float retentionScore`.
-  - Add to domain ports: `InteractionStore` (`createInteraction`, `addTurn`, `getInteraction`,
-    `listForUser` — redacted, `listUnredacted`).
+- [ ] **11.1 — Domain types and migration**
+  - `Interaction(interactionId, userId, kbId, startedAt)`;
+    `InteractionTurn(turnId, question, answer, usedPagePaths, createdAt)`;
+    `TokenBudget(totalTokens, reservedForResponse)` with `availableForContext()`, counting with `TokenEstimate` (T23).
+  - `InteractionStore` port, `kbId` first: `createInteraction`, `addTurn`, `getInteraction`, `listForUser` (redacted).
+    No `listUnredacted` — there is no admin role (T28).
+  - Migration `V4__create_interactions.sql`: `interactions` and `interaction_turns`, both with `knowledge_base_id` FK
+    `ON DELETE CASCADE`; `interaction_turns.used_page_paths TEXT[]` (T28).
 
-- [ ] **11.2 — `SearchService`** (`dev.mindforge.application.service`)
-  - `search(UUID kbId, String query)`: follows retrieval priority — graph → full-text → vector.
-  - Full-text via PostgreSQL `ts_query` on `content_embeddings.content`.
-  - Semantic via pgvector `<=>` cosine distance on `content_embeddings.embedding`.
-  - Results scoped to `kbId` — no cross-KB leakage.
+- [ ] **11.2 — `PageSelector`** (SMALL), **`AnswerWriter`** (LARGE) **and `QueryService`**
+  - Select: rendered index (prefiltered past 20K tokens) + question + prior turns → page paths.
+  - Load: verify live paths; bodies with supersession notes; add 1-hop link neighbours while `TokenBudget` allows.
+  - Answer: `DeadlineProfile.INTERACTIVE`; cites page paths. Query never writes pages and takes no lease.
 
-- [ ] **11.3 — `ChatService`** (`dev.mindforge.application.service`)
-  - `startChat(UUID kbId, UUID userId)`: creates `Interaction`, persists via `InteractionStore`.
-  - `chat(UUID interactionId, String question)`:
-    - Retrieves concept neighborhood for question terms.
-    - Computes `TokenBudget`; trims context to fit.
-    - Calls `AIGateway.complete(LARGE, grounded_prompt, INTERACTIVE)`.
-    - Persists `InteractionTurn` (stores used concepts, not raw prompt/completion).
-    - Returns answer — never returns `groundingContext`, `rawPrompt`, or `rawCompletion`.
+- [ ] **11.3 — Conversation edits** — ADR 0012, T15
+  - An explicit *edit* action in chat (not a question) is persisted as a `CONVERSATION` `Document` — lesson id
+    `conversation`, lesson title `Conversation`, `text/plain`, filename `conversation`, content hash over the UTF-8 content —
+    together with a `QUEUED` `INGEST` run, exactly like an upload. "Save that" stores the instruction followed by the
+    quoted answer.
+  - The run goes through Extract's edit prompt (6.3) — claims, `Delete`, `Retitle` — then Resolve; RelevanceGuard and the
+    Source Summary task are skipped. Deletion and retitling have no other channel.
+  - The user sees the run report inline. An edit that named no page fails (`retryable = false`) and chat says *"I couldn't
+    tell which page to change — name the page or rephrase."*; dropped items are listed with their reasons. "Undo" calls
+    `RevertService` (409 while a run is active).
 
-- [ ] **11.4 — `InteractionStoreAdapter`** (PostgreSQL + `@InteractionStoreRedaction`)
-  - `listForUser()` redacts `usedConcepts` and returns only `question` + `answer` (no RAG internals).
-  - `listUnredacted()` — admin only (role check enforced).
+- [ ] **11.4 — Page search** (`SearchService`)
+  - Title/description match and `simple` full-text over `wiki_pages` bodies, scoped to `kbId`.
+  - Shares the lexical code the index prefilter will use; `pg_trgm` is added only when a knowledge base passes the ceiling.
 
-- [ ] **11.5 — Search and Chat controllers**
-  - `SearchController`: `GET /api/search?kbId=...&q=...`
-  - `ChatController`: `POST /api/chat/sessions`, `POST /api/chat/sessions/{id}/messages`.
+- [ ] **11.5 — `InteractionStoreAdapter`** (PostgreSQL)
+  - `listForUser(kbId, userId)` returns only `question` + `answer`.
 
-- [ ] **11.6 — Unit tests**
-  - `SearchServiceTest`: result priority order (graph > full-text > vector).
-  - `ChatServiceTest` with `StubAIGateway` and `StubRetrievalAdapter`: no grounding context
-    in response; `TokenBudget` trimming works.
-  - `InteractionStoreAdapterTest`: `listForUser` redacts internal fields.
+- [ ] **11.6 — Controllers**
+  - `QueryController`: `POST /api/query/sessions`, `POST /api/query/sessions/{id}/messages`,
+    `POST /api/query/sessions/{id}/edits`.
+  - `SearchController`: `GET /api/knowledge-bases/{kbId}/pages/search?q=...`.
+
+- [ ] **11.7 — Tests**
+  - `QueryServiceTest` with `StubAIGateway`: hallucinated paths dropped; `TokenBudget` trimming; no grounding in responses.
+  - Conversation edit creates a `CONVERSATION` document (lesson `conversation`) and a `QUEUED` run; an identical edit a
+    week later is not deduplicated; "delete Mitoza" tombstones the page; an edit naming no page fails with the chat
+    message above; the `conversation` lesson never appears in the study scope picker.
+  - `InteractionStoreAdapterTest`: `listForUser` redacts internals.
 
 ### Completion Checklist
 
-- [ ] Search results scoped to `kbId`.
-- [ ] Chat responses never include `groundingContext`, `rawPrompt`, or `rawCompletion`.
-- [ ] `TokenBudget` prevents context window overflow.
-- [ ] `InteractionStore.listForUser()` returns redacted data only.
+- [ ] Query answers cite pages, never uploads directly.
+- [ ] Query has no write path; conversation edits are ingest runs.
+- [ ] Responses never include `groundingContext`, `rawPrompt` or `rawCompletion`.
 
 ---
 
 ## [ ] Phase 12 — Angular Frontend
 
-**Goal:** Create the Angular SPA with standalone components, lazy-loaded routing, auth
-integration, and all user-facing pages for the core learning loop.
+> **Changed in v3.0:** the document-centric summary/flashcards/concept-map tabs are replaced by wiki,
+> run, health, study and chat surfaces.
+
+**Goal:** Create the Angular SPA with standalone components, lazy-loaded routing, auth integration and
+all user-facing pages for the learning loop.
 
 ### Tasks
 
 - [ ] **12.1 — Angular project setup**
   - `ng new frontend --standalone --routing --style=scss` inside `frontend/`.
-  - Install: `@angular/material`, `cytoscape`, `@types/cytoscape`.
-  - Proxy config: all `/api` requests forwarded to `:8080`.
+  - Install: `@angular/material`, `cytoscape`, `@types/cytoscape`, `diff` (revision diffs are computed in the SPA, T28).
+    Proxy `/api` to `:8080`.
 
 - [ ] **12.2 — Core infrastructure**
-  - `AuthService`: JWT cookie auth, Google/GitHub OAuth2 redirect flows.
-  - `ApiService`: typed HTTP client wrapping all backend endpoints.
-  - `AuthGuard`: redirects unauthenticated users to `/login`.
-  - Error handling: global `HttpInterceptor` maps 4xx/5xx to user-visible toasts.
+  - `AuthService` (JWT cookie, Google/GitHub OAuth2), `ApiService` (generated types), `AuthGuard`,
+    global `HttpInterceptor` mapping 4xx/5xx to toasts.
 
 - [ ] **12.3 — Pages**
-  - `/login` — email/password form + OAuth2 buttons.
-  - `/dashboard` — knowledge base list; "New KB" and "Upload Document" actions.
-  - `/kb/:id` — document list for a knowledge base; upload dropzone.
-  - `/doc/:id` — document detail: summary tab, flashcards tab, concept map tab, quiz tab.
-  - `/doc/:id/concept-map` — Cytoscape.js interactive concept graph.
-  - `/chat` — conversational RAG chat with active knowledge base.
+  - `/login`; `/dashboard` — knowledge bases.
+  - `/kb/:id` — documents, upload dropzone (a 409 lesson collision asks *new version of "…"* or *new lesson* with an
+    editable id), recent runs with live SSE progress, a retry button on retryable failed runs.
+  - `/kb/:id/pages` — the index, grouped Concepts / Sources, with page search.
+  - `/kb/:id/pages/:path` — a page with supersession notes, citations and revision history. Bodies render with raw HTML
+    escaped; external links get `rel="noopener noreferrer nofollow"`.
+  - `/kb/:id/graph` — Cytoscape.js graph of pages and `page_links`.
+  - `/kb/:id/runs/:runId` — run report: pages written with diffs and body-length deltas, supersessions with per-row
+    removal, failures and omissions, revert (a 409 says the knowledge base is busy).
+  - `/kb/:id/health` — live findings, index size against the ceiling, latest full review's findings and suggestions,
+    "run full review".
+  - `/kb/:id/study` — scope picker (the `conversation` lesson is not offered), flashcard review, quiz.
+  - `/kb/:id/chat` — Query conversation with an explicit edit action and inline run reports.
+  - Export button on `/kb/:id`.
 
-- [ ] **12.4 — Real-time pipeline progress**
-  - `EventSourceService` subscribes to `GET /api/docs/{id}/progress` SSE stream.
-  - Progress stepper component updates per `PipelineStepCompleted` event.
+- [ ] **12.4 — Real-time progress** — T20
+  - `EventSourceService` subscribes to `GET /api/knowledge-bases/{kbId}/progress` while a knowledge base is open; on
+    (re)connect it first reads `GET /api/knowledge-bases/{kbId}/runs`, then applies `RunProgress` messages — status
+    changes and a step stepper — for every run of that knowledge base.
 
 - [ ] **12.5 — Build integration**
-  - `npm run build` output lands in `frontend/dist/frontend/browser/`.
-  - `frontend-maven-plugin` copies Angular dist into `src/main/resources/static/` during
-    `mvn package`, so the Spring Boot JAR serves the SPA.
+  - `npm run build` output lands in `frontend/dist/frontend/browser/`; `frontend-maven-plugin` copies it into
+    `src/main/resources/static/` during `mvn package`.
 
 ### Completion Checklist
 
-- [ ] `npm start` serves SPA on `:4200` with proxy to API `:8080`.
-- [ ] `npm run build` produces output; `mvn package` embeds it in the JAR.
-- [ ] All routes navigable; lazy loading confirmed by network tab.
-- [ ] SSE progress updates render in the UI in real time.
-- [ ] API request/response models match backend DTOs (no field name mismatches).
+- [ ] `npm start` serves the SPA on `:4200` with proxy to `:8080`; `mvn package` embeds the build.
+- [ ] All routes navigable; lazy loading confirmed.
+- [ ] Revert is reachable from every run report while it is offered.
+- [ ] API models match backend DTOs (generated).
 
 ---
 
 ## [ ] Phase 13 — Docker and Deployment
 
-**Goal:** Complete Docker multi-stage build, Docker Compose orchestration for local and
-production, and Railway/Render deployment configuration.
+> **Changed in v3.0:** no Neo4j service; plain PostgreSQL.
+
+**Goal:** Complete Docker multi-stage build, Docker Compose for local and production, and Railway/Render
+deployment configuration.
 
 ### Tasks
 
 - [ ] **13.1 — Multi-stage `Dockerfile`**
   - Stage 1 (`node:20-alpine`): `npm ci && npm run build` in `frontend/`.
-  - Stage 2 (`maven:3.9-eclipse-temurin-21`): `mvn package -DskipTests` (Angular dist
-    already in `src/main/resources/static/` via copy from Stage 1).
-  - Stage 3 (`eclipse-temurin:21-jre-alpine`): `COPY --from=2 target/*.jar app.jar`.
-  - `EXPOSE 8080`; `ENTRYPOINT ["java", "-jar", "app.jar"]`.
+  - Stage 2 (`maven:3.9-eclipse-temurin-21`): `mvn package -DskipTests`.
+  - Stage 3 (`eclipse-temurin:21-jre-alpine`): `COPY --from=2 target/*.jar app.jar`; `EXPOSE 8080`.
 
 - [ ] **13.2 — `compose.yml`**
-  - Services: `app` (the JAR image), `postgres` (PostgreSQL 15 + pgvector),
-    `neo4j` (Neo4j 5 Community).
-  - Health checks on all three services.
-  - `app` depends on `postgres` and `neo4j` health.
-  - Volume mounts for PostgreSQL and Neo4j data persistence.
-  - `compose.override.yml` for local dev (mounts source, hot-reload profile).
+  - Services: `app`, `postgres` (PostgreSQL 15). Health checks on both; `app` depends on `postgres` health.
+  - Volume mount for PostgreSQL data. `compose.override.yml` for local dev.
 
 - [ ] **13.3 — Deployment configuration**
-  - `railway.json` (or `render.yaml`) specifying build command, start command, env vars.
-  - `Procfile` as fallback: `web: java -jar target/mindforge.jar`.
-  - Deployment docs in `docs/project/deployment.md`.
+  - `railway.json` (or `render.yaml`); `Procfile` fallback; `docs/project/deployment.md`.
+  - Single live instance: the run sweep treats runs outside its own process as abandoned. During a deploy's overlap,
+    fenced commits keep that correct and in-flight runs re-run once (T17); two permanent instances need a heartbeat lease.
+  - Graceful shutdown enabled so the worker stops claiming on `ContextClosedEvent`.
 
 - [ ] **13.4 — Smoke test**
-  - `docker build -t mindforge .` succeeds.
-  - `docker compose up` starts all three services.
-  - `curl http://localhost:8080/health` returns 200.
-  - `curl http://localhost:8080/` returns the Angular SPA index.
+  - `docker build -t mindforge .`; `docker compose up`; `curl /health` → 200; `curl /` → SPA index.
 
 ### Completion Checklist
 
 - [ ] `docker build` creates a working multi-stage image.
-- [ ] `docker compose up` starts all services with passing health checks.
+- [ ] `docker compose up` starts both services with passing health checks.
 - [ ] Application is deployable to Railway/Render via documented procedure.
 
 ---
 
 ## [ ] Phase 14 — Observability and Tracing
 
-**Goal:** Implement Langfuse integration for tracing LLM calls, per-operation token and
-cost accounting, and alerting thresholds for LLM cost anomalies.
+> **Changed in v3.0:** traces and cost are per ingest run rather than per document pipeline.
+
+**Goal:** Langfuse tracing for LLM calls, per-run cost accounting, and cost anomaly warnings.
 
 ### Tasks
 
 - [ ] **14.1 — Langfuse integration** (`dev.mindforge.infrastructure.ai`)
-  - Wrap `AIGatewayAdapter` to emit a Langfuse trace span per `complete()` call.
-  - Span includes: `modelTier`, `model`, `inputTokens`, `outputTokens`, `costUsd`, `latencyMs`.
-  - Configured via `LANGFUSE_SECRET_KEY` + `LANGFUSE_PUBLIC_KEY` environment variables.
-  - Disabled when env vars are absent (graceful no-op).
+  - Wrap `AIGatewayAdapter` to emit a span per `complete()` call: `modelTier`, `model`, tokens, `costUsd`, `latencyMs`.
+  - Configured via `LANGFUSE_SECRET_KEY` + `LANGFUSE_PUBLIC_KEY`; graceful no-op when absent.
 
-- [ ] **14.2 — Pipeline tracing**
-  - `PipelineOrchestrator` emits a Langfuse trace per document with child spans per agent step.
+- [ ] **14.2 — Run tracing**
+  - `IngestPipeline`, `LintService` and `RevertService` emit a trace per run with child spans per step;
+    trace id recorded alongside `step_versions`.
+  - Populate `CompletionResult.costUsd` and write the summed `ingest_runs.cost` — `NULL` until this phase, meaning
+    "not measured" (T28).
 
-- [ ] **14.3 — Cost anomaly alerting**
-  - If a single pipeline run exceeds configurable cost threshold (default $0.50),
-    log a `WARN` with the `documentId` and per-step cost breakdown.
+- [ ] **14.3 — Cost anomaly warnings**
+  - If a run's `cost` exceeds a configurable threshold (default $0.50), log `WARN` with run id and per-step breakdown.
 
 ### Completion Checklist
 
-- [ ] Langfuse traces appear in Langfuse dashboard for a real pipeline run.
-- [ ] Cost tracking is accurate per operation (verified against OpenRouter billing page).
-- [ ] Langfuse integration is gracefully disabled when env vars absent.
+- [ ] Langfuse traces appear for a real ingest run.
+- [ ] Per-run cost matches the sum of its calls.
+- [ ] Integration gracefully disabled when env vars are absent.
 
 ---
 
 ## [ ] Phase 15 — CLI Entry Points
 
-**Goal:** Implement utility CLI entry points for scripted pipeline runs, Neo4j backfill,
-and quiz from terminal.
+> **Changed in v3.0:** `mindforge-backfill` (Neo4j rebuild) is deleted.
+
+**Goal:** Utility CLI entry points for scripted ingestion and terminal quizzes.
 
 ### Tasks
 
 - [ ] **15.1 — `mindforge-pipeline` CLI** (`dev.mindforge.cli`)
-  - Spring Boot `CommandLineRunner` activated by `--spring.profiles.active=cli`.
-  - Accepts `--file <path>` and `--kb <id>`; runs the full ingestion + pipeline on a local file.
-  - Prints step-level progress to stdout.
+  - `CommandLineRunner` under `--spring.profiles.active=cli`; `--file <path> --kb <id>`; ingests through the
+    same `IngestionService` and pipeline; prints step progress.
 
-- [ ] **15.2 — `mindforge-backfill` CLI**
-  - Reads all `DONE` documents from PostgreSQL; re-indexes their artifacts into Neo4j.
-  - Useful for rebuilding the graph after a Neo4j wipe.
-
-- [ ] **15.3 — `mindforge-quiz` CLI**
-  - Interactive terminal quiz: loads a knowledge base, presents questions, reads answers from stdin.
+- [ ] **15.2 — `mindforge-quiz` CLI**
+  - Interactive terminal quiz through the same `QuizService` as the web UI.
 
 ### Completion Checklist
 
-- [ ] All three CLI runners work via `java -jar mindforge.jar --spring.profiles.active=cli`.
-- [ ] Backfill rebuilds Neo4j correctly from PostgreSQL data.
+- [ ] Both CLI runners work via `java -jar mindforge.jar --spring.profiles.active=cli`.
 - [ ] CLI quiz submits answers through the same `QuizService` path as the web UI.
 
 ---
 
-## [ ] Phase 16 — Image Analysis Agent
+## [ ] Phase 16 — Image Analysis
 
-**Goal:** Add `ImageAnalyzerAgent` and `VISION` model-tier support to enable analysis of
-images extracted from uploaded PDFs and DOCX files.
+> **Changed in v3.0:** image descriptions become text blocks that flow into pages like any other content;
+> there is no `DocumentArtifact` to attach them to and no checkpoint skip.
+
+**Goal:** Describe images extracted from uploaded PDFs and DOCX files with the VISION tier so their
+content reaches the wiki.
 
 ### Tasks
 
-- [ ] **16.1 — Add domain types** (`dev.mindforge.domain.model`)
-  - `ImageDescription` record: `String description`, `List<String> detectedConcepts`.
-  - Add `List<ImageDescription> imageDescriptions` field to `DocumentArtifact`.
+- [ ] **16.1 — PDF/DOCX image extraction**
+  - Extend `PdfParser` and `DocxParser` to emit `ContentBlock`s with `BlockType.IMAGE` carrying bytes + MIME type.
 
-- [ ] **16.2 — PDF/DOCX image extraction**
-  - Extend `PdfParser` to extract embedded images as `byte[]` + MIME type.
-  - Extend `DocxParser` similarly.
-  - `ContentBlock` with `BlockType.IMAGE` carries `mediaRef` pointing to extracted bytes.
+- [ ] **16.2 — `ImageDescriber`** (`dev.mindforge.agent`, VISION)
+  - `VERSION` constant. For each IMAGE block, `AIGateway.complete(VISION, ...)`; replaces the block with a
+    TEXT block holding the description, in document order, before `RelevanceGuard`.
 
-- [ ] **16.3 — `ImageAnalyzerAgent`**
-  - `VERSION = "1.0"`. Model tier: `VISION`.
-  - For each `ContentBlock` with `BlockType.IMAGE`, calls `AIGateway.complete(VISION, ...)`.
-  - Writes `List<ImageDescription>` to `DocumentArtifact`.
-  - Added to the `OrchestrationGraph` as an optional parallel step alongside the LARGE-tier agents.
-
-- [ ] **16.4 — Add `UploadSource.VISION_PIPELINE`** (if needed for tracking).
-
-- [ ] **16.5 — Unit tests**
-  - `ImageAnalyzerAgentTest` with `StubAIGateway(VISION)`.
-  - `PdfParserTest`: image extraction returns non-empty `byte[]` for fixture PDF.
+- [ ] **16.3 — Unit tests**
+  - `ImageDescriberTest` with `StubAIGateway(VISION)`; `PdfParserTest` image extraction.
 
 ### Completion Checklist
 
-- [ ] `VISION` model tier routes to correct model string.
-- [ ] `ImageAnalyzerAgent` skipped (checkpoint hit) when image content unchanged.
-- [ ] Image descriptions appear in `ArtifactController` response.
+- [ ] `VISION` tier routes to the correct model string.
+- [ ] An image's description appears in the pages its document produced.
 
 ---
 
-## [ ] Phase 17 — Article Fetcher Agent
+## [ ] Phase 17 — Article Fetcher
 
-**Goal:** Add `ArticleFetcherAgent` and `EgressPolicy` to optionally fetch and analyze
-external articles referenced in uploaded documents.
+> **Changed in v3.0:** a fetched article is a source of its own — a `Document` ingested as its own run —
+> so it gets dedup, provenance and revert unchanged.
+
+**Goal:** Optionally fetch external articles referenced in uploaded documents, safely, and ingest them.
 
 ### Tasks
 
-- [ ] **17.1 — Add domain type** (`dev.mindforge.domain.model`)
-  - `FetchedArticle` record: `String url`, `String title`, `String content`, `Instant fetchedAt`.
-  - Add `List<FetchedArticle> fetchedArticles` to `DocumentArtifact`.
+- [ ] **17.1 — `EgressPolicy`** (`dev.mindforge.infrastructure.security`)
+  - Allowlist-based URL validator; rejects private IP ranges, `file://`, `data:`.
 
-- [ ] **17.2 — `EgressPolicy`** (`dev.mindforge.infrastructure.security`)
-  - Allowlist-based URL validator. Only URLs matching configured hostname patterns are allowed.
-  - Rejects: private IP ranges (SSRF prevention), `file://`, `data:` schemes.
-  - Used by `ArticleFetcherAgent` before any HTTP call.
+- [ ] **17.2 — `ArticleFetcher`** (no LLM)
+  - Extracts URLs from a document's blocks; validates via `EgressPolicy`; fetches with a timeout; HTML → text.
+  - Each article becomes a `Document` (`UploadSource.ARTICLE`, lesson identity from the article title) in the
+    same knowledge base, with a `QUEUED` run like any upload. An article whose lesson id already exists is skipped and
+    logged — nobody is there to confirm a new version (T18).
+  - Third-party content is untrusted (T28): an `ARTICLE` run is create-only — Resolve drops claims that resolve to a
+    live page — and Supersede does not run for it (`supersession_skipped`, reason `"article"`).
+  - Disabled unless `ProcessingSettings.fetchExternalArticles` is true.
 
-- [ ] **17.3 — `ArticleFetcherAgent`**
-  - `VERSION = "1.0"`. No direct LLM call — fetches URL, parses HTML to plain text.
-  - Extracts `<a href>` URLs from document's `ContentBlock` list.
-  - For each URL: validates via `EgressPolicy`, fetches via `RestTemplate` (with timeout),
-    extracts readable content via an HTML-to-text utility.
-  - Optional pipeline step — skipped if `ProcessingSettings.fetchExternalArticles == false`.
-
-- [ ] **17.4 — Unit tests**
-  - `EgressPolicyTest`: private IPs rejected; allowed hostnames pass; `file://` rejected.
-  - `ArticleFetcherAgentTest` with a mock HTTP server: fetch succeeds; `EgressPolicy`
-    violation throws `SsrfAttemptException`.
+- [ ] **17.3 — Unit tests**
+  - `EgressPolicyTest`; `ArticleFetcherTest` with a mock HTTP server, including a policy violation.
+  - An `ARTICLE` run whose claims target a live page creates nothing there and inserts no supersession.
 
 ### Completion Checklist
 
-- [ ] `EgressPolicy` rejects private IP ranges and disallowed schemes.
-- [ ] Article fetcher is disabled by default (`fetchExternalArticles=false`).
-- [ ] All outbound HTTP goes through `EgressPolicy` — never a raw `RestTemplate.getForObject`.
+- [ ] All outbound HTTP goes through `EgressPolicy`.
+- [ ] Article fetching is disabled by default.
 
 ---
 
 ## [ ] Phase 18 — Discord Bot
 
-**Goal:** Implement Discord bot with quiz, search, and upload slash commands; guild allowlists;
-identity resolution; and SR reminders via DM.
+> **Changed in v3.0:** `/ask` (Query) replaces `/search`.
+
+**Goal:** Discord bot with ask, quiz and upload slash commands; guild allowlists; identity resolution;
+SR reminders via DM.
 
 ### Tasks
 
-- [ ] **18.1 — Add domain type** (`dev.mindforge.domain.port`)
-  - `ExternalIdentityRepository` interface: `findUserId(String platform, String externalId)`,
-    `link(UUID userId, String platform, String externalId)`,
-    `createUserAndLink(String platform, String externalId, String displayName)`.
-  - Add `UploadSource.DISCORD` to domain enum.
+- [ ] **18.1 — Domain additions**
+  - `ExternalIdentityRepository`: `findUserId(platform, externalId)`, `link(...)`, `createUserAndLink(...)`.
+  - `UploadSource.DISCORD`.
 
 - [ ] **18.2 — `DiscordBot`** (`dev.mindforge.discord`)
-  - JDA (Java Discord API) integration, started as a Spring-managed `ApplicationRunner`.
-  - Slash commands: `/quiz start`, `/quiz answer`, `/search`, `/upload`.
-  - Guild and role allowlist enforcement via `AppProperties.discord.*`.
-  - Identity resolution: Discord user ID → internal `UUID` via `ExternalIdentityRepository`;
-    auto-provisions new users on first contact.
+  - JDA as a Spring-managed `ApplicationRunner`. Slash commands: `/ask`, `/quiz start`, `/quiz answer`, `/upload`.
+  - Guild and role allowlist via `AppProperties.discord.*`; identity resolution auto-provisions on first contact.
 
 - [ ] **18.3 — SR reminder job**
-  - `@Scheduled` daily job: for each Discord-linked user with due cards, sends a DM.
+  - `@Scheduled` daily: DM each Discord-linked user with due cards.
 
 - [ ] **18.4 — Unit tests**
-  - Identity resolution: first contact auto-provisions user.
-  - Allowlist: commands from non-allowed guilds are rejected.
-  - Interaction ownership: user A cannot access user B's quiz session via slash command.
+  - First contact auto-provisions; non-allowed guilds rejected; user A cannot reach user B's sessions.
 
 ### Completion Checklist
 
-- [ ] Bot connects and responds to slash commands in a test guild.
-- [ ] Identity resolution works for new and existing Discord users.
-- [ ] Commands delegated to the same application services as the web UI.
-- [ ] SR reminder DMs sent correctly to users with due cards.
+- [ ] Commands delegate to the same application services as the web UI.
+- [ ] SR reminder DMs sent to users with due cards.
 
 ---
 
 ## [ ] Phase 19 — Slack Bot
 
-**Goal:** Implement Slack bot using Slack Bolt for Java with quiz, search, and upload
-handlers; workspace security; and identity resolution.
+> **Changed in v3.0:** `/mf-ask` (Query) replaces `/mf-search`.
+
+**Goal:** Slack bot using Slack Bolt for Java with ask, quiz and upload handlers; workspace security;
+identity resolution.
 
 ### Tasks
 
-- [ ] **19.1 — Add `UploadSource.SLACK`** to domain enum.
+- [ ] **19.1 — Add `UploadSource.SLACK`**.
 - [ ] **19.2 — `SlackBot`** (`dev.mindforge.slack`)
-  - Slack Bolt for Java integration via Socket Mode.
-  - Commands: `/mf-quiz`, `/mf-search`, file upload handler.
-  - Workspace allowlist enforcement.
-  - Identity resolution via `ExternalIdentityRepository` (same as Discord).
+  - Socket Mode; commands `/mf-ask`, `/mf-quiz`, file upload handler; workspace allowlist; identity via
+    `ExternalIdentityRepository`.
 - [ ] **19.3 — Unit tests**: allowlist enforcement, identity resolution, ownership check.
 
 ### Completion Checklist
 
 - [ ] Bot connects via Socket Mode and responds to commands.
-- [ ] Workspace allowlist enforced.
-- [ ] Identity resolution reuses same `ExternalIdentityRepository` as Discord.
+- [ ] Identity resolution reuses the same `ExternalIdentityRepository` as Discord.
 
 ---
 
 ## [ ] Phase 20 — Security Hardening
 
-**Goal:** Systematic security checklist pass against `web-security.md`, OWASP dependency
-audit, and rate limiting.
+**Goal:** Systematic security checklist pass against `web-security.md`, OWASP dependency audit, and rate limiting.
 
 ### Tasks
 
 - [ ] **20.1 — Security checklist pass**
-  - Verify each requirement in `docs/standards/security/web-security.md` is implemented.
-  - For each item: find the implementing code, add a comment citing the standard if non-obvious.
+  - Verify each requirement in `docs/standards/security/web-security.md`, including: the exporter never
+    reads study tables or run internals; every `WikiStore` query binds `kbId`; dedup is per knowledge base.
   - Fix any gaps found.
 
 - [ ] **20.2 — OWASP dependency check**
-  - Add `dependency-check-maven` plugin to `pom.xml`.
-  - Run `mvn dependency-check:check`; fix or suppress any `CVSS >= 7.0` findings.
+  - `dependency-check-maven`; fix or suppress any `CVSS >= 7.0` findings.
 
 - [ ] **20.3 — Rate limiting**
-  - Caffeine-backed rate limiter on auth endpoints (`/api/auth/login`, `/api/auth/register`).
-  - Configurable: `mindforge.security.rateLimit.authEndpoints.requestsPerMinute`.
-  - Returns 429 with `Retry-After` header when limit exceeded.
+  - Caffeine-backed limiter on `/api/auth/login` and `/api/auth/register`; 429 with `Retry-After`.
 
 - [ ] **20.4 — Security integration tests**
-  - Test rate limit triggers correctly.
-  - Test JWT tampered cookie returns 401.
-  - Test cross-user resource access returns 403.
+  - Rate limit triggers; tampered JWT → 401; cross-user access to pages, runs, export → 403.
 
 ### Completion Checklist
 
 - [ ] Every `web-security.md` requirement traced to implementing code.
-- [ ] `mvn dependency-check:check` passes (no unaddressed HIGH/CRITICAL CVEs).
+- [ ] `mvn dependency-check:check` passes.
 - [ ] Rate limiter active on auth endpoints.
 
 ---
 
 ## [ ] Phase 21 — End-to-End Testing and CI/CD
 
-**Goal:** Full E2E test suite covering core user journeys, GitHub Actions CI pipeline,
-and quality gates enforced on PRs.
+> **Changed in v3.0:** the E2E journey follows the wiki; ArchUnit gains model-service rules.
+
+**Goal:** Full E2E test suite covering core user journeys, GitHub Actions CI pipeline, and quality gates.
 
 ### Tasks
 
 - [ ] **21.1 — GitHub Actions workflow** (`.github/workflows/ci.yml`)
-  - Triggers: push to `main`, PRs.
-  - Steps: Checkstyle → SpotBugs → `mvn test` (with Testcontainers) → JaCoCo coverage gate.
-  - Fails PR if coverage drops below 70%.
+  - Push to `main`, PRs: Checkstyle → SpotBugs → `mvn test` (Testcontainers) → JaCoCo 70% gate.
 
 - [ ] **21.2 — Playwright E2E smoke tests** (`src/test/e2e/`)
-  - Tests against `docker compose up` environment.
-  - Scenarios: register → upload document → wait for pipeline → view summary → start quiz
-    → submit answer → view score.
+  - Against `docker compose up` with a stub-provider profile: register → upload → run completes → pages
+    appear → open a page → review flashcards → take a quiz → export bundle (validates).
 
-- [ ] **21.3 — Architecture fitness functions**
-  - ArchUnit test: no `dev.mindforge.domain` class imports from `infrastructure` or `api`.
-  - ArchUnit test: all `@RestController` methods have no direct repository access.
+- [ ] **21.3 — Architecture fitness functions** (ArchUnit)
+  - No `dev.mindforge.domain` class imports from `infrastructure` or `api`.
+  - No `@RestController` method accesses a repository directly.
+  - No class in `dev.mindforge.agent` depends on another class in `dev.mindforge.agent`.
+  - Only `RunWorker` calls `IngestRunRepository.findUnfinished` and `knowledgeBasesWithQueuedRuns` (T25).
+  - No class outside `dev.mindforge.domain.model.MarkdownStructure` matches heading or link syntax with a regex
+    (reviewed by a name rule on `Pattern` constants mentioning `#` or `](`) (T26).
 
 ### Completion Checklist
 
 - [ ] CI passes on a clean checkout with real Testcontainers.
-- [ ] JaCoCo coverage gate blocks PRs below 70%.
-- [ ] E2E smoke test covers the full upload-to-quiz user journey.
-- [ ] ArchUnit tests enforce hexagonal layer boundaries.
+- [ ] JaCoCo gate blocks PRs below 70%.
+- [ ] E2E covers upload → wiki → study → export.
+- [ ] ArchUnit enforces layer and model-service boundaries.
 
 ---
 
 ## Dependency Graph
 
 ```
-Phase 0  ──► Phase 1  ──► Phase 2  ──► Phase 3
-                                   │
-                          Phase 4 ◄┘
-                               │
-                          Phase 5
-                               │
-                          Phase 6 ──► Phase 7 ──► Phase 8
-                                                       │
-                          Phase 9 ◄────────────────────┘
-                               │
-                     Phase 10 ─┤─ Phase 11
-                               │
-                          Phase 12
-                               │
-                          Phase 13 (DEPLOY — core system complete)
-                               │
-               ┌───────────────┴────────────────────┐
-          Phase 14          Phase 15           Phase 16
-               │                                    │
-          Phase 17 ──► Phase 18 ──► Phase 19
-               │
-          Phase 20 ──► Phase 21
+Phase 0 ──► 1 ──► 2 ──► 2b ──► 3 ──► 3b (cleanup)
+                                       │
+                                  Phase 4  (parsing, upload, dedup, lesson rule)
+                                       │
+                                  Phase 5  (wiki domain & store, runs, lease, revert)
+                                       │
+                                  Phase 6  (ingest pipeline, run queue, progress — absorbs retired Phase 8)
+                                       │
+                                  Phase 7  (Lint) ──► Phase 9 (API) ──► Phase 9b (export)
+                                                           │
+                                          Phase 10 (study) ─┤─ Phase 11 (Query)
+                                                           │
+                                                      Phase 12 (SPA)
+                                                           │
+                                                      Phase 13 (DEPLOY — core system complete)
+                                                           │
+                              ┌────────────────────────────┼─────────────────────┐
+                         Phase 14                     Phase 15              Phase 16
+                              │
+                         Phase 17 ──► Phase 18 ──► Phase 19
+                              │
+                         Phase 20 ──► Phase 21
 ```

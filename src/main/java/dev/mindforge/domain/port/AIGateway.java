@@ -7,6 +7,4 @@ import dev.mindforge.domain.model.ModelTier;
 public interface AIGateway {
 
     CompletionResult complete(ModelTier tier, String prompt, DeadlineProfile deadline);
-
-    float[] embed(String text);
 }

@@ -3,7 +3,7 @@ package dev.mindforge.domain.model;
 import java.util.Map;
 
 /**
- * Per-run pipeline tuning: chunking parameters, agent feature flags, and the
+ * Per-run pipeline tuning: chunking parameters, feature flags, and the
  * {@link ModelTier} to model-id mappings the gateway resolves against.
  */
 public record ProcessingSettings(

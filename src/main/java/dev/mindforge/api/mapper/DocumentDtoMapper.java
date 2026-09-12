@@ -10,6 +10,5 @@ public interface DocumentDtoMapper {
 
     @Mapping(target = "lessonId",    source = "lessonIdentity.lessonId")
     @Mapping(target = "lessonTitle", source = "lessonIdentity.title")
-    @Mapping(target = "status",      expression = "java(d.status().name())")
     DocumentResponse toResponse(Document d);
 }

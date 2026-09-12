@@ -2,34 +2,33 @@ package dev.mindforge.domain.model;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
- * Deterministic identity of a lesson: a stable {@code lessonId} slug plus a
+ * Deterministic identity of a lesson: a stable {@code lessonId} plus a
  * human-readable {@code title}.
  *
- * <p>{@link #resolve(Map, String)} implements the five-step resolution algorithm.
- * The first non-blank source wins:
+ * <p>{@link #resolve(Map, String)} takes the first source present:
  * <ol>
- *   <li>Markdown frontmatter {@code lesson_id} (validated as-is)</li>
+ *   <li>Markdown frontmatter {@code lesson_id} — must already match the {@link Identifier}
+ *       grammar; never rewritten</li>
  *   <li>Markdown frontmatter {@code title} (slugified)</li>
  *   <li>PDF metadata {@code Title} (slugified)</li>
  *   <li>Filename stem (slugified)</li>
  *   <li>otherwise reject with {@link LessonIdentityException}</li>
  * </ol>
- * The resolved id must be 1–80 chars of {@code [a-z0-9-_]} and must not be a
- * reserved name. Identity never falls back to a placeholder.
+ * {@code index}, {@code log}, {@code default} and {@code conversation} are reserved: an
+ * explicit id using one is rejected, a derived one gains {@code -lesson}. The title passes
+ * {@link TextRules#singleLine} and is cut to 200 characters. Identity never falls back to a
+ * placeholder.
  */
 public record LessonIdentity(String lessonId, String title) {
 
-    private static final int MAX_LENGTH = 80;
-    private static final Pattern VALID_ID = Pattern.compile("[a-z0-9\\-_]+");
-    private static final Pattern SLUG_SEPARATORS = Pattern.compile("[^a-z0-9_]+");
-    private static final Pattern EDGE_HYPHENS = Pattern.compile("(^-+)|(-+$)");
-    private static final Set<String> RESERVED_NAMES = Set.of("index", "default");
+    private static final int MAX_TITLE_LENGTH = 200;
+    private static final String ELLIPSIS = "…";
+    private static final String RESERVED_SUFFIX = "-lesson";
 
     private static final String KEY_LESSON_ID = "lesson_id";
     private static final String KEY_FRONTMATTER_TITLE = "title";
@@ -42,70 +41,51 @@ public record LessonIdentity(String lessonId, String title) {
 
     public static LessonIdentity resolve(Map<String, String> metadata, String filename) {
         Map<String, String> meta = metadata == null ? Map.of() : metadata;
+        String title = Stream.of(meta.get(KEY_FRONTMATTER_TITLE), meta.get(KEY_PDF_TITLE), stemOf(filename))
+            .filter(Objects::nonNull)
+            .map(TextRules::singleLine)
+            .filter(candidate -> !candidate.isEmpty())
+            .findFirst()
+            .orElse(null);
 
-        String explicitId = trimToNull(meta.get(KEY_LESSON_ID));
-        if (explicitId != null) {
-            return new LessonIdentity(validate(explicitId), bestTitle(meta, filename, explicitId));
+        String explicitId = meta.get(KEY_LESSON_ID);
+        if (explicitId != null && !explicitId.isBlank()) {
+            return new LessonIdentity(validate(explicitId), cut(title != null ? title : explicitId));
         }
-
-        String frontmatterTitle = trimToNull(meta.get(KEY_FRONTMATTER_TITLE));
-        if (frontmatterTitle != null) {
-            return new LessonIdentity(validate(slugify(frontmatterTitle)), frontmatterTitle);
+        if (title == null) {
+            throw new LessonIdentityException(
+                "Unable to resolve a lesson identity from metadata or filename");
         }
-
-        String pdfTitle = trimToNull(meta.get(KEY_PDF_TITLE));
-        if (pdfTitle != null) {
-            return new LessonIdentity(validate(slugify(pdfTitle)), pdfTitle);
-        }
-
-        String stem = stemOf(filename);
-        if (stem != null) {
-            return new LessonIdentity(validate(slugify(stem)), stem);
-        }
-
-        throw new LessonIdentityException(
-            "Unable to resolve a lesson identity from metadata or filename");
-    }
-
-    private static String bestTitle(Map<String, String> meta, String filename, String fallback) {
-        String title = trimToNull(meta.get(KEY_FRONTMATTER_TITLE));
-        if (title != null) {
-            return title;
-        }
-        title = trimToNull(meta.get(KEY_PDF_TITLE));
-        if (title != null) {
-            return title;
-        }
-        String stem = stemOf(filename);
-        return stem != null ? stem : fallback;
+        return new LessonIdentity(derive(Identifier.slugify(title)), cut(title));
     }
 
     private static String validate(String candidate) {
-        if (candidate.isEmpty()) {
-            throw new LessonIdentityException("Lesson id is empty after resolution");
-        }
-        if (candidate.length() > MAX_LENGTH) {
+        if (!Identifier.matches(candidate)) {
             throw new LessonIdentityException(
-                "Lesson id exceeds " + MAX_LENGTH + " characters: " + candidate);
+                "Lesson id must be 1-" + Identifier.MAX_LENGTH
+                    + " characters of a-z, 0-9 and single inner hyphens: '" + candidate + "'");
         }
-        if (!VALID_ID.matcher(candidate).matches()) {
-            throw new LessonIdentityException(
-                "Lesson id contains illegal characters (allowed: a-z 0-9 - _): " + candidate);
-        }
-        if (RESERVED_NAMES.contains(candidate)) {
+        if (isReserved(candidate)) {
             throw new LessonIdentityException("Lesson id is a reserved name: " + candidate);
         }
         return candidate;
     }
 
-    private static String slugify(String raw) {
-        String lower = raw.trim().toLowerCase(Locale.ROOT);
-        String collapsed = SLUG_SEPARATORS.matcher(lower).replaceAll("-");
-        String trimmed = EDGE_HYPHENS.matcher(collapsed).replaceAll("");
-        if (trimmed.length() > MAX_LENGTH) {
-            trimmed = EDGE_HYPHENS.matcher(trimmed.substring(0, MAX_LENGTH)).replaceAll("");
+    /** A derived id is never rejected: {@code slugify} already obeys the grammar, and a reserved word is suffixed. */
+    private static String derive(String slug) {
+        return isReserved(slug) ? slug + RESERVED_SUFFIX : slug;
+    }
+
+    private static boolean isReserved(String lessonId) {
+        return Identifier.RESERVED.contains(lessonId) || Identifier.RESERVED_LESSON_IDS.contains(lessonId);
+    }
+
+    /** A lesson title is metadata, not model output, so it is cut rather than rejected. */
+    private static String cut(String title) {
+        if (title.codePointCount(0, title.length()) <= MAX_TITLE_LENGTH) {
+            return title;
         }
-        return trimmed;
+        return title.substring(0, title.offsetByCodePoints(0, MAX_TITLE_LENGTH - 1)) + ELLIPSIS;
     }
 
     private static String stemOf(String filename) {

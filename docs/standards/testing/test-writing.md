@@ -90,21 +90,22 @@ private QuizService makeQuizService(AIGateway gateway, QuizSessionPort sessions)
 Use static `make*` factory methods (not `@BeforeEach` fixtures) for domain objects and services. Accept parameters only for the fields under test:
 
 ```java
-static DocumentArtifact makeArtifact(UUID documentId, String lessonId) {
-    return new DocumentArtifact(
-        documentId != null ? documentId : UUID.randomUUID(),
-        lessonId != null ? lessonId : "test-lesson"
+static WikiPage makePage(UUID knowledgeBaseId, String path) {
+    return new WikiPage(
+        UUID.randomUUID(),
+        knowledgeBaseId != null ? knowledgeBaseId : UUID.randomUUID(),
+        path != null ? path : "concepts/test-page"
         // ... sensible defaults
     );
 }
 
 // In test:
-DocumentArtifact artifact = makeArtifact(null, "custom-lesson");
+WikiPage page = makePage(null, "concepts/mitoza");
 ```
 
 ### Integration Tests
 
-Use `@Testcontainers` with real PostgreSQL/Neo4j containers. Mark with `@Tag("integration")`. Never use production credentials in tests.
+Use `@Testcontainers` with real PostgreSQL containers. Mark with `@Tag("integration")`. Never use production credentials in tests.
 
 ```java
 @Tag("integration")

@@ -11,7 +11,7 @@ Every Java class follows this order:
 4. Class declaration
 
 ```java
-package dev.mindforge.application.pipeline;
+package dev.mindforge.application.ingest;
 
 import static java.util.Objects.requireNonNull;
 
@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import dev.mindforge.domain.model.DocumentArtifact;
+import dev.mindforge.domain.model.WikiPage;
 ```
 
 ## Constants
@@ -80,7 +80,7 @@ Use `record` for:
 - Domain events
 - Value objects
 - Result types (returned from application services)
-- Agent capability descriptors
+- Typed model-service outputs (e.g. `LinkInsertion`, `PageDraft`)
 
 Use regular classes (with JPA annotations) only for:
 - `@Entity` classes with evolving persistent state (in `infrastructure/persistence/`)
@@ -94,11 +94,13 @@ public record IngestionResult(
 
 ## Sealed Interfaces
 
-Use `sealed interface` with `permits` for discriminated unions (e.g., agent results):
+Use `sealed interface` with `permits` for discriminated unions (e.g., study scopes):
 
 ```java
-public sealed interface AgentResult permits AgentResult.Success, AgentResult.Failure {
-    record Success(String outputKey, Object value) implements AgentResult {}
-    record Failure(String reason, Exception cause) implements AgentResult {}
+public sealed interface StudyScope
+    permits StudyScope.WholeKnowledgeBase, StudyScope.Lesson, StudyScope.Page {
+    record WholeKnowledgeBase() implements StudyScope {}
+    record Lesson(String lessonId) implements StudyScope {}
+    record Page(UUID pageId) implements StudyScope {}
 }
 ```

@@ -24,9 +24,6 @@ public class KnowledgeBaseEntity extends BaseEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "document_count", nullable = false)
-    private int documentCount;
-
     public UUID getKbId() { return kbId; }
     public void setKbId(UUID kbId) { this.kbId = kbId; }
 
@@ -38,7 +35,4 @@ public class KnowledgeBaseEntity extends BaseEntity {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-
-    public int getDocumentCount() { return documentCount; }
-    public void setDocumentCount(int documentCount) { this.documentCount = documentCount; }
 }

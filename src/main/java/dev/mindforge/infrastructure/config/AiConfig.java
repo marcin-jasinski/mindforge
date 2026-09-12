@@ -12,7 +12,6 @@ import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.retry.TransientAiException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,11 +22,10 @@ public class AiConfig {
 
     @Bean
     AIGateway aiGateway(ChatModel chatModel,
-                        EmbeddingModel embeddingModel,
                         AppProperties properties,
                         Retry aiGatewayRetry,
                         CircuitBreaker aiGatewayCircuitBreaker) {
-        return new AIGatewayAdapter(chatModel, embeddingModel, properties, aiGatewayRetry, aiGatewayCircuitBreaker);
+        return new AIGatewayAdapter(chatModel, properties, aiGatewayRetry, aiGatewayCircuitBreaker);
     }
 
     /**

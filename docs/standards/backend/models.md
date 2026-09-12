@@ -21,6 +21,12 @@ Validate at both model and database levels for defense in depth.
 ### Clear Relationships
 Define relationships with appropriate cascade behaviors and naming.
 
+### Foreign Keys Inside One Cascade
+A foreign key whose referencing and referenced rows are both removed by the same cascade (e.g. `page_sources.document_id`, both under `knowledge_bases`) is declared `NO ACTION DEFERRABLE INITIALLY DEFERRED`. It is then checked at commit, after the cascade has run, so a delete never depends on the order PostgreSQL fires cascades. Cover each such cascade with an integration test that deletes the root.
+
+### Inserting Entities With Assigned Ids
+Entities whose UUID is assigned by the application implement `Persistable<UUID>` with `isNew()` true until persisted, so Spring Data's `save()` issues one `INSERT` instead of `merge`'s select-then-insert.
+
 ### Practical Normalization
 Balance normalization with query performance needs.
 

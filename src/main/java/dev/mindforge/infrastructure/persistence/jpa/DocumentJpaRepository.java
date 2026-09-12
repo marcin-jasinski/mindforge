@@ -6,17 +6,12 @@ import java.util.UUID;
 
 import dev.mindforge.infrastructure.persistence.entity.DocumentEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, UUID> {
 
-    Optional<DocumentEntity> findByContentHash(String contentHash);
+    Optional<DocumentEntity> findByKnowledgeBaseIdAndDocumentId(UUID knowledgeBaseId, UUID documentId);
+
+    Optional<DocumentEntity> findByKnowledgeBaseIdAndContentHash(UUID knowledgeBaseId, String contentHash);
 
     List<DocumentEntity> findByKnowledgeBaseId(UUID knowledgeBaseId);
-
-    @Modifying
-    @Query("UPDATE DocumentEntity d SET d.status = :status WHERE d.documentId = :documentId")
-    void updateStatus(@Param("documentId") UUID documentId, @Param("status") String status);
 }

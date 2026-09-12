@@ -79,7 +79,7 @@ All controllers run on virtual threads (`spring.threads.virtual.enabled=true`) �
 
 MindForge uses a three-tier object model: domain records (`domain.model`) → JPA entities (`persistence.entity`) → view DTOs (`api.dto`). Controllers never accept or return domain or entity types directly.
 
-- `api/dto/response/` — `record` types returned from controllers. Must never expose the fields forbidden by `docs/standards/security/web-security.md` (`reference_answer`, `grounding_context`, `raw_prompt`, `raw_completion`, `cost`), the password hash, or internal pipeline state (e.g. step checkpoints/fingerprints).
+- `api/dto/response/` — `record` types returned from controllers. Must never expose the fields forbidden by `docs/standards/security/web-security.md` (`reference_answer`, `grounding_context`, `raw_prompt`, `raw_completion`, `cost`), the password hash, or internal run state (e.g. `ingest_runs.step_versions`, raw `failures`, the lease).
 - `api/dto/request/` — `record` types accepted as `@RequestBody`, annotated with `jakarta.validation` constraints.
 - `api/mapper/` — `@Mapper(componentModel = "spring")` MapStruct interfaces mapping domain → response DTO. These import domain types only; entity types never cross into the `api` package.
 

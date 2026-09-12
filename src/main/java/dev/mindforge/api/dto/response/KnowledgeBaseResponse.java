@@ -9,6 +9,5 @@ public record KnowledgeBaseResponse(
     UUID ownerId,
     String name,
     String description,
-    Instant createdAt,
-    int documentCount
+    Instant createdAt
 ) {}

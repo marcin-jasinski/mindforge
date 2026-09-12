@@ -34,7 +34,6 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.ai.retry.TransientAiException;
@@ -42,7 +41,6 @@ import org.springframework.ai.retry.TransientAiException;
 class AIGatewayAdapterTest {
 
     private final ChatModel chatModel = mock(ChatModel.class);
-    private final EmbeddingModel embeddingModel = mock(EmbeddingModel.class);
 
     @Test
     void shouldRouteSmallTierToItsConfiguredModelString() {
@@ -92,7 +90,7 @@ class AIGatewayAdapterTest {
     void shouldThrowDeadlineExceededWhenCallOutlivesItsProfileTimeout() {
         AppProperties properties = makeProperties();
         properties.getAi().getDeadlines().setInteractive(Duration.ofMillis(50));
-        AIGatewayAdapter adapter = new AIGatewayAdapter(chatModel, embeddingModel, properties, retry(), breaker());
+        AIGatewayAdapter adapter = new AIGatewayAdapter(chatModel, properties, retry(), breaker());
         when(chatModel.call(any(Prompt.class))).thenAnswer(invocation -> {
             Thread.sleep(500);
             return fixtureResponse("large-model", 1, 1);
@@ -129,7 +127,7 @@ class AIGatewayAdapterTest {
     void shouldThrowAIGatewayUnavailableWhenCircuitIsOpen() {
         CircuitBreaker openBreaker = breaker();
         openBreaker.transitionToOpenState();
-        AIGatewayAdapter adapter = new AIGatewayAdapter(chatModel, embeddingModel, makeProperties(), retry(), openBreaker);
+        AIGatewayAdapter adapter = new AIGatewayAdapter(chatModel, makeProperties(), retry(), openBreaker);
 
         assertThatThrownBy(() -> adapter.complete(ModelTier.LARGE, "hello", DeadlineProfile.INTERACTIVE))
             .isInstanceOf(AIGatewayUnavailableException.class);
@@ -141,7 +139,7 @@ class AIGatewayAdapterTest {
         AppProperties properties = makeProperties();
         properties.getAi().getDeadlines().setInteractive(Duration.ofMillis(50));
         CircuitBreaker cb = breaker();
-        AIGatewayAdapter adapter = new AIGatewayAdapter(chatModel, embeddingModel, properties, retry(), cb);
+        AIGatewayAdapter adapter = new AIGatewayAdapter(chatModel, properties, retry(), cb);
         when(chatModel.call(any(Prompt.class))).thenAnswer(invocation -> {
             Thread.sleep(500);
             return fixtureResponse("large-model", 1, 1);
@@ -153,27 +151,6 @@ class AIGatewayAdapterTest {
         assertThat(cb.getMetrics().getNumberOfFailedCalls()).isEqualTo(1);
     }
 
-    @Test
-    void shouldRetryTransientEmbeddingFailureThenSucceed() {
-        AIGatewayAdapter adapter = makeAdapter();
-        float[] vector = new float[] {0.1f, 0.2f};
-        when(embeddingModel.embed("some text"))
-            .thenThrow(new TransientAiException("503"))
-            .thenReturn(vector);
-
-        assertThat(adapter.embed("some text")).isEqualTo(vector);
-        verify(embeddingModel, times(2)).embed("some text");
-    }
-
-    @Test
-    void shouldDelegateEmbeddingsToEmbeddingModel() {
-        AIGatewayAdapter adapter = makeAdapter();
-        float[] vector = new float[] {0.1f, 0.2f};
-        when(embeddingModel.embed("some text")).thenReturn(vector);
-
-        assertThat(adapter.embed("some text")).isEqualTo(vector);
-    }
-
     private String capturedRequestModel() {
         ArgumentCaptor<Prompt> captor = ArgumentCaptor.forClass(Prompt.class);
         verify(chatModel).call(captor.capture());
@@ -181,7 +158,7 @@ class AIGatewayAdapterTest {
     }
 
     private AIGatewayAdapter makeAdapter() {
-        return new AIGatewayAdapter(chatModel, embeddingModel, makeProperties(), retry(), breaker());
+        return new AIGatewayAdapter(chatModel, makeProperties(), retry(), breaker());
     }
 
     private static AppProperties makeProperties() {
