@@ -61,6 +61,8 @@ mindforge:
   security:
     jwt-secret: ${JWT_SECRET:}
     jwt-expiry-seconds: ${JWT_EXPIRY_SECONDS:86400}
+  upload:
+    max-size: ${UPLOAD_MAX_SIZE:50MB}
   ai:
     model:
       small: ${AI_MODEL_SMALL:openai/gpt-4o-mini}

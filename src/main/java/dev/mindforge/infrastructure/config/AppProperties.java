@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.util.unit.DataSize;
 import org.springframework.validation.annotation.Validated;
 
 /**
@@ -24,15 +25,31 @@ public class AppProperties {
     @Valid
     private Ai ai = new Ai();
 
+    @Valid
+    private Upload upload = new Upload();
+
     public Security getSecurity() { return security; }
     public void setSecurity(Security security) { this.security = security; }
 
     public Ai getAi() { return ai; }
     public void setAi(Ai ai) { this.ai = ai; }
 
+    public Upload getUpload() { return upload; }
+    public void setUpload(Upload upload) { this.upload = upload; }
+
     // ---------------------------------------------------------------------------
     // Nested configuration types
     // ---------------------------------------------------------------------------
+
+    public static class Upload {
+
+        /** Largest document accepted, on every upload channel. */
+        @NotNull
+        private DataSize maxSize = DataSize.ofMegabytes(50);
+
+        public DataSize getMaxSize() { return maxSize; }
+        public void setMaxSize(DataSize maxSize) { this.maxSize = maxSize; }
+    }
 
     public static class Security {
 

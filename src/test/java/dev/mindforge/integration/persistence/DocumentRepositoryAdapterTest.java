@@ -1,6 +1,7 @@
 package dev.mindforge.integration.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import dev.mindforge.support.TestContainerBase;
@@ -64,8 +66,8 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     }
 
     @Test
-    void saveThenFindById_returnsPersistedDocument() {
-        Document saved = adapter.save(makeDocument(kbId, "test-lesson"));
+    void insertThenFindById_returnsPersistedDocument() {
+        Document saved = adapter.insert(kbId, makeDocument(kbId, "test-lesson"));
 
         Optional<Document> found = adapter.findById(kbId, saved.documentId());
         assertThat(found).isPresent();
@@ -74,15 +76,24 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     }
 
     @Test
+    void insert_neverOverwritesAnExistingDocument() {
+        Document document = makeDocument(kbId, "test-lesson");
+        adapter.insert(kbId, document);
+
+        assertThatExceptionOfType(DataIntegrityViolationException.class)
+            .isThrownBy(() -> adapter.insert(kbId, document));
+    }
+
+    @Test
     void findById_returnsEmpty_forAnotherKnowledgeBasesId() {
-        Document saved = adapter.save(makeDocument(kbId, "test-lesson"));
+        Document saved = adapter.insert(kbId, makeDocument(kbId, "test-lesson"));
 
         assertThat(adapter.findById(saveKnowledgeBase(), saved.documentId())).isEmpty();
     }
 
     @Test
     void findByContentHash_returnsDocumentWithMatchingHash() {
-        Document saved = adapter.save(makeDocument(kbId, "hash-lesson"));
+        Document saved = adapter.insert(kbId, makeDocument(kbId, "hash-lesson"));
 
         Optional<Document> found = adapter.findByContentHash(kbId, saved.contentHash());
         assertThat(found).isPresent();
@@ -99,11 +110,11 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     @Test
     void sameHashInTwoKnowledgeBases_isNotADuplicateAcrossThem() {
         UUID otherKbId = saveKnowledgeBase();
-        Document first = adapter.save(makeDocument(kbId, "shared-lesson"));
+        Document first = adapter.insert(kbId, makeDocument(kbId, "shared-lesson"));
 
         assertThat(adapter.findByContentHash(otherKbId, first.contentHash())).isEmpty();
 
-        Document second = adapter.save(makeDocument(otherKbId, "shared-lesson"));
+        Document second = adapter.insert(otherKbId, makeDocument(otherKbId, "shared-lesson"));
         assertThat(second.contentHash()).isEqualTo(first.contentHash());
         assertThat(adapter.findByContentHash(kbId, first.contentHash()))
             .map(Document::documentId).contains(first.documentId());
@@ -112,9 +123,18 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     }
 
     @Test
+    void findLessonTitle_isScopedToTheKnowledgeBase() {
+        adapter.insert(kbId, makeDocument(kbId, "bio-3"));
+
+        assertThat(adapter.findLessonTitle(kbId, "bio-3")).contains("bio-3 title");
+        assertThat(adapter.findLessonTitle(kbId, "bio-4")).isEmpty();
+        assertThat(adapter.findLessonTitle(saveKnowledgeBase(), "bio-3")).isEmpty();
+    }
+
+    @Test
     void listByKnowledgeBase_returnsAllDocumentsForKb() {
-        adapter.save(makeDocument(kbId, "lesson-a"));
-        adapter.save(makeDocument(kbId, "lesson-b"));
+        adapter.insert(kbId, makeDocument(kbId, "lesson-a"));
+        adapter.insert(kbId, makeDocument(kbId, "lesson-b"));
 
         List<Document> results = adapter.listByKnowledgeBase(kbId);
         assertThat(results).hasSize(2);
@@ -123,7 +143,7 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
 
     @Test
     void deletingAUser_cascadesThroughTheirKnowledgeBasesToTheirDocuments() {
-        adapter.save(makeDocument(kbId, "cascade-lesson"));
+        adapter.insert(kbId, makeDocument(kbId, "cascade-lesson"));
 
         jdbcTemplate.update("DELETE FROM users WHERE user_id = ?", userId);
 
