@@ -17,11 +17,11 @@ The OKF-conformant directory of markdown files a knowledge base exports as. It e
 _Avoid_: Archive, dump, backup
 
 **Page**:
-One unit of the wiki: a title, a one-sentence description, a type, and prose written by the LLM.
+One unit of the wiki: a title, a one-sentence description, a type, and prose written by the LLM. Its title is set when the page is created and changes only when the learner retitles it.
 _Avoid_: Concept document, article, artifact, note
 
 **Page Path**:
-A page's identity within its knowledge base — the bundle-relative path without `.md` (`concepts/mitoza`). Equals OKF's Concept ID; never changes after creation.
+A page's identity within its knowledge base — the bundle-relative path without `.md` (`concepts/mitoza`). Equals OKF's Concept ID; never changes after creation. Its name follows the one identifier grammar shared with lesson ids and section anchors.
 _Avoid_: Slug, Concept ID, URL
 
 **Page Type**:
@@ -35,6 +35,10 @@ _Avoid_: Topic, entity, term page
 **Source Summary**:
 The one page that digests a single uploaded document.
 _Avoid_: Summary artifact, document page
+
+**Section**:
+A level-1 heading of a page and the prose under it, addressed by its anchor. Page links, supersessions and flashcards point at sections; deeper headings are prose inside their section.
+_Avoid_: Paragraph, block, chapter
 
 **Source**:
 A document whose content contributed to a page. A conversation turn can be a source.
@@ -59,7 +63,7 @@ _Avoid_: Contradiction, override, deprecation
 ### Sources
 
 **Lesson**:
-The stable identity that every uploaded version of the same material shares within a knowledge base.
+The stable identity that every uploaded version of the same material shares within a knowledge base. An upload joins an existing lesson only when the learner says it is a new version.
 _Avoid_: Course, chapter, topic
 
 **Document**:
@@ -69,7 +73,7 @@ _Avoid_: File, upload, source file
 ### History
 
 **Ingest Run**:
-One execution that writes pages — integrating one document, or reverting an earlier run — and the record of what it wrote. At most one is active per knowledge base.
+One execution that changes the wiki — integrating a document or conversation turn, reverting an earlier run, or a full Lint — and the record of what it changed. Runs queue per knowledge base; at most one is active.
 _Avoid_: Job, pipeline run, artifact, checkpoint
 
 **Page Revision**:
@@ -81,13 +85,13 @@ The page revision recording that a page was deleted.
 _Avoid_: Soft delete, deleted flag
 
 **Revert**:
-Undoing an ingest run by writing new revisions that restore each page's pre-run state. Offered only while the run is still the latest to touch the page.
+Undoing an ingest or Lint run by writing new revisions that restore each page's pre-run state, offered only while the run is still the latest to touch the page — or removing one supersession. A revert cannot itself be reverted.
 _Avoid_: Rollback, undo (except as the user's own word), rewind
 
 ### Study
 
 **Flashcard**:
-A front/back recall item cut from one section of one Concept page, scheduled by spaced repetition. Identified by its content.
+A front/back recall item cut from one section of one Concept page, scheduled by spaced repetition. Identified by its content; goes stale when its page's content changes.
 _Avoid_: Card (unqualified), note, question
 
 **Quiz Session**:
@@ -99,7 +103,7 @@ What a study session draws from: the whole knowledge base, one lesson, or one pa
 _Avoid_: Deck, filter, topic
 
 **Weak Page**:
-A page whose recent flashcard ratings and quiz scores are low.
+A page whose last five flashcard ratings and quiz scores average below 3 on the 0–5 scale.
 _Avoid_: Weak concept, knowledge gap
 
 ### Operations
@@ -107,6 +111,10 @@ _Avoid_: Weak concept, knowledge gap
 **Ingest**:
 The operation that integrates a source into the wiki.
 _Avoid_: Processing, pipeline, import
+
+**Conversation Edit**:
+An ingest run sourced from an explicit edit in chat. It may revise, create, delete or retitle Concept pages, and it is the only way a learner changes a page.
+_Avoid_: Manual edit, hand edit, revise
 
 **Query**:
 The operation that answers a question from the wiki.

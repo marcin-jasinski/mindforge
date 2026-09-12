@@ -28,3 +28,9 @@ Named ceilings instead of "forever":
 - Query never files answers back into the wiki. "Save that" is a conversation edit.
 
 Decided in [T09](../wayfinder/tickets/09-query-retrieval-neo4j.md).
+
+## Amendments
+
+2026-09-12, from the spec review ([T23](../wayfinder/tickets/23-extract-long-documents.md)): tokens are estimated as
+characters ÷ 3 in one domain function. Crossing the 20K ceiling logs a warning and shows in the knowledge base's health
+view; nothing truncates the index before the prefilter exists.

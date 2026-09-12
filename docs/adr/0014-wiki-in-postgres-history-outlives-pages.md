@@ -32,3 +32,18 @@ authorizing.
 - Full-text search over bodies is available without a new store.
 
 Decided in [T05](../wayfinder/tickets/05-wiki-storage.md).
+
+## Amendments
+
+2026-09-12, from the spec review:
+
+- **Uploaded text is retained** while its knowledge base exists
+  ([T16](../wayfinder/tickets/16-revert-provenance.md)). Erasing one document's text would not erase what it taught —
+  that prose lives in revisions kept forever — so erasure is deleting the knowledge base.
+- **Cross-cascade foreign keys are `DEFERRABLE INITIALLY DEFERRED`**, so a knowledge-base or user delete succeeds
+  regardless of cascade order. A knowledge base with an active run cannot be deleted (409)
+  ([T24](../wayfinder/tickets/24-persistence-mechanics.md)).
+- Reads that join across tables live on consumer-named query ports beside `WikiStore`, and `kbId` comes first on every
+  tenant-scoped port ([T25](../wayfinder/tickets/25-port-read-surface.md)).
+- A revert deletes sources and supersessions only for the pages it restores (T16), which amends "a delete by run id"
+  above.

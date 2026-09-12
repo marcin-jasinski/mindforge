@@ -31,3 +31,24 @@ the revision rows the transaction inserted, never from a step's own report.
 - `StepCheckpoint`, `StepFingerprint` and `DocumentStatus` are deleted.
 
 Decided in [T07](../wayfinder/tickets/07-idempotency-and-failure.md).
+
+## Amendments
+
+2026-09-12, from the spec review ([T17](../wayfinder/tickets/17-run-lifecycle.md),
+[T20](../wayfinder/tickets/20-progress-and-domain-events.md), [T24](../wayfinder/tickets/24-persistence-mechanics.md)):
+
+- **The queue is runs, not documents.** Every run is inserted `QUEUED` — uploads, conversation edits, retries, full
+  Lints — and the worker claims the oldest per knowledge base: the lease and `QUEUED` → `RUNNING` in one transaction, so
+  a lost claim leaves nothing behind. Reverts are synchronous and return 409 while a run is active.
+- **Commits are fenced.** Each commit updates the run only from its expected status while it holds the lease; 0 rows
+  aborts without writing.
+- **The startup sweep becomes one sweep**, at startup and every minute, over runs not executing in this process:
+  `WRITTEN` completes with `supersession_skipped`; `RUNNING` fails as interrupted, and an ingest is re-queued, up to three
+  attempts. A Supersede failure completes the run rather than failing it; the terminal transaction runs from a `finally`.
+- **One global permit pool** throttles every background model call across knowledge bases.
+- **Progress is not a domain event.** A best-effort `ProgressNotifier` port streams it per knowledge base; the only run
+  domain event is `IngestRunQueued`, which wakes the worker after commit. `DomainEvent` no longer requires a document id.
+- **Dedup is checked under the knowledge-base row lock** that also serializes the lesson rule; the unique constraint is
+  the backstop.
+- Ceiling restated: one *live* instance. During a deploy's overlap fencing keeps runs correct; permanently multiple
+  instances need a heartbeat lease.

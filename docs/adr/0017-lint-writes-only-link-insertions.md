@@ -26,3 +26,16 @@ every page it touched, and each ingest would lose its own revert window to its o
 - No scheduled Lint: spending LLM calls on knowledge bases nobody opened is spend without a reader.
 
 Decided in [T10](../wayfinder/tickets/10-lint-operation.md).
+
+## Amendments
+
+2026-09-12, from the spec review ([T26](../wayfinder/tickets/26-markdown-and-link-rules.md)):
+
+- Eligible text also excludes **fenced code blocks, autolinks and `<…>` spans**; heading lines of every level stay
+  excluded.
+- A target must be live or **successfully drafted** in this run — not merely planned — and a fragment must be a level-1
+  anchor of the target.
+- One pure parser, `MarkdownStructure`, defines headings, sections and links for every consumer. An internal link is
+  exactly `/(concepts|sources)/<id>.md(#<anchor>)?`; any other link to a page fails the draft; external `http(s)` links
+  are allowed.
+- Dangling supersessions are checked in Java over SQL rows, because matching an anchor needs the parser.

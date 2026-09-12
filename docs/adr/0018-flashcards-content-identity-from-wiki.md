@@ -34,3 +34,18 @@ held only in the server-side session row.
   would need per-user schedules.
 
 Decided in [T08](../wayfinder/tickets/08-study-artifacts-from-wiki.md).
+
+## Amendments
+
+2026-09-12, from the spec review ([T21](../wayfinder/tickets/21-revision-guards.md),
+[T27](../wayfinder/tickets/27-study-edge-cases.md)):
+
+- **Stale is a content hash, not a revision.** A card stores
+  `source_hash = sha256(title + "\n" + stripLinks(body))[:16]`; a page's cards regenerate when its hash differs. A
+  link-only or supersession-only change regenerates nothing. `revision` stays the revert key.
+- **Revival gets help.** Regeneration receives the page's retired cards whose `source_hash` equals the current hash, so
+  a revert offers the model exactly the cards to reuse; a revived card is due now.
+- **One generation budget per session** covers stale and new pages. Generation runs in parallel with `BATCH` deadlines
+  under an in-process per-page lock, and card inserts ignore identical conflicts.
+- **Weakness** is the mean of a page's last 5 study events; below 3.0 is weak; unstudied pages follow in creation order.
+  Quiz scores use SM-2's 0–5 rubric, so the two kinds average as one scale.

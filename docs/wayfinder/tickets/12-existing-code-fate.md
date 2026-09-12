@@ -99,7 +99,8 @@ All decisions taken on the recommended option under the user's standing instruct
 recommendations.
 
 **Phase 4 restarts after a short cleanup phase — "Phase 3b — Wiki pivot cleanup", shaped like Phase 2b.** It deletes
-22 of the 71 main-source files and 4 of the 13 test classes, changes 14 files, squashes V1–V7 into a new V1 baseline,
+22 of the 72 main-source files and 4 of the 9 test classes (12 test files counting `support/`; counts corrected by
+[T28](28-minor-review-findings.md)), changes 14 files, squashes V1–V7 into a new V1 baseline,
 and keeps everything else. **The one ruling that contradicts an earlier ticket's assumption:** `AIGateway` is *not*
 untouched. It still declares `float[] embed(String)`, and T09 removed its only consumer.
 

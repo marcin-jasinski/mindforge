@@ -7,9 +7,9 @@
 
 - **Version**: 1.0.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
-  2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway)
+  2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup)
 - **In Progress**: None
-- **Next**: Phase 3b (Wiki Pivot Cleanup), then Phase 4
+- **Next**: Phase 4 (Document Parsing & Ingestion)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -25,7 +25,12 @@ phase's purpose survived. Where it did not:
 | 7 | **Number reused** — Neo4j Graph Layer deleted (ADR 0016); the slot is now Lint |
 | **9b** | **New** — Bundle Export |
 | 11 | **Re-cut** — was Search & Conversational RAG; now Query |
-| 4, 8, 9, 10, 12–19, 21 | Changed in place (details below) |
+| 8 | **Retired in v3.1** — progress is a port, not an event; folded into Phases 6 and 9 |
+| 4, 9, 10, 12–19, 21 | Changed in place (details below) |
+
+The 2026-09-12 spec review (map tickets T14–T29) tightened the plan without adding a phase: run queue and
+fencing, supersession inputs and checks, conversation-edit entry, identifier grammar, draft validation, and
+content-hash card staleness.
 
 The plan got shorter where it mattered: two databases became one, seven agents and a DAG became
 one fixed pipeline, and the checkpoint, outbox, graph-indexing and embedding machinery is gone.
@@ -51,7 +56,7 @@ Query, the Angular SPA and Docker deployment.
 - [x] **Phase 3 — AI Gateway** — `AIGateway` + `AIGatewayAdapter` (Spring AI + OpenRouter),
   model tiers, deadline profiles, Resilience4j retry + circuit breaker. *(`embed` removed in 3b.)*
   `[Effort: S]`
-- [ ] **Phase 3b — Wiki Pivot Cleanup** *(new)* — Delete the artifact model, `Agent` abstraction,
+- [x] **Phase 3b — Wiki Pivot Cleanup** *(new)* — Delete the artifact model, `Agent` abstraction,
   step fingerprints, Neo4j and pgvector wiring; fix the cross-tenant dedup lookup and Polish slugs;
   squash V1–V7 into one baseline. No new behaviour. `[Effort: S]`
 - [ ] **Phase 4 — Document Parsing & Ingestion** *(changed)* — `UploadSanitizer`, `ParserRegistry`,
@@ -60,13 +65,13 @@ Query, the Angular SPA and Docker deployment.
 - [ ] **Phase 5 — Wiki Domain & Store** *(re-cut)* — Pages, paths, links, sources, revisions,
   supersessions and ingest runs; `WikiStore`; the lease; index and log renderers; restore-forward,
   tip-only revert. `[Effort: M]`
-- [ ] **Phase 6 — Ingest Pipeline** *(re-cut)* — Relevance guard → claim extraction against the index
-  → resolve → parallel page writes → link check → commit → supersession; startup sweep; conversation
-  edits' entry point. `[Effort: L]`
-- [ ] **Phase 7 — Lint** *(number reused)* — Live SQL health checks and an on-demand full review that
+- [ ] **Phase 6 — Ingest Pipeline** *(re-cut)* — Relevance guard → chunked claim extraction against the
+  index → resolve → parallel page writes with draft checks → link check → commit → supersession; the run
+  queue, fenced commits and the sweep; run progress over SSE; conversation edits' entry point. `[Effort: L]`
+- [ ] **Phase 7 — Lint** *(number reused)* — Live health checks and an on-demand full review that
   inserts links and reports findings and study suggestions. `[Effort: S]`
-- [ ] **Phase 8 — Event System** *(changed)* — Run events and the in-memory SSE progress registry.
-  No Redis, no outbox. `[Effort: S]`
+- **Phase 8 — Event System** *(retired in v3.1)* — Folded into Phase 6 (run event, progress port, SSE
+  registry) and Phase 9 (progress endpoint). No Redis, no outbox.
 
 ### Core Product (Phases 9–12)
 
@@ -133,13 +138,16 @@ Query, the Angular SPA and Docker deployment.
 - **Lexical prefilter** — `pg_trgm` narrowing when a knowledge base's index passes 20K tokens (ADR 0016)
 - **Vector search / graph store** — only on the measured conditions named in ADR 0016
 - **Git-history export** — per-run commits from `page_revisions`, if users ask for history outside the app
-- **Multi-instance deployment** — lease expiry for ingest runs; Caffeine → Redis for sessions and rate limiting
+- **Multi-instance deployment** — a heartbeat lease for ingest runs instead of the in-process sweep set; Caffeine → Redis for sessions and rate limiting
 - **Shared knowledge bases** — per-user flashcard schedules
+- **Non-Latin knowledge bases** — a full transliterator (ICU4J `Any-Latin`) instead of hash-suffixed paths
+- **Background flashcard generation** — if first-open latency of a large deck becomes a complaint
+- **Per-document erasure** — pruning a source's revisions as well as its text, when a user asks
 - **FSRS scheduling** — replace SM-2
 - **Mobile frontend** — responsive layout improvements for small screens
 
 ---
 
-*Last Updated*: 2026-09-10
+*Last Updated*: 2026-09-12
 *Effort Scale*: `S` 2–3 days | `M` 1 week | `L` 2+ weeks
 *Reference*: [implementation-plan.md](./implementation-plan.md)

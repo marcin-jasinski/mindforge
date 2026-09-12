@@ -1,7 +1,7 @@
 # MindForge — Implementation Plan
 
-> **Version:** 3.0 — wiki re-cut
-> **Date:** 2026-09-10
+> **Version:** 3.1 — wiki re-cut, with the 2026-09-12 spec review folded in
+> **Date:** 2026-09-12
 > **Status:** Active
 > **Reference:** [architecture.md](./architecture.md) · [CONTEXT.md](../../CONTEXT.md) · [wiki re-cut map](../wayfinder/okf-wiki-map.md) · ADRs 0010–0018
 
@@ -20,7 +20,7 @@
 7. [Phase 5 — Wiki Domain and Store](#phase-5--wiki-domain-and-store) *(re-cut)*
 8. [Phase 6 — Ingest Pipeline](#phase-6--ingest-pipeline) *(re-cut)*
 9. [Phase 7 — Lint](#phase-7--lint) *(number reused)*
-10. [Phase 8 — Event System](#phase-8--event-system) *(changed)*
+10. [Phase 8 — Event System](#phase-8--event-system-retired-in-v31) *(retired in v3.1)*
 11. [Phase 9 — API Layer (Spring MVC)](#phase-9--api-layer-spring-mvc) *(changed)*
 12. [Phase 9b — Bundle Export](#phase-9b--bundle-export) *(new)*
 13. [Phase 10 — Quiz and Flashcard Services](#phase-10--quiz-and-flashcard-services) *(changed)*
@@ -57,6 +57,10 @@ Phase numbering is stable where a phase's purpose survived, and each phase headi
 plainly when it was changed, re-cut, reused or added. The reasoning for every change lives in
 [`docs/wayfinder/okf-wiki-map.md`](../wayfinder/okf-wiki-map.md) and ADRs 0010–0018; use the
 vocabulary in [`CONTEXT.md`](../../CONTEXT.md).
+
+**Version 3.1 folds in the 2026-09-12 spec review** (map tickets T14–T29). No phase is added; Phase 8 is retired
+into Phases 6 and 9; the tasks of 3b–7, 9–14, 17 and 21 state the review's answers and cite the tickets behind
+them, and the most-changed phases (3b, 4, 6, 7, 9, 9b) say so in their headings.
 
 Each phase is self-contained and produces verifiable deliverables. Phases must be completed
 in order because later phases depend on the artifacts of earlier ones.
@@ -405,77 +409,99 @@ retry, deadline enforcement, cost tracking, and the `StubAIGateway` for tests.
 > **New in v3.0.** Executes the keep / change / delete table in
 > [T12](../wayfinder/tickets/12-existing-code-fate.md). Builds no new behaviour.
 
-**Goal:** Remove everything Phases 1–3 built for the per-document artifact model, fix the two
-defects the re-cut exposed, and squash the migration chain into a baseline — ending green.
+**Goal:** Remove everything Phases 1–3 built for the per-document artifact model, fix the defects the
+re-cut and its review exposed, and squash the migration chain into a baseline — ending green.
+
+> **Changed in v3.1:** `KnowledgeBase.documentCount` goes (T24), `DomainEvent` drops `documentId()` (T20), and
+> `LessonIdentity` adopts the shared identifier grammar and text rules (T18, T19).
 
 ### Tasks
 
-- [ ] **3b.1 — Delete domain types** (`dev.mindforge.domain.model`)
+- [x] **3b.1 — Delete domain types** (`dev.mindforge.domain.model`)
   - `Agent`, `AgentCapability`, `AgentContext`, `AgentResult` (ADR 0013).
   - `DocumentArtifact`, `SummaryData`, `ConceptMapData` (ADR 0010).
   - `StepCheckpoint`, `StepFingerprint`, `DocumentStatus` (ADR 0015).
   - `FlashcardData` — Phase 10 writes `Flashcard` keyed on `pageId` (ADR 0018).
 
-- [ ] **3b.2 — Change domain types**
+- [x] **3b.2 — Change domain types**
   - `Document`: drop `status`.
-  - `DomainEvent`: keep `DocumentIngested`; delete `PipelineStepCompleted`, `ProcessingCompleted`,
-    `ProcessingFailed`, `GraphProjectionUpdated`.
-  - `LessonIdentity`: transliterating `slugify` (NFD, strip combining marks, `ł→l`, `ø→o`, `ß→ss`,
-    `đ→d`, `[a-z0-9-]`); reserve `log` alongside `index` and `default`.
+  - `KnowledgeBase`: drop `documentCount` — counts are derived at read (T24).
+  - `DomainEvent`: drop `documentId()` from the interface (each record keeps its own ids); keep `DocumentIngested`;
+    delete `PipelineStepCompleted`, `ProcessingCompleted`, `ProcessingFailed`, `GraphProjectionUpdated` (T20).
+  - New pure `Identifier` (T18): `PATTERN` `[a-z0-9]+(-[a-z0-9]+)*`, 1–80 characters; `index` and `log` reserved
+    everywhere, `default` and `conversation` for lesson ids. `slugify`: NFC; NFD base letters; `ł→l`, `ø→o`, `ß→ss`,
+    `đ→d`, `æ→ae`, `œ→oe`, `þ→th`; Greek letters by Polish name; any other letter or digit dropped **and** an 8-hex
+    SHA-256 suffix appended (`x-<hex>` when nothing is left); capped at 80 keeping the suffix.
+  - New pure `TextRules` (T19): `singleLine` (NFC, whitespace runs → one space, `Cc`/`Cf` removed, trimmed).
+  - `LessonIdentity`: validates with `Identifier` — an explicit `lesson_id` must match and is never rewritten; a derived
+    id uses `Identifier.slugify` and gains `-lesson` on a reserved word; the title passes `TextRules.singleLine` and is
+    cut to 200 characters with `…`.
 
-- [ ] **3b.3 — Ports** (`dev.mindforge.domain.port`)
+- [x] **3b.3 — Ports** (`dev.mindforge.domain.port`)
   - Delete `ArtifactRepository`, `GraphIndexer`.
   - `AIGateway`: delete `embed` (ADR 0016).
   - `DocumentRepository`: `findByContentHash(UUID knowledgeBaseId, ContentHash hash)` — today's
-    unscoped lookup deduplicates across tenants; delete `updateStatus`.
+    unscoped lookup deduplicates across tenants; `findById(UUID knowledgeBaseId, UUID documentId)`; delete
+    `updateStatus` (T25: `kbId` first on every tenant-scoped port).
 
-- [ ] **3b.4 — Infrastructure**
+- [x] **3b.4 — Infrastructure**
   - Delete `ArtifactEntity`, `StepCheckpointEntity`, `ContentEmbeddingEntity`, `ArtifactJpaRepository`,
     `StepCheckpointJpaRepository`, `ArtifactEntityMapper`, `ArtifactRepositoryAdapter`.
   - `AIGatewayAdapter` and `AiConfig`: drop `EmbeddingModel`.
   - `PersistenceConfig`: drop the `ArtifactRepository` bean.
   - `DocumentEntity`, `DocumentJpaRepository`, `DocumentEntityMapper`, `DocumentRepositoryAdapter`:
-    no status; hash lookup scoped by knowledge base.
+    no status; hash lookup and `findById` scoped by knowledge base.
+  - `KnowledgeBaseEntity`: drop `documentCount`.
 
-- [ ] **3b.5 — API DTOs**
+- [x] **3b.5 — API DTOs**
   - Delete `ArtifactResponse`, `ArtifactDtoMapper`.
   - `DocumentResponse`, `DocumentDtoMapper`: drop `status` (Phase 9 adds a run-status view).
+  - `KnowledgeBaseResponse`: drop `documentCount` (Phase 9 derives counts).
 
-- [ ] **3b.6 — Migration baseline** (`src/main/resources/db/migration/`)
+- [x] **3b.6 — Migration baseline** (`src/main/resources/db/migration/`)
   - Delete `V1`–`V7`; add `V1__baseline.sql` with `users`, `knowledge_bases` and `documents` only.
+  - `knowledge_bases`: no `document_count`.
   - `documents`: no `status`; `UNIQUE (knowledge_base_id, content_hash) WHERE upload_source <> 'CONVERSATION'`;
-    plain index on `(knowledge_base_id, lesson_id)`; no global `content_hash` index.
+    plain index on `(knowledge_base_id, lesson_id)`; no global `content_hash` index; `uploaded_by` FK
+    `DEFERRABLE INITIALLY DEFERRED` (a user delete cascades through `knowledge_bases`, T24).
   - Record the one-time squash in `docs/standards/backend/migrations.md` (done in v3.0).
 
-- [ ] **3b.7 — Configuration and build**
+- [x] **3b.7 — Configuration and build**
   - `application.yml`: delete `spring.neo4j.*` and `spring.ai.vectorstore.*`. `application-dev.yml`: delete `spring.neo4j.*`.
   - `pom.xml`: delete `spring-boot-starter-data-neo4j`, `spring-ai-starter-vector-store-pgvector`, `testcontainers-neo4j`.
   - `env.example`: delete the `NEO4J_*` block.
 
-- [ ] **3b.8 — Tests**
+- [x] **3b.8 — Tests**
   - Delete `AgentResultTest`, `StepFingerprintTest`, `FlashcardDataTest`, `ArtifactRepositoryAdapterTest`,
     `integration/graph/`.
   - `DocumentRepositoryAdapterTest`: drop status; **add** "the same hash in two knowledge bases is not
-    a duplicate across them".
-  - `LessonIdentityTest`: Polish transliteration (`Mitoza komórkowa` → `mitoza-komorkowa`), `log` reserved.
+    a duplicate across them" and "`findById` with another knowledge base's id returns empty".
+  - `LessonIdentityTest`: Polish transliteration (`Mitoza komórkowa` → `mitoza-komorkowa`); `log` and `conversation`
+    reserved; explicit `bio_3` rejected; a file named `index.md` resolves to `index-lesson`; a newline in a PDF title
+    is flattened.
+  - New `IdentifierTest`: `α-helisa` → `alfa-helisa`; `π` → `pi`; `細胞` → `x-` + hash; `細胞 A` ≠ `細胞 B`; 80-character
+    cap keeps the suffix; `PATTERN` rejects `a--b`, `-x`, uppercase.
   - `StubAIGateway`, `StubAIGatewayTest`, `AIGatewayAdapterTest`: drop `embed` and the embedding tests.
   - `TestContainerBase`: drop the Neo4j container; `pgvector/pgvector:pg15` → `postgres:15`.
   - `TestFixtures`: drop `makeDocumentArtifact` and the `status` parameter.
 
 ### Completion Checklist
 
-- [ ] `mvn verify` passes.
-- [ ] No reference remains to `DocumentArtifact`, `Agent`, `StepFingerprint`, `GraphIndexer`, Neo4j,
+- [x] `mvn verify` passes.
+- [x] No reference remains to `DocumentArtifact`, `Agent`, `StepFingerprint`, `GraphIndexer`, Neo4j,
   pgvector or `embed` in `src/`.
-- [ ] Cross-knowledge-base dedup test passes.
+- [x] Cross-knowledge-base dedup test passes.
+- [x] No identifier is validated or slugified outside `Identifier`.
 - [ ] Local databases dropped and recreated (the squash invalidates Flyway checksums).
 
 ---
 
 ## [ ] Phase 4 — Document Parsing and Ingestion
 
-> **Changed in v3.0:** 4.5 and 4.6 — dedup by constraint per knowledge base, one `Document` per
+> **Changed in v3.0:** 4.5 and 4.6 — dedup per knowledge base, one `Document` per
 > uploaded lesson version, no status, no checkpoints (ADR 0015).
+> **Changed in v3.1:** chunk defaults sized for Extract (T23); lesson collisions need an explicit new version and
+> dedup is checked under the knowledge-base row lock (T18, T24).
 
 **Goal:** Implement the `ParserRegistry`, all four document format parsers, `UploadSanitizer`,
 heading-aware chunking, and `IngestionService` with per-knowledge-base deduplication.
@@ -500,31 +526,45 @@ heading-aware chunking, and `IngestionService` with per-knowledge-base deduplica
     (tables stay where the prose places them).
   - `PlainTextParser`: line-based extraction, best-effort heading detection.
 
-- [ ] **4.4 — Heading-aware chunker** (`dev.mindforge.infrastructure.parsing`)
-  - Splits `ContentBlock` list into overlapping chunks respecting heading boundaries.
-  - Configurable chunk size (tokens) and overlap (tokens) via `ProcessingSettings`.
-  - Produces deterministic chunks — same input always produces same chunks. Feeds Extract on long documents.
+- [ ] **4.4 — Heading-aware chunker** (`dev.mindforge.infrastructure.parsing`) — T23
+  - Splits the `ContentBlock` list into chunks at heading boundaries, each at most `ProcessingSettings.chunkSizeTokens`.
+  - Defaults change to **12 000 tokens, overlap 0** — sized for Extract, the chunker's only consumer (overlap would
+    duplicate claims).
+  - Token counts via a new pure `TokenEstimate.of(String) = ceil(chars / 3)` in the domain — the one estimate
+    `TokenBudget`, Supersede and the index ceiling also use.
+  - Produces deterministic chunks — same input always produces same chunks.
 
-- [ ] **4.5 — `IngestionService`** (`dev.mindforge.application.service`)
-  - Validates upload via `UploadSanitizer`; parses via `ParserRegistry`; resolves `LessonIdentity`.
-  - Computes `ContentHash`. An identical upload into the same knowledge base returns the existing
-    document id — enforced by `UNIQUE (knowledge_base_id, content_hash)`, not by check-then-insert.
-  - A revised upload of the same lesson (different hash) is a **new** `Document`; there is no
+- [ ] **4.5 — `IngestionService`** (`dev.mindforge.application.service`) — T18, T24
+  - Validates upload via `UploadSanitizer`; parses via `ParserRegistry`; resolves `LessonIdentity`, honouring an optional
+    `lessonId` override (validated by `Identifier`) and a `newVersion` flag.
+  - One `@Transactional` boundary, opened with `SELECT … FROM knowledge_bases WHERE kb_id = :kb FOR UPDATE`, which
+    serializes uploads into one knowledge base:
+    1. An identical upload (same `ContentHash`, not a conversation turn) returns the existing document id. Under the
+       lock this check cannot race; `UNIQUE (knowledge_base_id, content_hash) WHERE upload_source <> 'CONVERSATION'`
+       is the backstop, and a violation is a bug (500).
+    2. Lesson rule: the lesson id already has a document and `newVersion` is false → `LessonAlreadyExistsException`
+       (409, carrying the lesson's id and title); `newVersion` with no such lesson → 422.
+    3. Persist the `Document` — `DocumentEntity` implements `Persistable<UUID>` so `save()` inserts — and publish
+       `DocumentIngested`. Phase 6.8 adds the `QUEUED` run to this transaction and replaces the event.
+  - A revised upload of the same lesson (different hash, `newVersion`) is a **new** `Document`; there is no
     retraction of the old version's contributions.
-  - Persists the `Document` and publishes `DocumentIngested` in the same `@Transactional` boundary.
   - Returns HTTP 202 semantics: the ingest run starts after commit (Phase 6).
 
 - [ ] **4.6 — Unit tests**
   - `IngestionServiceTest`: identical upload returns existing id; same bytes into another knowledge
-    base create a new document; a revised lesson creates a second `Document`; save + event publish together.
+    base create a new document; an upload whose lesson id exists is rejected unless `newVersion`, which creates a
+    second `Document`; `newVersion` for an unknown lesson is rejected; save + event publish together.
+  - Integration: two concurrent uploads of the same new lesson into one knowledge base — one succeeds, the other gets
+    409 (or its identical-content id).
   - Parser unit tests: each parser extracts expected text and metadata from fixture files.
   - `UploadSanitizerTest`: MIME rejection, oversized rejection, path traversal rejection.
 
 ### Completion Checklist
 
 - [ ] All four parsers extract text and metadata correctly from fixture files.
-- [ ] Chunker produces deterministic, heading-aware chunks.
-- [ ] Dedup is per knowledge base and enforced by the database constraint.
+- [ ] Chunker produces deterministic, heading-aware chunks sized by `TokenEstimate`.
+- [ ] Dedup is per knowledge base, checked under the knowledge-base row lock, with the constraint as backstop.
+- [ ] No upload silently becomes a version of an existing lesson.
 - [ ] `UploadSanitizer` rejects disallowed MIME types, oversized files, and path traversal.
 - [ ] `DocumentIngested` event is published in the same transaction as the document save.
 
@@ -545,61 +585,96 @@ and restore-forward, tip-only revert.
 - [ ] **5.1 — Wiki domain types** (`dev.mindforge.domain.model`) — ADRs 0010, 0011
   - `WikiPage(pageId, knowledgeBaseId, path, title, description, type, markdownBody, revision, createdAt, updatedAt)`.
   - `PageType` value object (non-empty, normalised) with constants `CONCEPT`, `SOURCE_SUMMARY`.
-  - `PagePath`: `concepts/<slug>` or `sources/<lesson-id>`; `slugify` shared with `LessonIdentity`;
-    final segment `index` / `log` rejected; directory fixed by type.
+  - `PagePath`: `concepts/<name>` or `sources/<lesson-id>`, built only from `Identifier` (3b.2); a derived Concept name
+    on a reserved word gains `-concept`; directory fixed by type.
   - `PageLink(pageId, targetPath, fragment)`, `PageSource(pageId, documentId, ingestRunId)`,
     `PageRevision(pageId, revision, ingestRunId, title, description, type, markdownBody /* null = tombstone */, createdAt)`,
     `PageSupersession(supersessionId, supersededPageId, sectionAnchor, supersedingPageId, ingestRunId, createdAt)`.
   - `IngestRun(runId, knowledgeBaseId, kind INGEST|REVERT|LINT, documentId, revertsRunId, status
-    RUNNING|WRITTEN|COMPLETED|FAILED, failureReason, failures, supersessionSkipped, stepVersions, findings, startedAt, finishedAt)`.
+    QUEUED|RUNNING|WRITTEN|COMPLETED|FAILED, attempt, failureReason, retryable, failures, supersessionSkipped,
+    supersessionCount, stepVersions, findings, createdAt, startedAt, finishedAt)` (T17, T16).
   - `KnowledgeBase`: add a derived `pageCount`.
-  - `LinkParser` (pure): canonical `[Title](/dir/slug.md#fragment)` → `PageLink`s; heading anchor = `slugify(heading)`.
+  - `MarkdownStructure` (pure, T26) — the only parser of page bodies:
+    - fences (up to three spaces, then three or more `` ` `` or `~`; closed by at least as many of the same);
+    - sections = level-1 ATX headings at column 0 outside fences; anchor `Identifier.slugify(stripLinks(text))`, first
+      duplicate wins; deeper headings are prose;
+    - inline links outside fences and code spans classified as internal (`/(concepts|sources)/<id>.md(#<anchor>)?` →
+      `PageLink`), external (`http(s)://`, autolinks) or invalid (anything else, images, reference definitions);
+    - `stripLinks`, the spans eligible for link insertion, and section ranges for marking or stripping.
+  - `TextRules` (3b.2) gains `normaliseBody`: `\r\n` → `\n`, trailing whitespace stripped per line, one final newline.
 
 - [ ] **5.2 — Migration `V2__create_wiki_and_runs.sql`** — ADRs 0014, 0015
   - `wiki_pages` (`UNIQUE (knowledge_base_id, path)`, `UNIQUE (knowledge_base_id, page_id)`).
   - `page_links` with FK `(knowledge_base_id, source_page_id)` → `wiki_pages` `ON DELETE CASCADE`;
     index `(knowledge_base_id, target_path)`.
   - `page_revisions`, `page_sources`, `page_supersessions` — FK to `knowledge_bases` only, **no FK to `wiki_pages`**.
-  - `ingest_runs`; `knowledge_bases.active_run_id`; `page_sources.document_id` FK `ON DELETE RESTRICT`.
+  - `ingest_runs` per T07 plus T10's `findings` and the review's columns: `status` includes `QUEUED`;
+    `attempt SMALLINT NOT NULL DEFAULT 1`; `retryable BOOLEAN NULL`; `supersession_count INT NOT NULL DEFAULT 0`;
+    `created_at NOT NULL`; `started_at` nullable; `step_versions JSONB NOT NULL DEFAULT '{}'`; index
+    `(knowledge_base_id, status, created_at)`.
+  - `knowledge_bases.active_run_id` FK → `ingest_runs`.
+  - **FK rule (T24):** every FK whose two sides are removed by the same cascade is `NO ACTION DEFERRABLE INITIALLY
+    DEFERRED` — `page_sources.document_id`, `ingest_runs.document_id`, `ingest_runs.reverts_run_id`, and every
+    `ingest_run_id`. (Replaces `page_sources.document_id ON DELETE RESTRICT`.)
 
-- [ ] **5.3 — Ports** (`dev.mindforge.domain.port`)
-  - `WikiStore` — page-shaped, `kbId` first on every method: `findByPath`, `findById`, `listPages`,
-    `savePage` (writes page + revision + re-derived links), `deletePage` (tombstone revision + row delete),
-    `reinsertPage`, `addSources`, `addSupersessions`, `deleteSourcesByRun`, `deleteSupersessionsByRun`,
-    `listRevisions`, `danglingLinks`.
-  - `IngestRunRepository`: `create`, `claimLease` (conditional update; returns whether claimed),
-    `markWritten`, `complete`, `fail`, `findByStatus`, `oldestPendingDocument`.
+- [ ] **5.3 — Ports** (`dev.mindforge.domain.port`) — `kbId` first on every tenant-scoped method; signatures in
+  [T25](../wayfinder/tickets/25-port-read-surface.md)
+  - `WikiStore` (page-shaped): `findByPath`, `findById`, `findByPaths`, `listIndex`, `listBodies(type)`,
+    `pageIdsForLesson`, `savePage` (page + revision + re-derived links), `deletePage` (tombstone + row delete),
+    `reinsertPage`, `addSources`, `addSupersessions`, `deleteSources(runId, pageIds)`,
+    `deleteSupersessionsBySuperseding(runId, pageIds)`, `deleteSupersession(id)`, `tipRevisions(pageIds)`,
+    `revisionsByRun`, `findRevision`, `listRevisions`, `outboundLinks`, `inboundLinks`, `graph`, `liveSupersessionsOf`.
+  - `RunReportQuery` (read-only projections): `listRuns`, `report(runId)`, `logEntries`.
+  - `IngestRunRepository`: `enqueue`; `claim` (lease + `QUEUED` → `RUNNING`, one transaction; returns whether claimed);
+    `oldestQueued`; `markWritten`, `complete`, `fail` (fenced on status and lease; `complete` and `fail` release the
+    lease); `findById`; `latestForDocument`; `hasQueuedOrActive`. System methods, for the sweep only:
+    `findUnfinished`, `knowledgeBasesWithQueuedRuns`.
+  - `DocumentRepository`: add `lessonExists`, `insert` (3b scoped `findById` and `findByContentHash`).
 
 - [ ] **5.4 — Persistence adapters** (`dev.mindforge.infrastructure.persistence`)
-  - Entities, JPA repositories, MapStruct mappers and adapters for all of 5.2, per the sub-package convention.
+  - Entities, JPA repositories, MapStruct mappers, port and query-port adapters for all of 5.2, per the sub-package
+    convention; entities with assigned ids implement `Persistable<UUID>`.
   - Every query binds `knowledge_base_id`.
 
 - [ ] **5.5 — Renderers** (`dev.mindforge.application.wiki`)
-  - `IndexRenderer`: root index — `okf_version` frontmatter, `# Concepts` / `# Sources`,
-    `* [title](/path.md) - description`, sorted by title. Used by model prompts, the SPA and export.
-  - `LogRenderer`: date-grouped (UTC, newest first) lines for completed runs — **Ingest**, **Edit**,
-    **Lint**, **Revert** — with counts derived from `page_revisions`.
+  - `IndexRenderer`: root index — `okf_version` frontmatter; always both `# Concepts` and `# Sources`, even empty;
+    `* [title](/path.md) - description`, sorted by a Polish `Collator` then path; `\`, `[` and `]` in titles escaped.
+    Logs WARN with the `TokenEstimate` when the index passes 20K tokens. Used by model prompts, the SPA and export.
+  - `LogRenderer`: `# Update Log`, then `## YYYY-MM-DD` groups (UTC, newest first) with one line per `COMPLETED` run that
+    changed something, in T16's final vocabulary — **Ingest** / **Edit** (created, revised, deleted, claims superseded),
+    **Lint** (links added to N pages), **Revert** (undid the ingest / edit / Lint of … — pages restored, pages removed,
+    supersessions removed; or removed N supersessions from …). Page counts derived from `page_revisions`; supersession
+    counts from `ingest_runs.supersession_count`; titles escaped.
 
-- [ ] **5.6 — `RevertService`** (`dev.mindforge.application.service`) — ADR 0012
-  - Creates a `REVERT` run under the lease.
-  - For each page the target run revised: offered only if its highest revision carries the target run
-    (tip check); a tombstone additionally requires the path to be free.
-  - Restore-forward: append revision `r + 1` carrying `r − 1`'s content; a created page gets a tombstone;
+- [ ] **5.6 — `RevertService`** (`dev.mindforge.application.service`) — ADR 0012, T16
+  - **One transaction, no model call:** insert the `REVERT` run; claim the lease (0 rows → rollback,
+    `KnowledgeBaseBusyException`); do the work; set `COMPLETED` and `supersession_count`; release the lease.
+  - **Revert of run R** — a `COMPLETED` `INGEST` or `LINT` run, never a `REVERT`: P = pages whose highest revision carries
+    R (a tombstone additionally needs its path free). Empty P → `RevertNotAllowedException`.
+  - Restore-forward for P: append revision `r + 1` carrying `r − 1`'s content; a created page gets a tombstone;
     a deleted page is re-inserted under its `page_id`.
-  - Delete the target run's `page_sources` and `page_supersessions`; single-supersession removal by id.
+  - Delete R's `page_sources` for P and R's `page_supersessions` whose superseding page is in P — nothing for pages R no
+    longer tips.
+  - **Supersession removal:** the same transaction shape, `reverts_run_id` = the row's run, deleting that one row.
 
 - [ ] **5.7 — Tests**
-  - Unit: `PagePath`/`slugify` (Polish, reserved names); `PageType` normalisation; `LinkParser`
-    (fragments, anchored links, wrong-directory links); `IndexRenderer`/`LogRenderer` output; tip check.
-  - Integration (`@Testcontainers`): path uniqueness; a link row cannot reference another knowledge base's
-    page; delete → tombstone → revert re-inserts with sources intact; two concurrent `claimLease` calls — exactly one wins.
+  - Unit: `PagePath` (reserved suffix); `PageType` normalisation; `MarkdownStructure` (a `# comment` inside a fence is
+    not a heading; `##` is not a section; each link class; eligible spans exclude fences, autolinks and tags);
+    `IndexRenderer` (escaping, empty sections, Polish order) and `LogRenderer` (every line shape); tip check.
+  - Integration (`@Testcontainers`): path uniqueness; a link row cannot reference another knowledge base's page;
+    delete → tombstone → revert re-inserts with sources intact; revert keeps the sources of pages it does not restore;
+    a `REVERT` run is not revertible; revert while a run holds the lease → 409; two concurrent `claim` calls — exactly
+    one wins and the loser stays `QUEUED`; deleting a knowledge base holding every kind of row, and deleting its owner,
+    leave nothing behind.
 
 ### Completion Checklist
 
 - [ ] No `deleted_at` filter exists anywhere — a deleted page is absent because its row is.
-- [ ] Every `WikiStore` method takes `kbId` first.
+- [ ] Every tenant-scoped port method takes `kbId` first.
+- [ ] No page body is parsed outside `MarkdownStructure`.
 - [ ] Revert is restore-forward: no revision row is ever deleted and `revision` is monotonic.
-- [ ] The lease admits one page-writing run per knowledge base under concurrency.
+- [ ] The lease admits one active run per knowledge base under concurrency.
+- [ ] Every cross-cascade FK is deferred, and root deletes succeed.
 
 ---
 
@@ -608,75 +683,142 @@ and restore-forward, tip-only revert.
 > **Re-cut in v3.0.** This phase was *Core Processing Agents* — seven agents behind an `Agent`
 > interface. Now: a fixed pipeline of concrete model services (ADR 0013). `SummarizerAgent` and
 > `ConceptMapperAgent` are gone; flashcard and quiz generation move to Phase 10.
+> **Changed in v3.1:** conversation edits enter at Extract (T15); chunked Extract, two caps and writer inputs (T23);
+> Resolve and title rules (T22); draft validation and heading preservation (T19, T21, T26); Supersede inputs and checks
+> (T14); the run queue, fencing, sweep and permit pool (T17); progress and run events, absorbed from Phase 8 (T20).
 
 **Goal:** Ingest one document (or conversation turn) into its knowledge base's wiki end to end —
-relevance guard, claim extraction against the index, resolve, parallel page writes, link check,
-commit, supersession — with the lease, partial-success semantics and the startup sweep.
+relevance guard, chunked claim extraction against the index, resolve, parallel page writes, link check,
+commit, supersession — with the run queue, fenced commits, partial-success semantics, the sweep and progress.
 
 ### Ingest contract
 
-- **Input**: a `Document` with parsed `ContentBlock`s, or a `CONVERSATION` document whose instruction
-  enters at Resolve (it *is* the claim set).
-- **Output**: one ingest run, `COMPLETED` or `FAILED`, plus the pages, revisions, sources, links and
-  supersessions it committed.
-- **Zero successful page writes fails the run**; partial success lands and records `failures`.
-- **Over the claim cap fails the run** — never truncates.
+- **Input**: an `INGEST` run for a `Document` — parsed `ContentBlock`s, or a `CONVERSATION` turn whose instruction
+  goes through Extract's edit prompt (T15).
+- **Output**: the run `COMPLETED` or `FAILED`, plus the pages, revisions, sources, links and supersessions it committed.
+- **A run fails when no page task succeeded** — a task succeeds when its draft passed validation (changed or not), or its
+  delete or retitle applied. Partial success lands and records `failures`. A run whose drafts were all unchanged
+  completes with no revisions (T21).
+- **Caps fail loudly, never truncate**: claims per Extract call (`retryable`) and page tasks per run (not `retryable`)
+  (T23).
 
 ### Tasks
 
 - [ ] **6.1 — Prompt files** (`src/main/resources/prompts/pl/`)
-  - `relevance_guard.pl.md`, `claim_extractor.pl.md`, `page_writer.pl.md`, `link_checker.pl.md`,
-    `supersession_detector.pl.md`.
+  - `relevance_guard.pl.md`, `claim_extractor.pl.md`, `claim_extractor_edit.pl.md`, `page_writer.pl.md`,
+    `link_checker.pl.md`, `supersession_detector.pl.md`.
   - Decide and write down here: section conventions per page type, and the prose language when a source's
     language differs from the prompt locale (handed off from the re-cut map's fog).
   - Every rule a prompt teaches is also enforced in code (see `ai_agents.md`).
 
-- [ ] **6.2 — `Preprocessor` and `RelevanceGuard`** (`dev.mindforge.agent`)
-  - `Preprocessor`: deterministic, no LLM — whitespace, headings, cleaned blocks.
-  - `RelevanceGuard` (SMALL): returns `ValidationResult`; a rejection fails the run with its reason.
+- [ ] **6.2 — `Preprocessor` and `RelevanceGuard`**
+  - `Preprocessor` (`dev.mindforge.application.ingest`): plain code, no LLM, no `VERSION` — whitespace, headings,
+    cleaned blocks (T28).
+  - `RelevanceGuard` (`dev.mindforge.agent`, SMALL): returns `ValidationResult`; a rejection fails the run with its
+    reason and `retryable = false`. Skipped for conversation turns (T15).
 
-- [ ] **6.3 — `ClaimExtractor`** (LARGE)
-  - Input: blocks + rendered index. Output: `ClaimSet` — each claim with a proposed existing target path or `new: <title>`.
-  - Enforces the claim cap from `ProcessingSettings`.
+- [ ] **6.3 — `ClaimExtractor`** (LARGE) — T23, T22, T15
+  - `extract(chunk, renderedIndex, plannedPages)` → `ExtractResult(List<Claim(text, title, targetPath?, firstBlock,
+    lastBlock)>, chunkDigest)`. One call per heading-aware chunk (4.4), **sequentially**; each call also sees the paths
+    and titles planned by earlier chunks. `DeadlineProfile.BACKGROUND` applies per call.
+  - `extractEdit(instruction, quotedAnswer, renderedIndex)` → `List<EditItem>` — `Claim`, `Delete(path)`,
+    `Retitle(path, title)` — from its own prompt. The document method cannot return a deletion.
+  - Over `ProcessingSettings.maxClaimsPerExtractCall` (default 40) → run `FAILED`, `retryable = true`.
+  - Titles pass `TextRules.singleLine` and must be 1–200 characters; block ranges outside the chunk are ignored.
 
-- [ ] **6.4 — Resolve** (code, in `IngestPipeline`)
-  - Verify proposed paths exist (a hallucinated path becomes a create); derive paths for new titles;
-    collapse claims targeting the same new path; an existing exact path is a revision.
-  - Add the document's `Source Summary` task (`sources/<lesson-id>`), unless the document is a conversation turn.
+- [ ] **6.4 — Resolve** (code, in `IngestPipeline`) — T22, T15, T28
+  - A claim's `targetPath` counts only if it is a live `Concept` or a path planned by an earlier chunk; otherwise its
+    path is `concepts/` + `Identifier.slugify(title)` — a revision if that path is live, else a create.
+  - Group claims by final path into **exactly one `PageWriteTask` per path**; a create takes the title of the group's
+    first claim in document order; a create with an invalid title fails its task.
+  - Over `ProcessingSettings.maxPageTasksPerRun` (default 100 Concept tasks) → run `FAILED`, `retryable = false`, before
+    any write call.
+  - Edit items: `Delete` and `Retitle` only of a live Concept; a path both deleted and written drops both; dropped items
+    are recorded in `failures`.
+  - `ARTICLE` documents are create-only: claims resolving to a live page are dropped and recorded (T28).
+  - Add the document's `Source Summary` task (`sources/<lesson-id>`, title = the document's `lessonTitle`), unless the
+    document is a conversation turn.
 
-- [ ] **6.5 — `PageWriter`** (LARGE)
-  - Input: task, existing body, linkable index (including paths this run will create).
-  - Output: `PageDraft(title, description, body)`. Rejected if the body carries frontmatter, a `# Citations`
-    section or an H1 repeating the title.
+- [ ] **6.5 — `PageWriter`** (LARGE) — T21, T23, T26, T19, T22
+  - Input:
+    - the task: its claims and, for a Concept, their source blocks (de-duplicated, document order, trimmed to
+      `ProcessingSettings.writerSourceTokens`, default 16 000, by dropping whole blocks from the end); for a Source
+      Summary, the whole document if it fits `chunkSizeTokens`, else the chunk digests in order;
+    - the existing body verbatim, and its superseded sections as a separate list
+      `SupersededSection(heading, anchor, supersedingPath, supersedingTitle)`;
+    - the linkable index: live pages minus this run's deletions, plus this run's planned creates.
+  - Output: `PageDraft(description, body)` — no title; code owns titles.
+  - Code validation, over `MarkdownStructure` — a failure fails that page task and is recorded in `failures`:
+    - description passes `TextRules.singleLine`, 1–300 characters; body passes `TextRules.normaliseBody` and is not blank;
+    - no frontmatter; no level-1 `Citations` heading; no level-1 heading whose anchor equals the title's;
+    - no invalid link, image or reference definition;
+    - an `INGEST` run whose document is not a conversation turn, revising a Concept, keeps every existing level-1
+      anchor — superseded sections included.
+  - A draft whose title, description and normalised body equal the live page writes nothing (no revision, source row or
+    link re-derivation). The run report shows each written body's length before and after.
 
-- [ ] **6.6 — `LinkChecker`** (SMALL) **and `LinkInsertionApplier`** (code) — ADR 0017
-  - The model returns `List<LinkInsertion>`; code wraps the first eligible occurrence (outside links, code
-    spans, headings) only if the target is live or created by this run; asserts strip-links equality.
+- [ ] **6.6 — `LinkChecker`** (SMALL) **and `LinkInsertionApplier`** (code) — ADR 0017, T26
+  - The model returns `List<LinkInsertion>`; code wraps the first eligible occurrence — outside links and autolinks, code
+    spans, fenced blocks, heading lines and `<…>` spans — only if the target is live and not deleted by this run, or was
+    successfully drafted in this run; the target is not the page itself; any fragment is a level-1 anchor of the target's
+    body. Asserts strip-links equality.
   - Runs on in-memory bodies before commit; a failure records `{"step":"linkCheck"}` and commits without extra links.
 
-- [ ] **6.7 — `SupersessionDetector`** (LARGE ×1)
-  - Input: claim set + sections retrieval flagged as related but not revised. Output: supersession rows.
+- [ ] **6.7 — `SupersessionDetector`** (LARGE ×1) — T14
+  - Runs after commit 1, under the lease. Skipped for `ARTICLE` documents and for runs with no revisions.
+  - Input: this run's claims with their resolved paths (only pages that got a revision), and the level-1 sections of
+    candidate pages — live Concepts written by this run or one `page_links` hop from one, in either direction — shown with
+    path, anchor and heading. Sections already superseded are left out. Pages are ranked by connecting-link count, then
+    path, and added whole up to `ProcessingSettings.supersessionContextTokens` (default 30 000); omitted pages are
+    recorded as `{"step":"supersede","omittedPages":N}`.
+  - Output: `SupersessionProposal(supersededPath, sectionAnchor, supersedingPath)`. Kept only if the section was among the
+    candidates shown, the superseding path is a Concept this run revised, the two differ, and no live supersession or
+    earlier proposal covers that section. Drops are recorded as `{"step":"supersede","dropped":N}`.
 
-- [ ] **6.8 — `IngestPipeline` and ingest worker** (`dev.mindforge.application.service`)
-  - `SpringEventPublisher implements EventPublisher`; `@TransactionalEventListener(AFTER_COMMIT)` on
-    `DocumentIngested` wakes the worker.
-  - Worker claims the lease; on a lost claim the document stays pending.
-  - Writes fan out on virtual threads behind a semaphore sized for provider rate limits.
-  - **Commit 1** (`@Transactional`): pages, revisions, sources, links, run `WRITTEN`.
-  - **Commit 2**: supersessions, run `COMPLETED`, lease released; the worker claims the oldest pending document.
-  - Failure: run `FAILED` with `failures` / `failure_reason`, lease released.
-  - **Startup sweep**: `RUNNING` → `FAILED`; `WRITTEN` → `COMPLETED` + `supersession_skipped`; release
-    leases; drain pending documents. Ceiling: assumes one instance.
-  - Record each service's `VERSION` + model id in `step_versions`, and summed cost in `cost`.
+- [ ] **6.8 — Run worker, `IngestPipeline` and progress** (`dev.mindforge.application.service`) — ADR 0015, T17, T20
+  - **Events**: `SpringEventPublisher implements EventPublisher`. `DomainEvent.DocumentIngested` is replaced by
+    `IngestRunQueued(runId, knowledgeBaseId, occurredAt)`, published by every transaction that inserts a `QUEUED` run;
+    an `@TransactionalEventListener(AFTER_COMMIT)` calls `RunWorker.drain(kbId)`.
+  - **Queue**: the upload transaction (4.5) also inserts a `QUEUED` `INGEST` run. `drain(kbId)` takes the oldest
+    `QUEUED` run, adds its id to the in-memory active set, then claims it (lease + `QUEUED` → `RUNNING` in one
+    transaction; a lost claim removes the id and leaves the run queued), and dispatches `INGEST` to `IngestPipeline` and
+    `LINT` to `LintService`. A finishing run drains again.
+  - **Throttling**: every model call of an `INGEST` or `LINT` run takes a permit from one global `Semaphore`
+    (`mindforge.ai.background-permits`, default 4); writes fan out on virtual threads within it.
+  - **Commit 1** (`@Transactional`, fenced `RUNNING` → `WRITTEN`): pages, revisions, sources, links.
+  - **Commit 2** (fenced `WRITTEN` → `COMPLETED`): supersessions, `supersession_count`, lease released.
+  - **Failure**, from a `finally`: before or at commit 1, or no page task succeeded → `FAILED` with `failure_reason`,
+    `retryable` and `failures`, lease released; Supersede or commit 2 → `COMPLETED` + `supersession_skipped`, lease
+    released; a fence that matches 0 rows → `RunFencedException`, WARN, nothing written, released or notified.
+  - **Sweep** on `ApplicationReadyEvent` and `@Scheduled(fixedDelay = 60 s)`, over runs not in the active set:
+    `WRITTEN` → `COMPLETED` + `supersession_skipped`; `RUNNING` → `FAILED` "interrupted", `retryable`, and an `INGEST`
+    run with `attempt < 3` is re-queued as a new run with `attempt + 1`; leases released; every knowledge base with
+    `QUEUED` runs drained. Stops claiming on `ContextClosedEvent`. Ceiling: one live instance.
+  - **Progress**: `ProgressNotifier` port (best-effort, never throws), called at each step boundary, for write fan-out
+    progress, and after each status transaction returns. `SseProgressNotifier` (`dev.mindforge.infrastructure.event`)
+    keeps `Map<kbId, Set<SseEmitter>>` and drops dead emitters. The endpoint is 9.7.
+  - Record each model service's `VERSION` + model id in `step_versions`. `cost` stays `NULL` until Phase 14 (T28).
   - `UploadSource` gains `CONVERSATION`; the conversation entry point is exposed by Phase 11.
 
 - [ ] **6.9 — Tests** (`StubAIGateway` fixtures, no real HTTP)
-  - Zero successful writes fails the run; partial success lands and records failures.
-  - Claim cap exceeded fails loudly.
-  - A hallucinated target path becomes a create.
-  - A link insertion that would change prose is rejected.
-  - Two uploads into one knowledge base serialize; into two knowledge bases they run concurrently.
-  - The sweep settles `RUNNING` and `WRITTEN` runs.
+  - No successful page task fails the run; partial success lands and records failures; all-unchanged drafts complete with
+    no revisions and no log line.
+  - The claims-per-call cap (retryable) and the page-task cap (not retryable) fail loudly.
+  - A hallucinated or `sources/` target becomes a create from the claim's title; two claims reaching one path make one
+    task and one revision.
+  - A chunk can target a page planned by an earlier chunk.
+  - Draft validation: an invalid link, an image, frontmatter, `# Citations`, a title heading and a dropped section each
+    fail their page task; a `# comment` inside a fence is not a heading.
+  - A link insertion that would change prose, target a failed create, or sit inside a fenced block is rejected.
+  - Supersession proposals outside the candidates, on a Source Summary, or self-referencing are dropped; omitted
+    candidates are recorded.
+  - Edits: a `Delete` tombstones a live Concept; a `Delete` of a Source Summary is dropped; an edit naming no page fails
+    with `retryable = false`; a `Retitle` changes only the title.
+  - Two uploads into one knowledge base serialize; into two they run concurrently; a Lint queued behind an ingest runs
+    next.
+  - Fencing: a run swept while generating cannot commit.
+  - The sweep settles `RUNNING` and `WRITTEN` runs and re-queues an interrupted ingest at most twice.
+  - `SseProgressNotifier`: a subscriber receives step messages; a dead emitter is dropped; no subscriber is a no-op.
   - Revert after an ingest restores every page it still tips.
   - `VERSION` constant present on each model service.
 
@@ -686,6 +828,8 @@ commit, supersession — with the lease, partial-success semantics and the start
 - [ ] No LLM call happens inside a database transaction.
 - [ ] Pages written are counted from inserted rows, never from model output.
 - [ ] Every model service declares `static final String VERSION`, recorded on the run.
+- [ ] No work is lost while the lease is held: every waiting run is `QUEUED`.
+- [ ] Every commit is fenced on the run's status and the lease.
 
 ---
 
@@ -697,22 +841,31 @@ commit, supersession — with the lease, partial-success semantics and the start
 **Goal:** Implement live structural health checks and the on-demand full review (ADR 0017). The link
 check inside ingest is already built in Phase 6.
 
+> **Changed in v3.1:** health reads through `WikiHealthQuery`, checks dangling supersessions in Java and shows the index
+> against its ceiling (T25, T26, T23); duplicate titles are reported for Concepts only (T22); a full Lint is a queued run
+> (T17).
+
 ### Tasks
 
-- [ ] **7.1 — Health queries** (`WikiStore` / persistence adapter)
-  - Dangling links; wrong-directory links (a dangling link whose final segment matches a live page elsewhere);
-    orphan Concepts (no inbound links); duplicate titles; dangling supersessions (anchor gone or superseding page gone).
+- [ ] **7.1 — Health** (`WikiHealthQuery` adapter + `HealthService`)
+  - SQL: dangling links; wrong-directory links (a dangling link whose final segment matches a live page elsewhere);
+    orphan Concepts (no inbound links); duplicate titles among live Concepts.
+  - Java over SQL rows: dangling supersessions — the anchor is not a level-1 anchor of the superseded body
+    (`MarkdownStructure`), or the superseding page is gone.
+  - Index size: `TokenEstimate` of the rendered index against the 20K-token ceiling ("prefilter due" past it).
   - `KnowledgeBaseHealth` record. No run, nothing stored.
 
 - [ ] **7.2 — `WikiReviewer`** (LARGE) **and `LintService`**
-  - A `LINT` run under the lease; reads live Concept bodies in chunks with the (prefiltered) index.
+  - A `LINT` run, inserted `QUEUED` and claimed like any run (6.8); reads live Concept bodies in chunks with the
+    (prefiltered) index.
   - Link insertions through `LinkChecker` + `LinkInsertionApplier`; findings (contradictions, unmarked
     supersessions) and suggestions (missing pages, questions to investigate) stored in `ingest_runs.findings`.
   - Never writes prose; never inserts supersessions; never generates a page from a suggestion.
 
 - [ ] **7.3 — Tests**
-  - Each health query against fixture data.
-  - `LintService` with `StubAIGateway`: insertions applied, prose unchanged, findings stored, lease respected.
+  - Each health query against fixture data; a supersession whose anchor exists only inside a fenced block is reported
+    dangling.
+  - `LintService` with `StubAIGateway`: insertions applied, prose unchanged, findings stored, queued behind an active run.
 
 ### Completion Checklist
 
@@ -722,35 +875,15 @@ check inside ingest is already built in Phase 6.
 
 ---
 
-## [ ] Phase 8 — Event System
+## Phase 8 — Event System *(retired in v3.1)*
 
-> **Changed in v3.0.** Keeps its design decision — no outbox, no Redis — and drops the Neo4j indexing
-> listener. `SpringEventPublisher` moved into Phase 6, where the ingest worker first needs it.
-
-**Goal:** Publish run-level domain events and stream real-time ingest progress to the browser.
-
-> **Design decision** (unchanged, now ADR 0015): no transactional outbox. Every consumer is derived or
-> best-effort; listeners run after commit and tolerate a missed event.
-
-### Tasks
-
-- [ ] **8.1 — Run events** (`dev.mindforge.domain.model.DomainEvent`)
-  - Add `IngestStepCompleted(runId, step)`, `IngestRunCompleted(runId, knowledgeBaseId)`,
-    `IngestRunFailed(runId, reason, retryable)`, published inside the corresponding commits.
-
-- [ ] **8.2 — `SseProgressEmitter`** (`dev.mindforge.infrastructure.event`)
-  - In-memory registry: `Map<UUID, SseEmitter>` keyed by run id.
-  - `@TransactionalEventListener(AFTER_COMMIT)` on `IngestStepCompleted`: sends step name + status as JSON.
-  - Emitter cleaned up on `IngestRunCompleted` or `IngestRunFailed`.
-
-- [ ] **8.3 — Unit tests**
-  - `SseProgressEmitterTest`: emitter receives step events; cleaned up on completion/failure; a missing
-    emitter is a no-op.
-
-### Completion Checklist
-
-- [ ] Domain events published via `EventPublisher` reach their listeners after commit.
-- [ ] SSE emitter sends step-level progress without Redis or an external broker.
+> **Retired in v3.1** ([T20](../wayfinder/tickets/20-progress-and-domain-events.md)). Progress is not a domain event, and
+> the pipeline needs its notifier from the start. The `ProgressNotifier` port, the in-memory `SseProgressNotifier` and the
+> `IngestRunQueued` event are built in Phase 6.8; the progress endpoint in Phase 9.7. The number is retired, as Phase 7's
+> Neo4j slot was.
+>
+> **Design decision** (unchanged, ADR 0015): no transactional outbox and no Redis. Listeners run after commit and
+> tolerate a missed event; progress is best-effort.
 
 ---
 
@@ -758,6 +891,8 @@ check inside ingest is already built in Phase 6.
 
 > **Changed in v3.0:** 9.6 and 9.7 — controllers for the wiki, runs, revert and health replace
 > `ArtifactController`; documents cannot be deleted individually (ADR 0015).
+> **Changed in v3.1:** retry and Lint-start endpoints, synchronous revert and supersession removal, per-knowledge-base
+> progress, lesson collisions and busy knowledge-base deletes as 409 (T16, T17, T18, T20, T24).
 
 **Goal:** Implement the auth system (Google/GitHub OAuth2 + email/password + JWT), all REST controllers,
 security config, global exception handler, and SPA serving.
@@ -784,18 +919,28 @@ security config, global exception handler, and SPA serving.
 
 - [ ] **9.6 — `GlobalExceptionHandler.java`** (`@ControllerAdvice`)
   - `LessonIdentityException` → 422; `PageNotFoundException` / `DocumentNotFoundException` → 404;
-    `RevertNotAllowedException` → 409; `AccessDeniedException` → 403; `DeadlineExceededException` → 503.
+    `RevertNotAllowedException`, `KnowledgeBaseBusyException`, `LessonAlreadyExistsException` (with the lesson's id
+    and title), `RetryNotAllowedException` → 409; `AccessDeniedException` → 403; `DeadlineExceededException` → 503.
   - Uniform `{ "error": "...", "code": "...", "detail": "..." }` shape. Ingest failures are run
     state, not HTTP errors.
 
-- [ ] **9.7 — REST controllers** (`dev.mindforge.api.controller`)
-  - `DocumentController`: upload (202 + document id), list, get — with latest-run status.
-  - `KnowledgeBaseController`: CRUD for knowledge bases (delete cascades everything).
-  - `WikiController`: rendered index; page by path (body with supersession notes and citations);
-    page revisions and diffs; the graph (live pages + `page_links`).
-  - `RunController`: list runs; run report (pages written with diffs, claims superseded); revert a run;
-    remove one supersession; SSE progress `GET /api/runs/{id}/progress`.
-  - `HealthController`: `GET /api/knowledge-bases/{kbId}/health`; start a full review.
+- [ ] **9.7 — REST controllers** (`dev.mindforge.api.controller`) — T17, T18, T20, T24, T28
+  - `DocumentController`:
+    - upload with optional `lessonId` and `newVersion` (202 + document id; 409 on a lesson collision);
+    - list, get — with latest-run status and `retryable`;
+    - retry `POST /api/documents/{id}/runs` (202 + run id; 409 unless the latest run is `FAILED`).
+  - `KnowledgeBaseController`: CRUD for knowledge bases; document and page counts derived at read; delete cascades
+    everything and is 409 while a run is active (`DELETE … WHERE active_run_id IS NULL`).
+  - `WikiController`: rendered index; page by path (body with supersession notes and citations); page revisions, each
+    with its prior revision (the SPA diffs them); the graph (live pages + `page_links`).
+  - `RunController`:
+    - list runs `GET /api/knowledge-bases/{kbId}/runs`;
+    - run report (pages written with prior revisions and body-length deltas, supersessions, failures);
+    - revert `POST /api/runs/{id}/revert` — synchronous; 409 when busy or not offered;
+    - remove one supersession `DELETE /api/knowledge-bases/{kbId}/supersessions/{id}` — synchronous; 409 when busy;
+    - progress `GET /api/knowledge-bases/{kbId}/progress` — SSE, every run of the knowledge base (T20).
+  - `HealthController`: `GET /api/knowledge-bases/{kbId}/health`; start a full Lint
+    `POST /api/knowledge-bases/{kbId}/lint-runs` (202; 409 if a `LINT` run is already queued or active).
   - `UserController`: profile management.
   - Every method thin: validation + ownership check + delegate. Constructor injection only.
 
@@ -805,7 +950,9 @@ security config, global exception handler, and SPA serving.
 - [ ] **9.9 — API integration tests** (`integration/api/`)
   - Auth flow: register → login → access protected resource → logout.
   - Upload flow: upload → run completes (stub gateway) → pages listed → no sensitive fields in any response.
-  - Ownership: user A cannot read user B's pages, runs or health (403).
+  - Upload with an existing lesson id → 409; the same with `newVersion` → 202.
+  - Deleting a knowledge base while a run is active → 409; a queued upload and a retry both run in order.
+  - Ownership: user A cannot read user B's pages, runs, progress stream or health (403).
 
 ### Completion Checklist
 
@@ -822,27 +969,37 @@ security config, global exception handler, and SPA serving.
 
 **Goal:** Download a knowledge base as a conformant OKF bundle.
 
+> **Changed in v3.1:** reads through `BundleQuery`, escapes titles, re-worded `log.md` rule, `timestamp` source and a
+> never-empty filename (T19, T25).
+
 ### Tasks
 
 - [ ] **9b.1 — `BundleExporter`** (`dev.mindforge.infrastructure.export`)
   - One `@Transactional(readOnly = true, isolation = REPEATABLE_READ)` snapshot; no lease.
-  - Per page: SnakeYAML frontmatter (`type`, `title`, `description`, `timestamp`) + stored body verbatim +
-    supersession notes as a blockquote under the superseded heading + projected `# Citations`.
+  - Per page: SnakeYAML frontmatter (`type`, `title`, `description`, `timestamp` = `wiki_pages.updated_at`) + stored
+    body verbatim + supersession notes as a blockquote under the superseded level-1 heading
+    (`MarkdownStructure`) + projected `# Citations`. Titles in link text escape `\`, `[` and `]`.
   - `index.md` from `IndexRenderer`; `log.md` from `LogRenderer`.
-  - Reads only wiki tables, `ingest_runs` counts and `documents` title/filename/date — never study tables,
-    `cost`, `step_versions`, `failures` or `findings`.
+  - Reads through `WikiStore.listBodies`, `BundleQuery` (citations, supersession notes) and
+    `RunReportQuery.logEntries` — never study tables, `cost`, `step_versions`, `failures` or `findings`.
 
 - [ ] **9b.2 — `BundleConformanceValidator`** (pure function over rendered files)
-  - OKF §9: parseable frontmatter; non-empty `type`; `index.md` / `log.md` structure. Plus path pattern
-    and reserved segments. A violation is a 500 and is logged — never a shipped bundle.
+  - OKF §9 rule 1: every non-reserved `.md` has parseable YAML frontmatter. Rule 2: non-empty `type`.
+  - Rule 3, re-worded (T19): `index.md` has optional frontmatter holding only `okf_version`, then `# ` sections each
+    followed by zero or more `* [title](url)` lines optionally ending ` - description`; `log.md` has one `# ` heading,
+    then `## YYYY-MM-DD` headings each followed by one or more `* ` lines; blank lines anywhere.
+  - Rule 4: every path is `(concepts|sources)/` + a name matching `Identifier.PATTERN`, not reserved.
+  - A violation is a 500 and is logged — never a shipped bundle.
 
 - [ ] **9b.3 — Endpoint**
   - `GET /api/knowledge-bases/{kbId}/export` → `application/zip`, `Content-Disposition: attachment;
-    filename="<kb-name-slug>-okf.zip"`, streamed via `StreamingResponseBody`; ownership checked.
+    filename="<Identifier.slugify(kb name)>-okf.zip"` (never empty), the zip's root directory named the same; streamed
+    via `StreamingResponseBody`; ownership checked.
 
 - [ ] **9b.4 — Tests**
-  - Validator as oracle over exporter output; YAML escaping of titles with `: ` and quotes; a concurrent
-    ingest commit does not tear the bundle; no study data in any file.
+  - Validator as oracle over exporter output; YAML escaping of titles with `: ` and quotes; a title containing `]` and
+    a lesson title that arrived with a newline still validate; an empty knowledge base exports a valid bundle; a
+    concurrent ingest commit does not tear the bundle; no study data in any file.
 
 ### Completion Checklist
 
@@ -864,14 +1021,18 @@ targeting weak pages.
 
 - [ ] **10.1 — Domain types** (`dev.mindforge.domain.model`)
   - `ReviewResult` record: `int rating` (0–5).
-  - `Flashcard(cardId, pageId, sectionAnchor, cardType, front, back, generatedAtRevision)`;
-    `cardId = sha256(kbId|pageId|cardType|front|back)[:16]`.
-  - `StudyScope` sealed interface: `WholeKnowledgeBase`, `Lesson(lessonId)`, `Page(pageId)`.
-  - Ports: `StudyProgressStore` (due cards, save review, weak pages), `QuizSessionStore`.
-  - `ProcessingSettings.newPagesPerSession` (default 10).
+  - `Flashcard(cardId, pageId, sectionAnchor, cardType, front, back, sourceHash)`;
+    `cardId = sha256(kbId|pageId|cardType|front|back)[:16]`;
+    `sourceHash = sha256(title + "\n" + stripLinks(body))[:16]` of the page the card was generated or reused from (T21).
+  - `StudyScope` sealed interface: `WholeKnowledgeBase`, `Lesson(lessonId)` (pages via `WikiStore.pageIdsForLesson`;
+    the reserved `conversation` lesson is never offered), `Page(pageId)`.
+  - Ports: `StudyProgressStore` (due cards, save review, weak pages), `QuizSessionStore` — `kbId` first.
+  - `ProcessingSettings.cardPagesPerSession` (default 10) — one generation budget for new and stale pages (T27).
+  - Weakness: a page's score is the mean of its last 5 `study_events`; weak below 3.0.
 
 - [ ] **10.2 — Migration `V3__create_study.sql` and stores**
-  - `flashcards` (PK `(knowledge_base_id, card_id)`, `page_id` without FK to `wiki_pages`, `retired_at`, SM-2 columns).
+  - `flashcards` (PK `(knowledge_base_id, card_id)`, `page_id` without FK to `wiki_pages`, `section_anchor`,
+    `source_hash CHAR(16)`, `retired_at`, SM-2 columns). Inserts are `ON CONFLICT (knowledge_base_id, card_id) DO NOTHING`.
   - `study_events (knowledge_base_id, page_id, card_id, kind CARD|QUIZ, score, occurred_at)`.
   - `quiz_sessions` — questions JSONB with reference answers and grounding; TTL via `@Scheduled` cleanup;
     Caffeine wraps the PostgreSQL store.
@@ -879,19 +1040,26 @@ targeting weak pages.
 - [ ] **10.3 — SM-2 algorithm** (`dev.mindforge.application.service`)
   - `SM2Scheduler` pure Java class. `EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))`, EF ≥ 1.3.
 
-- [ ] **10.4 — `FlashcardGenerator`** (LARGE) **and `FlashcardService`**
-  - Lazy: when a deck opens for a scope, generate cards for at most `newPagesPerSession` Concept pages
-    without cards; regenerate a page's cards when `page.revision > generated_at_revision`, passing current
-    cards for verbatim reuse.
-  - Unchanged content keeps its id and history; vanished cards get `retired_at`; reappearing ids are un-retired.
+- [ ] **10.4 — `FlashcardGenerator`** (LARGE) **and `FlashcardService`** — ADR 0018, T21, T27
+  - Stale: the page's current hash differs from its cards' `source_hash`. A link-only or supersession-only change is
+    never stale.
+  - Lazy: when a deck opens for a scope, spend at most `cardPagesPerSession` generation calls — stale pages with due
+    cards (oldest due first), then Concept pages without cards (by `created_at`). Calls run in parallel on virtual
+    threads with `DeadlineProfile.BATCH`; the request waits for them. Stale pages past the budget keep serving their cards.
+  - Per-page `ReentrantLock` in a `ConcurrentHashMap` (not `synchronized`); staleness re-checked after acquiring it.
+  - The generator receives the page with superseded sections stripped, its current cards, and its retired cards whose
+    `source_hash` equals the current hash, for verbatim reuse.
+  - Returned cards are stamped with the current `source_hash` and their `section_anchor`; a returned id that was retired
+    is un-retired with its SM-2 history and `due_at = now`; cards not returned get `retired_at`.
   - Due query inner-joins `wiki_pages` and excludes cards whose `(page_id, section_anchor)` has a live supersession.
   - `reviewCard` updates SM-2 and appends a `study_events` row.
 
-- [ ] **10.5 — `QuizGenerator`** (LARGE), **`QuizEvaluator`** (SMALL) **and `QuizService`**
-  - `startSession(kbId, userId, scope)`: weakest pages first (mean of recent `study_events`), then 1-hop
-    `page_links` neighbours; one generation call with superseded sections stripped; batch stored in the session.
+- [ ] **10.5 — `QuizGenerator`** (LARGE), **`QuizEvaluator`** (SMALL) **and `QuizService`** — T27
+  - `startSession(kbId, userId, scope)`: whole-knowledge-base order is weak pages by ascending mean, then unstudied
+    Concepts by `created_at`, then the rest by ascending mean; then 1-hop `page_links` neighbours; one generation call
+    with superseded sections stripped; batch stored in the session.
   - `nextQuestion`: question text only. `submitAnswer`: grade against the session's reference answer and
-    grounding excerpt; return score + feedback; append `study_events`.
+    grounding excerpt on SM-2's 0–5 rubric (clamped); return score + feedback; append `study_events`.
 
 - [ ] **10.6 — Controllers**
   - `QuizController`: `POST /api/quiz/sessions`, `GET /api/quiz/sessions/{id}/next`, `POST /api/quiz/sessions/{id}/answers`.
@@ -900,8 +1068,11 @@ targeting weak pages.
 - [ ] **10.7 — Tests**
   - `SM2SchedulerTest`: rating 5 → EF increases; rating 0 → reset; EF never below 1.3.
   - `FlashcardServiceTest`: a revision keeps unchanged cards' history; a changed answer retires the old card;
-    revert revives it with history; superseded sections are skipped; the new-page limit is honoured.
-  - `QuizServiceTest` with `StubAIGateway`: no reference answer in responses; weak pages targeted first.
+    revert revives it with history and `due_at = now`; a link-only revision regenerates nothing; superseded sections
+    are skipped; the generation budget covers new and stale pages together; two concurrent deck opens make one
+    generation call per page; a reused card's `section_anchor` follows its section.
+  - `QuizServiceTest` with `StubAIGateway`: no reference answer in responses; weak pages targeted first; a knowledge base
+    with no study events orders by creation.
 
 ### Completion Checklist
 
@@ -922,29 +1093,37 @@ wiki; provide page search for the SPA.
 
 ### Tasks
 
-- [ ] **11.1 — Domain types**
+- [ ] **11.1 — Domain types and migration**
   - `Interaction(interactionId, userId, kbId, startedAt)`;
     `InteractionTurn(turnId, question, answer, usedPagePaths, createdAt)`;
-    `TokenBudget(totalTokens, reservedForResponse)` with `availableForContext()`.
-  - `InteractionStore` port: `createInteraction`, `addTurn`, `getInteraction`, `listForUser` (redacted), `listUnredacted`.
+    `TokenBudget(totalTokens, reservedForResponse)` with `availableForContext()`, counting with `TokenEstimate` (T23).
+  - `InteractionStore` port, `kbId` first: `createInteraction`, `addTurn`, `getInteraction`, `listForUser` (redacted).
+    No `listUnredacted` — there is no admin role (T28).
+  - Migration `V4__create_interactions.sql`: `interactions` and `interaction_turns`, both with `knowledge_base_id` FK
+    `ON DELETE CASCADE`; `interaction_turns.used_page_paths TEXT[]` (T28).
 
 - [ ] **11.2 — `PageSelector`** (SMALL), **`AnswerWriter`** (LARGE) **and `QueryService`**
   - Select: rendered index (prefiltered past 20K tokens) + question + prior turns → page paths.
   - Load: verify live paths; bodies with supersession notes; add 1-hop link neighbours while `TokenBudget` allows.
   - Answer: `DeadlineProfile.INTERACTIVE`; cites page paths. Query never writes pages and takes no lease.
 
-- [ ] **11.3 — Conversation edits** — ADR 0012
-  - An explicit *edit* action in chat (not a question): the instruction is persisted as a `CONVERSATION`
-    `Document` and ingested as a run entering at Resolve (Phase 6). "Save that" carries the previous answer
-    as its content; deletion requests go through the same channel.
-  - The user sees the run report inline; "undo" calls `RevertService`.
+- [ ] **11.3 — Conversation edits** — ADR 0012, T15
+  - An explicit *edit* action in chat (not a question) is persisted as a `CONVERSATION` `Document` — lesson id
+    `conversation`, lesson title `Conversation`, `text/plain`, filename `conversation`, content hash over the UTF-8 content —
+    together with a `QUEUED` `INGEST` run, exactly like an upload. "Save that" stores the instruction followed by the
+    quoted answer.
+  - The run goes through Extract's edit prompt (6.3) — claims, `Delete`, `Retitle` — then Resolve; RelevanceGuard and the
+    Source Summary task are skipped. Deletion and retitling have no other channel.
+  - The user sees the run report inline. An edit that named no page fails (`retryable = false`) and chat says *"I couldn't
+    tell which page to change — name the page or rephrase."*; dropped items are listed with their reasons. "Undo" calls
+    `RevertService` (409 while a run is active).
 
 - [ ] **11.4 — Page search** (`SearchService`)
   - Title/description match and `simple` full-text over `wiki_pages` bodies, scoped to `kbId`.
   - Shares the lexical code the index prefilter will use; `pg_trgm` is added only when a knowledge base passes the ceiling.
 
 - [ ] **11.5 — `InteractionStoreAdapter`** (PostgreSQL)
-  - `listForUser()` returns only `question` + `answer`; `listUnredacted()` is admin-only.
+  - `listForUser(kbId, userId)` returns only `question` + `answer`.
 
 - [ ] **11.6 — Controllers**
   - `QueryController`: `POST /api/query/sessions`, `POST /api/query/sessions/{id}/messages`,
@@ -953,7 +1132,9 @@ wiki; provide page search for the SPA.
 
 - [ ] **11.7 — Tests**
   - `QueryServiceTest` with `StubAIGateway`: hallucinated paths dropped; `TokenBudget` trimming; no grounding in responses.
-  - Conversation edit creates a `CONVERSATION` document and a run; an identical edit a week later is not deduplicated.
+  - Conversation edit creates a `CONVERSATION` document (lesson `conversation`) and a `QUEUED` run; an identical edit a
+    week later is not deduplicated; "delete Mitoza" tombstones the page; an edit naming no page fails with the chat
+    message above; the `conversation` lesson never appears in the study scope picker.
   - `InteractionStoreAdapterTest`: `listForUser` redacts internals.
 
 ### Completion Checklist
@@ -976,7 +1157,8 @@ all user-facing pages for the learning loop.
 
 - [ ] **12.1 — Angular project setup**
   - `ng new frontend --standalone --routing --style=scss` inside `frontend/`.
-  - Install: `@angular/material`, `cytoscape`, `@types/cytoscape`. Proxy `/api` to `:8080`.
+  - Install: `@angular/material`, `cytoscape`, `@types/cytoscape`, `diff` (revision diffs are computed in the SPA, T28).
+    Proxy `/api` to `:8080`.
 
 - [ ] **12.2 — Core infrastructure**
   - `AuthService` (JWT cookie, Google/GitHub OAuth2), `ApiService` (generated types), `AuthGuard`,
@@ -984,18 +1166,24 @@ all user-facing pages for the learning loop.
 
 - [ ] **12.3 — Pages**
   - `/login`; `/dashboard` — knowledge bases.
-  - `/kb/:id` — documents, upload dropzone, recent runs with live SSE progress.
+  - `/kb/:id` — documents, upload dropzone (a 409 lesson collision asks *new version of "…"* or *new lesson* with an
+    editable id), recent runs with live SSE progress, a retry button on retryable failed runs.
   - `/kb/:id/pages` — the index, grouped Concepts / Sources, with page search.
-  - `/kb/:id/pages/:path` — a page with supersession notes, citations and revision history.
+  - `/kb/:id/pages/:path` — a page with supersession notes, citations and revision history. Bodies render with raw HTML
+    escaped; external links get `rel="noopener noreferrer nofollow"`.
   - `/kb/:id/graph` — Cytoscape.js graph of pages and `page_links`.
-  - `/kb/:id/runs/:runId` — run report: pages written with diffs, claims superseded with per-row removal, revert.
-  - `/kb/:id/health` — live findings, latest full review's findings and suggestions, "run full review".
-  - `/kb/:id/study` — scope picker, flashcard review, quiz.
+  - `/kb/:id/runs/:runId` — run report: pages written with diffs and body-length deltas, supersessions with per-row
+    removal, failures and omissions, revert (a 409 says the knowledge base is busy).
+  - `/kb/:id/health` — live findings, index size against the ceiling, latest full review's findings and suggestions,
+    "run full review".
+  - `/kb/:id/study` — scope picker (the `conversation` lesson is not offered), flashcard review, quiz.
   - `/kb/:id/chat` — Query conversation with an explicit edit action and inline run reports.
   - Export button on `/kb/:id`.
 
-- [ ] **12.4 — Real-time ingest progress**
-  - `EventSourceService` subscribes to `GET /api/runs/{id}/progress`; progress stepper per `IngestStepCompleted`.
+- [ ] **12.4 — Real-time progress** — T20
+  - `EventSourceService` subscribes to `GET /api/knowledge-bases/{kbId}/progress` while a knowledge base is open; on
+    (re)connect it first reads `GET /api/knowledge-bases/{kbId}/runs`, then applies `RunProgress` messages — status
+    changes and a step stepper — for every run of that knowledge base.
 
 - [ ] **12.5 — Build integration**
   - `npm run build` output lands in `frontend/dist/frontend/browser/`; `frontend-maven-plugin` copies it into
@@ -1030,7 +1218,9 @@ deployment configuration.
 
 - [ ] **13.3 — Deployment configuration**
   - `railway.json` (or `render.yaml`); `Procfile` fallback; `docs/project/deployment.md`.
-  - Single instance (the ingest startup sweep assumes it).
+  - Single live instance: the run sweep treats runs outside its own process as abandoned. During a deploy's overlap,
+    fenced commits keep that correct and in-flight runs re-run once (T17); two permanent instances need a heartbeat lease.
+  - Graceful shutdown enabled so the worker stops claiming on `ContextClosedEvent`.
 
 - [ ] **13.4 — Smoke test**
   - `docker build -t mindforge .`; `docker compose up`; `curl /health` → 200; `curl /` → SPA index.
@@ -1058,6 +1248,8 @@ deployment configuration.
 - [ ] **14.2 — Run tracing**
   - `IngestPipeline`, `LintService` and `RevertService` emit a trace per run with child spans per step;
     trace id recorded alongside `step_versions`.
+  - Populate `CompletionResult.costUsd` and write the summed `ingest_runs.cost` — `NULL` until this phase, meaning
+    "not measured" (T28).
 
 - [ ] **14.3 — Cost anomaly warnings**
   - If a run's `cost` exceeds a configurable threshold (default $0.50), log `WARN` with run id and per-step breakdown.
@@ -1134,11 +1326,15 @@ content reaches the wiki.
 - [ ] **17.2 — `ArticleFetcher`** (no LLM)
   - Extracts URLs from a document's blocks; validates via `EgressPolicy`; fetches with a timeout; HTML → text.
   - Each article becomes a `Document` (`UploadSource.ARTICLE`, lesson identity from the article title) in the
-    same knowledge base, and queues behind the lease like any upload.
+    same knowledge base, with a `QUEUED` run like any upload. An article whose lesson id already exists is skipped and
+    logged — nobody is there to confirm a new version (T18).
+  - Third-party content is untrusted (T28): an `ARTICLE` run is create-only — Resolve drops claims that resolve to a
+    live page — and Supersede does not run for it (`supersession_skipped`, reason `"article"`).
   - Disabled unless `ProcessingSettings.fetchExternalArticles` is true.
 
 - [ ] **17.3 — Unit tests**
   - `EgressPolicyTest`; `ArticleFetcherTest` with a mock HTTP server, including a policy violation.
+  - An `ARTICLE` run whose claims target a live page creates nothing there and inserts no supersession.
 
 ### Completion Checklist
 
@@ -1246,6 +1442,9 @@ identity resolution.
   - No `dev.mindforge.domain` class imports from `infrastructure` or `api`.
   - No `@RestController` method accesses a repository directly.
   - No class in `dev.mindforge.agent` depends on another class in `dev.mindforge.agent`.
+  - Only `RunWorker` calls `IngestRunRepository.findUnfinished` and `knowledgeBasesWithQueuedRuns` (T25).
+  - No class outside `dev.mindforge.domain.model.MarkdownStructure` matches heading or link syntax with a regex
+    (reviewed by a name rule on `Pattern` constants mentioning `#` or `](`) (T26).
 
 ### Completion Checklist
 
@@ -1261,15 +1460,13 @@ identity resolution.
 ```
 Phase 0 ──► 1 ──► 2 ──► 2b ──► 3 ──► 3b (cleanup)
                                        │
-                                  Phase 4  (parsing, upload, dedup)
+                                  Phase 4  (parsing, upload, dedup, lesson rule)
                                        │
                                   Phase 5  (wiki domain & store, runs, lease, revert)
                                        │
-                                  Phase 6  (ingest pipeline)
+                                  Phase 6  (ingest pipeline, run queue, progress — absorbs retired Phase 8)
                                        │
-                                  Phase 7  (Lint) ──► Phase 8 (run events, SSE)
-                                                           │
-                                                      Phase 9 (API) ──► Phase 9b (export)
+                                  Phase 7  (Lint) ──► Phase 9 (API) ──► Phase 9b (export)
                                                            │
                                           Phase 10 (study) ─┤─ Phase 11 (Query)
                                                            │

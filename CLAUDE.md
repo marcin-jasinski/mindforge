@@ -46,7 +46,7 @@ These apply to every code change regardless of scope.
 - **All Spring beans wired via `@Configuration`** — no static-init singletons
 - **A run's commit and its domain events in the same `@Transactional` boundary** — listeners run after commit and must tolerate missing an event; there is no outbox table
 - **Never call a model inside a database transaction** — generate first, then commit once
-- **Every `WikiStore` method takes `kbId` first** — tenancy is structural, not a filter to remember
+- **Every tenant-scoped port method takes `kbId` first** (`WikiStore`, the query ports, `DocumentRepository`, `IngestRunRepository`, the study and interaction stores) — tenancy is structural, not a filter to remember
 
 ### API / Controllers
 - **Thin controllers only** — input validation + auth check + delegate to application service; no business logic
@@ -57,7 +57,7 @@ These apply to every code change regardless of scope.
 - **All LLM calls through `AIGateway`** — never instantiate a provider SDK directly
 - **Request models by role** (`ModelTier.LARGE`, `ModelTier.SMALL`, `ModelTier.VISION`) — never by provider string
 - **`VERSION` bumped only on logic/prompt change** — not for style fixes; it is recorded on every run
-- **Every rule a prompt teaches is enforced in code** — the model proposes content; code owns page type, path, sources, membership and deletion, and counts what was written from inserted rows
+- **Every rule a prompt teaches is enforced in code** — the model proposes content; code owns page type, path, title, sources, membership and deletion, and counts what was written from inserted rows
 - **The LLM is the sole author of page prose** — no code path lets a human edit a body; Lint writes only link insertions
 
 ### Security (read `docs/standards/security/web-security.md` before any auth/upload work)
@@ -104,7 +104,7 @@ These apply to every code change regardless of scope.
 
 ## Project State
 
-See `docs/project/roadmap.md` for which phases (0–21, including 2b, 3b and 9b) are complete and what work remains. Work resumes at Phase 3b (wiki pivot cleanup).
+See `docs/project/roadmap.md` for which phases (0–21, including 2b, 3b and 9b) are complete and what work remains. Work resumes at Phase 4 (document parsing and ingestion).
 See `docs/project/implementation-plan.md` for the full phase-by-phase task breakdown.
 
 ---

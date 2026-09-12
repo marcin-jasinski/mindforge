@@ -23,7 +23,7 @@ What MindForge is and why it exists: a learning platform where uploaded document
 Development phase status overview. Documents which phases (0–21, including 2b, 3b and 9b) are complete, in progress or planned, with brief summaries of what each delivers, and states plainly which phases the wiki re-cut changed, reused or removed. References the full detail in `project/implementation-plan.md`.
 
 ### Implementation Plan (`project/implementation-plan.md`)
-Complete phase-by-phase breakdown of all development work: phases 0–21, each with detailed task lists, dependencies, completion checklists and rationale. This is the **source of truth** for structuring development work. Phase 3b (wiki pivot cleanup) is where work resumes.
+Complete phase-by-phase breakdown of all development work: phases 0–21, each with detailed task lists, dependencies, completion checklists and rationale. This is the **source of truth** for structuring development work. Phase 4 (document parsing and ingestion) is where work resumes.
 
 ### Tech Stack (`project/tech-stack.md`)
 Technology choices with rationale. Covers backend (Java 21, Spring Boot 4.1, Spring AI, Spring Data JPA/Hibernate, PostgreSQL as the only data store, Caffeine), frontend (Angular standalone SPA), bundle export, infrastructure (Docker, Flyway, Maven), and what was removed (Neo4j, pgvector, object storage). Read before introducing new dependencies or proposing technology changes.
@@ -36,7 +36,7 @@ Navigable summary of the hexagonal architecture — layers, model services, the 
 ## Domain Language and Decisions
 
 ### Glossary (`../CONTEXT.md`)
-The ubiquitous language: Knowledge Base, Page, Page Path, Page Type, Concept, Source Summary, Ingest Run, Page Revision, Tombstone, Revert, Supersession, Index, Bundle, Flashcard, Study Scope, and the operations Ingest, Query and Lint — with terms to avoid. Use these names in code, docs and conversation.
+The ubiquitous language: Knowledge Base, Page, Page Path, Page Type, Concept, Source Summary, Section, Ingest Run, Page Revision, Tombstone, Revert, Supersession, Index, Bundle, Flashcard, Study Scope, Weak Page, and the operations Ingest (including the Conversation Edit), Query and Lint — with terms to avoid. Use these names in code, docs and conversation.
 
 ### Architecture Decision Records (`adr/`)
 One file per load-bearing decision. 0001–0009 cover the original stack; 0010–0018 record the wiki re-cut (knowledge model, taxonomy and path identity, automatic revisions and revert, typed ingest pipeline, Postgres-only wiki storage, runs/lease/no outbox, index retrieval, Lint link insertions, flashcard identity). 0005 and 0006 are superseded by 0016.
@@ -142,7 +142,7 @@ Non-negotiable rules for MindForge's Hexagonal Architecture (Ports and Adapters)
 - composition root placement (`@Configuration` beans, no static singletons);
 - where Open/Closed applies — parsers and auth providers, but not the deliberately closed ingest pipeline;
 - the persistence sub-package convention (`entity/`, `jpa/`, `mapper/`, `adapter/`);
-- structural tenancy (`kbId` first on every `WikiStore` method);
+- structural tenancy (`kbId` first on every tenant-scoped port method);
 - data store roles (PostgreSQL only, plus Caffeine);
 - ingest runs and idempotency (lease; generate outside, commit in one transaction);
 - retrieval cost discipline (rendered index first, lexical prefilter past 20K tokens, no vector store);

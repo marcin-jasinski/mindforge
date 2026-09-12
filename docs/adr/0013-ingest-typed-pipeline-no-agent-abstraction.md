@@ -36,3 +36,20 @@ new file formats arrive from outside the design.
 
 Decided in [T04](../wayfinder/tickets/04-ingest-execution-model.md), refined by
 [T09](../wayfinder/tickets/09-query-retrieval-neo4j.md) and [T10](../wayfinder/tickets/10-lint-operation.md).
+
+## Amendments
+
+2026-09-12, from the spec review:
+
+- **Extract runs once per heading-aware chunk, sequentially**, each call seeing the index and the pages earlier chunks
+  planned. Two caps fail loudly: claims per call and page tasks per run
+  ([T23](../wayfinder/tickets/23-extract-long-documents.md)).
+- **Resolve groups claims into one task per final path** and accepts only live Concepts as targets; every claim carries a
+  title ([T22](../wayfinder/tickets/22-resolve-and-title-rules.md)).
+- **A conversation turn enters at Extract** through an edit prompt returning claims, deletions and retitles
+  ([T15](../wayfinder/tickets/15-conversation-edit-entry.md)).
+- **Supersede reads the sections of Concepts one link away** from what the run wrote, and code verifies every proposal
+  against exactly those candidates ([T14](../wayfinder/tickets/14-supersession-inputs-and-guards.md)).
+- `Preprocessor` is plain application code, not a model service
+  ([T28](../wayfinder/tickets/28-minor-review-findings.md)). The per-run write semaphore becomes one global permit pool
+  for background calls ([T17](../wayfinder/tickets/17-run-lifecycle.md)).

@@ -141,7 +141,7 @@ grep -l 'status: open' docs/wayfinder/tickets/*.md
   violation is a 500, never a shipped bundle. Nothing is stripped because study tables are never read. Everything comes
   from one read-only REPEATABLE READ snapshot, without the lease.
 - [What of Phases 0-3 survives](tickets/12-existing-code-fate.md) — a new Phase 3b cleanup, shaped like 2b: delete 22 of
-  the 71 main files and 4 of the 13 test classes, change 14, and squash V1–V7 into one baseline holding only the
+  the 72 main files and 4 of the 9 test classes, change 14, and squash V1–V7 into one baseline holding only the
   surviving tables — a dated, one-time, pre-deployment exception. The rule: delete a dead design, change what is wrong,
   keep what the new design uses unchanged. Contradicting T04's assumption, `AIGateway` changes: `embed` goes. The
   cross-tenant dedup lookup gets a regression test. `dev.mindforge.agent` keeps its name as the home of services that
@@ -156,9 +156,68 @@ grep -l 'status: open' docs/wayfinder/tickets/*.md
   Three small gaps were filled while writing and are flagged in the ticket: conversation edits as an explicit action,
   the reshaping of Phases 16–17, and the phase numbering. No code changed.
 
+**From the 2026-09-12 review** (see *Review* below):
+
+- [What the supersession step reads and what code verifies](tickets/14-supersession-inputs-and-guards.md) — Supersede reads
+  this run's claims and the sections of live Concepts one `page_links` hop from the pages it wrote, read after commit 1
+  and trimmed in rank order to a token budget with the omission counted. Code keeps a proposal only if it names a section
+  the detector was shown and a Concept the run revised.
+- [How a conversation edit finds its pages](tickets/15-conversation-edit-entry.md) — through Extract with an edit prompt
+  returning claims, `Delete` and `Retitle` items that Resolve verifies against live Concepts; no RelevanceGuard, no Source
+  Summary. Turns share the reserved lesson `conversation`; an edit that names no page fails and is not retryable.
+- [What revert does to provenance](tickets/16-revert-provenance.md) — sources and supersessions are deleted only for the
+  pages a revert restores; a REVERT run cannot be reverted (retry instead); removing one supersession is a REVERT run
+  under the lease; `supersession_count` keeps log lines stable; uploaded text is retained, because revisions keep what it
+  taught.
+- [The run lifecycle](tickets/17-run-lifecycle.md) — every run is born `QUEUED` (overriding the recommended 409); a claim is
+  the lease plus `QUEUED` → `RUNNING` in one transaction; commits are fenced on status; one sweep at startup and every
+  minute settles runs this process is not executing and re-queues interrupted ingests up to three attempts; a retry
+  endpoint; one global permit pool for background calls.
+- [Lesson ids and one identifier grammar](tickets/18-lesson-and-path-identity.md) — an existing lesson id is a new version
+  only with `newVersion`, otherwise 409; one `Identifier` grammar for page names, lesson ids and anchors, shared with the
+  validator; `slugify` maps Greek letters and appends a hash wherever it drops a letter.
+- [Normalising model text](tickets/19-rendering-model-text.md) — `TextRules` makes titles and descriptions single-line and
+  bounded at write time; renderers escape link text; rule 3 is re-worded; the index always has both sections; `timestamp`
+  is `updated_at`.
+- [Progress and domain events](tickets/20-progress-and-domain-events.md) — progress is a best-effort `ProgressNotifier`
+  port streamed per knowledge base; the only run event is `IngestRunQueued`; `DomainEvent` drops `documentId()`; Phase 8
+  is retired into 6 and 9.
+- [Revision guards](tickets/21-revision-guards.md) — the writer gets superseded sections as a list beside the body; a
+  document ingest must keep every section of a Concept; an unchanged draft writes nothing and a run fails only when no page
+  task succeeded; cards go stale on a content hash, not a revision.
+- [Resolve and title rules](tickets/22-resolve-and-title-rules.md) — one task per final path; claims target live Concepts
+  only; every claim carries a title; titles are fixed at creation except by `Retitle`; duplicate titles are a finding, not
+  an invariant.
+- [Long documents and the index ceiling](tickets/23-extract-long-documents.md) — Extract per heading-aware chunk,
+  sequentially, seeing pages planned so far; a claim cap per call and a page-task cap per run; writers get claims plus
+  source blocks; tokens are characters ÷ 3; the ceiling shows in the health view.
+- [Persistence mechanics](tickets/24-persistence-mechanics.md) — cross-cascade FKs are deferred; a busy knowledge base
+  cannot be deleted; dedup is check-then-insert under the row lock the lesson rule already takes; `document_count` is
+  derived.
+- [The port read surface](tickets/25-port-read-surface.md) — `WikiStore` stays page-shaped beside `RunReportQuery`,
+  `WikiHealthQuery` and `BundleQuery`; `kbId` first on every tenant-scoped port, with two named sweep methods excepted.
+- [Heading and link grammar](tickets/26-markdown-and-link-rules.md) — one `MarkdownStructure` parser; only level-1 headings
+  outside fences are sections; an internal link has exactly one form and any other page link fails the draft; external
+  links are allowed; insertion excludes fences, autolinks and tags.
+- [Study edge cases](tickets/27-study-edge-cases.md) — a per-page lock plus conflict-tolerant inserts; one generation
+  budget for new and stale pages with `BATCH` deadlines; anchors follow reused cards; weakness is the last 5 events below
+  3.0, cold start in creation order; revived cards are due now.
+- [Minor findings](tickets/28-minor-review-findings.md) — articles are create-only and off by default; `cost` stays NULL
+  until Phase 14; the interactions migration; `Preprocessor` is plain code; diffs in the SPA; no admin role; a Polish
+  `Collator`; T12's counts corrected.
+- [Fold the review into the documents](tickets/29-fold-review-into-docs.md) — the plan is v3.1 with Phase 8 retired; the
+  architecture and the hexagonal and model-service standards are rewritten; ADRs 0011–0018 carry dated amendments;
+  `CONTEXT.md` gains Section and Conversation Edit. No code changed.
+
+## Review (2026-09-12)
+
+A review of the finished spec against the code on `feature/llm-wiki-okf` and the OKF spec found seven blockers (T14–T20),
+seven gaps (T21–T27) and nine minor findings (T28). Each was decided above, and T29 wrote the answers into the
+destination documents.
+
 ## Not yet specified
 
-> **Map complete (2026-09-10).** Every ticket is closed and the destination documents are written. The patches below
+> **Map complete (2026-09-10; review folded in 2026-09-12).** Every ticket is closed and the destination documents are written. The patches below
 > are not open decisions on this route; each is handed to the phase that can settle it: the prompt layer → Phase 6.1,
 > SPA surfaces → Phase 12, cost and latency → Phase 14 once a real run exists.
 

@@ -28,3 +28,18 @@ layer.
 - Frontmatter carries only OKF's recommended keys (`type`, `title`, `description`, `timestamp`).
 
 Decided in [T06](../wayfinder/tickets/06-page-taxonomy.md).
+
+## Amendments
+
+2026-09-12, from the spec review:
+
+- **Titles are fixed at creation too** ([T22](../wayfinder/tickets/22-resolve-and-title-rules.md)). The writer returns no
+  title; a Concept's title changes only by an explicit `Retitle` in a conversation edit, and the path still never moves.
+  "Two live pages must not share a title" is not an invariant — duplicate Concept titles are a health finding.
+- **One identifier grammar** ([T18](../wayfinder/tickets/18-lesson-and-path-identity.md)) — `[a-z0-9]+(-[a-z0-9]+)*`,
+  at most 80 characters — for page names, lesson ids and heading anchors, shared with the export validator. `slugify`
+  maps Greek letters and appends a hash when it drops a letter, so it never returns empty and never merges titles by
+  loss. A derived name on a reserved word gains a suffix. An upload whose lesson id exists is a new version only when the
+  user says so; otherwise it is rejected with 409.
+- **Only level-1 headings are sections** and carry anchors
+  ([T26](../wayfinder/tickets/26-markdown-and-link-rules.md)).
