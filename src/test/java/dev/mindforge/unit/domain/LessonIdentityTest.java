@@ -50,12 +50,45 @@ class LessonIdentityTest {
     }
 
     @Test
+    void shouldTransliteratePolishWhenDerivingTheLessonId() {
+        LessonIdentity identity = LessonIdentity.resolve(
+            Map.of("title", "Mitoza komórkowa"), "ignored.md");
+
+        assertThat(identity.lessonId()).isEqualTo("mitoza-komorkowa");
+        assertThat(identity.title()).isEqualTo("Mitoza komórkowa");
+    }
+
+    @Test
     void shouldResolveFromPdfTitleWhenNoFrontmatter() {
         LessonIdentity identity = LessonIdentity.resolve(
             Map.of("Title", "Quantum Mechanics"), "scan.pdf");
 
         assertThat(identity.lessonId()).isEqualTo("quantum-mechanics");
         assertThat(identity.title()).isEqualTo("Quantum Mechanics");
+    }
+
+    @Test
+    void shouldFlattenAMultiLineTitleAndDropInvisibleCharacters() {
+        LessonIdentity identity = LessonIdentity.resolve(
+            Map.of("Title", "Mitoza\r\n\tkomórkowa\u200B "), "scan.pdf");
+
+        assertThat(identity.title()).isEqualTo("Mitoza komórkowa");
+        assertThat(identity.lessonId()).isEqualTo("mitoza-komorkowa");
+    }
+
+    @Test
+    void shouldFallBackToFilenameStemWhenATitleIsBlankOnceCleaned() {
+        LessonIdentity identity = LessonIdentity.resolve(Map.of("Title", "\u200B\n "), "Notatki.pdf");
+
+        assertThat(identity.title()).isEqualTo("Notatki");
+        assertThat(identity.lessonId()).isEqualTo("notatki");
+    }
+
+    @Test
+    void shouldCutALongTitleTo200CharactersWithAnEllipsis() {
+        LessonIdentity identity = LessonIdentity.resolve(Map.of("title", "a".repeat(250)), "x.md");
+
+        assertThat(identity.title()).hasSize(200).isEqualTo("a".repeat(199) + "…");
     }
 
     @Test
@@ -82,7 +115,17 @@ class LessonIdentityTest {
     void shouldRejectExplicitLessonIdWithIllegalCharacters() {
         assertThatExceptionOfType(LessonIdentityException.class)
             .isThrownBy(() -> LessonIdentity.resolve(Map.of("lesson_id", "Has Spaces"), "x.md"))
-            .withMessageContaining("illegal characters");
+            .withMessageContaining("must be 1-80 characters");
+    }
+
+    @Test
+    void shouldRejectExplicitLessonIdOutsideTheIdentifierGrammarInsteadOfRewritingIt() {
+        assertThatExceptionOfType(LessonIdentityException.class)
+            .isThrownBy(() -> LessonIdentity.resolve(Map.of("lesson_id", "bio_3"), "x.md"));
+        assertThatExceptionOfType(LessonIdentityException.class)
+            .isThrownBy(() -> LessonIdentity.resolve(Map.of("lesson_id", "a--b"), "x.md"));
+        assertThatExceptionOfType(LessonIdentityException.class)
+            .isThrownBy(() -> LessonIdentity.resolve(Map.of("lesson_id", " bio-3 "), "x.md"));
     }
 
     @Test
@@ -90,7 +133,7 @@ class LessonIdentityTest {
         String tooLong = "a".repeat(81);
         assertThatExceptionOfType(LessonIdentityException.class)
             .isThrownBy(() -> LessonIdentity.resolve(Map.of("lesson_id", tooLong), "x.md"))
-            .withMessageContaining("exceeds");
+            .withMessageContaining("must be 1-80 characters");
     }
 
     @Test
@@ -100,13 +143,24 @@ class LessonIdentityTest {
             .withMessageContaining("reserved");
         assertThatExceptionOfType(LessonIdentityException.class)
             .isThrownBy(() -> LessonIdentity.resolve(Map.of("lesson_id", "default"), "x.md"));
+        assertThatExceptionOfType(LessonIdentityException.class)
+            .isThrownBy(() -> LessonIdentity.resolve(Map.of("lesson_id", "log"), "x.md"));
+        assertThatExceptionOfType(LessonIdentityException.class)
+            .isThrownBy(() -> LessonIdentity.resolve(Map.of("lesson_id", "conversation"), "x.md"));
     }
 
     @Test
-    void shouldPreserveUnderscoresWhenSlugifying() {
+    void shouldSuffixADerivedLessonIdThatLandsOnAReservedWord() {
+        assertThat(LessonIdentity.resolve(Map.of(), "index.md").lessonId()).isEqualTo("index-lesson");
+        assertThat(LessonIdentity.resolve(Map.of("title", "Conversation"), "x.md").lessonId())
+            .isEqualTo("conversation-lesson");
+    }
+
+    @Test
+    void shouldTreatUnderscoresAsSeparatorsWhenSlugifying() {
         LessonIdentity identity = LessonIdentity.resolve(
             Map.of("title", "my_lesson name"), "x.md");
 
-        assertThat(identity.lessonId()).isEqualTo("my_lesson-name");
+        assertThat(identity.lessonId()).isEqualTo("my-lesson-name");
     }
 }

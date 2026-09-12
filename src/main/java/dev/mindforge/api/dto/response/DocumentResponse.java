@@ -15,7 +15,6 @@ public record DocumentResponse(
     String lessonTitle,
     String sourceFilename,
     String mimeType,
-    String status,
     Instant createdAt,
     Instant updatedAt
 ) {}

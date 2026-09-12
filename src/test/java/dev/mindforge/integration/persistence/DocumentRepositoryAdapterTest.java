@@ -8,7 +8,6 @@ import java.util.UUID;
 
 import dev.mindforge.domain.model.ContentHash;
 import dev.mindforge.domain.model.Document;
-import dev.mindforge.domain.model.DocumentStatus;
 import dev.mindforge.domain.model.LessonIdentity;
 import dev.mindforge.domain.model.UploadSource;
 import dev.mindforge.domain.port.DocumentRepository;
@@ -54,7 +53,6 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     void setUp() {
         jdbcTemplate.execute("TRUNCATE TABLE users CASCADE");
         userId = UUID.randomUUID();
-        kbId = UUID.randomUUID();
 
         UserEntity user = new UserEntity();
         user.setUserId(userId);
@@ -62,33 +60,31 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
         user.setEmail("test-" + userId + "@example.com");
         userJpaRepository.save(user);
 
-        KnowledgeBaseEntity kb = new KnowledgeBaseEntity();
-        kb.setKbId(kbId);
-        kb.setOwnerId(userId);
-        kb.setName("Test KB");
-        kb.setDocumentCount(0);
-        knowledgeBaseJpaRepository.save(kb);
+        kbId = saveKnowledgeBase();
     }
 
     @Test
     void saveThenFindById_returnsPersistedDocument() {
-        Document doc = makeDocument(null, kbId, "test-lesson", DocumentStatus.PENDING);
+        Document saved = adapter.save(makeDocument(kbId, "test-lesson"));
 
-        Document saved = adapter.save(doc);
-
-        Optional<Document> found = adapter.findById(saved.documentId());
+        Optional<Document> found = adapter.findById(kbId, saved.documentId());
         assertThat(found).isPresent();
         assertThat(found.get().documentId()).isEqualTo(saved.documentId());
-        assertThat(found.get().status()).isEqualTo(DocumentStatus.PENDING);
         assertThat(found.get().lessonIdentity().lessonId()).isEqualTo("test-lesson");
     }
 
     @Test
-    void findByContentHash_returnsDocumentWithMatchingHash() {
-        Document doc = makeDocument(null, kbId, "hash-lesson", DocumentStatus.PENDING);
-        Document saved = adapter.save(doc);
+    void findById_returnsEmpty_forAnotherKnowledgeBasesId() {
+        Document saved = adapter.save(makeDocument(kbId, "test-lesson"));
 
-        Optional<Document> found = adapter.findByContentHash(saved.contentHash());
+        assertThat(adapter.findById(saveKnowledgeBase(), saved.documentId())).isEmpty();
+    }
+
+    @Test
+    void findByContentHash_returnsDocumentWithMatchingHash() {
+        Document saved = adapter.save(makeDocument(kbId, "hash-lesson"));
+
+        Optional<Document> found = adapter.findByContentHash(kbId, saved.contentHash());
         assertThat(found).isPresent();
         assertThat(found.get().documentId()).isEqualTo(saved.documentId());
     }
@@ -96,26 +92,29 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     @Test
     void findByContentHash_returnsEmpty_whenNoMatch() {
         Optional<Document> found = adapter.findByContentHash(
-            ContentHash.compute("nonexistent-content".getBytes()));
+            kbId, ContentHash.compute("nonexistent-content".getBytes()));
         assertThat(found).isEmpty();
     }
 
     @Test
-    void updateStatus_changesDocumentStatus() {
-        Document doc = makeDocument(null, kbId, "status-lesson", DocumentStatus.PENDING);
-        Document saved = adapter.save(doc);
+    void sameHashInTwoKnowledgeBases_isNotADuplicateAcrossThem() {
+        UUID otherKbId = saveKnowledgeBase();
+        Document first = adapter.save(makeDocument(kbId, "shared-lesson"));
 
-        adapter.updateStatus(saved.documentId(), DocumentStatus.DONE);
+        assertThat(adapter.findByContentHash(otherKbId, first.contentHash())).isEmpty();
 
-        Optional<Document> updated = adapter.findById(saved.documentId());
-        assertThat(updated).isPresent();
-        assertThat(updated.get().status()).isEqualTo(DocumentStatus.DONE);
+        Document second = adapter.save(makeDocument(otherKbId, "shared-lesson"));
+        assertThat(second.contentHash()).isEqualTo(first.contentHash());
+        assertThat(adapter.findByContentHash(kbId, first.contentHash()))
+            .map(Document::documentId).contains(first.documentId());
+        assertThat(adapter.findByContentHash(otherKbId, first.contentHash()))
+            .map(Document::documentId).contains(second.documentId());
     }
 
     @Test
     void listByKnowledgeBase_returnsAllDocumentsForKb() {
-        adapter.save(makeDocument(null, kbId, "lesson-a", DocumentStatus.PENDING));
-        adapter.save(makeDocument(null, kbId, "lesson-b", DocumentStatus.PENDING));
+        adapter.save(makeDocument(kbId, "lesson-a"));
+        adapter.save(makeDocument(kbId, "lesson-b"));
 
         List<Document> results = adapter.listByKnowledgeBase(kbId);
         assertThat(results).hasSize(2);
@@ -123,28 +122,35 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     }
 
     @Test
-    void findByContentHash_detectsDuplicateContent() {
-        Document doc = makeDocument(null, kbId, "dedup-lesson", DocumentStatus.PENDING);
-        Document saved = adapter.save(doc);
+    void deletingAUser_cascadesThroughTheirKnowledgeBasesToTheirDocuments() {
+        adapter.save(makeDocument(kbId, "cascade-lesson"));
 
-        Optional<Document> duplicate = adapter.findByContentHash(saved.contentHash());
-        assertThat(duplicate).isPresent();
-        assertThat(duplicate.get().documentId()).isEqualTo(saved.documentId());
+        jdbcTemplate.update("DELETE FROM users WHERE user_id = ?", userId);
+
+        assertThat(adapter.listByKnowledgeBase(kbId)).isEmpty();
     }
 
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
 
-    private Document makeDocument(UUID id, UUID kbId, String lessonId, DocumentStatus status) {
-        Document base = TestFixtures.makeDocument(id, kbId, status);
+    private UUID saveKnowledgeBase() {
+        KnowledgeBaseEntity kb = new KnowledgeBaseEntity();
+        kb.setKbId(UUID.randomUUID());
+        kb.setOwnerId(userId);
+        kb.setName("Test KB");
+        return knowledgeBaseJpaRepository.save(kb).getKbId();
+    }
+
+    private Document makeDocument(UUID kbId, String lessonId) {
+        Document base = TestFixtures.makeDocument(null, kbId);
         return new Document(
             base.documentId(), kbId,
             new LessonIdentity(lessonId, lessonId + " title"),
             ContentHash.compute((lessonId + "-unique-content").getBytes()),
             lessonId + ".md", "text/markdown", lessonId + " content",
             List.of(), UploadSource.API,
-            userId, status,
+            userId,
             base.createdAt(), base.updatedAt()
         );
     }

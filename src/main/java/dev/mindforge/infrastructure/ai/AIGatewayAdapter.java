@@ -26,7 +26,6 @@ import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.DisposableBean;
 
@@ -47,7 +46,6 @@ public class AIGatewayAdapter implements AIGateway, DisposableBean {
     private static final Logger log = LoggerFactory.getLogger(AIGatewayAdapter.class);
 
     private final ChatModel chatModel;
-    private final EmbeddingModel embeddingModel;
     private final AppProperties.Ai.Model modelRouting;
     private final AppProperties.Ai.Deadlines deadlines;
     private final Retry retry;
@@ -55,12 +53,10 @@ public class AIGatewayAdapter implements AIGateway, DisposableBean {
     private final ExecutorService deadlineExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     public AIGatewayAdapter(ChatModel chatModel,
-                            EmbeddingModel embeddingModel,
                             AppProperties properties,
                             Retry retry,
                             CircuitBreaker circuitBreaker) {
         this.chatModel = chatModel;
-        this.embeddingModel = embeddingModel;
         this.modelRouting = properties.getAi().getModel();
         this.deadlines = properties.getAi().getDeadlines();
         this.retry = retry;
@@ -94,16 +90,6 @@ public class AIGatewayAdapter implements AIGateway, DisposableBean {
             // ponytail: real cost accounting arrives with Phase 14 (Langfuse); OpenRouter's
             // chat-completions response carries no per-call cost field to read here.
             0.0);
-    }
-
-    @Override
-    public float[] embed(String text) {
-        // embed() has no deadline race (a pre-existing gap); Retry + CircuitBreaker still apply.
-        try {
-            return resilient(() -> embeddingModel.embed(text)).get();
-        } catch (CallNotPermittedException e) {
-            throw new AIGatewayUnavailableException(e);
-        }
     }
 
     @Override

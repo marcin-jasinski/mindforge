@@ -19,7 +19,6 @@ public record Document(
     List<ContentBlock> contentBlocks,
     UploadSource uploadSource,
     UUID uploadedBy,
-    DocumentStatus status,
     Instant createdAt,
     Instant updatedAt
 ) {

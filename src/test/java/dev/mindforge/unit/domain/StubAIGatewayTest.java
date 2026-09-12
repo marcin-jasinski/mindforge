@@ -46,11 +46,4 @@ class StubAIGatewayTest {
         assertThat(call.deadline()).isEqualTo(DeadlineProfile.INTERACTIVE);
         assertThat(call.response()).isEqualTo("yes");
     }
-
-    @Test
-    void shouldNeverMakeRealHttpCalls() {
-        StubAIGateway gateway = StubAIGateway.builder().build();
-
-        assertThat(gateway.embed("some text")).hasSize(1536);
-    }
 }

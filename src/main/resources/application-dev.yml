@@ -8,12 +8,6 @@ spring:
     username: mindforge
     password: mindforge
 
-  neo4j:
-    uri: bolt://localhost:7687
-    authentication:
-      username: neo4j
-      password: mindforge
-
   jpa:
     properties:
       hibernate:

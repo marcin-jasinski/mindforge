@@ -51,9 +51,6 @@ public class DocumentEntity extends BaseEntity {
     @Column(name = "uploaded_by", nullable = false)
     private UUID uploadedBy;
 
-    @Column(name = "status", nullable = false, length = 20)
-    private String status;
-
     public UUID getDocumentId() { return documentId; }
     public void setDocumentId(UUID documentId) { this.documentId = documentId; }
 
@@ -86,7 +83,4 @@ public class DocumentEntity extends BaseEntity {
 
     public UUID getUploadedBy() { return uploadedBy; }
     public void setUploadedBy(UUID uploadedBy) { this.uploadedBy = uploadedBy; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
 }

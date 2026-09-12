@@ -26,11 +26,6 @@ public final class StubAIGateway implements AIGateway {
         return new CompletionResult(content, 10, 20, "stub-model", "stub", 0L, 0.0);
     }
 
-    @Override
-    public float[] embed(String text) {
-        return new float[1536];
-    }
-
     public List<Call> recordedCalls() {
         return List.copyOf(recordedCalls);
     }
