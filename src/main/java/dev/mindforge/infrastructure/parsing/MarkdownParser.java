@@ -5,44 +5,49 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.vladsch.flexmark.ast.FencedCodeBlock;
-import com.vladsch.flexmark.ast.Heading;
-import com.vladsch.flexmark.ast.IndentedCodeBlock;
-import com.vladsch.flexmark.ext.yaml.front.matter.AbstractYamlFrontMatterVisitor;
-import com.vladsch.flexmark.ext.yaml.front.matter.YamlFrontMatterBlock;
-import com.vladsch.flexmark.ext.yaml.front.matter.YamlFrontMatterExtension;
-import com.vladsch.flexmark.parser.Parser;
-import com.vladsch.flexmark.util.ast.Node;
-import com.vladsch.flexmark.util.data.MutableDataSet;
+import org.commonmark.ext.front.matter.YamlFrontMatterBlock;
+import org.commonmark.ext.front.matter.YamlFrontMatterExtension;
+import org.commonmark.ext.front.matter.YamlFrontMatterVisitor;
+import org.commonmark.node.FencedCodeBlock;
+import org.commonmark.node.Heading;
+import org.commonmark.node.IndentedCodeBlock;
+import org.commonmark.node.Node;
+import org.commonmark.node.SourceSpan;
+import org.commonmark.parser.IncludeSourceSpans;
+import org.commonmark.parser.Parser;
+import org.commonmark.renderer.text.TextContentRenderer;
 
 import dev.mindforge.domain.model.ContentBlock;
 import dev.mindforge.domain.model.ParsedDocument;
 
 /**
- * Markdown as its top-level blocks: headings with their level, code blocks, and every other block as
- * its Markdown source. YAML frontmatter becomes metadata — the first value of each key, unquoted.
+ * Markdown as its top-level blocks, parsed by commonmark-java: headings with their level, code blocks, and every other
+ * block as its Markdown source. YAML frontmatter becomes metadata — the first value of each key.
  */
 public class MarkdownParser implements FormatParser {
 
     public static final String MIME_TYPE = "text/markdown";
 
-    private final Parser markdown = Parser.builder(
-        new MutableDataSet().set(Parser.EXTENSIONS, List.of(YamlFrontMatterExtension.create()))).build();
+    private final Parser markdown = Parser.builder()
+        .extensions(List.of(YamlFrontMatterExtension.create()))
+        .includeSourceSpans(IncludeSourceSpans.BLOCKS)
+        .build();
+    private final TextContentRenderer plainText = TextContentRenderer.builder().build();
 
     @Override
     public ParsedDocument parse(byte[] content) {
         String text = PlainTextParser.decodeUtf8(content);
         Node document = markdown.parse(text);
         List<ContentBlock> blocks = new ArrayList<>();
-        for (Node node : document.getChildren()) {
+        for (Node node = document.getFirstChild(); node != null; node = node.getNext()) {
             int position = blocks.size();
             ContentBlock block = switch (node) {
                 case YamlFrontMatterBlock frontmatter -> null;
                 case Heading heading ->
-                    ContentBlock.heading(heading.getText().toString().strip(), heading.getLevel(), position);
-                case FencedCodeBlock code -> ContentBlock.code(code.getContentChars().toString().stripTrailing(), position);
-                case IndentedCodeBlock code -> ContentBlock.code(code.getContentChars().toString().stripTrailing(), position);
-                default -> ContentBlock.text(node.getChars().toString().strip(), position);
+                    ContentBlock.heading(plainText.render(heading).strip(), heading.getLevel(), position);
+                case FencedCodeBlock code -> ContentBlock.code(code.getLiteral().stripTrailing(), position);
+                case IndentedCodeBlock code -> ContentBlock.code(code.getLiteral().stripTrailing(), position);
+                default -> ContentBlock.text(source(text, node).strip(), position);
             };
             if (block != null && !block.content().isBlank()) {
                 blocks.add(block);
@@ -51,23 +56,23 @@ public class MarkdownParser implements FormatParser {
         return new ParsedDocument(text, blocks, frontmatter(document));
     }
 
+    /** The Markdown a block was parsed from: its first source line through the end of its last. */
+    private static String source(String text, Node block) {
+        List<SourceSpan> spans = block.getSourceSpans();
+        if (spans.isEmpty()) {
+            return "";
+        }
+        SourceSpan last = spans.getLast();
+        return text.substring(spans.getFirst().getInputIndex(), last.getInputIndex() + last.getLength());
+    }
+
     private static Map<String, String> frontmatter(Node document) {
-        AbstractYamlFrontMatterVisitor visitor = new AbstractYamlFrontMatterVisitor();
-        visitor.visit(document);
         Map<String, String> metadata = new LinkedHashMap<>();
-        visitor.getData().forEach((key, values) -> {
+        YamlFrontMatterVisitor.readData(document).forEach((key, values) -> {
             if (!values.isEmpty()) {
-                metadata.put(key, unquote(values.getFirst()));
+                metadata.put(key, values.getFirst());
             }
         });
         return metadata;
-    }
-
-    private static String unquote(String value) {
-        String stripped = value.strip();
-        boolean quoted = stripped.length() >= 2
-            && (stripped.charAt(0) == '"' || stripped.charAt(0) == '\'')
-            && stripped.charAt(stripped.length() - 1) == stripped.charAt(0);
-        return quoted ? stripped.substring(1, stripped.length() - 1) : stripped;
     }
 }

@@ -130,7 +130,7 @@ PostgreSQL; the original bytes are not retained, and the wiki bundle is rendered
 
 | Format | Library | Notes |
 |---|---|---|
-| Markdown | `flexmark-java` | YAML frontmatter extraction for `lesson_id`, `title`; also parses page links |
+| Markdown | `commonmark-java` + YAML front matter extension | The reference CommonMark implementation; frontmatter extraction for `lesson_id`, `title` |
 | PDF | Apache PDFBox | Text extraction with metadata (Title field for lesson identity) |
 | DOCX | Apache POI | Word document parsing |
 | TXT | Built-in | Plain text ingestion |
@@ -202,7 +202,7 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 | `caffeine` | In-memory caching |
 | `resilience4j-retry` + `resilience4j-circuitbreaker` | AI gateway resilience (ADR 0009) |
 | `jjwt-api` + `jjwt-impl` | JWT issuance after OAuth2 login |
-| `flexmark-all` | Markdown + frontmatter parsing |
+| `commonmark` + `commonmark-ext-yaml-front-matter` | Markdown + frontmatter parsing |
 | `pdfbox` | PDF text + metadata extraction |
 | `poi-ooxml` | DOCX parsing |
 | `cytoscape` (npm) | Interactive page-link graph visualization |
