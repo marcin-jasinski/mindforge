@@ -193,7 +193,8 @@ There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
 ## History, Revert and Deletion
 
 - Every write appends a `PageRevision` — a post-write snapshot of title, description, type and
-  body, stamped with its run. Revisions are kept forever. A draft identical to the page writes nothing.
+  body, stamped with its run and carrying the page's path, which outlives the page row. Revisions are kept forever. A
+  draft identical to the page writes nothing.
 - **Revisions land automatically**; there is no approval or pending state (ADR 0012).
 - **Revert is per run, restore-forward, and tip-only:** it is offered for a page only while no
   later run has touched it, and it removes provenance only for the pages it restores.
