@@ -8,9 +8,9 @@
 - **Version**: 1.0.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint)
 - **In Progress**: None
-- **Next**: Phase 7 (Lint)
+- **Next**: Phase 9 (API Layer)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -69,7 +69,7 @@ Query, the Angular SPA and Docker deployment.
 - [x] **Phase 6 — Ingest Pipeline** *(re-cut)* — Relevance guard → chunked claim extraction against the
   index → resolve → parallel page writes with draft checks → link check → commit → supersession; the run
   queue, fenced commits and the sweep; run progress over SSE; conversation edits' entry point. `[Effort: L]`
-- [ ] **Phase 7 — Lint** *(number reused)* — Live health checks and an on-demand full review that
+- [x] **Phase 7 — Lint** *(number reused)* — Live health checks and an on-demand full review that
   inserts links and reports findings and study suggestions. `[Effort: S]`
 - **Phase 8 — Event System** *(retired in v3.1)* — Folded into Phase 6 (run event, progress port, SSE
   registry) and Phase 9 (progress endpoint). No Redis, no outbox.

@@ -877,7 +877,7 @@ commit, supersession — with the run queue, fenced commits, partial-success sem
 
 ---
 
-## [ ] Phase 7 — Lint
+## [x] Phase 7 — Lint
 
 > **Number reused in v3.0.** Phase 7 was the *Neo4j Graph Layer*, deleted by ADR 0016 (the graph is
 > `page_links`). Lint occupies the same position in the dependency graph, right after ingest.
@@ -888,10 +888,21 @@ check inside ingest is already built in Phase 6.
 > **Changed in v3.1:** health reads through `WikiHealthQuery`, checks dangling supersessions in Java and shows the index
 > against its ceiling (T25, T26, T23); duplicate titles are reported for Concepts only (T22); a full Lint is a queued run
 > (T17).
+> **As built:** `WikiHealthQuery` returns rows, and a wrong-directory link is listed among the dangling links too. An
+> orphan is a live Concept no *other* page links to; duplicate titles match exactly. `HealthService` matches
+> supersession anchors over `MarkdownStructure` and measures the index with `IndexRenderer.RETRIEVAL_CEILING_TOKENS`;
+> the latest full review's findings are read from its run by the 9.7 endpoint. `LintService.request` queues the run
+> the endpoint will start, refusing while a `LINT` run is queued or active — a check without a lock, so two racing
+> requests can queue two. A Lint has no Supersede, so its one fenced transaction moves `RUNNING → WRITTEN →
+> COMPLETED` and stores findings through the new `IngestRunRepository.recordFindings`. Concept bodies go in chunks of
+> `chunkSizeTokens`, each read by one `LinkChecker` and one `WikiReviewer` call; either failing is recorded and the
+> run goes on. No prefilter exists yet (ADR 0016), so the whole index is sent. A finding or suggestion is stored as
+> `{kind, pages, text}`: `contradiction` and `unmarked_supersession` are findings, `missing_page` and `question`
+> suggestions; any other kind is dropped and `pages` keeps only live paths. The worker now dispatches `LINT` runs.
 
 ### Tasks
 
-- [ ] **7.1 — Health** (`WikiHealthQuery` adapter + `HealthService`)
+- [x] **7.1 — Health** (`WikiHealthQuery` adapter + `HealthService`)
   - SQL: dangling links; wrong-directory links (a dangling link whose final segment matches a live page elsewhere);
     orphan Concepts (no inbound links); duplicate titles among live Concepts.
   - Java over SQL rows: dangling supersessions — the anchor is not a level-1 anchor of the superseded body
@@ -899,23 +910,23 @@ check inside ingest is already built in Phase 6.
   - Index size: `TokenEstimate` of the rendered index against the 20K-token ceiling ("prefilter due" past it).
   - `KnowledgeBaseHealth` record. No run, nothing stored.
 
-- [ ] **7.2 — `WikiReviewer`** (LARGE) **and `LintService`**
+- [x] **7.2 — `WikiReviewer`** (LARGE) **and `LintService`**
   - A `LINT` run, inserted `QUEUED` and claimed like any run (6.8); reads live Concept bodies in chunks with the
     (prefiltered) index.
   - Link insertions through `LinkChecker` + `LinkInsertionApplier`; findings (contradictions, unmarked
     supersessions) and suggestions (missing pages, questions to investigate) stored in `ingest_runs.findings`.
   - Never writes prose; never inserts supersessions; never generates a page from a suggestion.
 
-- [ ] **7.3 — Tests**
+- [x] **7.3 — Tests**
   - Each health query against fixture data; a supersession whose anchor exists only inside a fenced block is reported
     dangling.
   - `LintService` with `StubAIGateway`: insertions applied, prose unchanged, findings stored, queued behind an active run.
 
 ### Completion Checklist
 
-- [ ] Health checks run without an LLM call or a run.
-- [ ] A full review's insertions are revertible like any run.
-- [ ] Lint has no code path that writes a page body other than link insertion.
+- [x] Health checks run without an LLM call or a run.
+- [x] A full review's insertions are revertible like any run.
+- [x] Lint has no code path that writes a page body other than link insertion.
 
 ---
 
