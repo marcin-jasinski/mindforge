@@ -9,7 +9,7 @@ Dependencies always point inward: adapters → application → domain. Never cro
 | Layer | Package | Allowed Imports |
 |---|---|---|
 | Domain | `dev.mindforge.domain` | JDK stdlib only; zero I/O, zero framework imports |
-| Application | `dev.mindforge.application` | `dev.mindforge.domain.*`, plus Spring's transaction API (`org.springframework.transaction.*`) — transaction boundaries are part of a use case |
+| Application | `dev.mindforge.application` | `dev.mindforge.domain.*`, `dev.mindforge.agent.*` (the model services a use case sequences), plus Spring's transaction API (`org.springframework.transaction.*`) — transaction boundaries are part of a use case |
 | Infrastructure | `dev.mindforge.infrastructure` | `dev.mindforge.domain.*`, `dev.mindforge.application.*`, any third-party |
 | Model services | `dev.mindforge.agent` | `dev.mindforge.domain.*`, `dev.mindforge.infrastructure.ai.*` |
 | Adapters | `dev.mindforge.api`, `dev.mindforge.cli` | All layers (thin; no business logic) |

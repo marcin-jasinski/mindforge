@@ -8,9 +8,9 @@
 - **Version**: 1.0.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline)
 - **In Progress**: None
-- **Next**: Phase 6 (Ingest Pipeline)
+- **Next**: Phase 7 (Lint)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -66,7 +66,7 @@ Query, the Angular SPA and Docker deployment.
 - [x] **Phase 5 — Wiki Domain & Store** *(re-cut)* — Pages, paths, links, sources, revisions,
   supersessions and ingest runs; `WikiStore`; the lease; index and log renderers; restore-forward,
   tip-only revert. `[Effort: M]`
-- [ ] **Phase 6 — Ingest Pipeline** *(re-cut)* — Relevance guard → chunked claim extraction against the
+- [x] **Phase 6 — Ingest Pipeline** *(re-cut)* — Relevance guard → chunked claim extraction against the
   index → resolve → parallel page writes with draft checks → link check → commit → supersession; the run
   queue, fenced commits and the sweep; run progress over SSE; conversation edits' entry point. `[Effort: L]`
 - [ ] **Phase 7 — Lint** *(number reused)* — Live health checks and an on-demand full review that

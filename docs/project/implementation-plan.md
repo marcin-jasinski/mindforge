@@ -703,7 +703,7 @@ and restore-forward, tip-only revert.
 
 ---
 
-## [ ] Phase 6 — Ingest Pipeline
+## [x] Phase 6 — Ingest Pipeline
 
 > **Re-cut in v3.0.** This phase was *Core Processing Agents* — seven agents behind an `Agent`
 > interface. Now: a fixed pipeline of concrete model services (ADR 0013). `SummarizerAgent` and
@@ -711,6 +711,23 @@ and restore-forward, tip-only revert.
 > **Changed in v3.1:** conversation edits enter at Extract (T15); chunked Extract, two caps and writer inputs (T23);
 > Resolve and title rules (T22); draft validation and heading preservation (T19, T21, T26); Supersede inputs and checks
 > (T14); the run queue, fencing, sweep and permit pool (T17); progress and run events, absorbed from Phase 8 (T20).
+> **As built:** `IngestPipeline` (application) sequences the concrete model services in `dev.mindforge.agent`, so the
+> application layer may import that package; the services reach `infrastructure.ai` for `PromptLoader`, `ModelJson` (JSON
+> answers, an unreadable one is a `ModelOutputException`) and `PermitGateway`, which wraps the gateway of every background
+> service around one shared `Semaphore` bean. Resolve, the draft checks and Supersede's inputs and proposal checks are
+> pure classes in `application.ingest` (`Resolver`, `DraftValidator`, `SupersessionInputs`); `LinkInsertionApplier` is in
+> `application.wiki` for Lint to share. `markWritten`, `complete` and `fail` also take `stepVersions`, recorded per service
+> as `VERSION@model` with the model its tier is configured to route to. Prompt decisions (6.1): prose is written in Polish,
+> the prompt locale, whatever the source's language, keeping original terms in parentheses; a Concept is level-1 sections
+> of one aspect each, opening with its definition; a Source Summary is recommended `# Streszczenie`, `# Najważniejsze tezy`
+> and `# Omawiane pojęcia` — conventions the prompt states as such, not rules. The guard reads the first chunk; a document
+> with no text fails before it (`retryable = false`); an edit whose every item was dropped fails as "no applicable change".
+> Supersede is skipped when no claim landed on a revised Concept. The link check reads only drafted, changed bodies, ten
+> per call. A conversation turn's content is `ConversationTurn` (instruction, then the quoted answer after a `---` line).
+> The `AFTER_COMMIT` drain runs on its own virtual thread, outside the committed transaction; the sweep interval is
+> `mindforge.runs.sweep-interval`. Until Phase 7 the worker fails a `LINT` run; "a Lint queued behind an ingest runs
+> next" is tested there. `StubAIGateway` routes answers by prompt fragment, and integration tests share it as a
+> `@Primary` bean imported by `TestContainerBase`.
 
 **Goal:** Ingest one document (or conversation turn) into its knowledge base's wiki end to end —
 relevance guard, chunked claim extraction against the index, resolve, parallel page writes, link check,
@@ -729,20 +746,20 @@ commit, supersession — with the run queue, fenced commits, partial-success sem
 
 ### Tasks
 
-- [ ] **6.1 — Prompt files** (`src/main/resources/prompts/pl/`)
+- [x] **6.1 — Prompt files** (`src/main/resources/prompts/pl/`)
   - `relevance_guard.pl.md`, `claim_extractor.pl.md`, `claim_extractor_edit.pl.md`, `page_writer.pl.md`,
     `link_checker.pl.md`, `supersession_detector.pl.md`.
   - Decide and write down here: section conventions per page type, and the prose language when a source's
     language differs from the prompt locale (handed off from the re-cut map's fog).
   - Every rule a prompt teaches is also enforced in code (see `ai_agents.md`).
 
-- [ ] **6.2 — `Preprocessor` and `RelevanceGuard`**
+- [x] **6.2 — `Preprocessor` and `RelevanceGuard`**
   - `Preprocessor` (`dev.mindforge.application.ingest`): plain code, no LLM, no `VERSION` — whitespace, headings,
     cleaned blocks (T28).
   - `RelevanceGuard` (`dev.mindforge.agent`, SMALL): returns `ValidationResult`; a rejection fails the run with its
     reason and `retryable = false`. Skipped for conversation turns (T15).
 
-- [ ] **6.3 — `ClaimExtractor`** (LARGE) — T23, T22, T15
+- [x] **6.3 — `ClaimExtractor`** (LARGE) — T23, T22, T15
   - `extract(chunk, renderedIndex, plannedPages)` → `ExtractResult(List<Claim(text, title, targetPath?, firstBlock,
     lastBlock)>, chunkDigest)`. One call per heading-aware chunk (4.4), **sequentially**; each call also sees the paths
     and titles planned by earlier chunks. `DeadlineProfile.BACKGROUND` applies per call.
@@ -751,7 +768,7 @@ commit, supersession — with the run queue, fenced commits, partial-success sem
   - Over `ProcessingSettings.maxClaimsPerExtractCall` (default 40) → run `FAILED`, `retryable = true`.
   - Titles pass `TextRules.singleLine` and must be 1–200 characters; block ranges outside the chunk are ignored.
 
-- [ ] **6.4 — Resolve** (code, in `IngestPipeline`) — T22, T15, T28
+- [x] **6.4 — Resolve** (code, in `IngestPipeline`) — T22, T15, T28
   - A claim's `targetPath` counts only if it is a live `Concept` or a path planned by an earlier chunk; otherwise its
     path is `concepts/` + `Identifier.slugify(title)` — a revision if that path is live, else a create.
   - Group claims by final path into **exactly one `PageWriteTask` per path**; a create takes the title of the group's
@@ -764,7 +781,7 @@ commit, supersession — with the run queue, fenced commits, partial-success sem
   - Add the document's `Source Summary` task (`sources/<lesson-id>`, title = the document's `lessonTitle`), unless the
     document is a conversation turn.
 
-- [ ] **6.5 — `PageWriter`** (LARGE) — T21, T23, T26, T19, T22
+- [x] **6.5 — `PageWriter`** (LARGE) — T21, T23, T26, T19, T22
   - Input:
     - the task: its claims and, for a Concept, their source blocks (de-duplicated, document order, trimmed to
       `ProcessingSettings.writerSourceTokens`, default 16 000, by dropping whole blocks from the end); for a Source
@@ -782,14 +799,14 @@ commit, supersession — with the run queue, fenced commits, partial-success sem
   - A draft whose title, description and normalised body equal the live page writes nothing (no revision, source row or
     link re-derivation). The run report shows each written body's length before and after.
 
-- [ ] **6.6 — `LinkChecker`** (SMALL) **and `LinkInsertionApplier`** (code) — ADR 0017, T26
+- [x] **6.6 — `LinkChecker`** (SMALL) **and `LinkInsertionApplier`** (code) — ADR 0017, T26
   - The model returns `List<LinkInsertion>`; code wraps the first eligible occurrence — outside links and autolinks, code
     spans, fenced blocks, heading lines and `<…>` spans — only if the target is live and not deleted by this run, or was
     successfully drafted in this run; the target is not the page itself; any fragment is a level-1 anchor of the target's
     body. Asserts strip-links equality.
   - Runs on in-memory bodies before commit; a failure records `{"step":"linkCheck"}` and commits without extra links.
 
-- [ ] **6.7 — `SupersessionDetector`** (LARGE ×1) — T14
+- [x] **6.7 — `SupersessionDetector`** (LARGE ×1) — T14
   - Runs after commit 1, under the lease. Skipped for `ARTICLE` documents and for runs with no revisions.
   - Input: this run's claims with their resolved paths (only pages that got a revision), and the level-1 sections of
     candidate pages — live Concepts written by this run or one `page_links` hop from one, in either direction — shown with
@@ -800,7 +817,7 @@ commit, supersession — with the run queue, fenced commits, partial-success sem
     candidates shown, the superseding path is a Concept this run revised, the two differ, and no live supersession or
     earlier proposal covers that section. Drops are recorded as `{"step":"supersede","dropped":N}`.
 
-- [ ] **6.8 — Run worker, `IngestPipeline` and progress** (`dev.mindforge.application.service`) — ADR 0015, T17, T20
+- [x] **6.8 — Run worker, `IngestPipeline` and progress** (`dev.mindforge.application.service`) — ADR 0015, T17, T20
   - **Events**: `SpringEventPublisher implements EventPublisher`. `DomainEvent.DocumentIngested` is replaced by
     `IngestRunQueued(runId, knowledgeBaseId, occurredAt)`, published by every transaction that inserts a `QUEUED` run;
     an `@TransactionalEventListener(AFTER_COMMIT)` calls `RunWorker.drain(kbId)`.
@@ -827,7 +844,7 @@ commit, supersession — with the run queue, fenced commits, partial-success sem
     `DocumentRepository.findByContentHash` excludes `CONVERSATION` rows and conversation turns skip the lesson rule
     (T18, T25) — Phase 4 had no conversation turns to exclude.
 
-- [ ] **6.9 — Tests** (`StubAIGateway` fixtures, no real HTTP)
+- [x] **6.9 — Tests** (`StubAIGateway` fixtures, no real HTTP)
   - No successful page task fails the run; partial success lands and records failures; all-unchanged drafts complete with
     no revisions and no log line.
   - The claims-per-call cap (retryable) and the page-task cap (not retryable) fail loudly.
@@ -851,12 +868,12 @@ commit, supersession — with the run queue, fenced commits, partial-success sem
 
 ### Completion Checklist
 
-- [ ] A real document ingests into pages end to end against `StubAIGateway` fixtures.
-- [ ] No LLM call happens inside a database transaction.
-- [ ] Pages written are counted from inserted rows, never from model output.
-- [ ] Every model service declares `static final String VERSION`, recorded on the run.
-- [ ] No work is lost while the lease is held: every waiting run is `QUEUED`.
-- [ ] Every commit is fenced on the run's status and the lease.
+- [x] A real document ingests into pages end to end against `StubAIGateway` fixtures.
+- [x] No LLM call happens inside a database transaction.
+- [x] Pages written are counted from inserted rows, never from model output.
+- [x] Every model service declares `static final String VERSION`, recorded on the run.
+- [x] No work is lost while the lease is held: every waiting run is `QUEUED`.
+- [x] Every commit is fenced on the run's status and the lease.
 
 ---
 
