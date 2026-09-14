@@ -582,11 +582,24 @@ heading-aware chunking, and `IngestionService` with per-knowledge-base deduplica
 
 ---
 
-## [ ] Phase 5 — Wiki Domain and Store
+## [x] Phase 5 — Wiki Domain and Store
 
 > **Re-cut in v3.0.** This phase was *Agent Framework and Pipeline Orchestration* (`AgentRegistry`,
 > `OrchestrationGraph`, step-fingerprint checkpointing). All of that is deleted (ADRs 0013, 0015).
 > The phase now builds the wiki model, its storage, run records and revert.
+> **As built:** `PageRevision` and `page_revisions` also carry the page's `path` — it never changes, but a deleted page
+> has no row to take it from, and revert of a deletion must check that the path is free. `RunReportQuery` has only
+> `logEntries`; `listRuns` and `report` land with their only consumer, 9.7, which decides their shapes. `addSources` and
+> `addSupersessions` take no separate run id, since each row carries its own. `failures` and `findings` are JSON objects
+> (`List<Map<String, Object>>`) whose shapes the recording steps own. `knowledge_bases.active_run_id` is deferred too, as a
+> user delete removes both its sides. `page_links` has a surrogate identity key and links are de-duplicated on write.
+> `KnowledgeBase.pageCount` is a Hibernate `@Formula` subquery. The renderers are static pure functions, sharing
+> `TextRules.escapeLinkText` with export; `log.md` dates a run by `finished_at`. A revert steps through `QUEUED → RUNNING →
+> WRITTEN → COMPLETED` inside its one transaction, reusing the fenced lifecycle, so nothing outside ever sees the
+> intermediate states. `DocumentRepository` needed nothing new: `insert` and Phase 4's `findLessonTitle` cover 5.3.
+> `WikiStore` gains `findSupersession`, and `deleteSupersession` returns whether it removed the row: supersession removal
+> reads the row to name its run, claims the lease, and only then deletes, so it cannot deadlock against a revert.
+> `page_revisions` has `UNIQUE (page_id, ingest_run_id)`, so "pre-run state is `r − 1`" is a constraint, not an assumption.
 
 **Goal:** Implement pages, paths, links, provenance, revisions, supersessions and ingest runs in the
 domain; their PostgreSQL schema and `WikiStore` adapter; the ingest lease; the index and log renderers;
@@ -594,7 +607,7 @@ and restore-forward, tip-only revert.
 
 ### Tasks
 
-- [ ] **5.1 — Wiki domain types** (`dev.mindforge.domain.model`) — ADRs 0010, 0011
+- [x] **5.1 — Wiki domain types** (`dev.mindforge.domain.model`) — ADRs 0010, 0011
   - `WikiPage(pageId, knowledgeBaseId, path, title, description, type, markdownBody, revision, createdAt, updatedAt)`.
   - `PageType` value object (non-empty, normalised) with constants `CONCEPT`, `SOURCE_SUMMARY`.
   - `PagePath`: `concepts/<name>` or `sources/<lesson-id>`, built only from `Identifier` (3b.2); a derived Concept name
@@ -615,7 +628,7 @@ and restore-forward, tip-only revert.
     - `stripLinks`, the spans eligible for link insertion, and section ranges for marking or stripping.
   - `TextRules` (3b.2) gains `normaliseBody`: `\r\n` → `\n`, trailing whitespace stripped per line, one final newline.
 
-- [ ] **5.2 — Migration `V2__create_wiki_and_runs.sql`** — ADRs 0014, 0015
+- [x] **5.2 — Migration `V2__create_wiki_and_runs.sql`** — ADRs 0014, 0015
   - `wiki_pages` (`UNIQUE (knowledge_base_id, path)`, `UNIQUE (knowledge_base_id, page_id)`).
   - `page_links` with FK `(knowledge_base_id, source_page_id)` → `wiki_pages` `ON DELETE CASCADE`;
     index `(knowledge_base_id, target_path)`.
@@ -629,7 +642,7 @@ and restore-forward, tip-only revert.
     DEFERRED` — `page_sources.document_id`, `ingest_runs.document_id`, `ingest_runs.reverts_run_id`, and every
     `ingest_run_id`. (Replaces `page_sources.document_id ON DELETE RESTRICT`.)
 
-- [ ] **5.3 — Ports** (`dev.mindforge.domain.port`) — `kbId` first on every tenant-scoped method; signatures in
+- [x] **5.3 — Ports** (`dev.mindforge.domain.port`) — `kbId` first on every tenant-scoped method; signatures in
   [T25](../wayfinder/tickets/25-port-read-surface.md)
   - `WikiStore` (page-shaped): `findByPath`, `findById`, `findByPaths`, `listIndex`, `listBodies(type)`,
     `pageIdsForLesson`, `savePage` (page + revision + re-derived links), `deletePage` (tombstone + row delete),
@@ -643,12 +656,12 @@ and restore-forward, tip-only revert.
     `findUnfinished`, `knowledgeBasesWithQueuedRuns`.
   - `DocumentRepository`: add `lessonExists`, `insert` (3b scoped `findById` and `findByContentHash`).
 
-- [ ] **5.4 — Persistence adapters** (`dev.mindforge.infrastructure.persistence`)
+- [x] **5.4 — Persistence adapters** (`dev.mindforge.infrastructure.persistence`)
   - Entities, JPA repositories, MapStruct mappers, port and query-port adapters for all of 5.2, per the sub-package
     convention; entities with assigned ids implement `Persistable<UUID>`.
   - Every query binds `knowledge_base_id`.
 
-- [ ] **5.5 — Renderers** (`dev.mindforge.application.wiki`)
+- [x] **5.5 — Renderers** (`dev.mindforge.application.wiki`)
   - `IndexRenderer`: root index — `okf_version` frontmatter; always both `# Concepts` and `# Sources`, even empty;
     `* [title](/path.md) - description`, sorted by a Polish `Collator` then path; `\`, `[` and `]` in titles escaped.
     Logs WARN with the `TokenEstimate` when the index passes 20K tokens. Used by model prompts, the SPA and export.
@@ -658,7 +671,7 @@ and restore-forward, tip-only revert.
     supersessions removed; or removed N supersessions from …). Page counts derived from `page_revisions`; supersession
     counts from `ingest_runs.supersession_count`; titles escaped.
 
-- [ ] **5.6 — `RevertService`** (`dev.mindforge.application.service`) — ADR 0012, T16
+- [x] **5.6 — `RevertService`** (`dev.mindforge.application.service`) — ADR 0012, T16
   - **One transaction, no model call:** insert the `REVERT` run; claim the lease (0 rows → rollback,
     `KnowledgeBaseBusyException`); do the work; set `COMPLETED` and `supersession_count`; release the lease.
   - **Revert of run R** — a `COMPLETED` `INGEST` or `LINT` run, never a `REVERT`: P = pages whose highest revision carries
@@ -669,7 +682,7 @@ and restore-forward, tip-only revert.
     longer tips.
   - **Supersession removal:** the same transaction shape, `reverts_run_id` = the row's run, deleting that one row.
 
-- [ ] **5.7 — Tests**
+- [x] **5.7 — Tests**
   - Unit: `PagePath` (reserved suffix); `PageType` normalisation; `MarkdownStructure` (a `# comment` inside a fence is
     not a heading; `##` is not a section; each link class; eligible spans exclude fences, autolinks and tags);
     `IndexRenderer` (escaping, empty sections, Polish order) and `LogRenderer` (every line shape); tip check.
@@ -681,12 +694,12 @@ and restore-forward, tip-only revert.
 
 ### Completion Checklist
 
-- [ ] No `deleted_at` filter exists anywhere — a deleted page is absent because its row is.
-- [ ] Every tenant-scoped port method takes `kbId` first.
-- [ ] No page body is parsed outside `MarkdownStructure`.
-- [ ] Revert is restore-forward: no revision row is ever deleted and `revision` is monotonic.
-- [ ] The lease admits one active run per knowledge base under concurrency.
-- [ ] Every cross-cascade FK is deferred, and root deletes succeed.
+- [x] No `deleted_at` filter exists anywhere — a deleted page is absent because its row is.
+- [x] Every tenant-scoped port method takes `kbId` first.
+- [x] No page body is parsed outside `MarkdownStructure`.
+- [x] Revert is restore-forward: no revision row is ever deleted and `revision` is monotonic.
+- [x] The lease admits one active run per knowledge base under concurrency.
+- [x] Every cross-cascade FK is deferred, and root deletes succeed.
 
 ---
 

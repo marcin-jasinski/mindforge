@@ -8,9 +8,9 @@
 - **Version**: 1.0.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store)
 - **In Progress**: None
-- **Next**: Phase 5 (Wiki Domain & Store)
+- **Next**: Phase 6 (Ingest Pipeline)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -63,7 +63,7 @@ Query, the Angular SPA and Docker deployment.
 - [x] **Phase 4 — Document Parsing & Ingestion** *(changed)* — `UploadSanitizer`, `ParserRegistry`,
   Markdown/PDF/DOCX/TXT parsers, heading-aware chunker, `IngestionService` with per-knowledge-base
   dedup by constraint and one `Document` per uploaded lesson version. `[Effort: M]`
-- [ ] **Phase 5 — Wiki Domain & Store** *(re-cut)* — Pages, paths, links, sources, revisions,
+- [x] **Phase 5 — Wiki Domain & Store** *(re-cut)* — Pages, paths, links, sources, revisions,
   supersessions and ingest runs; `WikiStore`; the lease; index and log renderers; restore-forward,
   tip-only revert. `[Effort: M]`
 - [ ] **Phase 6 — Ingest Pipeline** *(re-cut)* — Relevance guard → chunked claim extraction against the
@@ -149,6 +149,6 @@ Query, the Angular SPA and Docker deployment.
 
 ---
 
-*Last Updated*: 2026-09-12
+*Last Updated*: 2026-09-14
 *Effort Scale*: `S` 2–3 days | `M` 1 week | `L` 2+ weeks
 *Reference*: [implementation-plan.md](./implementation-plan.md)
