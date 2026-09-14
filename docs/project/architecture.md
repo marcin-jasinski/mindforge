@@ -26,7 +26,7 @@ composition roots.
 | Layer | Package | Rule |
 |---|---|---|
 | **Domain** | `dev.mindforge.domain` | Pure Java, zero I/O, zero Spring/framework imports |
-| **Application** | `dev.mindforge.application` | Use-case orchestration; imports only `domain` |
+| **Application** | `dev.mindforge.application` | Use-case orchestration; imports only `domain` and Spring's transaction API |
 | **Infrastructure** | `dev.mindforge.infrastructure` | All I/O: JPA, Spring AI, parsers, export |
 | **Model services** | `dev.mindforge.agent` | Stateless services that call `AIGateway`; no shared interface |
 | **Adapters** | `dev.mindforge.api`, `dev.mindforge.cli` | Thin; no business logic |
@@ -44,8 +44,8 @@ composition roots.
 - **History**: `IngestRun` (kind `INGEST | REVERT | LINT`, status `QUEUED | RUNNING | WRITTEN | COMPLETED | FAILED`)
 - **Study**: `Flashcard`, `StudyScope`, `ReviewResult`
 - **Ports**: `WikiStore`, `RunReportQuery`, `WikiHealthQuery`, `BundleQuery`, `IngestRunRepository`,
-  `DocumentRepository`, `AIGateway`, `EventPublisher`, `ProgressNotifier`, `StudyProgressStore`, `QuizSessionStore`,
-  `InteractionStore`
+  `DocumentRepository`, `DocumentParser`, `UploadPolicy`, `AIGateway`, `EventPublisher`, `ProgressNotifier`,
+  `StudyProgressStore`, `QuizSessionStore`, `InteractionStore`
 - **Constraint**: every tenant-scoped port method takes `kbId` as its first argument; the sweep's two system methods are
   the only exception
 
@@ -54,8 +54,8 @@ composition roots.
 - `IngestionService` — upload; dedup and the lesson rule under the knowledge-base row lock; persist `Document` and its
   `QUEUED` run
 - `RunWorker` — claim the oldest `QUEUED` run per knowledge base, dispatch it, and sweep
-- `IngestPipeline` — Preprocess, Extract, Resolve, fan-out, draft checks, commit, Supersede (`Preprocessor` is plain code
-  in `application.ingest`)
+- `IngestPipeline` — Preprocess, Extract, Resolve, fan-out, draft checks, commit, Supersede (`Preprocessor` and the
+  `HeadingChunker` are plain code in `application.ingest`)
 - `RevertService`, `LintService`, `HealthService`, `QueryService`, `FlashcardService`, `QuizService`, `KnowledgeBaseService`
 - `IndexRenderer`, `LogRenderer` — pure renderers shared by the model prompts and export
 
@@ -63,7 +63,7 @@ composition roots.
 
 - `persistence/` — JPA entities, Spring Data repositories, MapStruct mappers, port and query-port adapters
 - `ai/` — `AIGatewayAdapter` (Spring AI, OpenRouter; Resilience4j retry + circuit breaker)
-- `parsing/` — `ParserRegistry` + MIME-dispatch parsers (Markdown, PDF, DOCX, TXT), heading-aware chunker
+- `parsing/` — `ParserRegistry` (the `DocumentParser` port) + MIME-dispatch `FormatParser`s (Markdown, PDF, DOCX, TXT)
 - `event/` — `SpringEventPublisher`, `SseProgressNotifier` (in-memory emitters per knowledge base)
 - `export/` — `BundleExporter` (zip, SnakeYAML frontmatter), `BundleConformanceValidator`
 - `security/` — upload sanitizer, egress policy

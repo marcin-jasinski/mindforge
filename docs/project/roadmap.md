@@ -7,9 +7,10 @@
 
 - **Version**: 1.0.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
-  2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup)
+  2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
+  4 (Document Parsing & Ingestion)
 - **In Progress**: None
-- **Next**: Phase 4 (Document Parsing & Ingestion)
+- **Next**: Phase 5 (Wiki Domain & Store)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -59,7 +60,7 @@ Query, the Angular SPA and Docker deployment.
 - [x] **Phase 3b — Wiki Pivot Cleanup** *(new)* — Delete the artifact model, `Agent` abstraction,
   step fingerprints, Neo4j and pgvector wiring; fix the cross-tenant dedup lookup and Polish slugs;
   squash V1–V7 into one baseline. No new behaviour. `[Effort: S]`
-- [ ] **Phase 4 — Document Parsing & Ingestion** *(changed)* — `UploadSanitizer`, `ParserRegistry`,
+- [x] **Phase 4 — Document Parsing & Ingestion** *(changed)* — `UploadSanitizer`, `ParserRegistry`,
   Markdown/PDF/DOCX/TXT parsers, heading-aware chunker, `IngestionService` with per-knowledge-base
   dedup by constraint and one `Document` per uploaded lesson version. `[Effort: M]`
 - [ ] **Phase 5 — Wiki Domain & Store** *(re-cut)* — Pages, paths, links, sources, revisions,

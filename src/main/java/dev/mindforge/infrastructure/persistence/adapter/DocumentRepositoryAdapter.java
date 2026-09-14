@@ -22,7 +22,16 @@ public class DocumentRepositoryAdapter implements DocumentRepository {
     }
 
     @Override
-    public Document save(Document document) {
+    public void lockKnowledgeBase(UUID knowledgeBaseId) {
+        jpaRepository.lockKnowledgeBase(knowledgeBaseId);
+    }
+
+    @Override
+    public Document insert(UUID knowledgeBaseId, Document document) {
+        if (!knowledgeBaseId.equals(document.knowledgeBaseId())) {
+            throw new IllegalArgumentException(
+                "Document " + document.documentId() + " does not belong to knowledge base " + knowledgeBaseId);
+        }
         return mapper.toDomain(jpaRepository.save(mapper.toEntity(document)));
     }
 
@@ -36,6 +45,11 @@ public class DocumentRepositoryAdapter implements DocumentRepository {
     public Optional<Document> findByContentHash(UUID knowledgeBaseId, ContentHash contentHash) {
         return jpaRepository.findByKnowledgeBaseIdAndContentHash(knowledgeBaseId, contentHash.sha256())
             .map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<String> findLessonTitle(UUID knowledgeBaseId, String lessonId) {
+        return jpaRepository.findLessonTitle(knowledgeBaseId, lessonId);
     }
 
     @Override

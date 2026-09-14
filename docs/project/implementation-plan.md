@@ -496,45 +496,54 @@ re-cut and its review exposed, and squash the migration chain into a baseline �
 
 ---
 
-## [ ] Phase 4 — Document Parsing and Ingestion
+## [x] Phase 4 — Document Parsing and Ingestion
 
 > **Changed in v3.0:** 4.5 and 4.6 — dedup per knowledge base, one `Document` per
 > uploaded lesson version, no status, no checkpoints (ADR 0015).
 > **Changed in v3.1:** chunk defaults sized for Extract (T23); lesson collisions need an explicit new version and
 > dedup is checked under the knowledge-base row lock (T18, T24).
+> **As built:** `IngestionService` reaches the sanitizer and the registry through two domain ports, `UploadPolicy` and
+> `DocumentParser`, because application code may not import infrastructure. For the same reason the chunker lives in
+> `application.ingest`, next to its consumer. `chunkOverlapTokens` is removed rather than defaulted to 0, and
+> `SpringEventPublisher` (6.8) was brought forward to wire the service. The 409 names the existing lesson's title, so
+> T25's `lessonExists` is `findLessonTitle`. The transaction is opened programmatically (`TransactionOperations`), so
+> admitting and parsing happen before it and the row lock is its first statement.
 
 **Goal:** Implement the `ParserRegistry`, all four document format parsers, `UploadSanitizer`,
 heading-aware chunking, and `IngestionService` with per-knowledge-base deduplication.
 
 ### Tasks
 
-- [ ] **4.1 — `UploadSanitizer`** (`dev.mindforge.infrastructure.security`)
-  - Validates MIME type against allowlist (`text/markdown`, `application/pdf`,
-    `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `text/plain`).
-  - Rejects oversized uploads (configurable max, default 50 MB).
+- [x] **4.1 — `UploadSanitizer`** (`dev.mindforge.infrastructure.security`) — implements the `UploadPolicy` port
+  - Validates MIME type against the allowlist — the types a parser is registered for (`text/markdown`,
+    `application/pdf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `text/plain`).
+  - Rejects oversized uploads (`mindforge.upload.max-size`, default 50 MB).
   - Rejects path traversal attempts in filename.
-  - Sanitizes filename to safe characters.
+  - Sanitizes filename to safe characters, keeping letters of any script (the stem can become the lesson title).
+  - Every refusal is an `UploadRejectedException`.
 
-- [ ] **4.2 — `ParserRegistry`** (`dev.mindforge.infrastructure.parsing`)
-  - MIME-dispatch map from content type → `DocumentParser` implementation.
-  - All parsers registered via `@Configuration` (not discovered via classpath scan).
+- [x] **4.2 — `ParserRegistry`** (`dev.mindforge.infrastructure.parsing`) — implements the `DocumentParser` port
+  - MIME-dispatch map from content type → `FormatParser` implementation.
+  - All parsers registered via `@Configuration` (`IngestionConfig`), not discovered via classpath scan.
 
-- [ ] **4.3 — Format parsers** (`dev.mindforge.infrastructure.parsing`)
+- [x] **4.3 — Format parsers** (`dev.mindforge.infrastructure.parsing`)
   - `MarkdownParser`: extracts heading tree, code blocks, front-matter metadata.
   - `PdfParser`: wraps Apache PDFBox; extracts text per-page, document metadata.
   - `DocxParser`: wraps Apache POI; extracts paragraphs and heading styles, **in document order**
     (tables stay where the prose places them).
   - `PlainTextParser`: line-based extraction, best-effort heading detection.
+  - Headings are `BlockType.HEADING` blocks with a `level`; text formats are strict UTF-8.
 
-- [ ] **4.4 — Heading-aware chunker** (`dev.mindforge.infrastructure.parsing`) — T23
+- [x] **4.4 — Heading-aware chunker** (`dev.mindforge.application.ingest.HeadingChunker`) — T23
   - Splits the `ContentBlock` list into chunks at heading boundaries, each at most `ProcessingSettings.chunkSizeTokens`.
-  - Defaults change to **12 000 tokens, overlap 0** — sized for Extract, the chunker's only consumer (overlap would
+  - Defaults change to **12 000 tokens, no overlap** — sized for Extract, the chunker's only consumer (overlap would
     duplicate claims).
   - Token counts via a new pure `TokenEstimate.of(String) = ceil(chars / 3)` in the domain — the one estimate
     `TokenBudget`, Supersede and the index ceiling also use.
-  - Produces deterministic chunks — same input always produces same chunks.
+  - Produces deterministic chunks — same input always produces same chunks. A block is never cut, so one larger than a
+    chunk is a chunk of its own.
 
-- [ ] **4.5 — `IngestionService`** (`dev.mindforge.application.service`) — T18, T24
+- [x] **4.5 — `IngestionService`** (`dev.mindforge.application.service`) — T18, T24
   - Validates upload via `UploadSanitizer`; parses via `ParserRegistry`; resolves `LessonIdentity`, honouring an optional
     `lessonId` override (validated by `Identifier`) and a `newVersion` flag.
   - One `@Transactional` boundary, opened with `SELECT … FROM knowledge_bases WHERE kb_id = :kb FOR UPDATE`, which
@@ -550,23 +559,26 @@ heading-aware chunking, and `IngestionService` with per-knowledge-base deduplica
     retraction of the old version's contributions.
   - Returns HTTP 202 semantics: the ingest run starts after commit (Phase 6).
 
-- [ ] **4.6 — Unit tests**
+- [x] **4.6 — Unit tests**
   - `IngestionServiceTest`: identical upload returns existing id; same bytes into another knowledge
     base create a new document; an upload whose lesson id exists is rejected unless `newVersion`, which creates a
     second `Document`; `newVersion` for an unknown lesson is rejected; save + event publish together.
-  - Integration: two concurrent uploads of the same new lesson into one knowledge base — one succeeds, the other gets
-    409 (or its identical-content id).
-  - Parser unit tests: each parser extracts expected text and metadata from fixture files.
+  - Integration (`ConcurrentUploadTest`): two concurrent uploads of the same new lesson into one knowledge base — one
+    succeeds, the other gets 409 (or its identical-content id).
+  - Parser unit tests: each parser extracts expected text and metadata from fixtures (PDF and DOCX fixtures are built in
+    the test with PDFBox and POI, not stored as binaries).
   - `UploadSanitizerTest`: MIME rejection, oversized rejection, path traversal rejection.
+  - `HeadingChunkerTest`, `TokenEstimateTest`; `DocumentRepositoryAdapterTest` gains `findLessonTitle` scoping and
+    "`insert` never overwrites".
 
 ### Completion Checklist
 
-- [ ] All four parsers extract text and metadata correctly from fixture files.
-- [ ] Chunker produces deterministic, heading-aware chunks sized by `TokenEstimate`.
-- [ ] Dedup is per knowledge base, checked under the knowledge-base row lock, with the constraint as backstop.
-- [ ] No upload silently becomes a version of an existing lesson.
-- [ ] `UploadSanitizer` rejects disallowed MIME types, oversized files, and path traversal.
-- [ ] `DocumentIngested` event is published in the same transaction as the document save.
+- [x] All four parsers extract text and metadata correctly from fixture files.
+- [x] Chunker produces deterministic, heading-aware chunks sized by `TokenEstimate`.
+- [x] Dedup is per knowledge base, checked under the knowledge-base row lock, with the constraint as backstop.
+- [x] No upload silently becomes a version of an existing lesson.
+- [x] `UploadSanitizer` rejects disallowed MIME types, oversized files, and path traversal.
+- [x] `DocumentIngested` event is published in the same transaction as the document save.
 
 ---
 
@@ -798,7 +810,9 @@ commit, supersession — with the run queue, fenced commits, partial-success sem
     progress, and after each status transaction returns. `SseProgressNotifier` (`dev.mindforge.infrastructure.event`)
     keeps `Map<kbId, Set<SseEmitter>>` and drops dead emitters. The endpoint is 9.7.
   - Record each model service's `VERSION` + model id in `step_versions`. `cost` stays `NULL` until Phase 14 (T28).
-  - `UploadSource` gains `CONVERSATION`; the conversation entry point is exposed by Phase 11.
+  - `UploadSource` gains `CONVERSATION`; the conversation entry point is exposed by Phase 11. With it,
+    `DocumentRepository.findByContentHash` excludes `CONVERSATION` rows and conversation turns skip the lesson rule
+    (T18, T25) — Phase 4 had no conversation turns to exclude.
 
 - [ ] **6.9 — Tests** (`StubAIGateway` fixtures, no real HTTP)
   - No successful page task fails the run; partial success lands and records failures; all-unchanged drafts complete with

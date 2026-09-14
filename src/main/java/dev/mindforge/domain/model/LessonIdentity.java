@@ -26,13 +26,16 @@ import java.util.stream.Stream;
  */
 public record LessonIdentity(String lessonId, String title) {
 
+    /** Metadata key of an explicit lesson id: Markdown frontmatter, or the upload's override. */
+    public static final String KEY_LESSON_ID = "lesson_id";
+    /** Metadata key of a PDF document's title. */
+    public static final String KEY_PDF_TITLE = "Title";
+
     private static final int MAX_TITLE_LENGTH = 200;
     private static final String ELLIPSIS = "…";
     private static final String RESERVED_SUFFIX = "-lesson";
 
-    private static final String KEY_LESSON_ID = "lesson_id";
     private static final String KEY_FRONTMATTER_TITLE = "title";
-    private static final String KEY_PDF_TITLE = "Title";
 
     public LessonIdentity {
         requireNonNull(lessonId, "lessonId");

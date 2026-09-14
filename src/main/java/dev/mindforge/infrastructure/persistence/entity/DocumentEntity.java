@@ -8,17 +8,35 @@ import dev.mindforge.domain.model.ContentBlock;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.data.domain.Persistable;
 
 @Entity
 @Table(name = "documents")
-public class DocumentEntity extends BaseEntity {
+public class DocumentEntity extends BaseEntity implements Persistable<UUID> {
 
     @Id
     @Column(name = "document_id", updatable = false, nullable = false)
     private UUID documentId;
+
+    /** The id is assigned by the application, so {@code save()} must be told to insert rather than merge. */
+    @Transient
+    private boolean persisted;
+
+    @Override
+    public UUID getId() { return documentId; }
+
+    @Override
+    public boolean isNew() { return !persisted; }
+
+    @PostPersist
+    @PostLoad
+    void markPersisted() { persisted = true; }
 
     @Column(name = "knowledge_base_id", nullable = false)
     private UUID knowledgeBaseId;

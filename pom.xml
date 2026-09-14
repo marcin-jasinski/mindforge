@@ -21,7 +21,7 @@
         <java.version>21</java.version>
         <spring-ai.version>2.0.0</spring-ai.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <flexmark.version>0.64.8</flexmark.version>
+        <commonmark.version>0.30.0</commonmark.version>
         <pdfbox.version>3.0.3</pdfbox.version>
         <poi.version>5.4.0</poi.version>
         <mapstruct.version>1.6.3</mapstruct.version>
@@ -172,9 +172,14 @@
 
         <!-- Document Parsing -->
         <dependency>
-            <groupId>com.vladsch.flexmark</groupId>
-            <artifactId>flexmark-all</artifactId>
-            <version>${flexmark.version}</version>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark</artifactId>
+            <version>${commonmark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark-ext-yaml-front-matter</artifactId>
+            <version>${commonmark.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
