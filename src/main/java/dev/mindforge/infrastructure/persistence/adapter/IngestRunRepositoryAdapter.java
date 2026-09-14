@@ -57,26 +57,32 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
-    public void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures) {
-        fence(kbId, runId, RunStatus.RUNNING, RunStatus.WRITTEN).setFailures(failures);
+    public void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures,
+                            Map<String, String> stepVersions) {
+        IngestRunEntity run = fence(kbId, runId, RunStatus.RUNNING, RunStatus.WRITTEN);
+        run.setFailures(failures);
+        run.setStepVersions(stepVersions);
     }
 
     @Override
     public void complete(UUID kbId, UUID runId, int supersessionCount, boolean supersessionSkipped,
-                         List<Map<String, Object>> failures) {
+                         List<Map<String, Object>> failures, Map<String, String> stepVersions) {
         IngestRunEntity run = fence(kbId, runId, RunStatus.WRITTEN, RunStatus.COMPLETED);
         run.setSupersessionCount(supersessionCount);
         run.setSupersessionSkipped(supersessionSkipped);
         run.setFailures(failures);
+        run.setStepVersions(stepVersions);
         runs.releaseLease(kbId, runId);
     }
 
     @Override
-    public void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures) {
+    public void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures,
+                     Map<String, String> stepVersions) {
         IngestRunEntity run = fence(kbId, runId, RunStatus.RUNNING, RunStatus.FAILED);
         run.setFailureReason(reason);
         run.setRetryable(retryable);
         run.setFailures(failures);
+        run.setStepVersions(stepVersions);
         runs.releaseLease(kbId, runId);
     }
 

@@ -96,8 +96,8 @@ public class RevertService {
     }
 
     private void finish(UUID kbId, UUID revertRunId, int supersessionsRemoved) {
-        runs.markWritten(kbId, revertRunId, List.of());
-        runs.complete(kbId, revertRunId, supersessionsRemoved, false, List.of());
+        runs.markWritten(kbId, revertRunId, List.of(), Map.of());
+        runs.complete(kbId, revertRunId, supersessionsRemoved, false, List.of(), Map.of());
     }
 
     /**

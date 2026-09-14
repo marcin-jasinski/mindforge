@@ -65,7 +65,7 @@ class RevertServiceTest {
             PageType.CONCEPT, "przed"), revertRunId);
         verify(wiki).savePage(any(), any(), any());
         verify(wiki).deleteSources(KB, RUN, List.of(tipped));
-        verify(runs).complete(KB, revertRunId, 1, false, List.of());
+        verify(runs).complete(KB, revertRunId, 1, false, List.of(), Map.of());
     }
 
     @Test
@@ -102,7 +102,7 @@ class RevertServiceTest {
 
         assertThatExceptionOfType(RevertNotAllowedException.class).isThrownBy(() -> makeService().revert(KB, RUN));
         verify(wiki, never()).reinsertPage(any(), any(), any());
-        verify(runs, never()).complete(any(), any(), anyInt(), anyBoolean(), any());
+        verify(runs, never()).complete(any(), any(), anyInt(), anyBoolean(), any(), any());
     }
 
     @Test
@@ -136,7 +136,7 @@ class RevertServiceTest {
         InOrder order = inOrder(runs, wiki);
         order.verify(runs).claim(KB, revertRunId);
         order.verify(wiki).deleteSupersession(KB, supersessionId);
-        order.verify(runs).complete(KB, revertRunId, 1, false, List.of());
+        order.verify(runs).complete(KB, revertRunId, 1, false, List.of(), Map.of());
     }
 
     @Test
@@ -145,7 +145,7 @@ class RevertServiceTest {
 
         assertThatExceptionOfType(RevertNotAllowedException.class)
             .isThrownBy(() -> makeService().removeSupersession(KB, supersessionId));
-        verify(runs, never()).complete(any(), any(), anyInt(), anyBoolean(), any());
+        verify(runs, never()).complete(any(), any(), anyInt(), anyBoolean(), any(), any());
     }
 
     private UUID givenSupersession() {

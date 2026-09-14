@@ -78,6 +78,13 @@ public class AppProperties {
         @Valid
         private Resilience resilience = new Resilience();
 
+        /** Concurrent model calls across every ingest and Lint run. */
+        @Positive
+        private int backgroundPermits = 4;
+
+        public int getBackgroundPermits() { return backgroundPermits; }
+        public void setBackgroundPermits(int backgroundPermits) { this.backgroundPermits = backgroundPermits; }
+
         public Model getModel() { return model; }
         public void setModel(Model model) { this.model = model; }
 

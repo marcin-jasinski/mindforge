@@ -63,7 +63,11 @@ mindforge:
     jwt-expiry-seconds: ${JWT_EXPIRY_SECONDS:86400}
   upload:
     max-size: ${UPLOAD_MAX_SIZE:50MB}
+  runs:
+    # How often the worker settles runs this process is not running and drains queues (ISO-8601).
+    sweep-interval: ${RUNS_SWEEP_INTERVAL:PT1M}
   ai:
+    background-permits: ${AI_BACKGROUND_PERMITS:4}
     model:
       small: ${AI_MODEL_SMALL:openai/gpt-4o-mini}
       large: ${AI_MODEL_LARGE:openai/gpt-4o}

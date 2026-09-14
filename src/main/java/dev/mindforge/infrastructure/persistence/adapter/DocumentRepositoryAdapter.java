@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import dev.mindforge.domain.model.ContentHash;
 import dev.mindforge.domain.model.Document;
+import dev.mindforge.domain.model.UploadSource;
 import dev.mindforge.domain.port.DocumentRepository;
 import dev.mindforge.infrastructure.persistence.jpa.DocumentJpaRepository;
 import dev.mindforge.infrastructure.persistence.mapper.DocumentEntityMapper;
@@ -43,7 +44,8 @@ public class DocumentRepositoryAdapter implements DocumentRepository {
 
     @Override
     public Optional<Document> findByContentHash(UUID knowledgeBaseId, ContentHash contentHash) {
-        return jpaRepository.findByKnowledgeBaseIdAndContentHash(knowledgeBaseId, contentHash.sha256())
+        return jpaRepository.findByKnowledgeBaseIdAndContentHashAndUploadSourceNot(
+                knowledgeBaseId, contentHash.sha256(), UploadSource.CONVERSATION.name())
             .map(mapper::toDomain);
     }
 

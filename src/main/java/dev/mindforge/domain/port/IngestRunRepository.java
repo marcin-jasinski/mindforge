@@ -29,15 +29,16 @@ public interface IngestRunRepository {
 
     Optional<IngestRun> oldestQueued(UUID kbId);
 
-    /** {@code RUNNING → WRITTEN}, recording the run's failures so far. */
-    void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures);
+    /** {@code RUNNING → WRITTEN}, recording the run's failures and step versions so far. */
+    void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures, Map<String, String> stepVersions);
 
     /** {@code WRITTEN → COMPLETED}, releasing the lease. */
     void complete(UUID kbId, UUID runId, int supersessionCount, boolean supersessionSkipped,
-                  List<Map<String, Object>> failures);
+                  List<Map<String, Object>> failures, Map<String, String> stepVersions);
 
     /** {@code RUNNING → FAILED}, releasing the lease. */
-    void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures);
+    void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures,
+              Map<String, String> stepVersions);
 
     Optional<IngestRun> findById(UUID kbId, UUID runId);
 

@@ -8,16 +8,10 @@ import java.util.UUID;
  * {@code EventPublisher} port within an active transaction. The sealed hierarchy
  * lets consumers exhaustively pattern-match on event type.
  */
-public sealed interface DomainEvent permits DomainEvent.DocumentIngested {
+public sealed interface DomainEvent permits DomainEvent.IngestRunQueued {
 
     Instant occurredAt();
 
-    /** A new document was accepted for ingest. */
-    record DocumentIngested(
-        UUID documentId,
-        UUID knowledgeBaseId,
-        String lessonId,
-        ContentHash contentHash,
-        Instant occurredAt
-    ) implements DomainEvent {}
+    /** A {@code QUEUED} run was inserted; its listener wakes the worker after commit. */
+    record IngestRunQueued(UUID runId, UUID knowledgeBaseId, Instant occurredAt) implements DomainEvent {}
 }

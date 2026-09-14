@@ -10,6 +10,8 @@ import org.springframework.transaction.support.TransactionOperations;
 import dev.mindforge.application.service.IngestionService;
 import dev.mindforge.domain.port.DocumentRepository;
 import dev.mindforge.domain.port.EventPublisher;
+import dev.mindforge.domain.port.IngestRunRepository;
+import dev.mindforge.domain.port.ProgressNotifier;
 import dev.mindforge.infrastructure.event.SpringEventPublisher;
 import dev.mindforge.infrastructure.parsing.DocxParser;
 import dev.mindforge.infrastructure.parsing.MarkdownParser;
@@ -45,9 +47,10 @@ public class IngestionConfig {
 
     @Bean
     IngestionService ingestionService(UploadSanitizer uploadSanitizer, ParserRegistry parserRegistry,
-                                      DocumentRepository documentRepository, EventPublisher eventPublisher,
+                                      DocumentRepository documentRepository, IngestRunRepository ingestRunRepository,
+                                      EventPublisher eventPublisher, ProgressNotifier progressNotifier,
                                       TransactionOperations transactionOperations) {
-        return new IngestionService(
-            uploadSanitizer, parserRegistry, documentRepository, eventPublisher, transactionOperations);
+        return new IngestionService(uploadSanitizer, parserRegistry, documentRepository, ingestRunRepository,
+            eventPublisher, progressNotifier, transactionOperations);
     }
 }
