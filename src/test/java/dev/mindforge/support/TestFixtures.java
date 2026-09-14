@@ -42,7 +42,8 @@ public final class TestFixtures {
             ownerId != null ? ownerId : UUID.randomUUID(),
             "Test KB",
             "A knowledge base used in tests",
-            Instant.parse("2026-01-01T00:00:00Z"));
+            Instant.parse("2026-01-01T00:00:00Z"),
+            0);
     }
 
     public static User makeUser(UUID userId, String email) {
