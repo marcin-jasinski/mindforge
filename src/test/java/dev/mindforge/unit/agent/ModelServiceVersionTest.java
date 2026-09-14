@@ -13,12 +13,13 @@ import dev.mindforge.agent.LinkChecker;
 import dev.mindforge.agent.PageWriter;
 import dev.mindforge.agent.RelevanceGuard;
 import dev.mindforge.agent.SupersessionDetector;
+import dev.mindforge.agent.WikiReviewer;
 
 class ModelServiceVersionTest {
 
     @ParameterizedTest
     @ValueSource(classes = {RelevanceGuard.class, ClaimExtractor.class, PageWriter.class, LinkChecker.class,
-        SupersessionDetector.class})
+        SupersessionDetector.class, WikiReviewer.class})
     void everyModelServiceDeclaresAStaticFinalVersion(Class<?> service) throws Exception {
         Field version = service.getField("VERSION");
 

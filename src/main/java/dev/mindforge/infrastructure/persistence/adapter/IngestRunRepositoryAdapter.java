@@ -87,6 +87,11 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
+    public void recordFindings(UUID kbId, UUID runId, List<Map<String, Object>> findings) {
+        runs.findByKnowledgeBaseIdAndRunId(kbId, runId).orElseThrow().setFindings(findings);
+    }
+
+    @Override
     public Optional<IngestRun> findById(UUID kbId, UUID runId) {
         return runs.findByKnowledgeBaseIdAndRunId(kbId, runId).map(mapper::toDomain);
     }

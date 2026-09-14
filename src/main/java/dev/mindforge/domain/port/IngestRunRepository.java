@@ -40,6 +40,9 @@ public interface IngestRunRepository {
     void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures,
               Map<String, String> stepVersions);
 
+    /** Stores a Lint's findings and suggestions; call inside the run's fenced commit. */
+    void recordFindings(UUID kbId, UUID runId, List<Map<String, Object>> findings);
+
     Optional<IngestRun> findById(UUID kbId, UUID runId);
 
     Optional<IngestRun> latestForDocument(UUID kbId, UUID documentId);

@@ -14,7 +14,9 @@ import dev.mindforge.agent.LinkChecker;
 import dev.mindforge.agent.PageWriter;
 import dev.mindforge.agent.RelevanceGuard;
 import dev.mindforge.agent.SupersessionDetector;
+import dev.mindforge.agent.WikiReviewer;
 import dev.mindforge.application.service.IngestPipeline;
+import dev.mindforge.application.service.LintService;
 import dev.mindforge.application.service.RunWorker;
 import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.domain.model.ProcessingSettings;
@@ -87,6 +89,11 @@ public class PipelineConfig {
     }
 
     @Bean
+    WikiReviewer wikiReviewer(AIGateway aiGateway, Semaphore backgroundPermits, PromptLoader promptLoader) {
+        return new WikiReviewer(new PermitGateway(aiGateway, backgroundPermits), promptLoader);
+    }
+
+    @Bean
     SseProgressNotifier progressNotifier() {
         return new SseProgressNotifier();
     }
@@ -103,10 +110,19 @@ public class PipelineConfig {
     }
 
     @Bean
+    LintService lintService(WikiStore wikiStore, IngestRunRepository ingestRunRepository, LinkChecker linkChecker,
+                            WikiReviewer wikiReviewer, EventPublisher eventPublisher,
+                            SseProgressNotifier progressNotifier, TransactionOperations transactionOperations,
+                            ProcessingSettings processingSettings) {
+        return new LintService(wikiStore, ingestRunRepository, linkChecker, wikiReviewer, eventPublisher,
+            progressNotifier, transactionOperations, processingSettings);
+    }
+
+    @Bean
     RunWorker runWorker(IngestRunRepository ingestRunRepository, IngestPipeline ingestPipeline,
-                        SseProgressNotifier progressNotifier, EventPublisher eventPublisher,
+                        LintService lintService, SseProgressNotifier progressNotifier, EventPublisher eventPublisher,
                         TransactionOperations transactionOperations, Executor runExecutor) {
-        return new RunWorker(ingestRunRepository, ingestPipeline, progressNotifier, eventPublisher,
+        return new RunWorker(ingestRunRepository, ingestPipeline, lintService, progressNotifier, eventPublisher,
             transactionOperations, runExecutor);
     }
 

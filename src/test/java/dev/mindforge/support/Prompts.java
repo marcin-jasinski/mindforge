@@ -11,6 +11,7 @@ public final class Prompts {
     public static final String WRITE = "# Zadanie: napisanie strony wiki";
     public static final String LINKS = "# Zadanie: wstawianie linków";
     public static final String SUPERSEDE = "# Zadanie: wykrywanie zdezaktualizowanych sekcji";
+    public static final String REVIEW = "# Zadanie: przegląd wiki";
 
     public static final String RELEVANT = "{\"relevant\": true, \"reason\": \"Notatki z biologii.\", \"confidence\": 0.9}";
 

@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -20,9 +21,11 @@ import java.util.concurrent.Executor;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.transaction.support.TransactionOperations;
 
 import dev.mindforge.application.service.IngestPipeline;
+import dev.mindforge.application.service.LintService;
 import dev.mindforge.application.service.RunWorker;
 import dev.mindforge.domain.model.DomainEvent;
 import dev.mindforge.domain.model.IngestRun;
@@ -38,6 +41,7 @@ class RunWorkerTest {
 
     private final IngestRunRepository runs = mock(IngestRunRepository.class);
     private final IngestPipeline pipeline = mock(IngestPipeline.class);
+    private final LintService lint = mock(LintService.class);
     private final EventPublisher events = mock(EventPublisher.class);
 
     @Test
@@ -51,6 +55,20 @@ class RunWorkerTest {
 
         verify(pipeline).run(first);
         verify(pipeline).run(second);
+    }
+
+    @Test
+    void shouldRunALintQueuedBehindAnIngestNext() {
+        IngestRun ingest = makeRun(RunKind.INGEST, RunStatus.QUEUED, 1);
+        IngestRun lintRun = makeRun(RunKind.LINT, RunStatus.QUEUED, 1);
+        when(runs.oldestQueued(KB)).thenReturn(Optional.of(ingest), Optional.of(lintRun), Optional.empty());
+        when(runs.claim(eq(KB), any())).thenReturn(true);
+
+        makeWorker(Runnable::run).drain(KB);
+
+        InOrder order = inOrder(pipeline, lint);
+        order.verify(pipeline).run(ingest);
+        order.verify(lint).run(lintRun);
     }
 
     @Test
@@ -130,7 +148,7 @@ class RunWorkerTest {
     // ---------------------------------------------------------------------------
 
     private RunWorker makeWorker(Executor executor) {
-        return new RunWorker(runs, pipeline, mock(ProgressNotifier.class), events,
+        return new RunWorker(runs, pipeline, lint, mock(ProgressNotifier.class), events,
             TransactionOperations.withoutTransaction(), executor);
     }
 

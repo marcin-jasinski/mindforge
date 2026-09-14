@@ -37,6 +37,7 @@ public class RunWorker {
 
     private final IngestRunRepository runs;
     private final IngestPipeline pipeline;
+    private final LintService lint;
     private final ProgressNotifier progress;
     private final EventPublisher events;
     private final TransactionOperations transactions;
@@ -44,10 +45,11 @@ public class RunWorker {
     private final Set<UUID> active = ConcurrentHashMap.newKeySet();
     private volatile boolean stopped;
 
-    public RunWorker(IngestRunRepository runs, IngestPipeline pipeline, ProgressNotifier progress,
+    public RunWorker(IngestRunRepository runs, IngestPipeline pipeline, LintService lint, ProgressNotifier progress,
                      EventPublisher events, TransactionOperations transactions, Executor executor) {
         this.runs = runs;
         this.pipeline = pipeline;
+        this.lint = lint;
         this.progress = progress;
         this.events = events;
         this.transactions = transactions;
@@ -115,8 +117,10 @@ public class RunWorker {
     private void dispatch(IngestRun run) {
         switch (run.kind()) {
             case INGEST -> pipeline.run(run);
-            case LINT, REVERT -> runs.fail(run.knowledgeBaseId(), run.runId(), "no worker runs a " + run.kind(),
-                false, List.of(), Map.of());
+            case LINT -> lint.run(run);
+            // a revert is one synchronous transaction and is never queued
+            case REVERT -> runs.fail(run.knowledgeBaseId(), run.runId(), "a revert is never queued", false,
+                List.of(), Map.of());
         }
     }
 
