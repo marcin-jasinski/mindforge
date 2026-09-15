@@ -12,6 +12,9 @@ public final class Prompts {
     public static final String LINKS = "# Zadanie: wstawianie linków";
     public static final String SUPERSEDE = "# Zadanie: wykrywanie zdezaktualizowanych sekcji";
     public static final String REVIEW = "# Zadanie: przegląd wiki";
+    public static final String FLASHCARDS = "# Zadanie: tworzenie fiszek";
+    public static final String QUIZ = "# Zadanie: pytania quizowe";
+    public static final String GRADE = "# Zadanie: ocena odpowiedzi";
 
     public static final String RELEVANT = "{\"relevant\": true, \"reason\": \"Notatki z biologii.\", \"confidence\": 0.9}";
 

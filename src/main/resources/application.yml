@@ -73,6 +73,8 @@ mindforge:
     secure-cookies: ${AUTH_SECURE_COOKIES:true}
   upload:
     max-size: ${UPLOAD_MAX_SIZE:50MB}
+  study:
+    quiz-session-ttl: ${QUIZ_SESSION_TTL:PT2H}
   runs:
     # How often the worker settles runs this process is not running and drains queues (ISO-8601).
     sweep-interval: ${RUNS_SWEEP_INTERVAL:PT1M}

@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import dev.mindforge.domain.model.LiveSupersession;
 import dev.mindforge.domain.model.MarkdownStructure;
@@ -46,6 +47,19 @@ public final class PageRenderer {
             .forEach(notes -> rendered.insert(notes.getKey(), (body.charAt(notes.getKey() - 1) == '\n' ? "" : "\n")
                 + "\n" + String.join("\n", notes.getValue()) + "\n"));
         return rendered.toString();
+    }
+
+    /** The body without the sections these anchors name, so no study item is cut from a superseded claim. */
+    public static String withoutSections(String body, Set<String> anchors) {
+        StringBuilder kept = new StringBuilder();
+        int position = 0;
+        for (MarkdownStructure.Section section : MarkdownStructure.sections(body)) {
+            if (anchors.contains(section.anchor())) {
+                kept.append(body, position, section.start());
+                position = section.end();
+            }
+        }
+        return kept.append(body, position, body.length()).toString();
     }
 
     /**

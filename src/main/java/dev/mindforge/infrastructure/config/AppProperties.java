@@ -28,6 +28,9 @@ public class AppProperties {
     @Valid
     private Upload upload = new Upload();
 
+    @Valid
+    private Study study = new Study();
+
     public Security getSecurity() { return security; }
     public void setSecurity(Security security) { this.security = security; }
 
@@ -37,9 +40,22 @@ public class AppProperties {
     public Upload getUpload() { return upload; }
     public void setUpload(Upload upload) { this.upload = upload; }
 
+    public Study getStudy() { return study; }
+    public void setStudy(Study study) { this.study = study; }
+
     // ---------------------------------------------------------------------------
     // Nested configuration types
     // ---------------------------------------------------------------------------
+
+    public static class Study {
+
+        /** How long a quiz session and its reference answers are kept. */
+        @NotNull
+        private Duration quizSessionTtl = Duration.ofHours(2);
+
+        public Duration getQuizSessionTtl() { return quizSessionTtl; }
+        public void setQuizSessionTtl(Duration quizSessionTtl) { this.quizSessionTtl = quizSessionTtl; }
+    }
 
     public static class Upload {
 

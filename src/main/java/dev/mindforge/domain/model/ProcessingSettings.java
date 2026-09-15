@@ -13,6 +13,7 @@ public record ProcessingSettings(
     int maxPageTasksPerRun,
     int writerSourceTokens,
     int supersessionContextTokens,
+    int cardPagesPerSession,
     Map<String, Boolean> featureFlags,
     Map<ModelTier, String> modelTierMappings
 ) {
@@ -22,6 +23,7 @@ public record ProcessingSettings(
     private static final int DEFAULT_MAX_PAGE_TASKS_PER_RUN = 100;
     private static final int DEFAULT_WRITER_SOURCE_TOKENS = 16_000;
     private static final int DEFAULT_SUPERSESSION_CONTEXT_TOKENS = 30_000;
+    private static final int DEFAULT_CARD_PAGES_PER_SESSION = 10;
 
     public ProcessingSettings {
         featureFlags = featureFlags == null ? Map.of() : Map.copyOf(featureFlags);
@@ -36,7 +38,7 @@ public record ProcessingSettings(
     public static ProcessingSettings withModels(Map<ModelTier, String> modelTierMappings) {
         return new ProcessingSettings(DEFAULT_CHUNK_SIZE_TOKENS, DEFAULT_MAX_CLAIMS_PER_EXTRACT_CALL,
             DEFAULT_MAX_PAGE_TASKS_PER_RUN, DEFAULT_WRITER_SOURCE_TOKENS, DEFAULT_SUPERSESSION_CONTEXT_TOKENS,
-            Map.of(), modelTierMappings);
+            DEFAULT_CARD_PAGES_PER_SESSION, Map.of(), modelTierMappings);
     }
 
     public boolean isEnabled(String featureFlag) {

@@ -46,7 +46,7 @@ import dev.mindforge.support.TestContainerBase;
 class ApiFlowTest extends TestContainerBase {
 
     private static final Pattern FORBIDDEN_FIELDS = Pattern.compile(
-        "\"(cost|stepVersions|step_versions|passwordHash|referenceAnswer|groundingContext|rawPrompt|rawCompletion|token)\"");
+        "\"(cost|stepVersions|step_versions|passwordHash|referenceAnswer|groundingContext|rawPrompt|rawCompletion|token|groundingExcerpt)\"");
     private static final Pattern SESSION_COOKIE = Pattern.compile("token=([^;]*)");
     private static final String NOTES = "# Mitoza\n\nMitoza to podział komórki.\n";
     private static final String BODY = "# Przebieg\n\nMitoza dzieli komórkę na dwie.\n";
@@ -150,6 +150,48 @@ class ApiFlowTest extends TestContainerBase {
         assertThat(entries).containsExactly("biologia-okf/index.md", "biologia-okf/log.md",
             "biologia-okf/concepts/mitoza.md", "biologia-okf/sources/biologia.md");
         assertThat(signedUp().download(kb + "/export").statusCode()).isEqualTo(403);
+    }
+
+    @Test
+    void aLearnerStudiesFlashcardsAndAQuizWithoutEverSeeingAReferenceAnswer() {
+        Client client = signedUp();
+        String kb = createKnowledgeBase(client);
+        givenAnswers();
+        gateway.answer(Prompts.FLASHCARDS, "{\"cards\": [{\"type\": \"BASIC\", \"front\": \"Co to mitoza?\","
+            + " \"back\": \"Podział komórki.\", \"section\": \"przebieg\"}]}");
+        gateway.answer(Prompts.QUIZ, Prompts.json(Map.of("questions", List.of(Map.of("pagePath", "concepts/mitoza",
+            "question", "Czym jest mitoza?", "referenceAnswer", "SEKRETNA-ODPOWIEDZ",
+            "groundingExcerpt", "Mitoza dzieli komórkę na dwie.")))));
+        gateway.answer(Prompts.GRADE, "{\"score\": 4, \"feedback\": \"Prawie dobrze.\"}");
+        awaitRun(client, kb, client.upload(kb, "biologia.md", NOTES, false).json().get("documentId").asString(),
+            "COMPLETED");
+
+        Response deck = client.get(kb + "/flashcards");
+        assertThat(deck.json()).hasSize(1);
+        String cardId = deck.json().get(0).get("cardId").asString();
+        Response reviewed = client.post(kb + "/flashcards/" + cardId + "/reviews", Map.of("rating", 5));
+        assertThat(Instant.parse(reviewed.json().get("dueAt").asString())).isAfter(Instant.now());
+        assertThat(client.post(kb + "/flashcards/" + cardId + "/reviews", Map.of("rating", 9)).status()).isEqualTo(400);
+
+        Response started = client.post(kb + "/quiz-sessions", Map.of());
+        assertThat(started.status()).isEqualTo(201);
+        String session = kb + "/quiz-sessions/" + started.json().get("sessionId").asString();
+        Response next = client.get(session + "/next");
+        assertThat(next.json().get("question").asString()).isEqualTo("Czym jest mitoza?");
+        Response graded = client.post(session + "/answers", Map.of("answer", "Podział."));
+        assertThat(graded.json().get("score").asInt()).isEqualTo(4);
+        assertThat(graded.json().get("finished").asBoolean()).isTrue();
+        assertThat(client.get(session + "/next").status()).isEqualTo(204);
+        assertThat(client.post(session + "/answers", Map.of("answer", "Znowu.")).json().get("code").asString())
+            .isEqualTo("QUIZ_FINISHED");
+
+        for (Response response : List.of(deck, reviewed, started, next, graded)) {
+            assertNoSensitiveFields(response);
+            assertThat(response.body()).doesNotContain("SEKRETNA-ODPOWIEDZ");
+        }
+        Client other = signedUp();
+        assertThat(other.get(kb + "/flashcards").status()).isEqualTo(403);
+        assertThat(other.get(session + "/next").status()).isEqualTo(403);
     }
 
     @Test

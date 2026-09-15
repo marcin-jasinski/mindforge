@@ -21,6 +21,7 @@ import dev.mindforge.domain.model.LessonIdentityException;
 import dev.mindforge.domain.model.LintAlreadyQueuedException;
 import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.NotOwnerException;
+import dev.mindforge.domain.model.QuizFinishedException;
 import dev.mindforge.domain.model.RetryNotAllowedException;
 import dev.mindforge.domain.model.RevertNotAllowedException;
 import dev.mindforge.domain.model.UnknownLessonException;
@@ -76,6 +77,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LintAlreadyQueuedException.class)
     ResponseEntity<ErrorResponse> lintQueued(LintAlreadyQueuedException e) {
         return error(HttpStatus.CONFLICT, "LINT_ALREADY_QUEUED", e);
+    }
+
+    @ExceptionHandler(QuizFinishedException.class)
+    ResponseEntity<ErrorResponse> quizFinished(QuizFinishedException e) {
+        return error(HttpStatus.CONFLICT, "QUIZ_FINISHED", e);
     }
 
     @ExceptionHandler(LessonIdentityException.class)
