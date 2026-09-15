@@ -254,8 +254,8 @@
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
-                            <nodeVersion>v20.19.0</nodeVersion>
-                            <npmVersion>11.0.0</npmVersion>
+                            <nodeVersion>v22.12.0</nodeVersion>
+                            <npmVersion>11.9.0</npmVersion>
                         </configuration>
                     </execution>
                     <execution>
@@ -264,7 +264,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>install</arguments>
+                            <arguments>ci</arguments>
                         </configuration>
                     </execution>
                     <execution>
@@ -275,6 +275,28 @@
                         <phase>generate-resources</phase>
                         <configuration>
                             <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Embeds the Angular build in the JAR under classpath:/static/, where SpaConfig serves it. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-frontend</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>frontend/dist/frontend/browser</directory>
+                                </resource>
+                            </resources>
                         </configuration>
                     </execution>
                 </executions>

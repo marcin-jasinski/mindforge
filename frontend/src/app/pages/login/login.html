@@ -1,0 +1,37 @@
+<mat-card class="stack" appearance="outlined">
+  <mat-card-header>
+    <h1 mat-card-title>{{ registering() ? 'Załóż konto' : 'Zaloguj się' }}</h1>
+  </mat-card-header>
+  <mat-card-content>
+    <form class="stack" (ngSubmit)="submit()">
+      @if (registering()) {
+        <mat-form-field>
+          <mat-label>Imię</mat-label>
+          <input matInput name="displayName" [(ngModel)]="displayName" required autocomplete="name" />
+        </mat-form-field>
+      }
+      <mat-form-field>
+        <mat-label>E-mail</mat-label>
+        <input matInput type="email" name="email" [(ngModel)]="email" required autocomplete="email" />
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Hasło</mat-label>
+        <input matInput type="password" name="password" [(ngModel)]="password" required minlength="8"
+          [attr.autocomplete]="registering() ? 'new-password' : 'current-password'" />
+      </mat-form-field>
+      @if (error(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+      <div class="row">
+        <button mat-flat-button type="submit">{{ registering() ? 'Załóż konto' : 'Zaloguj' }}</button>
+        <button mat-button type="button" (click)="registering.set(!registering())">
+          {{ registering() ? 'Mam już konto' : 'Nie mam konta' }}
+        </button>
+      </div>
+    </form>
+    <div class="row">
+      <a mat-stroked-button href="/oauth2/authorization/google">Zaloguj przez Google</a>
+      <a mat-stroked-button href="/oauth2/authorization/github">Zaloguj przez GitHub</a>
+    </div>
+  </mat-card-content>
+</mat-card>

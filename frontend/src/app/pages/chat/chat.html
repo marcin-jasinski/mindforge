@@ -1,0 +1,44 @@
+<section class="stack" aria-live="polite">
+  @for (message of messages(); track $index) {
+    <div class="message" [class.user]="message.role === 'user'">
+      @if (message.html) {
+        <div class="markdown" appPageLinks [innerHTML]="message.html"></div>
+      } @else {
+        <p>{{ message.text }}</p>
+      }
+      @if (message.cited?.length) {
+        <p>
+          Źródła:
+          @for (path of message.cited; track path) {
+            <a [routerLink]="citedLink(path)">{{ path }}</a>&nbsp;
+          }
+        </p>
+      }
+      @if (message.role === 'assistant') {
+        <button mat-button type="button" (click)="edit(message.text)">Zapisz w wiki</button>
+      }
+      @if (message.run; as run) {
+        <p>
+          {{ run.pages.length }} stron zmienionych
+          @for (failure of run.failures; track $index) {
+            <br />Pominięto {{ failure.item }} {{ failure.path }}: {{ failure.reason }}
+          }
+        </p>
+        <a mat-button [routerLink]="['..', 'runs', run.runId]">Raport</a>
+        @if (run.revertOffered) {
+          <button mat-button type="button" (click)="revert(run)">Cofnij</button>
+        }
+      }
+    </div>
+  }
+</section>
+<form class="stack" (ngSubmit)="ask()">
+  <mat-form-field>
+    <mat-label>Zapytaj albo poproś o zmianę strony</mat-label>
+    <textarea matInput name="draft" [(ngModel)]="draft" rows="3"></textarea>
+  </mat-form-field>
+  <div class="row">
+    <button mat-flat-button type="submit" [disabled]="!draft.trim() || busy()">Zapytaj</button>
+    <button mat-stroked-button type="button" [disabled]="!draft.trim()" (click)="edit()">Zmień wiki</button>
+  </div>
+</form>

@@ -1,0 +1,76 @@
+<section class="stack" aria-labelledby="upload-heading">
+  <h2 id="upload-heading">Prześlij dokument</h2>
+  <label class="dropzone" [class.over]="dragging()" (dragover)="$event.preventDefault(); dragging.set(true)"
+    (dragleave)="dragging.set(false)" (drop)="drop($event)">
+    <span>{{ file()?.name ?? 'Upuść plik (Markdown, PDF, DOCX, TXT) albo wybierz go' }}</span>
+    <input type="file" accept=".md,.markdown,.pdf,.docx,.txt" (change)="choose($event)" />
+  </label>
+  <div class="row">
+    <button mat-flat-button type="button" [disabled]="!file()" (click)="upload()">Prześlij</button>
+  </div>
+  @if (uploadError(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  }
+  @if (collision(); as lesson) {
+    <div class="stack" role="alertdialog" aria-labelledby="collision-heading">
+      <p id="collision-heading">Lekcja „{{ lesson.lessonTitle }}” już istnieje. Co to za plik?</p>
+      <div class="row">
+        <button mat-flat-button type="button" (click)="upload({ lessonId: lesson.lessonId, newVersion: true })">
+          Nowa wersja „{{ lesson.lessonTitle }}”
+        </button>
+        <mat-form-field>
+          <mat-label>Identyfikator nowej lekcji</mat-label>
+          <input matInput [(ngModel)]="newLessonId" pattern="[a-z0-9]+(-[a-z0-9]+)*" />
+        </mat-form-field>
+        <button mat-stroked-button type="button" [disabled]="!newLessonId" (click)="upload({ lessonId: newLessonId })">
+          Nowa lekcja
+        </button>
+      </div>
+    </div>
+  }
+</section>
+
+<section aria-labelledby="runs-heading">
+  <h2 id="runs-heading">Ostatnie przebiegi</h2>
+  <mat-list>
+    @for (run of progress.runs(); track run.runId) {
+      <mat-list-item>
+        <span matListItemTitle>
+          <a [routerLink]="['runs', run.runId]">{{ run.kind }} · {{ run.lessonTitle ?? (run.conversation ? 'rozmowa' : '—') }}</a>
+          — {{ run.status }}
+          @if (progress.steps()[run.runId]?.step; as step) {
+            ({{ step }})
+          }
+        </span>
+        <span matListItemLine>
+          {{ run.created }} utworzone · {{ run.revised }} zmienione · {{ run.deleted }} usunięte
+          @if (run.failureReason) {
+            <span class="error"> · {{ run.failureReason }}</span>
+          }
+        </span>
+        @if (percent(run.runId); as value) {
+          <mat-progress-bar mode="determinate" [value]="value" [attr.aria-label]="'Zapisane strony: ' + value + '%'" />
+        }
+        @if (run.status === 'FAILED' && run.retryable && run.documentId) {
+          <button mat-button type="button" matListItemMeta (click)="retry(run)">Ponów</button>
+        }
+      </mat-list-item>
+    } @empty {
+      <p>Brak przebiegów.</p>
+    }
+  </mat-list>
+</section>
+
+<section aria-labelledby="documents-heading">
+  <h2 id="documents-heading">Dokumenty</h2>
+  <mat-list>
+    @for (doc of documents(); track doc.documentId) {
+      <mat-list-item>
+        <span matListItemTitle>{{ doc.lessonTitle }} <small>({{ doc.sourceFilename }})</small></span>
+        <span matListItemLine>{{ doc.latestRun?.status ?? 'bez przebiegu' }}</span>
+      </mat-list-item>
+    } @empty {
+      <p>Nie przesłano jeszcze żadnego dokumentu.</p>
+    }
+  </mat-list>
+</section>

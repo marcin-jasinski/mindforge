@@ -1,0 +1,67 @@
+<section class="stack" aria-labelledby="scope-heading">
+  <h2 id="scope-heading">Zakres nauki</h2>
+  <mat-radio-group class="row" [(ngModel)]="scope" aria-labelledby="scope-heading">
+    <mat-radio-button value="whole">Cała baza wiedzy</mat-radio-button>
+    <mat-radio-button value="lesson">Lekcja</mat-radio-button>
+    @if (pageId()) {
+      <mat-radio-button value="page">Ta strona i strony, do których linkuje</mat-radio-button>
+    }
+  </mat-radio-group>
+  @if (scope === 'lesson') {
+    <mat-form-field>
+      <mat-label>Lekcja</mat-label>
+      <mat-select [(ngModel)]="lessonId">
+        @for (lesson of lessons(); track lesson.id) {
+          <mat-option [value]="lesson.id">{{ lesson.title }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
+  <div class="row">
+    <button mat-flat-button type="button" (click)="openDeck()">Otwórz fiszki</button>
+    <button mat-stroked-button type="button" (click)="startQuiz()">Rozpocznij quiz</button>
+  </div>
+</section>
+
+@if (cards().length) {
+  <section class="stack" aria-labelledby="cards-heading">
+    <h2 id="cards-heading">Fiszki ({{ cardIndex() + 1 }} / {{ cards().length }})</h2>
+    @if (card(); as current) {
+      <p class="front">{{ current.front }}</p>
+      @if (showBack()) {
+        <p class="back">{{ current.back }}</p>
+        <div class="row" role="group" aria-label="Jak dobrze pamiętasz?">
+          @for (rating of ratings; track rating) {
+            <button mat-stroked-button type="button" (click)="rate(rating)">{{ rating }}</button>
+          }
+        </div>
+      } @else {
+        <button mat-flat-button type="button" (click)="showBack.set(true)">Pokaż odpowiedź</button>
+      }
+    } @else {
+      <p>To wszystkie fiszki na dziś.</p>
+    }
+  </section>
+}
+
+@if (session()) {
+  <section class="stack" aria-labelledby="quiz-heading">
+    <h2 id="quiz-heading">Quiz</h2>
+    @if (question(); as q) {
+      <p>Pytanie {{ q.index }} z {{ q.total }}: {{ q.question }}</p>
+      @if (evaluation(); as graded) {
+        <p role="status">Ocena {{ graded.score }} / 5 — {{ graded.feedback }}</p>
+        <button mat-flat-button type="button" (click)="next()">Dalej</button>
+      } @else {
+        <mat-form-field>
+          <mat-label>Twoja odpowiedź</mat-label>
+          <textarea matInput [(ngModel)]="answer" rows="3"></textarea>
+        </mat-form-field>
+        <button mat-flat-button type="button" [disabled]="!answer.trim()" (click)="submitAnswer()">Sprawdź</button>
+      }
+    }
+    @if (finished()) {
+      <p>Koniec quizu.</p>
+    }
+  </section>
+}
