@@ -127,6 +127,20 @@ class IngestRunTest extends TestContainerBase {
     }
 
     @Test
+    void anUnexpectedErrorFailsTheRunWithoutRecordingItsMessage() {
+        UUID kbId = insertKnowledgeBase();
+        gateway.reset();
+        gateway.answer(Prompts.GUARD, prompt -> {
+            throw new IllegalStateException("connection to db-internal:5432 refused");
+        });
+
+        IngestRun run = awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.FAILED);
+
+        assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
+            .containsExactly("unexpected error", true);
+    }
+
+    @Test
     void partialSuccessLandsAndRecordsTheFailedPageAndTheLinkToIt() {
         UUID kbId = insertKnowledgeBase();
         givenTheNotesAnswers(MITOZA_BODY, "![schemat](https://example.org/a.png)\n", LINK_TO_MEJOZA);

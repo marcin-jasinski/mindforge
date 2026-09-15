@@ -110,12 +110,13 @@ public class PipelineConfig {
     }
 
     @Bean
-    LintService lintService(WikiStore wikiStore, IngestRunRepository ingestRunRepository, LinkChecker linkChecker,
+    LintService lintService(WikiStore wikiStore, IngestRunRepository ingestRunRepository,
+                            DocumentRepository documentRepository, LinkChecker linkChecker,
                             WikiReviewer wikiReviewer, EventPublisher eventPublisher,
                             SseProgressNotifier progressNotifier, TransactionOperations transactionOperations,
                             ProcessingSettings processingSettings) {
-        return new LintService(wikiStore, ingestRunRepository, linkChecker, wikiReviewer, eventPublisher,
-            progressNotifier, transactionOperations, processingSettings);
+        return new LintService(wikiStore, ingestRunRepository, documentRepository, linkChecker, wikiReviewer,
+            eventPublisher, progressNotifier, transactionOperations, processingSettings);
     }
 
     @Bean

@@ -11,10 +11,12 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -23,6 +25,7 @@ import dev.mindforge.agent.QuizEvaluator;
 import dev.mindforge.agent.QuizGenerator;
 import dev.mindforge.application.service.QuizService;
 import dev.mindforge.domain.model.NotOwnerException;
+import dev.mindforge.domain.model.PageLink;
 import dev.mindforge.domain.model.PageScore;
 import dev.mindforge.domain.model.PageType;
 import dev.mindforge.domain.model.ProcessingSettings;
@@ -63,6 +66,26 @@ class QuizServiceTest {
         String prompt = gateway.recordedCalls().getFirst().prompt();
         assertThat(List.of("=== concepts/slaba", "=== concepts/wczesniejsza", "=== concepts/pozniejsza",
             "=== concepts/mocna")).isSortedAccordingTo((a, b) -> Integer.compare(prompt.indexOf(a), prompt.indexOf(b)));
+    }
+
+    @Test
+    void shouldAskAboutAPageAndItsDirectNeighboursOnly() {
+        WikiPage mitoza = makePage("concepts/mitoza", 1);
+        WikiPage chromosom = makePage("concepts/chromosom", 2);
+        WikiPage dna = makePage("concepts/dna", 3);
+        givenPages();
+        when(wiki.findById(KB, mitoza.pageId())).thenReturn(Optional.of(mitoza));
+        when(wiki.outboundLinks(eq(KB), any())).thenAnswer(call -> Stream.of(
+                new PageLink(mitoza.pageId(), chromosom.path(), null), new PageLink(chromosom.pageId(), dna.path(), null))
+            .filter(link -> call.<Collection<UUID>>getArgument(1).contains(link.pageId())).toList());
+        when(wiki.findByPaths(eq(KB), any())).thenAnswer(call -> Stream.of(mitoza, chromosom, dna)
+            .filter(page -> call.<Collection<String>>getArgument(1).contains(page.path())).toList());
+        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitoza"));
+
+        makeService().start(KB, USER, new StudyScope.Page(mitoza.pageId()));
+
+        assertThat(gateway.recordedCalls().getFirst().prompt())
+            .contains("=== concepts/mitoza", "=== concepts/chromosom").doesNotContain("=== concepts/dna");
     }
 
     @Test

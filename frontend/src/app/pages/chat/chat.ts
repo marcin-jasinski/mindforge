@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, inject, input, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -34,6 +35,7 @@ const EDIT_NAMED_NO_PAGE = 'edit named no page';
 export class Chat implements OnInit {
   private readonly api = inject(ApiService);
   private readonly progress = inject(ProgressService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly kbId = input.required<string>();
   readonly messages = signal<Message[]>([]);
@@ -93,6 +95,7 @@ export class Chat implements OnInit {
         switchMap(() => this.api.get<RunReport>(`/knowledge-bases/${this.kbId()}/runs/${runId}`)),
         filter((run) => run.status === 'COMPLETED' || run.status === 'FAILED'),
         take(1),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((run) => {
         this.progress.reload(this.kbId());

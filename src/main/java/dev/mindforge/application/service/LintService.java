@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -22,6 +21,7 @@ import dev.mindforge.application.wiki.LinkInsertionApplier;
 import dev.mindforge.domain.model.DomainEvent;
 import dev.mindforge.domain.model.IndexEntry;
 import dev.mindforge.domain.model.IngestRun;
+import dev.mindforge.domain.model.IngestRunFailedException;
 import dev.mindforge.domain.model.LinkInsertion;
 import dev.mindforge.domain.model.LintAlreadyQueuedException;
 import dev.mindforge.domain.model.PageType;
@@ -34,6 +34,7 @@ import dev.mindforge.domain.model.RunProgress;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.model.TokenEstimate;
 import dev.mindforge.domain.model.WikiPage;
+import dev.mindforge.domain.port.DocumentRepository;
 import dev.mindforge.domain.port.EventPublisher;
 import dev.mindforge.domain.port.IngestRunRepository;
 import dev.mindforge.domain.port.ProgressNotifier;
@@ -50,6 +51,7 @@ public class LintService {
 
     private final WikiStore wiki;
     private final IngestRunRepository runs;
+    private final DocumentRepository documents;
     private final LinkChecker linkChecker;
     private final WikiReviewer reviewer;
     private final EventPublisher events;
@@ -57,11 +59,12 @@ public class LintService {
     private final TransactionOperations transactions;
     private final ProcessingSettings settings;
 
-    public LintService(WikiStore wiki, IngestRunRepository runs, LinkChecker linkChecker, WikiReviewer reviewer,
-                       EventPublisher events, ProgressNotifier progress, TransactionOperations transactions,
-                       ProcessingSettings settings) {
+    public LintService(WikiStore wiki, IngestRunRepository runs, DocumentRepository documents, LinkChecker linkChecker,
+                       WikiReviewer reviewer, EventPublisher events, ProgressNotifier progress,
+                       TransactionOperations transactions, ProcessingSettings settings) {
         this.wiki = wiki;
         this.runs = runs;
+        this.documents = documents;
         this.linkChecker = linkChecker;
         this.reviewer = reviewer;
         this.events = events;
@@ -76,8 +79,8 @@ public class LintService {
      * @throws LintAlreadyQueuedException while a {@code LINT} run is queued or running
      */
     public UUID request(UUID kbId) {
-        // ponytail: check-then-insert without a lock; two racing requests queue two Lints, which is harmless
         IngestRun run = transactions.execute(status -> {
+            documents.lockKnowledgeBase(kbId);
             if (runs.hasQueuedOrActive(kbId, RunKind.LINT)) {
                 throw new LintAlreadyQueuedException(kbId);
             }
@@ -104,7 +107,7 @@ public class LintService {
             failure = null;
         } catch (RuntimeException e) {
             log.error("Lint run {} failed", run.runId(), e);
-            failure = Objects.requireNonNullElse(e.getMessage(), e.getClass().getSimpleName());
+            failure = IngestRunFailedException.reasonFor(e);
         } finally {
             if (failure != null) {
                 fail(run, failure, failures, versions);
@@ -146,7 +149,8 @@ public class LintService {
                 }
                 dropped += (int) proposals.stream().filter(proposal -> !bodies.containsKey(proposal.pagePath())).count();
             } catch (RuntimeException e) {
-                failures.add(Map.of("step", "linkCheck", "reason", reason(e)));
+                log.warn("Link check of Lint run {} failed; chunk {} gets no links", run.runId(), i, e);
+                failures.add(Map.of("step", "linkCheck", "reason", IngestRunFailedException.reasonFor(e)));
             }
             try {
                 reviewer.review(bodies, renderedIndex).stream()
@@ -156,7 +160,8 @@ public class LintService {
                 versions.put(WikiReviewer.class.getSimpleName(),
                     settings.stepVersion(WikiReviewer.VERSION, WikiReviewer.TIER));
             } catch (RuntimeException e) {
-                failures.add(Map.of("step", "review", "reason", reason(e)));
+                log.warn("Review of Lint run {} failed; chunk {} gets no findings", run.runId(), i, e);
+                failures.add(Map.of("step", "review", "reason", IngestRunFailedException.reasonFor(e)));
             }
         }
         if (dropped > 0) {
@@ -196,9 +201,5 @@ public class LintService {
         } catch (RuntimeException e) {
             log.error("Could not record the failure of Lint run {}; the sweep settles it", run.runId(), e);
         }
-    }
-
-    private static String reason(RuntimeException e) {
-        return Objects.requireNonNullElse(e.getMessage(), e.getClass().getSimpleName());
     }
 }

@@ -22,6 +22,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,7 +136,7 @@ public class IngestPipeline {
             retryable = e.retryable();
         } catch (RuntimeException e) {
             log.error("Run {} failed", run.runId(), e);
-            failure = Objects.requireNonNullElse(e.getMessage(), e.getClass().getSimpleName());
+            failure = IngestRunFailedException.reasonFor(e);
         } finally {
             if (failure != null) {
                 fail(state, failure, retryable);
@@ -220,7 +221,9 @@ public class IngestPipeline {
             }
         }
         if (succeeded == 0) {
-            throw new IngestRunFailedException(conversation ? "no applicable change" : "no page task succeeded", true);
+            // a conversation edit that changed nothing would replay the same instruction on retry
+            throw new IngestRunFailedException(conversation ? "no applicable change" : "no page task succeeded",
+                !conversation);
         }
 
         List<Drafted> checked = linkCheck(state, writes, plan.deletions(), drafted, linkableIndex);
@@ -239,18 +242,7 @@ public class IngestPipeline {
             }
             return written;
         });
-        progress.notify(kbId, RunProgress.status(state.run, RunStatus.WRITTEN));
-
-        Set<UUID> revised = revisions.stream().filter(revision -> !revision.isTombstone())
-            .map(PageRevision::pageId).collect(Collectors.toSet());
-        List<Claim> claims = checked.stream()
-            .filter(write -> write.write().type().equals(PageType.CONCEPT) && revised.contains(write.write().pageId()))
-            .flatMap(write -> write.claims().stream())
-            .toList();
-        List<PageWrite> revisedConcepts = checked.stream().map(Drafted::write)
-            .filter(write -> write.type().equals(PageType.CONCEPT) && revised.contains(write.pageId()))
-            .toList();
-        return new Committed(article, revisedConcepts, claims);
+        return new Committed(article, checked, revisions);
     }
 
     private void checkClaimCap(int claims) {
@@ -328,7 +320,8 @@ public class IngestPipeline {
             draft = DraftValidator.normalise(
                 writer.write(task, source, existingBody, superseded, linkableIndex, keepSections));
         } catch (RuntimeException e) {
-            throw new TaskFailed(Objects.requireNonNullElse(e.getMessage(), e.getClass().getSimpleName()));
+            log.warn("Writing {} in run {} failed", task.path(), state.run.runId(), e);
+            throw new TaskFailed(IngestRunFailedException.reasonFor(e));
         } finally {
             state.version(PageWriter.class, PageWriter.VERSION, PageWriter.TIER);
         }
@@ -390,7 +383,7 @@ public class IngestPipeline {
         } catch (RuntimeException e) {
             log.warn("Link check of run {} failed; committing without extra links", state.run.runId(), e);
             state.failures.add(Map.of("step", "linkCheck", "reason",
-                Objects.requireNonNullElse(e.getMessage(), e.getClass().getSimpleName())));
+                IngestRunFailedException.reasonFor(e)));
             return writes;
         }
     }
@@ -402,6 +395,7 @@ public class IngestPipeline {
     private void supersedeAndComplete(RunState state, Committed committed) {
         UUID kbId = state.kbId();
         try {
+            progress.notify(kbId, RunProgress.status(state.run, RunStatus.WRITTEN));
             if (committed.article()) {
                 state.failures.add(Map.of("step", "supersede", "reason", "article"));
                 complete(state, List.of(), true);
@@ -419,7 +413,7 @@ public class IngestPipeline {
         } catch (RuntimeException e) {
             log.warn("Supersede of run {} failed; completing without supersessions", state.run.runId(), e);
             state.failures.add(Map.of("step", "supersede", "reason",
-                Objects.requireNonNullElse(e.getMessage(), e.getClass().getSimpleName())));
+                IngestRunFailedException.reasonFor(e)));
             try {
                 complete(state, List.of(), true);
             } catch (RunFencedException fenced) {
@@ -595,7 +589,24 @@ public class IngestPipeline {
         }
     }
 
-    private record Committed(boolean article, List<PageWrite> revised, List<Claim> claims) {}
+    /** What commit 1 wrote; everything read from it is derived after, inside Supersede's failure handling. */
+    private record Committed(boolean article, List<Drafted> checked, List<PageRevision> revisions) {
+
+        private List<PageWrite> revised() {
+            return revisedConcepts().map(Drafted::write).toList();
+        }
+
+        private List<Claim> claims() {
+            return revisedConcepts().flatMap(write -> write.claims().stream()).toList();
+        }
+
+        private Stream<Drafted> revisedConcepts() {
+            Set<UUID> revised = revisions.stream().filter(revision -> !revision.isTombstone())
+                .map(PageRevision::pageId).collect(Collectors.toSet());
+            return checked.stream().filter(write -> write.write().type().equals(PageType.CONCEPT)
+                && revised.contains(write.write().pageId()));
+        }
+    }
 
     private static final class TaskFailed extends IllegalStateException {
 

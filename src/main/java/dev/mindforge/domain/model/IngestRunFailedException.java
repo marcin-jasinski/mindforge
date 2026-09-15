@@ -13,4 +13,10 @@ public class IngestRunFailedException extends IllegalStateException {
     public boolean retryable() {
         return retryable;
     }
+
+    /** The reason a run records for {@code e}: a domain exception's own message, never another's internals. */
+    public static String reasonFor(RuntimeException e) {
+        boolean ours = e.getClass().getPackageName().equals(IngestRunFailedException.class.getPackageName());
+        return ours && e.getMessage() != null ? e.getMessage() : "unexpected error";
+    }
 }

@@ -8,8 +8,9 @@ export class PageLinksDirective {
 
   @HostListener('click', ['$event'])
   onClick(event: MouseEvent): void {
-    const link = (event.target as HTMLElement).closest('a[data-page-link]');
-    if (link) {
+    // [innerHTML] strips data-* attributes, so a page link is known by its in-app href
+    const link = (event.target as HTMLElement).closest('a[href^="/kb/"]');
+    if (link && event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
       event.preventDefault();
       this.router.navigateByUrl(link.getAttribute('href') ?? '/');
     }

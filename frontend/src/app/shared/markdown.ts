@@ -18,7 +18,7 @@ export function renderMarkdown(markdown: string, kbId: string): string {
     const text = this.parser.parseInline(token.tokens);
     const page = /^\/(concepts|sources)\/([a-z0-9-]+)\.md(?:#[a-z0-9-]+)?$/.exec(token.href);
     if (page) {
-      return `<a href="/kb/${kbId}/pages/${page[1]}/${page[2]}" data-page-link="true">${text}</a>`;
+      return `<a href="/kb/${kbId}/pages/${page[1]}/${page[2]}">${text}</a>`;
     }
     if (/^https?:\/\//.test(token.href)) {
       return `<a href="${escapeHtml(token.href)}" target="_blank" rel="noopener noreferrer nofollow">${text}</a>`;

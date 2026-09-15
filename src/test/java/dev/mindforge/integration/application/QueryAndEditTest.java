@@ -128,8 +128,8 @@ class QueryAndEditTest extends TestContainerBase {
 
         assertThat(first.status()).isEqualTo(RunStatus.COMPLETED);
         assertThat(wiki.findByPath(kbId, "concepts/mitoza")).isEmpty();
-        assertThat(second).extracting(IngestRun::status, IngestRun::failureReason)
-            .containsExactly(RunStatus.FAILED, "no applicable change");
+        assertThat(second).extracting(IngestRun::status, IngestRun::failureReason, IngestRun::retryable)
+            .containsExactly(RunStatus.FAILED, "no applicable change", false);
         assertThat(jdbc.queryForList("SELECT lesson_id, upload_source, content_hash FROM documents"
             + " WHERE knowledge_base_id = ?", kbId)).hasSize(3)
             .filteredOn(row -> "conversation".equals(row.get("lesson_id"))).hasSize(2)

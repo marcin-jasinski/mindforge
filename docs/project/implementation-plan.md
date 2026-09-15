@@ -892,8 +892,8 @@ check inside ingest is already built in Phase 6.
 > orphan is a live Concept no *other* page links to; duplicate titles match exactly. `HealthService` matches
 > supersession anchors over `MarkdownStructure` and measures the index with `IndexRenderer.RETRIEVAL_CEILING_TOKENS`;
 > the latest full review's findings are read from its run by the 9.7 endpoint. `LintService.request` queues the run
-> the endpoint will start, refusing while a `LINT` run is queued or active — a check without a lock, so two racing
-> requests can queue two. A Lint has no Supersede, so its one fenced transaction moves `RUNNING → WRITTEN →
+> the endpoint will start, refusing while a `LINT` run is queued or active — checked under the knowledge-base row
+> lock an upload takes, so racing requests queue one. A Lint has no Supersede, so its one fenced transaction moves `RUNNING → WRITTEN →
 > COMPLETED` and stores findings through the new `IngestRunRepository.recordFindings`. Concept bodies go in chunks of
 > `chunkSizeTokens`, each read by one `LinkChecker` and one `WikiReviewer` call; either failing is recorded and the
 > run goes on. No prefilter exists yet (ADR 0016), so the whole index is sent. A finding or suggestion is stored as
@@ -1106,7 +1106,7 @@ security config, global exception handler, and SPA serving.
 > page's last five events. `QuizSessionStore` has `insert`, `find` (unexpired), `updateCursor` and the cleanup's
 > system method `deleteExpired` (every 15 minutes); its adapter keeps a Caffeine cache in front of PostgreSQL, and
 > sessions live `mindforge.study.quiz-session-ttl` (2 h). `SM2Scheduler` sits in `application.study` beside
-> `StudyPages`, which resolves a scope (the `conversation` lesson is a 404) and strips superseded sections through
+> `StudyPages`, which resolves a scope (the `conversation` lesson is a 404; a page scope is that Concept alone) and strips superseded sections through
 > `PageRenderer.withoutSections`; the interval grows by the updated ease, and a failed recall is due tomorrow. A
 > page's lock is dropped from the map when no thread waits on it; a generation failure is logged and the page keeps
 > its cards. Model output is checked in code: a card needs a known type, a front and a back, and an anchor that is not
@@ -1199,7 +1199,9 @@ targeting weak pages.
 > writer was given. Both calls use `DeadlineProfile.INTERACTIVE` and the gateway directly. A conversation edit is
 > `IngestionService.submitEdit`, inserting the `CONVERSATION` document and its `QUEUED` run under the knowledge-base
 > lock, and needs the chat session to be the user's; the chat message for "edit named no page" and the inline run
-> report belong to the SPA (Phase 12), and "undo" is the run's revert endpoint.
+> report belong to the SPA (Phase 12), and "undo" is the run's revert endpoint. The selector reads the whole rendered
+> index: the prefilter past 20K tokens is not built (ADR 0016; Phase 7's health check reports when it is due). An
+> edit whose every item was dropped is not retryable either — a retry replays the same instruction.
 
 **Goal:** Answer multi-turn questions from the wiki with page citations; accept conversation edits to the
 wiki; provide page search for the SPA.

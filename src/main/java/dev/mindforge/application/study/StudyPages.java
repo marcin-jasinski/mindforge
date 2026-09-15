@@ -5,13 +5,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import dev.mindforge.application.wiki.PageRenderer;
 import dev.mindforge.domain.model.Identifier;
 import dev.mindforge.domain.model.LiveSupersession;
 import dev.mindforge.domain.model.NotFoundException;
-import dev.mindforge.domain.model.PageLink;
 import dev.mindforge.domain.model.PageType;
 import dev.mindforge.domain.model.StudyScope;
 import dev.mindforge.domain.model.WikiPage;
@@ -33,14 +31,9 @@ public final class StudyPages {
                 Set<UUID> ids = new HashSet<>(wiki.pageIdsForLesson(kbId, lesson.lessonId()));
                 yield wiki.listBodies(kbId, PageType.CONCEPT).stream().filter(page -> ids.contains(page.pageId())).toList();
             }
-            case StudyScope.Page page -> {
-                WikiPage root = wiki.findById(kbId, page.pageId()).orElseThrow(() -> new NotFoundException("Page"));
-                Set<String> linked = wiki.outboundLinks(kbId, List.of(root.pageId())).stream()
-                    .map(PageLink::targetPath).collect(Collectors.toSet());
-                List<WikiPage> neighbours = wiki.findByPaths(kbId, linked);
-                yield Stream.concat(Stream.of(root), neighbours.stream())
-                    .filter(candidate -> candidate.type().equals(PageType.CONCEPT)).distinct().toList();
-            }
+            case StudyScope.Page page -> wiki.findById(kbId, page.pageId())
+                .filter(root -> root.type().equals(PageType.CONCEPT)).map(List::of)
+                .orElseThrow(() -> new NotFoundException("Page"));
         };
     }
 
