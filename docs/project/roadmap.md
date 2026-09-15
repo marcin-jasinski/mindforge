@@ -8,9 +8,9 @@
 - **Version**: 1.0.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services)
 - **In Progress**: None
-- **Next**: Phase 10 (Quiz & Flashcard Services)
+- **Next**: Phase 11 (Query)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -81,7 +81,7 @@ Query, the Angular SPA and Docker deployment.
   Ownership check on every endpoint. `[Effort: L]`
 - [x] **Phase 9b — Bundle Export** *(new)* — Synchronous zip of the OKF bundle from one snapshot,
   validated against OKF §9 before sending. `[Effort: S]`
-- [ ] **Phase 10 — Quiz & Flashcard Services** *(changed)* — Flashcards cut lazily from Concept pages
+- [x] **Phase 10 — Quiz & Flashcard Services** *(changed)* — Flashcards cut lazily from Concept pages
   with content-derived identity, SM-2, server-authoritative quiz sessions targeting weak pages.
   `[Effort: M]`
 - [ ] **Phase 11 — Query** *(re-cut)* — Multi-turn questions answered from wiki pages chosen via the

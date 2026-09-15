@@ -1092,18 +1092,34 @@ security config, global exception handler, and SPA serving.
 
 ---
 
-## [ ] Phase 10 — Quiz and Flashcard Services
+## [x] Phase 10 — Quiz and Flashcard Services
 
 > **Changed in v3.0.** Study material is cut from Concept pages (ADR 0018). `FlashcardGenerator`,
 > `QuizGenerator` and `QuizEvaluator` arrive here as model services, not Phase 6 agents. Graph RAG
 > targeting is replaced by weak-page SQL.
+> **As built:** as in Phase 9, the study endpoints are nested under the knowledge base —
+> `GET /api/knowledge-bases/{kbId}/flashcards?lessonId&pageId`, `POST …/flashcards/{cardId}/reviews`,
+> `POST …/quiz-sessions`, `GET …/quiz-sessions/{id}/next` (204 once the quiz is over) and `POST …/{id}/answers`
+> (409 `QUIZ_FINISHED` after the last). `StudyProgressStore.replaceCards` inserts `ON CONFLICT DO NOTHING`, gives a
+> returned existing card its new anchor and hash (reviving a retired one due now) and retires the rest;
+> `dueCards` inner-joins `wiki_pages` and skips sections with a live supersession; `pageScores` is a window over each
+> page's last five events. `QuizSessionStore` has `insert`, `find` (unexpired), `updateCursor` and the cleanup's
+> system method `deleteExpired` (every 15 minutes); its adapter keeps a Caffeine cache in front of PostgreSQL, and
+> sessions live `mindforge.study.quiz-session-ttl` (2 h). `SM2Scheduler` sits in `application.study` beside
+> `StudyPages`, which resolves a scope (the `conversation` lesson is a 404) and strips superseded sections through
+> `PageRenderer.withoutSections`; the interval grows by the updated ease, and a failed recall is due tomorrow. A
+> page's lock is dropped from the map when no thread waits on it; a generation failure is logged and the page keeps
+> its cards. Model output is checked in code: a card needs a known type, a front and a back, and an anchor that is not
+> one of the page's sections becomes null; a question must name a page it was shown. A quiz asks five questions over
+> the targeted pages and their neighbours, within `chunkSizeTokens`. Study model services call the gateway directly,
+> outside the background permit pool. The `CHAR(16)` columns map with `@JdbcTypeCode(SqlTypes.CHAR)`.
 
 **Goal:** Implement flashcards with SM-2 that survive page rewrites, and server-authoritative quizzes
 targeting weak pages.
 
 ### Tasks
 
-- [ ] **10.1 — Domain types** (`dev.mindforge.domain.model`)
+- [x] **10.1 — Domain types** (`dev.mindforge.domain.model`)
   - `ReviewResult` record: `int rating` (0–5).
   - `Flashcard(cardId, pageId, sectionAnchor, cardType, front, back, sourceHash)`;
     `cardId = sha256(kbId|pageId|cardType|front|back)[:16]`;
@@ -1114,17 +1130,17 @@ targeting weak pages.
   - `ProcessingSettings.cardPagesPerSession` (default 10) — one generation budget for new and stale pages (T27).
   - Weakness: a page's score is the mean of its last 5 `study_events`; weak below 3.0.
 
-- [ ] **10.2 — Migration `V3__create_study.sql` and stores**
+- [x] **10.2 — Migration `V3__create_study.sql` and stores**
   - `flashcards` (PK `(knowledge_base_id, card_id)`, `page_id` without FK to `wiki_pages`, `section_anchor`,
     `source_hash CHAR(16)`, `retired_at`, SM-2 columns). Inserts are `ON CONFLICT (knowledge_base_id, card_id) DO NOTHING`.
   - `study_events (knowledge_base_id, page_id, card_id, kind CARD|QUIZ, score, occurred_at)`.
   - `quiz_sessions` — questions JSONB with reference answers and grounding; TTL via `@Scheduled` cleanup;
     Caffeine wraps the PostgreSQL store.
 
-- [ ] **10.3 — SM-2 algorithm** (`dev.mindforge.application.service`)
+- [x] **10.3 — SM-2 algorithm** (`dev.mindforge.application.service`)
   - `SM2Scheduler` pure Java class. `EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))`, EF ≥ 1.3.
 
-- [ ] **10.4 — `FlashcardGenerator`** (LARGE) **and `FlashcardService`** — ADR 0018, T21, T27
+- [x] **10.4 — `FlashcardGenerator`** (LARGE) **and `FlashcardService`** — ADR 0018, T21, T27
   - Stale: the page's current hash differs from its cards' `source_hash`. A link-only or supersession-only change is
     never stale.
   - Lazy: when a deck opens for a scope, spend at most `cardPagesPerSession` generation calls — stale pages with due
@@ -1138,18 +1154,18 @@ targeting weak pages.
   - Due query inner-joins `wiki_pages` and excludes cards whose `(page_id, section_anchor)` has a live supersession.
   - `reviewCard` updates SM-2 and appends a `study_events` row.
 
-- [ ] **10.5 — `QuizGenerator`** (LARGE), **`QuizEvaluator`** (SMALL) **and `QuizService`** — T27
+- [x] **10.5 — `QuizGenerator`** (LARGE), **`QuizEvaluator`** (SMALL) **and `QuizService`** — T27
   - `startSession(kbId, userId, scope)`: whole-knowledge-base order is weak pages by ascending mean, then unstudied
     Concepts by `created_at`, then the rest by ascending mean; then 1-hop `page_links` neighbours; one generation call
     with superseded sections stripped; batch stored in the session.
   - `nextQuestion`: question text only. `submitAnswer`: grade against the session's reference answer and
     grounding excerpt on SM-2's 0–5 rubric (clamped); return score + feedback; append `study_events`.
 
-- [ ] **10.6 — Controllers**
+- [x] **10.6 — Controllers**
   - `QuizController`: `POST /api/quiz/sessions`, `GET /api/quiz/sessions/{id}/next`, `POST /api/quiz/sessions/{id}/answers`.
   - `FlashcardController`: `GET /api/flashcards?kbId&scope`, `POST /api/flashcards/{id}/reviews`.
 
-- [ ] **10.7 — Tests**
+- [x] **10.7 — Tests**
   - `SM2SchedulerTest`: rating 5 → EF increases; rating 0 → reset; EF never below 1.3.
   - `FlashcardServiceTest`: a revision keeps unchanged cards' history; a changed answer retires the old card;
     revert revives it with history and `due_at = now`; a link-only revision regenerates nothing; superseded sections
@@ -1160,10 +1176,10 @@ targeting weak pages.
 
 ### Completion Checklist
 
-- [ ] SM-2 produces correct scheduling for all ratings (0–5).
-- [ ] Quiz responses contain no `referenceAnswer` or `groundingContext`.
-- [ ] Flashcards are never written into a page and never exported.
-- [ ] Due cards are always scoped to `kbId`.
+- [x] SM-2 produces correct scheduling for all ratings (0–5).
+- [x] Quiz responses contain no `referenceAnswer` or `groundingContext`.
+- [x] Flashcards are never written into a page and never exported.
+- [x] Due cards are always scoped to `kbId`.
 
 ---
 
