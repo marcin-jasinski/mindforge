@@ -8,9 +8,9 @@
 - **Version**: 1.0.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend)
 - **In Progress**: None
-- **Next**: Phase 12 (Angular Frontend)
+- **Next**: Phase 13 (Docker & Deployment)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -86,7 +86,7 @@ Query, the Angular SPA and Docker deployment.
   `[Effort: M]`
 - [x] **Phase 11 — Query** *(re-cut)* — Multi-turn questions answered from wiki pages chosen via the
   index, with citations; conversation edits; page search. `[Effort: M]`
-- [ ] **Phase 12 — Angular Frontend** *(changed)* — Page browser, graph view, run reports with diffs
+- [x] **Phase 12 — Angular Frontend** *(changed)* — Page browser, graph view, run reports with diffs
   and revert, health view, study, chat and export. `[Effort: L]`
 
 ### Deployment (Phase 13)

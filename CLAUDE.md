@@ -104,7 +104,7 @@ These apply to every code change regardless of scope.
 
 ## Project State
 
-See `docs/project/roadmap.md` for which phases (0–21, including 2b, 3b and 9b) are complete and what work remains. Work resumes at Phase 12 (Angular frontend).
+See `docs/project/roadmap.md` for which phases (0–21, including 2b, 3b and 9b) are complete and what work remains. Work resumes at Phase 13 (Docker and deployment).
 See `docs/project/implementation-plan.md` for the full phase-by-phase task breakdown.
 
 ---
