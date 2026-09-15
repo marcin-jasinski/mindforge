@@ -14,6 +14,7 @@ import dev.mindforge.domain.port.ProgressNotifier;
 import dev.mindforge.domain.port.RunReportQuery;
 import dev.mindforge.domain.port.WikiHealthQuery;
 import dev.mindforge.domain.port.WikiStore;
+import dev.mindforge.infrastructure.export.BundleExporter;
 
 /** Wires the wiki's application services. */
 @Configuration
@@ -23,6 +24,11 @@ public class WikiConfig {
     RevertService revertService(IngestRunRepository ingestRunRepository, WikiStore wikiStore,
                                 ProgressNotifier progressNotifier, TransactionOperations transactionOperations) {
         return new RevertService(ingestRunRepository, wikiStore, progressNotifier, transactionOperations);
+    }
+
+    @Bean
+    BundleExporter bundleExporter(WikiStore wikiStore, BundleQuery bundleQuery, RunReportQuery runReportQuery) {
+        return new BundleExporter(wikiStore, bundleQuery, runReportQuery);
     }
 
     @Bean

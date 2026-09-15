@@ -72,8 +72,8 @@ public final class PageRenderer {
             } else {
                 // the newest version of a lesson names it
                 lines.remove(source.lessonId());
-                lines.put(source.lessonId(), "[" + TextRules.escapeLinkText(source.lessonTitle()) + "](/sources/"
-                    + source.lessonId() + ".md)");
+                lines.put(source.lessonId(), "[" + TextRules.escapeLinkText(TextRules.singleLine(source.lessonTitle()))
+                    + "](/sources/" + source.lessonId() + ".md)");
             }
         });
         return List.copyOf(lines.values());

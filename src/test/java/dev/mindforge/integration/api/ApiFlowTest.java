@@ -2,6 +2,7 @@ package dev.mindforge.integration.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -18,6 +19,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -122,6 +125,31 @@ class ApiFlowTest extends TestContainerBase {
         assertThat(client.get(kb + "/index").json().get("pages")).isEmpty();
         assertThat(client.post(kb + "/runs/" + runId + "/revert", Map.of()).json().get("code").asString())
             .isEqualTo("REVERT_NOT_ALLOWED");
+    }
+
+    @Test
+    void theOwnerDownloadsTheBundleAsAZipNamedAfterTheKnowledgeBase() throws Exception {
+        Client client = signedUp();
+        String kb = createKnowledgeBase(client);
+        givenAnswers();
+        awaitRun(client, kb, client.upload(kb, "biologia.md", NOTES, false).json().get("documentId").asString(),
+            "COMPLETED");
+
+        HttpResponse<byte[]> export = client.download(kb + "/export");
+
+        assertThat(export.statusCode()).isEqualTo(200);
+        assertThat(export.headers().firstValue("Content-Type")).contains("application/zip");
+        assertThat(export.headers().firstValue("Content-Disposition"))
+            .contains("attachment; filename=\"biologia-okf.zip\"");
+        List<String> entries = new ArrayList<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(export.body()))) {
+            for (ZipEntry entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+                entries.add(entry.getName());
+            }
+        }
+        assertThat(entries).containsExactly("biologia-okf/index.md", "biologia-okf/log.md",
+            "biologia-okf/concepts/mitoza.md", "biologia-okf/sources/biologia.md");
+        assertThat(signedUp().download(kb + "/export").statusCode()).isEqualTo(403);
     }
 
     @Test
@@ -341,6 +369,14 @@ class ApiFlowTest extends TestContainerBase {
                 + "--" + boundary + "--\r\n";
             return send(request(kb + "/documents").header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8)));
+        }
+
+        HttpResponse<byte[]> download(String path) {
+            try {
+                return http.send(request(path).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+            } catch (Exception e) {
+                throw new AssertionError("Request failed: " + e, e);
+            }
         }
 
         private HttpRequest.Builder request(String path) {
