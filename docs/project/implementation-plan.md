@@ -295,7 +295,7 @@ JPA entities, and all Spring Data JPA repository adapters.
 
 ---
 
-## [ ] Phase 2b — Persistence Cleanup & DTO Foundation
+## [x] Phase 2b — Persistence Cleanup & DTO Foundation
 
 **Goal:** Restructure the persistence layer into clean sub-packages, introduce MapStruct
 compile-time mappers for all entity↔domain translations, scaffold the API DTO layer, and
@@ -324,7 +324,7 @@ wire OpenAPI spec generation.
 - [x] No manual toEntity/toDomain methods remain in any adapter class
 - [x] All persistence sub-packages contain only their designated type (no mixing)
 - [x] api/dto/response/ types contain no forbidden fields (passwordHash, referenceAnswer, cost)
-- [ ] GET /v3/api-docs returns a valid OpenAPI 3.1 JSON document
+- [x] GET /v3/api-docs returns a valid OpenAPI 3.1 JSON document (verified in Phase 9, springdoc 3.0.0)
 
 ---
 
@@ -942,44 +942,63 @@ check inside ingest is already built in Phase 6.
 
 ---
 
-## [ ] Phase 9 — API Layer (Spring MVC)
+## [x] Phase 9 — API Layer (Spring MVC)
 
 > **Changed in v3.0:** 9.6 and 9.7 — controllers for the wiki, runs, revert and health replace
 > `ArtifactController`; documents cannot be deleted individually (ADR 0015).
 > **Changed in v3.1:** retry and Lint-start endpoints, synchronous revert and supersession removal, per-knowledge-base
 > progress, lesson collisions and busy knowledge-base deletes as 409 (T16, T17, T18, T20, T24).
+> **As built:** every document, run and supersession endpoint is nested under `/api/knowledge-bases/{kbId}` — upload
+> `POST …/documents` (multipart `file`, `lessonId`, `newVersion`), retry `POST …/documents/{id}/runs`, revert
+> `POST …/runs/{id}/revert` — so ownership is checked on the path's knowledge base and no port needs an unscoped id
+> lookup. Accounts are `AccountService` over `UserRepository` and a `PasswordHasher` port (BCrypt 12); emails are
+> stored lowercased, a provider sign-in joins the account with its email, and a provider that shares no email is
+> refused. `JwtService` (jjwt HS256, subject = user id, secret at least 32 bytes) sets the `token` cookie, `Secure`
+> unless `AUTH_SECURE_COOKIES=false`; `JwtFilter` is built inside `SecurityConfig`, so it is not also registered as a
+> servlet filter, and an anonymous `/api/**` request gets 401. One `NotFoundException` stands in for the page and
+> document variants; `NotOwnerException` is the 403; `UploadRejectedException` and `UnknownLessonException` are 422,
+> `LintAlreadyQueuedException` and `AccountException` (email taken) 409, a failed sign-in 401. The run report is
+> assembled by `RunReportService`: `RunReportQuery` gained `listRuns(kbId, limit)` and `supersessionsOf`, and
+> `RevertService` gained `isOffered` and notifies `COMPLETED` after its commit. Failures leave the API only through
+> the keys `step`, `item`, `path`, `reason` and `count`; `step_versions` is never mapped. The page view is rendered by
+> `PageRenderer` (`application.wiki`, shared with export) from `WikiStore.liveSupersessionsOf` and
+> `BundleQuery.citations(kbId, pageIds)`, so `BundleQuery` needs no `supersessionNotes`. Revisions come as one list,
+> oldest first, each after its prior revision. The health response carries the latest completed full review, the
+> document list each document's latest run (`IngestRunRepository.latestPerDocument`) without conversation turns, and
+> `KnowledgeBase` gains a derived `documentCount`. springdoc moves to 3.0.0, the line for Boot 4. API tests drive a
+> random port with the JDK `HttpClient`, since MockMvc's auto-configuration is no longer in the default test starter.
 
 **Goal:** Implement the auth system (Google/GitHub OAuth2 + email/password + JWT), all REST controllers,
 security config, global exception handler, and SPA serving.
 
 ### Tasks
 
-- [ ] **9.1 — `MindForgeApplication.java`** (`dev.mindforge`) — `@SpringBootApplication` entry point. No business logic.
+- [x] **9.1 — `MindForgeApplication.java`** (`dev.mindforge`) — `@SpringBootApplication` entry point. No business logic.
 
-- [ ] **9.2 — `SecurityConfig.java`** (`dev.mindforge.api.config`)
+- [x] **9.2 — `SecurityConfig.java`** (`dev.mindforge.api.config`)
   - Spring Security filter chain: CSRF disabled for API paths, JWT cookie filter,
     OAuth2 login (Google, GitHub), stateless session for API endpoints.
   - JWT stored in `HttpOnly; Secure; SameSite=Lax` cookie — never in response body.
   - `BCryptPasswordEncoder` with cost 12.
 
-- [ ] **9.3 — `JwtFilter.java`** — reads JWT from cookie, validates, sets `SecurityContext`.
+- [x] **9.3 — `JwtFilter.java`** — reads JWT from cookie, validates, sets `SecurityContext`.
 
-- [ ] **9.4 — `AuthController.java`** (`dev.mindforge.api.controller`)
+- [x] **9.4 — `AuthController.java`** (`dev.mindforge.api.controller`)
   - `POST /api/auth/register`, `POST /api/auth/login` (sets JWT cookie), `POST /api/auth/logout`,
     `GET /api/auth/me` (never includes `passwordHash`). OAuth2 callbacks handled by Spring Security.
 
-- [ ] **9.5 — Request/response DTOs** (`dev.mindforge.api.dto`) — all Java `record` types.
+- [x] **9.5 — Request/response DTOs** (`dev.mindforge.api.dto`) — all Java `record` types.
   - Never expose: `referenceAnswer`, `groundingContext`, `rawPrompt`, `rawCompletion`, `cost`,
     `step_versions`, raw `failures` internals.
 
-- [ ] **9.6 — `GlobalExceptionHandler.java`** (`@ControllerAdvice`)
+- [x] **9.6 — `GlobalExceptionHandler.java`** (`@ControllerAdvice`)
   - `LessonIdentityException` → 422; `PageNotFoundException` / `DocumentNotFoundException` → 404;
     `RevertNotAllowedException`, `KnowledgeBaseBusyException`, `LessonAlreadyExistsException` (with the lesson's id
     and title), `RetryNotAllowedException` → 409; `AccessDeniedException` → 403; `DeadlineExceededException` → 503.
   - Uniform `{ "error": "...", "code": "...", "detail": "..." }` shape. Ingest failures are run
     state, not HTTP errors.
 
-- [ ] **9.7 — REST controllers** (`dev.mindforge.api.controller`) — T17, T18, T20, T24, T28
+- [x] **9.7 — REST controllers** (`dev.mindforge.api.controller`) — T17, T18, T20, T24, T28
   - `DocumentController`:
     - upload with optional `lessonId` and `newVersion` (202 + document id; 409 on a lesson collision);
     - list, get — with latest-run status and `retryable`;
@@ -999,10 +1018,10 @@ security config, global exception handler, and SPA serving.
   - `UserController`: profile management.
   - Every method thin: validation + ownership check + delegate. Constructor injection only.
 
-- [ ] **9.8 — SPA serving**
+- [x] **9.8 — SPA serving**
   - Static Angular build served from classpath under `/static/`; non-API paths fall through to `index.html`.
 
-- [ ] **9.9 — API integration tests** (`integration/api/`)
+- [x] **9.9 — API integration tests** (`integration/api/`)
   - Auth flow: register → login → access protected resource → logout.
   - Upload flow: upload → run completes (stub gateway) → pages listed → no sensitive fields in any response.
   - Upload with an existing lesson id → 409; the same with `newVersion` → 202.
@@ -1011,10 +1030,10 @@ security config, global exception handler, and SPA serving.
 
 ### Completion Checklist
 
-- [ ] All controllers thin — no business logic; all delegated to application services.
-- [ ] JWT stored in `HttpOnly` cookie only — never in response body.
-- [ ] No sensitive fields in any API response (verified by integration tests).
-- [ ] Ownership check present on every `@RestController` method.
+- [x] All controllers thin — no business logic; all delegated to application services.
+- [x] JWT stored in `HttpOnly` cookie only — never in response body.
+- [x] No sensitive fields in any API response (verified by integration tests).
+- [x] Ownership check present on every `@RestController` method.
 
 ---
 

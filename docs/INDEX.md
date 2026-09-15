@@ -23,7 +23,7 @@ What MindForge is and why it exists: a learning platform where uploaded document
 Development phase status overview. Documents which phases (0–21, including 2b, 3b and 9b) are complete, in progress or planned, with brief summaries of what each delivers, and states plainly which phases the wiki re-cut changed, reused or removed. References the full detail in `project/implementation-plan.md`.
 
 ### Implementation Plan (`project/implementation-plan.md`)
-Complete phase-by-phase breakdown of all development work: phases 0–21, each with detailed task lists, dependencies, completion checklists and rationale. This is the **source of truth** for structuring development work. Phase 9 (API layer) is where work resumes.
+Complete phase-by-phase breakdown of all development work: phases 0–21, each with detailed task lists, dependencies, completion checklists and rationale. This is the **source of truth** for structuring development work. Phase 9b (bundle export) is where work resumes.
 
 ### Tech Stack (`project/tech-stack.md`)
 Technology choices with rationale. Covers backend (Java 21, Spring Boot 4.1, Spring AI, Spring Data JPA/Hibernate, PostgreSQL as the only data store, Caffeine), frontend (Angular standalone SPA), bundle export, infrastructure (Docker, Flyway, Maven), and what was removed (Neo4j, pgvector, object storage). Read before introducing new dependencies or proposing technology changes.

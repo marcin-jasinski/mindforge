@@ -8,9 +8,9 @@
 - **Version**: 1.0.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer)
 - **In Progress**: None
-- **Next**: Phase 9 (API Layer)
+- **Next**: Phase 9b (Bundle Export)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -76,7 +76,7 @@ Query, the Angular SPA and Docker deployment.
 
 ### Core Product (Phases 9–12)
 
-- [ ] **Phase 9 — API Layer (Spring MVC)** *(changed)* — Security config, thin controllers for
+- [x] **Phase 9 — API Layer (Spring MVC)** *(changed)* — Security config, thin controllers for
   documents, knowledge bases, wiki pages, the page-link graph, run reports and revert, and health.
   Ownership check on every endpoint. `[Effort: L]`
 - [ ] **Phase 9b — Bundle Export** *(new)* — Synchronous zip of the OKF bundle from one snapshot,
