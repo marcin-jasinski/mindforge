@@ -1324,38 +1324,46 @@ all user-facing pages for the learning loop.
 
 ---
 
-## [ ] Phase 13 — Docker and Deployment
+## [x] Phase 13 — Docker and Deployment
 
 > **Changed in v3.0:** no Neo4j service; plain PostgreSQL.
+> **As built:** `spring-boot-starter-actuator` provides the health check, served at `/health` by
+> `management.endpoints.web.base-path: /`. The SPA stage uses `node:22-alpine` (Angular 21's supported line); the
+> runtime runs as a non-root user. `compose.yml` fills the OAuth client variables with placeholders, because Spring
+> Security refuses an empty client id, and requires `JWT_SECRET`; `compose.override.yml` publishes PostgreSQL and
+> turns off `Secure` cookies for local HTTP. `server.port` follows `PORT`, and shutdown is graceful with a 30 s phase
+> timeout. Railway runs one replica with `/health` as its check; `docs/project/deployment.md` is the procedure.
+> The smoke test built the image, brought both services up healthy, and got 200 from `/health` and the SPA's
+> `index.html` from `/`.
 
 **Goal:** Complete Docker multi-stage build, Docker Compose for local and production, and Railway/Render
 deployment configuration.
 
 ### Tasks
 
-- [ ] **13.1 — Multi-stage `Dockerfile`**
+- [x] **13.1 — Multi-stage `Dockerfile`**
   - Stage 1 (`node:20-alpine`): `npm ci && npm run build` in `frontend/`.
   - Stage 2 (`maven:3.9-eclipse-temurin-21`): `mvn package -DskipTests`.
   - Stage 3 (`eclipse-temurin:21-jre-alpine`): `COPY --from=2 target/*.jar app.jar`; `EXPOSE 8080`.
 
-- [ ] **13.2 — `compose.yml`**
+- [x] **13.2 — `compose.yml`**
   - Services: `app`, `postgres` (PostgreSQL 15). Health checks on both; `app` depends on `postgres` health.
   - Volume mount for PostgreSQL data. `compose.override.yml` for local dev.
 
-- [ ] **13.3 — Deployment configuration**
+- [x] **13.3 — Deployment configuration**
   - `railway.json` (or `render.yaml`); `Procfile` fallback; `docs/project/deployment.md`.
   - Single live instance: the run sweep treats runs outside its own process as abandoned. During a deploy's overlap,
     fenced commits keep that correct and in-flight runs re-run once (T17); two permanent instances need a heartbeat lease.
   - Graceful shutdown enabled so the worker stops claiming on `ContextClosedEvent`.
 
-- [ ] **13.4 — Smoke test**
+- [x] **13.4 — Smoke test**
   - `docker build -t mindforge .`; `docker compose up`; `curl /health` → 200; `curl /` → SPA index.
 
 ### Completion Checklist
 
-- [ ] `docker build` creates a working multi-stage image.
-- [ ] `docker compose up` starts both services with passing health checks.
-- [ ] Application is deployable to Railway/Render via documented procedure.
+- [x] `docker build` creates a working multi-stage image.
+- [x] `docker compose up` starts both services with passing health checks.
+- [x] Application is deployable to Railway/Render via documented procedure.
 
 ---
 
