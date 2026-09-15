@@ -1183,17 +1183,30 @@ targeting weak pages.
 
 ---
 
-## [ ] Phase 11 — Query
+## [x] Phase 11 — Query
 
 > **Re-cut in v3.0.** This phase was *Search and Conversational RAG* over `content_embeddings`. Query
 > reads curated pages chosen from the rendered index instead (ADR 0016). pgvector is gone.
+> **As built:** the endpoints are nested under the knowledge base like every other —
+> `POST /api/knowledge-bases/{kbId}/query-sessions`, `GET …/query-sessions` (the user's history, question and answer
+> only), `POST …/{id}/messages`, `POST …/{id}/edits` (202 with the run id) and `GET …/pages/search?q=`.
+> `InteractionStore` also has `turns(kbId, interactionId)`, which feeds the last five turns to both prompts;
+> `listForUser` selects the two redacted columns in the query itself. Page search is the `PageSearchQuery` port —
+> escaped `ILIKE` on title and description plus `simple` full-text on bodies, title matches first, nothing for a
+> query under two characters — and no `pg_trgm` yet. `QueryService` lets `PageSelector` pick at most eight paths,
+> keeps the live ones in its order, then their one-hop outbound neighbours, rendered with supersession notes into a
+> `TokenBudget(24 000, 4 000)`; context stops at the first page that does not fit, and citations keep only paths the
+> writer was given. Both calls use `DeadlineProfile.INTERACTIVE` and the gateway directly. A conversation edit is
+> `IngestionService.submitEdit`, inserting the `CONVERSATION` document and its `QUEUED` run under the knowledge-base
+> lock, and needs the chat session to be the user's; the chat message for "edit named no page" and the inline run
+> report belong to the SPA (Phase 12), and "undo" is the run's revert endpoint.
 
 **Goal:** Answer multi-turn questions from the wiki with page citations; accept conversation edits to the
 wiki; provide page search for the SPA.
 
 ### Tasks
 
-- [ ] **11.1 — Domain types and migration**
+- [x] **11.1 — Domain types and migration**
   - `Interaction(interactionId, userId, kbId, startedAt)`;
     `InteractionTurn(turnId, question, answer, usedPagePaths, createdAt)`;
     `TokenBudget(totalTokens, reservedForResponse)` with `availableForContext()`, counting with `TokenEstimate` (T23).
@@ -1202,12 +1215,12 @@ wiki; provide page search for the SPA.
   - Migration `V4__create_interactions.sql`: `interactions` and `interaction_turns`, both with `knowledge_base_id` FK
     `ON DELETE CASCADE`; `interaction_turns.used_page_paths TEXT[]` (T28).
 
-- [ ] **11.2 — `PageSelector`** (SMALL), **`AnswerWriter`** (LARGE) **and `QueryService`**
+- [x] **11.2 — `PageSelector`** (SMALL), **`AnswerWriter`** (LARGE) **and `QueryService`**
   - Select: rendered index (prefiltered past 20K tokens) + question + prior turns → page paths.
   - Load: verify live paths; bodies with supersession notes; add 1-hop link neighbours while `TokenBudget` allows.
   - Answer: `DeadlineProfile.INTERACTIVE`; cites page paths. Query never writes pages and takes no lease.
 
-- [ ] **11.3 — Conversation edits** — ADR 0012, T15
+- [x] **11.3 — Conversation edits** — ADR 0012, T15
   - An explicit *edit* action in chat (not a question) is persisted as a `CONVERSATION` `Document` — lesson id
     `conversation`, lesson title `Conversation`, `text/plain`, filename `conversation`, content hash over the UTF-8 content —
     together with a `QUEUED` `INGEST` run, exactly like an upload. "Save that" stores the instruction followed by the
@@ -1218,19 +1231,19 @@ wiki; provide page search for the SPA.
     tell which page to change — name the page or rephrase."*; dropped items are listed with their reasons. "Undo" calls
     `RevertService` (409 while a run is active).
 
-- [ ] **11.4 — Page search** (`SearchService`)
+- [x] **11.4 — Page search** (`SearchService`)
   - Title/description match and `simple` full-text over `wiki_pages` bodies, scoped to `kbId`.
   - Shares the lexical code the index prefilter will use; `pg_trgm` is added only when a knowledge base passes the ceiling.
 
-- [ ] **11.5 — `InteractionStoreAdapter`** (PostgreSQL)
+- [x] **11.5 — `InteractionStoreAdapter`** (PostgreSQL)
   - `listForUser(kbId, userId)` returns only `question` + `answer`.
 
-- [ ] **11.6 — Controllers**
+- [x] **11.6 — Controllers**
   - `QueryController`: `POST /api/query/sessions`, `POST /api/query/sessions/{id}/messages`,
     `POST /api/query/sessions/{id}/edits`.
   - `SearchController`: `GET /api/knowledge-bases/{kbId}/pages/search?q=...`.
 
-- [ ] **11.7 — Tests**
+- [x] **11.7 — Tests**
   - `QueryServiceTest` with `StubAIGateway`: hallucinated paths dropped; `TokenBudget` trimming; no grounding in responses.
   - Conversation edit creates a `CONVERSATION` document (lesson `conversation`) and a `QUEUED` run; an identical edit a
     week later is not deduplicated; "delete Mitoza" tombstones the page; an edit naming no page fails with the chat
@@ -1239,9 +1252,9 @@ wiki; provide page search for the SPA.
 
 ### Completion Checklist
 
-- [ ] Query answers cite pages, never uploads directly.
-- [ ] Query has no write path; conversation edits are ingest runs.
-- [ ] Responses never include `groundingContext`, `rawPrompt` or `rawCompletion`.
+- [x] Query answers cite pages, never uploads directly.
+- [x] Query has no write path; conversation edits are ingest runs.
+- [x] Responses never include `groundingContext`, `rawPrompt` or `rawCompletion`.
 
 ---
 
