@@ -54,12 +54,18 @@ spring:
   cache:
     type: caffeine
 
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
+
 server:
-  port: 8080
+  port: ${PORT:8080}
+  # Finish in-flight requests; the run worker stops claiming on ContextClosedEvent.
+  shutdown: graceful
 
 management:
   endpoints:
     web:
+      base-path: /
       exposure:
         include: health,info
   endpoint:

@@ -1,0 +1,46 @@
+# The app and its PostgreSQL. A deployment sets JWT_SECRET (32+ bytes) in the environment or an .env file; the app
+# refuses to start without one. compose.override.yml supplies a development secret for local runs.
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: mindforge
+      POSTGRES_USER: ${DATABASE_USERNAME:-mindforge}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-mindforge}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d mindforge"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    image: mindforge:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/mindforge
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-mindforge}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-mindforge}
+      JWT_SECRET: ${JWT_SECRET:-}
+      AUTH_SECURE_COOKIES: ${AUTH_SECURE_COOKIES:-true}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # Spring Security refuses an empty client id; placeholders keep sign-in by email working without OAuth.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-not-configured}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-not-configured}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-not-configured}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-not-configured}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      start_period: 60s
+      retries: 10
+
+volumes:
+  postgres-data:
