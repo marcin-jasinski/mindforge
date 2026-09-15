@@ -1,5 +1,6 @@
 package dev.mindforge.application.service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -12,7 +13,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.transaction.support.TransactionOperations;
 
+import dev.mindforge.domain.model.ContentBlock;
 import dev.mindforge.domain.model.ContentHash;
+import dev.mindforge.domain.model.ConversationTurn;
 import dev.mindforge.domain.model.Document;
 import dev.mindforge.domain.model.DomainEvent;
 import dev.mindforge.domain.model.IngestRun;
@@ -42,6 +45,10 @@ import dev.mindforge.domain.port.UploadPolicy;
  * together with its {@code QUEUED} ingest run and {@link DomainEvent.IngestRunQueued}.
  */
 public class IngestionService {
+
+    private static final LessonIdentity CONVERSATION_LESSON = new LessonIdentity("conversation", "Conversation");
+    private static final String CONVERSATION_FILENAME = "conversation";
+    private static final String CONVERSATION_MIME_TYPE = "text/plain";
 
     private final UploadPolicy uploadPolicy;
     private final DocumentParser parser;
@@ -100,6 +107,27 @@ public class IngestionService {
             progress.notify(kbId, RunProgress.status(accepted.run(), RunStatus.QUEUED));
         }
         return accepted.documentId();
+    }
+
+    /**
+     * Queues a conversation edit exactly as an upload (T15): a {@code CONVERSATION} document in the reserved
+     * {@code conversation} lesson — never deduplicated and outside the lesson rule — with its {@code QUEUED} run.
+     *
+     * @param quotedAnswer the answer a "save that" quotes, or null
+     * @return the id of the queued run
+     */
+    public UUID submitEdit(UUID kbId, UUID userId, String instruction, String quotedAnswer) {
+        String content = new ConversationTurn(instruction, quotedAnswer).content();
+        IngestRun run = transactions.execute(status -> {
+            documents.lockKnowledgeBase(kbId);
+            Document turn = documents.insert(kbId, new Document(UUID.randomUUID(), kbId, CONVERSATION_LESSON,
+                ContentHash.compute(content.getBytes(StandardCharsets.UTF_8)), CONVERSATION_FILENAME,
+                CONVERSATION_MIME_TYPE, content, List.of(ContentBlock.text(content, 0)), UploadSource.CONVERSATION,
+                userId, null, null));
+            return enqueue(kbId, turn.documentId());
+        });
+        progress.notify(kbId, RunProgress.status(run, RunStatus.QUEUED));
+        return run.runId();
     }
 
     /** An uploaded document and its newest run, null before one exists. */

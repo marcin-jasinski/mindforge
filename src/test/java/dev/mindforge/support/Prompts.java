@@ -15,6 +15,8 @@ public final class Prompts {
     public static final String FLASHCARDS = "# Zadanie: tworzenie fiszek";
     public static final String QUIZ = "# Zadanie: pytania quizowe";
     public static final String GRADE = "# Zadanie: ocena odpowiedzi";
+    public static final String SELECT = "# Zadanie: wybór stron do odpowiedzi";
+    public static final String ANSWER = "# Zadanie: odpowiedź z wiki";
 
     public static final String RELEVANT = "{\"relevant\": true, \"reason\": \"Notatki z biologii.\", \"confidence\": 0.9}";
 

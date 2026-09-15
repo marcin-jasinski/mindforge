@@ -3,7 +3,9 @@ package dev.mindforge.infrastructure.config;
 import dev.mindforge.domain.port.BundleQuery;
 import dev.mindforge.domain.port.DocumentRepository;
 import dev.mindforge.domain.port.IngestRunRepository;
+import dev.mindforge.domain.port.InteractionStore;
 import dev.mindforge.domain.port.KnowledgeBaseRepository;
+import dev.mindforge.domain.port.PageSearchQuery;
 import dev.mindforge.domain.port.QuizSessionStore;
 import dev.mindforge.domain.port.RunReportQuery;
 import dev.mindforge.domain.port.StudyProgressStore;
@@ -13,7 +15,9 @@ import dev.mindforge.domain.port.WikiStore;
 import dev.mindforge.infrastructure.persistence.adapter.BundleQueryAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.DocumentRepositoryAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.IngestRunRepositoryAdapter;
+import dev.mindforge.infrastructure.persistence.adapter.InteractionStoreAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.KnowledgeBaseRepositoryAdapter;
+import dev.mindforge.infrastructure.persistence.adapter.PageSearchQueryAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.QuizSessionStoreAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.RunReportQueryAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.StudyProgressStoreAdapter;
@@ -23,8 +27,11 @@ import dev.mindforge.infrastructure.persistence.adapter.WikiStoreAdapter;
 import dev.mindforge.infrastructure.persistence.jpa.DocumentJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.FlashcardJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.IngestRunJpaRepository;
+import dev.mindforge.infrastructure.persistence.jpa.InteractionJpaRepository;
+import dev.mindforge.infrastructure.persistence.jpa.InteractionTurnJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.KnowledgeBaseJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.PageLinkJpaRepository;
+import dev.mindforge.infrastructure.persistence.jpa.PageSearchJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.PageRevisionJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.PageSourceJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.PageSupersessionJpaRepository;
@@ -35,6 +42,7 @@ import dev.mindforge.infrastructure.persistence.jpa.WikiHealthJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.WikiPageJpaRepository;
 import dev.mindforge.infrastructure.persistence.mapper.DocumentEntityMapper;
 import dev.mindforge.infrastructure.persistence.mapper.IngestRunEntityMapper;
+import dev.mindforge.infrastructure.persistence.mapper.InteractionEntityMapper;
 import dev.mindforge.infrastructure.persistence.mapper.KnowledgeBaseEntityMapper;
 import dev.mindforge.infrastructure.persistence.mapper.StudyEntityMapper;
 import dev.mindforge.infrastructure.persistence.mapper.UserEntityMapper;
@@ -85,6 +93,17 @@ public class PersistenceConfig {
     QuizSessionStore quizSessionStore(QuizSessionJpaRepository sessions, StudyEntityMapper mapper,
                                       AppProperties properties) {
         return new QuizSessionStoreAdapter(sessions, mapper, properties.getStudy().getQuizSessionTtl());
+    }
+
+    @Bean
+    InteractionStore interactionStore(InteractionJpaRepository interactions,
+                                      InteractionTurnJpaRepository turns, InteractionEntityMapper mapper) {
+        return new InteractionStoreAdapter(interactions, turns, mapper);
+    }
+
+    @Bean
+    PageSearchQuery pageSearchQuery(PageSearchJpaRepository pages, WikiEntityMapper mapper) {
+        return new PageSearchQueryAdapter(pages, mapper);
     }
 
     @Bean

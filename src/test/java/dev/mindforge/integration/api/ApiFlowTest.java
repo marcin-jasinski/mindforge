@@ -195,6 +195,48 @@ class ApiFlowTest extends TestContainerBase {
     }
 
     @Test
+    void aLearnerAsksTheWikiAndEditsItFromChat() {
+        Client client = signedUp();
+        String kb = createKnowledgeBase(client);
+        givenAnswers();
+        gateway.answer(Prompts.SELECT, "{\"paths\": [\"concepts/mitoza\", \"concepts/nie-ma\"]}");
+        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Mitoza dzieli komórkę.\", \"citations\": [\"concepts/mitoza\"]}");
+        gateway.answer(Prompts.EDIT, "{\"items\": [{\"kind\": \"retitle\", \"path\": \"concepts/mitoza\","
+            + " \"title\": \"Mitoza komórkowa\"}]}");
+        awaitRun(client, kb, client.upload(kb, "biologia.md", NOTES, false).json().get("documentId").asString(),
+            "COMPLETED");
+
+        Response session = client.post(kb + "/query-sessions", Map.of());
+        assertThat(session.status()).isEqualTo(201);
+        String chat = kb + "/query-sessions/" + session.json().get("interactionId").asString();
+        Response answer = client.post(chat + "/messages", Map.of("question", "Co to mitoza?"));
+        assertThat(answer.json().get("answer").asString()).isEqualTo("Mitoza dzieli komórkę.");
+        assertThat(answer.body()).contains("\"citedPaths\":[\"concepts/mitoza\"]").doesNotContain("usedPagePaths");
+        Response history = client.get(kb + "/query-sessions");
+        assertThat(history.json()).hasSize(1);
+        assertThat(history.body()).doesNotContain("usedPagePaths").doesNotContain("concepts/mitoza");
+        Response search = client.get(kb + "/pages/search?q=mito");
+        assertThat(search.json().findValuesAsString("path")).containsExactly("concepts/mitoza");
+
+        Response edit = client.post(chat + "/edits", Map.of("instruction", "Nazwij mitozę pełniej."));
+        assertThat(edit.status()).isEqualTo(202);
+        String runId = edit.json().get("runId").asString();
+        long deadline = System.nanoTime() + TIMEOUT.toNanos();
+        while (!"COMPLETED".equals(client.get(kb + "/runs/" + runId).json().get("status").asString())) {
+            assertThat(System.nanoTime()).as("edit run did not complete").isLessThan(deadline);
+            await(Duration.ofMillis(100));
+        }
+        assertThat(client.get(kb + "/pages/concepts/mitoza").json().get("title").asString()).isEqualTo("Mitoza komórkowa");
+
+        for (Response response : List.of(session, answer, history, search, edit)) {
+            assertNoSensitiveFields(response);
+        }
+        Client other = signedUp();
+        assertThat(other.post(chat + "/messages", Map.of("question", "Cudze?")).status()).isEqualTo(403);
+        assertThat(client.get(kb + "/flashcards?lessonId=conversation").status()).isEqualTo(404);
+    }
+
+    @Test
     void theOpenApiDocumentIsServed() {
         Response docs = new Client().get("/v3/api-docs");
 
