@@ -28,6 +28,9 @@ public class AppProperties {
     @Valid
     private Upload upload = new Upload();
 
+    @Valid
+    private Study study = new Study();
+
     public Security getSecurity() { return security; }
     public void setSecurity(Security security) { this.security = security; }
 
@@ -37,9 +40,22 @@ public class AppProperties {
     public Upload getUpload() { return upload; }
     public void setUpload(Upload upload) { this.upload = upload; }
 
+    public Study getStudy() { return study; }
+    public void setStudy(Study study) { this.study = study; }
+
     // ---------------------------------------------------------------------------
     // Nested configuration types
     // ---------------------------------------------------------------------------
+
+    public static class Study {
+
+        /** How long a quiz session and its reference answers are kept. */
+        @NotNull
+        private Duration quizSessionTtl = Duration.ofHours(2);
+
+        public Duration getQuizSessionTtl() { return quizSessionTtl; }
+        public void setQuizSessionTtl(Duration quizSessionTtl) { this.quizSessionTtl = quizSessionTtl; }
+    }
 
     public static class Upload {
 
@@ -60,11 +76,17 @@ public class AppProperties {
         @Positive
         private long jwtExpirySeconds = 86400L;
 
+        /** Off only for local HTTP development ({@code AUTH_SECURE_COOKIES=false}). */
+        private boolean secureCookies = true;
+
         public String getJwtSecret() { return jwtSecret; }
         public void setJwtSecret(String jwtSecret) { this.jwtSecret = jwtSecret; }
 
         public long getJwtExpirySeconds() { return jwtExpirySeconds; }
         public void setJwtExpirySeconds(long jwtExpirySeconds) { this.jwtExpirySeconds = jwtExpirySeconds; }
+
+        public boolean isSecureCookies() { return secureCookies; }
+        public void setSecureCookies(boolean secureCookies) { this.secureCookies = secureCookies; }
     }
 
     public static class Ai {
@@ -77,6 +99,13 @@ public class AppProperties {
 
         @Valid
         private Resilience resilience = new Resilience();
+
+        /** Concurrent model calls across every ingest and Lint run. */
+        @Positive
+        private int backgroundPermits = 4;
+
+        public int getBackgroundPermits() { return backgroundPermits; }
+        public void setBackgroundPermits(int backgroundPermits) { this.backgroundPermits = backgroundPermits; }
 
         public Model getModel() { return model; }
         public void setModel(Model model) { this.model = model; }

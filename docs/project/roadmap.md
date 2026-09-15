@@ -8,9 +8,9 @@
 - **Version**: 1.0.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete
 - **In Progress**: None
-- **Next**: Phase 6 (Ingest Pipeline)
+- **Next**: Phase 14 (Observability & Tracing)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -66,32 +66,32 @@ Query, the Angular SPA and Docker deployment.
 - [x] **Phase 5 — Wiki Domain & Store** *(re-cut)* — Pages, paths, links, sources, revisions,
   supersessions and ingest runs; `WikiStore`; the lease; index and log renderers; restore-forward,
   tip-only revert. `[Effort: M]`
-- [ ] **Phase 6 — Ingest Pipeline** *(re-cut)* — Relevance guard → chunked claim extraction against the
+- [x] **Phase 6 — Ingest Pipeline** *(re-cut)* — Relevance guard → chunked claim extraction against the
   index → resolve → parallel page writes with draft checks → link check → commit → supersession; the run
   queue, fenced commits and the sweep; run progress over SSE; conversation edits' entry point. `[Effort: L]`
-- [ ] **Phase 7 — Lint** *(number reused)* — Live health checks and an on-demand full review that
+- [x] **Phase 7 — Lint** *(number reused)* — Live health checks and an on-demand full review that
   inserts links and reports findings and study suggestions. `[Effort: S]`
 - **Phase 8 — Event System** *(retired in v3.1)* — Folded into Phase 6 (run event, progress port, SSE
   registry) and Phase 9 (progress endpoint). No Redis, no outbox.
 
 ### Core Product (Phases 9–12)
 
-- [ ] **Phase 9 — API Layer (Spring MVC)** *(changed)* — Security config, thin controllers for
+- [x] **Phase 9 — API Layer (Spring MVC)** *(changed)* — Security config, thin controllers for
   documents, knowledge bases, wiki pages, the page-link graph, run reports and revert, and health.
   Ownership check on every endpoint. `[Effort: L]`
-- [ ] **Phase 9b — Bundle Export** *(new)* — Synchronous zip of the OKF bundle from one snapshot,
+- [x] **Phase 9b — Bundle Export** *(new)* — Synchronous zip of the OKF bundle from one snapshot,
   validated against OKF §9 before sending. `[Effort: S]`
-- [ ] **Phase 10 — Quiz & Flashcard Services** *(changed)* — Flashcards cut lazily from Concept pages
+- [x] **Phase 10 — Quiz & Flashcard Services** *(changed)* — Flashcards cut lazily from Concept pages
   with content-derived identity, SM-2, server-authoritative quiz sessions targeting weak pages.
   `[Effort: M]`
-- [ ] **Phase 11 — Query** *(re-cut)* — Multi-turn questions answered from wiki pages chosen via the
+- [x] **Phase 11 — Query** *(re-cut)* — Multi-turn questions answered from wiki pages chosen via the
   index, with citations; conversation edits; page search. `[Effort: M]`
-- [ ] **Phase 12 — Angular Frontend** *(changed)* — Page browser, graph view, run reports with diffs
+- [x] **Phase 12 — Angular Frontend** *(changed)* — Page browser, graph view, run reports with diffs
   and revert, health view, study, chat and export. `[Effort: L]`
 
 ### Deployment (Phase 13)
 
-- [ ] **Phase 13 — Docker & Deployment** *(changed)* — Multi-stage Dockerfile, `compose.yml` with the
+- [x] **Phase 13 — Docker & Deployment** *(changed)* — Multi-stage Dockerfile, `compose.yml` with the
   app and PostgreSQL, Railway/Render config. **Core system complete after this phase.** `[Effort: M]`
 
 ---

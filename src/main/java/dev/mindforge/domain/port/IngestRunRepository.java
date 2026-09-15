@@ -29,19 +29,28 @@ public interface IngestRunRepository {
 
     Optional<IngestRun> oldestQueued(UUID kbId);
 
-    /** {@code RUNNING → WRITTEN}, recording the run's failures so far. */
-    void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures);
+    /** {@code RUNNING → WRITTEN}, recording the run's failures and step versions so far. */
+    void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures, Map<String, String> stepVersions);
 
     /** {@code WRITTEN → COMPLETED}, releasing the lease. */
     void complete(UUID kbId, UUID runId, int supersessionCount, boolean supersessionSkipped,
-                  List<Map<String, Object>> failures);
+                  List<Map<String, Object>> failures, Map<String, String> stepVersions);
 
     /** {@code RUNNING → FAILED}, releasing the lease. */
-    void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures);
+    void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures,
+              Map<String, String> stepVersions);
+
+    /** Stores a Lint's findings and suggestions; call inside the run's fenced commit. */
+    void recordFindings(UUID kbId, UUID runId, List<Map<String, Object>> findings);
 
     Optional<IngestRun> findById(UUID kbId, UUID runId);
 
     Optional<IngestRun> latestForDocument(UUID kbId, UUID documentId);
+
+    /** The newest run of each document in the knowledge base. */
+    List<IngestRun> latestPerDocument(UUID kbId);
+
+    Optional<IngestRun> latestCompleted(UUID kbId, RunKind kind);
 
     /** Whether a run of this kind is queued, running or written. */
     boolean hasQueuedOrActive(UUID kbId, RunKind kind);

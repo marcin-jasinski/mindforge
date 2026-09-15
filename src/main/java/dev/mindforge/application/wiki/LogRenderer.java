@@ -97,7 +97,8 @@ public final class LogRenderer {
     }
 
     private static String lessonLink(String lessonId, String lessonTitle) {
-        return "[" + TextRules.escapeLinkText(lessonTitle) + "](/" + PagePath.sourceSummary(lessonId) + ".md)";
+        return "[" + TextRules.escapeLinkText(TextRules.singleLine(lessonTitle)) + "](/"
+            + PagePath.sourceSummary(lessonId) + ".md)";
     }
 
     private static String count(int count, String noun) {

@@ -25,7 +25,7 @@
         <pdfbox.version>3.0.3</pdfbox.version>
         <poi.version>5.4.0</poi.version>
         <mapstruct.version>1.6.3</mapstruct.version>
-        <springdoc.version>2.8.9</springdoc.version>
+        <springdoc.version>3.0.0</springdoc.version>
         <resilience4j.version>2.4.0</resilience4j.version>
         <skipFrontend>true</skipFrontend>
     </properties>
@@ -75,6 +75,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- /health for Compose, Railway and the smoke test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -254,8 +259,8 @@
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
-                            <nodeVersion>v20.19.0</nodeVersion>
-                            <npmVersion>11.0.0</npmVersion>
+                            <nodeVersion>v22.12.0</nodeVersion>
+                            <npmVersion>11.9.0</npmVersion>
                         </configuration>
                     </execution>
                     <execution>
@@ -264,7 +269,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>install</arguments>
+                            <arguments>ci</arguments>
                         </configuration>
                     </execution>
                     <execution>
@@ -275,6 +280,28 @@
                         <phase>generate-resources</phase>
                         <configuration>
                             <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Embeds the Angular build in the JAR under classpath:/static/, where SpaConfig serves it. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-frontend</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>frontend/dist/frontend/browser</directory>
+                                </resource>
+                            </resources>
                         </configuration>
                     </execution>
                 </executions>

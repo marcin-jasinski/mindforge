@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -214,11 +215,11 @@ class RevertAndLeaseTest extends TestContainerBase {
         jdbc.update("UPDATE knowledge_bases SET active_run_id = NULL WHERE kb_id = ?", kbId);
 
         assertThatExceptionOfType(RunFencedException.class).isThrownBy(() -> transactions.executeWithoutResult(status -> {
-            runs.markWritten(kbId, run.runId(), List.of());
+            runs.markWritten(kbId, run.runId(), List.of(), Map.of());
             wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitoza", "Treść.\n"), run.runId());
         }));
         assertThatExceptionOfType(RunFencedException.class)
-            .isThrownBy(() -> runs.markWritten(kbId, queued.runId(), List.of()));
+            .isThrownBy(() -> runs.markWritten(kbId, queued.runId(), List.of(), Map.of()));
 
         assertThat(wiki.findByPath(kbId, "concepts/mitoza")).isEmpty();
         assertThat(runs.findById(kbId, run.runId())).map(IngestRun::status).contains(RunStatus.RUNNING);
@@ -289,10 +290,10 @@ class RevertAndLeaseTest extends TestContainerBase {
         UUID runId = runs.enqueue(kbId, IngestRun.queued(kbId, RunKind.INGEST, documentId, null)).runId();
         assertThat(runs.claim(kbId, runId)).isTrue();
         transactions.executeWithoutResult(status -> {
-            runs.markWritten(kbId, runId, List.of());
+            runs.markWritten(kbId, runId, List.of(), Map.of());
             writes.accept(runId);
         });
-        runs.complete(kbId, runId, supersessionCount, false, List.of());
+        runs.complete(kbId, runId, supersessionCount, false, List.of(), Map.of());
         return runId;
     }
 

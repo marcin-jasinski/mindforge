@@ -23,7 +23,9 @@ public final class IndexRenderer {
     private static final Logger log = LoggerFactory.getLogger(IndexRenderer.class);
 
     private static final String FRONTMATTER = "---\nokf_version: \"0.1\"\n---\n";
-    private static final int RETRIEVAL_CEILING_TOKENS = 20_000;
+    /** Past this many tokens of index, the lexical prefilter is due (ADR 0016). */
+    public static final int RETRIEVAL_CEILING_TOKENS = 20_000;
+
     private static final Locale POLISH = Locale.forLanguageTag("pl");
 
     private IndexRenderer() {}

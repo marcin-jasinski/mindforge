@@ -19,7 +19,9 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, UUI
 
     Optional<DocumentEntity> findByKnowledgeBaseIdAndDocumentId(UUID knowledgeBaseId, UUID documentId);
 
-    Optional<DocumentEntity> findByKnowledgeBaseIdAndContentHash(UUID knowledgeBaseId, String contentHash);
+    Optional<DocumentEntity> findByKnowledgeBaseIdAndContentHashAndUploadSourceNot(UUID knowledgeBaseId,
+                                                                                   String contentHash,
+                                                                                   String uploadSource);
 
     @Query(value = "SELECT lesson_title FROM documents WHERE knowledge_base_id = :knowledgeBaseId AND lesson_id = :lessonId"
         + " ORDER BY created_at DESC LIMIT 1", nativeQuery = true)

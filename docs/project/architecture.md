@@ -46,8 +46,8 @@ composition roots.
 - **Ports**: `WikiStore`, `RunReportQuery`, `WikiHealthQuery`, `BundleQuery`, `IngestRunRepository`,
   `DocumentRepository`, `DocumentParser`, `UploadPolicy`, `AIGateway`, `EventPublisher`, `ProgressNotifier`,
   `StudyProgressStore`, `QuizSessionStore`, `InteractionStore`
-- **Constraint**: every tenant-scoped port method takes `kbId` as its first argument; the sweep's two system methods are
-  the only exception
+- **Constraint**: every tenant-scoped port method takes `kbId` as its first argument; the sweep's two system methods and
+  the quiz-session cleanup's `deleteExpired` are the only exceptions
 
 ### Application (`dev.mindforge.application`)
 

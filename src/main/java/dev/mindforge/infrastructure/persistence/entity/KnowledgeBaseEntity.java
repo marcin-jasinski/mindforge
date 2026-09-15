@@ -28,6 +28,9 @@ public class KnowledgeBaseEntity extends BaseEntity {
     @Formula("(SELECT COUNT(*) FROM wiki_pages p WHERE p.knowledge_base_id = kb_id)")
     private long pageCount;
 
+    @Formula("(SELECT COUNT(*) FROM documents d WHERE d.knowledge_base_id = kb_id)")
+    private long documentCount;
+
     public UUID getKbId() { return kbId; }
     public void setKbId(UUID kbId) { this.kbId = kbId; }
 
@@ -41,4 +44,6 @@ public class KnowledgeBaseEntity extends BaseEntity {
     public void setDescription(String description) { this.description = description; }
 
     public long getPageCount() { return pageCount; }
+
+    public long getDocumentCount() { return documentCount; }
 }

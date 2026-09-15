@@ -57,27 +57,38 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
-    public void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures) {
-        fence(kbId, runId, RunStatus.RUNNING, RunStatus.WRITTEN).setFailures(failures);
+    public void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures,
+                            Map<String, String> stepVersions) {
+        IngestRunEntity run = fence(kbId, runId, RunStatus.RUNNING, RunStatus.WRITTEN);
+        run.setFailures(failures);
+        run.setStepVersions(stepVersions);
     }
 
     @Override
     public void complete(UUID kbId, UUID runId, int supersessionCount, boolean supersessionSkipped,
-                         List<Map<String, Object>> failures) {
+                         List<Map<String, Object>> failures, Map<String, String> stepVersions) {
         IngestRunEntity run = fence(kbId, runId, RunStatus.WRITTEN, RunStatus.COMPLETED);
         run.setSupersessionCount(supersessionCount);
         run.setSupersessionSkipped(supersessionSkipped);
         run.setFailures(failures);
+        run.setStepVersions(stepVersions);
         runs.releaseLease(kbId, runId);
     }
 
     @Override
-    public void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures) {
+    public void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures,
+                     Map<String, String> stepVersions) {
         IngestRunEntity run = fence(kbId, runId, RunStatus.RUNNING, RunStatus.FAILED);
         run.setFailureReason(reason);
         run.setRetryable(retryable);
         run.setFailures(failures);
+        run.setStepVersions(stepVersions);
         runs.releaseLease(kbId, runId);
+    }
+
+    @Override
+    public void recordFindings(UUID kbId, UUID runId, List<Map<String, Object>> findings) {
+        runs.findByKnowledgeBaseIdAndRunId(kbId, runId).orElseThrow().setFindings(findings);
     }
 
     @Override
@@ -88,6 +99,17 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     @Override
     public Optional<IngestRun> latestForDocument(UUID kbId, UUID documentId) {
         return runs.findFirstByKnowledgeBaseIdAndDocumentIdOrderByCreatedAtDesc(kbId, documentId)
+            .map(mapper::toDomain);
+    }
+
+    @Override
+    public List<IngestRun> latestPerDocument(UUID kbId) {
+        return runs.findLatestPerDocument(kbId).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public Optional<IngestRun> latestCompleted(UUID kbId, RunKind kind) {
+        return runs.findFirstByKnowledgeBaseIdAndKindAndStatusOrderByFinishedAtDesc(kbId, kind, RunStatus.COMPLETED)
             .map(mapper::toDomain);
     }
 

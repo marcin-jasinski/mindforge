@@ -29,16 +29,23 @@ import dev.mindforge.domain.model.ContentBlock;
 import dev.mindforge.domain.model.ContentHash;
 import dev.mindforge.domain.model.Document;
 import dev.mindforge.domain.model.DomainEvent;
+import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.LessonAlreadyExistsException;
 import dev.mindforge.domain.model.LessonIdentity;
 import dev.mindforge.domain.model.LessonIdentityException;
+import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.ParsedDocument;
+import dev.mindforge.domain.model.RetryNotAllowedException;
+import dev.mindforge.domain.model.RunKind;
+import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.model.UnknownLessonException;
 import dev.mindforge.domain.model.UploadRejectedException;
 import dev.mindforge.domain.model.UploadSource;
 import dev.mindforge.domain.port.DocumentParser;
 import dev.mindforge.domain.port.DocumentRepository;
 import dev.mindforge.domain.port.EventPublisher;
+import dev.mindforge.domain.port.IngestRunRepository;
+import dev.mindforge.domain.port.ProgressNotifier;
 import dev.mindforge.domain.port.UploadPolicy;
 import dev.mindforge.support.TestFixtures;
 
@@ -57,25 +64,32 @@ class IngestionServiceTest {
     };
 
     private final DocumentRepository documents = makeDocuments();
+    private final IngestRunRepository runs = makeRuns();
     private final EventPublisher events = mock(EventPublisher.class);
+    private final ProgressNotifier progress = mock(ProgressNotifier.class);
 
     @Test
-    void shouldInsertANewLessonAndPublishDocumentIngestedUnderTheKnowledgeBaseLock() {
+    void shouldInsertANewLessonWithAQueuedRunUnderTheKnowledgeBaseLockAndNotifyAfterwards() {
         UUID documentId = makeService(null).ingest(makeUpload(KB, null, false));
 
         ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
+        ArgumentCaptor<IngestRun> enqueued = ArgumentCaptor.forClass(IngestRun.class);
         ArgumentCaptor<DomainEvent> published = ArgumentCaptor.forClass(DomainEvent.class);
-        InOrder order = inOrder(documents, events);
+        InOrder order = inOrder(documents, runs, events, progress);
         order.verify(documents).lockKnowledgeBase(KB);
         order.verify(documents).findByContentHash(KB, HASH);
         order.verify(documents).insert(eq(KB), inserted.capture());
+        order.verify(runs).enqueue(eq(KB), enqueued.capture());
         order.verify(events).publish(published.capture());
+        order.verify(progress).notify(eq(KB), any());
 
         assertThat(inserted.getValue()).usingRecursiveComparison().isEqualTo(new Document(
             documentId, KB, new LessonIdentity("notatki", "notatki"), HASH, "notatki.md", "text/markdown",
             CONTENT, List.of(ContentBlock.text(CONTENT, 0)), UploadSource.API, USER, null, null));
+        assertThat(enqueued.getValue()).extracting(IngestRun::kind, IngestRun::documentId, IngestRun::status)
+            .containsExactly(RunKind.INGEST, documentId, RunStatus.QUEUED);
         assertThat(published.getValue()).usingRecursiveComparison().ignoringFields("occurredAt")
-            .isEqualTo(new DomainEvent.DocumentIngested(documentId, KB, "notatki", HASH, null));
+            .isEqualTo(new DomainEvent.IngestRunQueued(enqueued.getValue().runId(), KB, null));
     }
 
     @Test
@@ -87,7 +101,7 @@ class IngestionServiceTest {
 
         assertThat(documentId).isEqualTo(existing.documentId());
         verify(documents, never()).insert(any(), any());
-        verifyNoInteractions(events);
+        verifyNoInteractions(runs, events, progress);
     }
 
     @Test
@@ -160,14 +174,57 @@ class IngestionServiceTest {
         verifyNoInteractions(documents, events);
     }
 
+    @Test
+    void shouldRetryADocumentOnlyWhenItsLatestRunFailed() {
+        UUID documentId = UUID.randomUUID();
+        when(runs.latestForDocument(KB, documentId)).thenReturn(Optional.of(makeRun(documentId, RunStatus.FAILED)));
+
+        UUID runId = makeService(null).retry(KB, documentId);
+
+        ArgumentCaptor<IngestRun> enqueued = ArgumentCaptor.forClass(IngestRun.class);
+        InOrder order = inOrder(documents, runs, events, progress);
+        order.verify(documents).lockKnowledgeBase(KB);
+        order.verify(runs).enqueue(eq(KB), enqueued.capture());
+        order.verify(events).publish(any());
+        order.verify(progress).notify(eq(KB), any());
+        assertThat(enqueued.getValue()).extracting(IngestRun::runId, IngestRun::documentId, IngestRun::attempt)
+            .containsExactly(runId, documentId, 1);
+    }
+
+    @Test
+    void shouldRefuseToRetryADocumentWhoseLatestRunIsQueuedOrCompleted() {
+        UUID queued = UUID.randomUUID();
+        UUID completed = UUID.randomUUID();
+        when(runs.latestForDocument(KB, queued)).thenReturn(Optional.of(makeRun(queued, RunStatus.QUEUED)));
+        when(runs.latestForDocument(KB, completed)).thenReturn(Optional.of(makeRun(completed, RunStatus.COMPLETED)));
+
+        assertThatExceptionOfType(RetryNotAllowedException.class).isThrownBy(() -> makeService(null).retry(KB, queued));
+        assertThatExceptionOfType(RetryNotAllowedException.class)
+            .isThrownBy(() -> makeService(null).retry(KB, completed));
+        assertThatExceptionOfType(NotFoundException.class)
+            .isThrownBy(() -> makeService(null).retry(KB, UUID.randomUUID()));
+        verify(runs, never()).enqueue(any(), any());
+    }
+
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
 
+    private static IngestRun makeRun(UUID documentId, RunStatus status) {
+        return new IngestRun(UUID.randomUUID(), KB, RunKind.INGEST, documentId, null, status, 2, null, null,
+            List.of(), false, 0, Map.of(), List.of(), null, null, null);
+    }
+
     private IngestionService makeService(UploadPolicy policy) {
         return new IngestionService(
             policy != null ? policy : (filename, mimeType, sizeBytes) -> filename,
-            PARSER, documents, events, TransactionOperations.withoutTransaction());
+            PARSER, documents, runs, events, progress, TransactionOperations.withoutTransaction());
+    }
+
+    private static IngestRunRepository makeRuns() {
+        IngestRunRepository runs = mock(IngestRunRepository.class);
+        when(runs.enqueue(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
+        return runs;
     }
 
     private static DocumentRepository makeDocuments() {

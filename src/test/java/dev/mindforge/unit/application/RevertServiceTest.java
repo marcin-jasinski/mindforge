@@ -35,6 +35,7 @@ import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.model.WikiPage;
 import dev.mindforge.domain.port.IngestRunRepository;
+import dev.mindforge.domain.port.ProgressNotifier;
 import dev.mindforge.domain.port.WikiStore;
 
 class RevertServiceTest {
@@ -65,7 +66,7 @@ class RevertServiceTest {
             PageType.CONCEPT, "przed"), revertRunId);
         verify(wiki).savePage(any(), any(), any());
         verify(wiki).deleteSources(KB, RUN, List.of(tipped));
-        verify(runs).complete(KB, revertRunId, 1, false, List.of());
+        verify(runs).complete(KB, revertRunId, 1, false, List.of(), Map.of());
     }
 
     @Test
@@ -102,7 +103,18 @@ class RevertServiceTest {
 
         assertThatExceptionOfType(RevertNotAllowedException.class).isThrownBy(() -> makeService().revert(KB, RUN));
         verify(wiki, never()).reinsertPage(any(), any(), any());
-        verify(runs, never()).complete(any(), any(), anyInt(), anyBoolean(), any());
+        verify(runs, never()).complete(any(), any(), anyInt(), anyBoolean(), any(), any());
+    }
+
+    @Test
+    void shouldOfferRevertOnlyForACompletedIngestThatStillTipsAPage() {
+        givenRun(RunKind.INGEST);
+        givenOnlyRevision(makeRevision(UUID.randomUUID(), 1, RUN, "nowa"));
+        assertThat(makeService().isOffered(KB, RUN)).isTrue();
+
+        givenRun(RunKind.REVERT);
+        assertThat(makeService().isOffered(KB, RUN)).isFalse();
+        verify(runs, never()).enqueue(any(), any());
     }
 
     @Test
@@ -136,7 +148,7 @@ class RevertServiceTest {
         InOrder order = inOrder(runs, wiki);
         order.verify(runs).claim(KB, revertRunId);
         order.verify(wiki).deleteSupersession(KB, supersessionId);
-        order.verify(runs).complete(KB, revertRunId, 1, false, List.of());
+        order.verify(runs).complete(KB, revertRunId, 1, false, List.of(), Map.of());
     }
 
     @Test
@@ -145,7 +157,7 @@ class RevertServiceTest {
 
         assertThatExceptionOfType(RevertNotAllowedException.class)
             .isThrownBy(() -> makeService().removeSupersession(KB, supersessionId));
-        verify(runs, never()).complete(any(), any(), anyInt(), anyBoolean(), any());
+        verify(runs, never()).complete(any(), any(), anyInt(), anyBoolean(), any(), any());
     }
 
     private UUID givenSupersession() {
@@ -160,7 +172,7 @@ class RevertServiceTest {
     // ---------------------------------------------------------------------------
 
     private RevertService makeService() {
-        return new RevertService(runs, wiki, TransactionOperations.withoutTransaction());
+        return new RevertService(runs, wiki, mock(ProgressNotifier.class), TransactionOperations.withoutTransaction());
     }
 
     private static IngestRunRepository makeRuns() {

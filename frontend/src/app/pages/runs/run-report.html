@@ -1,0 +1,65 @@
+@if (report(); as run) {
+  <h1>{{ run.kind }} — {{ run.status }}</h1>
+  <p>
+    Utworzono {{ run.createdAt }}
+    @if (run.finishedAt) {
+      · zakończono {{ run.finishedAt }}
+    }
+    @if (run.failureReason) {
+      · <span class="error">{{ run.failureReason }}</span>
+    }
+  </p>
+  @if (run.revertOffered) {
+    <button mat-flat-button type="button" (click)="revert()">Cofnij ten przebieg</button>
+  }
+  @if (message(); as text) {
+    <p class="error" role="alert">{{ text }}</p>
+  }
+
+  <h2>Zapisane strony</h2>
+  @for (change of run.pages; track change.pageId) {
+    <section class="stack">
+      <h3>
+        @if (change.after.markdownBody) {
+          <a [routerLink]="pageLink(change.path)">{{ change.after.title }}</a>
+        } @else {
+          {{ change.after.title }} (usunięta)
+        }
+        <small>· długość {{ change.lengthBefore ?? 0 }} → {{ change.lengthAfter ?? 0 }}</small>
+      </h3>
+      <app-diff-view [before]="change.before?.markdownBody" [after]="change.after.markdownBody" />
+    </section>
+  } @empty {
+    <p>Ten przebieg nie zapisał żadnej strony.</p>
+  }
+
+  @if (run.supersessions.length) {
+    <h2>Poprawione sekcje</h2>
+    <ul>
+      @for (row of run.supersessions; track row.supersessionId) {
+        <li>
+          {{ row.supersededPath ?? '(usunięta strona)' }}#{{ row.sectionAnchor }} ← {{ row.supersedingPath ?? '(usunięta strona)' }}
+          <button mat-button type="button" (click)="removeSupersession(row.supersessionId)">Usuń</button>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (run.failures.length) {
+    <h2>Pominięte i nieudane</h2>
+    <ul>
+      @for (failure of run.failures; track $index) {
+        <li>{{ failure.step }}{{ failure.item ? ' · ' + failure.item : '' }}{{ failure.path ? ' · ' + failure.path : '' }}{{ failure.reason ? ': ' + failure.reason : '' }}{{ failure.count ? ' (' + failure.count + ')' : '' }}</li>
+      }
+    </ul>
+  }
+
+  @if (run.findings.length) {
+    <h2>Ustalenia przeglądu</h2>
+    <ul>
+      @for (finding of run.findings; track $index) {
+        <li><strong>{{ finding.kind }}</strong>: {{ finding.text }} {{ finding.pages.join(', ') }}</li>
+      }
+    </ul>
+  }
+}

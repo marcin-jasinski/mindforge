@@ -2,6 +2,15 @@ spring:
   application:
     name: mindforge
 
+  threads:
+    virtual:
+      enabled: true
+
+  servlet:
+    multipart:
+      max-file-size: ${UPLOAD_MAX_SIZE:50MB}
+      max-request-size: ${UPLOAD_MAX_SIZE:50MB}
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/mindforge}
     username: ${DATABASE_USERNAME:mindforge}
@@ -45,14 +54,20 @@ spring:
   cache:
     type: caffeine
 
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
+
 server:
-  port: 8080
+  port: ${PORT:8080}
+  # Finish in-flight requests; the run worker stops claiming on ContextClosedEvent.
+  shutdown: graceful
 
 management:
   endpoints:
     web:
+      base-path: /
       exposure:
-        include: health,info
+        include: health
   endpoint:
     health:
       show-details: never
@@ -61,9 +76,16 @@ mindforge:
   security:
     jwt-secret: ${JWT_SECRET:}
     jwt-expiry-seconds: ${JWT_EXPIRY_SECONDS:86400}
+    secure-cookies: ${AUTH_SECURE_COOKIES:true}
   upload:
     max-size: ${UPLOAD_MAX_SIZE:50MB}
+  study:
+    quiz-session-ttl: ${QUIZ_SESSION_TTL:PT2H}
+  runs:
+    # How often the worker settles runs this process is not running and drains queues (ISO-8601).
+    sweep-interval: ${RUNS_SWEEP_INTERVAL:PT1M}
   ai:
+    background-permits: ${AI_BACKGROUND_PERMITS:4}
     model:
       small: ${AI_MODEL_SMALL:openai/gpt-4o-mini}
       large: ${AI_MODEL_LARGE:openai/gpt-4o}

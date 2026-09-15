@@ -9,7 +9,7 @@ Dependencies always point inward: adapters → application → domain. Never cro
 | Layer | Package | Allowed Imports |
 |---|---|---|
 | Domain | `dev.mindforge.domain` | JDK stdlib only; zero I/O, zero framework imports |
-| Application | `dev.mindforge.application` | `dev.mindforge.domain.*`, plus Spring's transaction API (`org.springframework.transaction.*`) — transaction boundaries are part of a use case |
+| Application | `dev.mindforge.application` | `dev.mindforge.domain.*`, `dev.mindforge.agent.*` (the model services a use case sequences), plus Spring's transaction API (`org.springframework.transaction.*`) — transaction boundaries are part of a use case |
 | Infrastructure | `dev.mindforge.infrastructure` | `dev.mindforge.domain.*`, `dev.mindforge.application.*`, any third-party |
 | Model services | `dev.mindforge.agent` | `dev.mindforge.domain.*`, `dev.mindforge.infrastructure.ai.*` |
 | Adapters | `dev.mindforge.api`, `dev.mindforge.cli` | All layers (thin; no business logic) |
@@ -91,7 +91,7 @@ Query ports (`RunReportQuery`, `WikiHealthQuery`, `BundleQuery`) are read-only a
 ## Tenancy Is Structural
 
 - Every tenant-scoped port method — `WikiStore`, the query ports, `DocumentRepository`, `IngestRunRepository`, `StudyProgressStore`, `QuizSessionStore`, `InteractionStore` — takes `kbId` as its **first** argument, and every adapter query binds it.
-- The only exception is the sweep's system methods on `IngestRunRepository` (`findUnfinished`, `knowledgeBasesWithQueuedRuns`), which act for no user, return each row's `kbId`, and are called only by `RunWorker`.
+- The only exceptions are system methods that act for no user: the sweep's `IngestRunRepository.findUnfinished` and `knowledgeBasesWithQueuedRuns`, which return each row's `kbId` and are called only by `RunWorker`, and `QuizSessionStore.deleteExpired`, called only by the scheduled session cleanup.
 - Every wiki, history and study table carries `knowledge_base_id`.
 - Ownership ("does this user own this knowledge base?") is checked once per request in the controller or application service. The store **scopes**; it never authorizes.
 

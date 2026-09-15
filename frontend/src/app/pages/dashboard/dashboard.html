@@ -1,0 +1,28 @@
+<h1>Bazy wiedzy</h1>
+<section class="stack">
+  @for (kb of knowledgeBases(); track kb.kbId) {
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <h2 mat-card-title><a [routerLink]="['/kb', kb.kbId]">{{ kb.name }}</a></h2>
+        <p mat-card-subtitle>{{ kb.documentCount }} dokumentów · {{ kb.pageCount }} stron</p>
+      </mat-card-header>
+      @if (kb.description) {
+        <mat-card-content>{{ kb.description }}</mat-card-content>
+      }
+    </mat-card>
+  } @empty {
+    <p>Nie masz jeszcze żadnej bazy wiedzy.</p>
+  }
+</section>
+<h2>Nowa baza wiedzy</h2>
+<form class="row" (ngSubmit)="create()">
+  <mat-form-field>
+    <mat-label>Nazwa</mat-label>
+    <input matInput name="name" [(ngModel)]="name" required maxlength="255" />
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Opis</mat-label>
+    <input matInput name="description" [(ngModel)]="description" maxlength="2000" />
+  </mat-form-field>
+  <button mat-flat-button type="submit" [disabled]="!name().trim()">Utwórz</button>
+</form>
