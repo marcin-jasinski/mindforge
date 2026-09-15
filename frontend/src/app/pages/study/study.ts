@@ -33,9 +33,9 @@ export class Study implements OnInit {
   readonly evaluation = signal<Evaluation | null>(null);
   readonly finished = signal(false);
   readonly ratings = [0, 1, 2, 3, 4, 5];
-  scope: ScopeKind = 'whole';
-  lessonId = '';
-  answer = '';
+  readonly scope = signal<ScopeKind>('whole');
+  readonly lessonId = signal('');
+  readonly answer = signal('');
 
   ngOnInit(): void {
     // the reserved conversation lesson is not a document a learner uploaded, so it never appears here
@@ -44,7 +44,7 @@ export class Study implements OnInit {
       this.lessons.set([...lessons].map(([id, title]) => ({ id, title })));
     });
     if (this.pageId()) {
-      this.scope = 'page';
+      this.scope.set('page');
     }
   }
 
@@ -68,7 +68,7 @@ export class Study implements OnInit {
   }
 
   startQuiz(): void {
-    const body = this.scope === 'lesson' ? { lessonId: this.lessonId } : this.scope === 'page' ? { pageId: this.pageId() } : {};
+    const body = this.scope() === 'lesson' ? { lessonId: this.lessonId() } : this.scope() === 'page' ? { pageId: this.pageId() } : {};
     this.api.post<QuizSession>(`/knowledge-bases/${this.kbId()}/quiz-sessions`, body).subscribe((session) => {
       this.session.set(session);
       this.finished.set(false);
@@ -78,10 +78,10 @@ export class Study implements OnInit {
 
   submitAnswer(): void {
     this.api
-      .post<Evaluation & { finished: boolean }>(this.sessionPath() + '/answers', { answer: this.answer })
+      .post<Evaluation & { finished: boolean }>(this.sessionPath() + '/answers', { answer: this.answer() })
       .subscribe((evaluation) => {
         this.evaluation.set(evaluation);
-        this.answer = '';
+        this.answer.set('');
       });
   }
 
@@ -98,10 +98,10 @@ export class Study implements OnInit {
   }
 
   private scopeQuery(): string {
-    if (this.scope === 'lesson' && this.lessonId) {
-      return `?lessonId=${encodeURIComponent(this.lessonId)}`;
+    if (this.scope() === 'lesson' && this.lessonId()) {
+      return `?lessonId=${encodeURIComponent(this.lessonId())}`;
     }
     const pageId = this.pageId();
-    return this.scope === 'page' && pageId ? `?pageId=${encodeURIComponent(pageId)}` : '';
+    return this.scope() === 'page' && pageId ? `?pageId=${encodeURIComponent(pageId)}` : '';
   }
 }

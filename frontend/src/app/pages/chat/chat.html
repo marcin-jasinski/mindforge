@@ -38,7 +38,7 @@
     <textarea matInput name="draft" [(ngModel)]="draft" rows="3"></textarea>
   </mat-form-field>
   <div class="row">
-    <button mat-flat-button type="submit" [disabled]="!draft.trim() || busy()">Zapytaj</button>
-    <button mat-stroked-button type="button" [disabled]="!draft.trim()" (click)="edit()">Zmień wiki</button>
+    <button mat-flat-button type="submit" [disabled]="!draft().trim() || busy()">Zapytaj</button>
+    <button mat-stroked-button type="button" [disabled]="!draft().trim()" (click)="edit()">Zmień wiki</button>
   </div>
 </form>

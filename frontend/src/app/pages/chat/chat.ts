@@ -38,19 +38,19 @@ export class Chat implements OnInit {
   readonly kbId = input.required<string>();
   readonly messages = signal<Message[]>([]);
   readonly busy = signal(false);
-  private sessionId = '';
-  draft = '';
+  private readonly sessionId = signal('');
+  readonly draft = signal('');
 
   ngOnInit(): void {
     this.api.post<QuerySession>(`/knowledge-bases/${this.kbId()}/query-sessions`).subscribe((session) => {
-      this.sessionId = session.interactionId;
+      this.sessionId.set(session.interactionId);
     });
   }
 
   ask(): void {
-    const question = this.draft.trim();
+    const question = this.draft().trim();
     this.push({ role: 'user', text: question });
-    this.draft = '';
+    this.draft.set('');
     this.busy.set(true);
     this.api.post<Answer>(this.chatPath('/messages'), { question }).subscribe({
       next: (answer) =>
@@ -61,9 +61,9 @@ export class Chat implements OnInit {
   }
 
   edit(quotedAnswer?: string): void {
-    const instruction = quotedAnswer ? 'Zapisz tę odpowiedź w wiki.' : this.draft.trim();
+    const instruction = quotedAnswer ? 'Zapisz tę odpowiedź w wiki.' : this.draft().trim();
     this.push({ role: 'user', text: instruction });
-    this.draft = '';
+    this.draft.set('');
     this.api.post<RunAccepted>(this.chatPath('/edits'), { instruction, quotedAnswer }).subscribe((accepted) =>
       this.follow(accepted.runId),
     );
@@ -108,6 +108,6 @@ export class Chat implements OnInit {
   }
 
   private chatPath(suffix: string): string {
-    return `/knowledge-bases/${this.kbId()}/query-sessions/${this.sessionId}${suffix}`;
+    return `/knowledge-bases/${this.kbId()}/query-sessions/${this.sessionId()}${suffix}`;
   }
 }

@@ -22,7 +22,7 @@
           <mat-label>Identyfikator nowej lekcji</mat-label>
           <input matInput [(ngModel)]="newLessonId" pattern="[a-z0-9]+(-[a-z0-9]+)*" />
         </mat-form-field>
-        <button mat-stroked-button type="button" [disabled]="!newLessonId" (click)="upload({ lessonId: newLessonId })">
+        <button mat-stroked-button type="button" [disabled]="!newLessonId()" (click)="upload({ lessonId: newLessonId() })">
           Nowa lekcja
         </button>
       </div>

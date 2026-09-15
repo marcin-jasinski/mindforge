@@ -38,7 +38,7 @@ export class Documents implements OnInit {
   readonly collision = signal<Collision | null>(null);
   readonly uploadError = signal<string | null>(null);
   readonly dragging = signal(false);
-  newLessonId = '';
+  readonly newLessonId = signal('');
 
   constructor() {
     // a run that changed state may have changed a document's latest run
@@ -82,14 +82,14 @@ export class Documents implements OnInit {
       next: () => {
         this.file.set(null);
         this.collision.set(null);
-        this.newLessonId = '';
+        this.newLessonId.set('');
         this.progress.reload(this.kbId());
       },
       error: (response: HttpErrorResponse) => {
         const error = response.error as ApiError | null;
         if (error?.code === 'LESSON_EXISTS') {
           this.collision.set({ lessonId: error.lessonId ?? '', lessonTitle: error.lessonTitle ?? '' });
-          this.newLessonId = `${error.lessonId}-2`;
+          this.newLessonId.set(`${error.lessonId}-2`);
         } else {
           this.uploadError.set(error?.detail ?? 'Nie udało się przesłać pliku.');
         }

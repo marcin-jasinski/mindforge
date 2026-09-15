@@ -7,7 +7,7 @@
       <mat-radio-button value="page">Ta strona i strony, do których linkuje</mat-radio-button>
     }
   </mat-radio-group>
-  @if (scope === 'lesson') {
+  @if (scope() === 'lesson') {
     <mat-form-field>
       <mat-label>Lekcja</mat-label>
       <mat-select [(ngModel)]="lessonId">
@@ -57,7 +57,7 @@
           <mat-label>Twoja odpowiedź</mat-label>
           <textarea matInput [(ngModel)]="answer" rows="3"></textarea>
         </mat-form-field>
-        <button mat-flat-button type="button" [disabled]="!answer.trim()" (click)="submitAnswer()">Sprawdź</button>
+        <button mat-flat-button type="button" [disabled]="!answer().trim()" (click)="submitAnswer()">Sprawdź</button>
       }
     }
     @if (finished()) {

@@ -8,20 +8,20 @@ import { ApiService } from './api.service';
 export class AuthService {
   private readonly api = inject(ApiService);
   private readonly _user = signal<User | null>(null);
-  private loaded = false;
+  private readonly loaded = signal(false);
 
   readonly user = this._user.asReadonly();
   readonly isAuthenticated = computed(() => this._user() !== null);
 
   /** Resolves the signed-in user once per page load; a missing cookie resolves to null. */
   ensureLoaded(): Observable<User | null> {
-    if (this.loaded) {
+    if (this.loaded()) {
       return of(this._user());
     }
     return this.api.get<User>('/auth/me', true).pipe(
       catchError(() => of(null)),
       tap((user) => {
-        this.loaded = true;
+        this.loaded.set(true);
         this._user.set(user);
       }),
     );
@@ -45,7 +45,7 @@ export class AuthService {
   }
 
   private signedIn(user: User): void {
-    this.loaded = true;
+    this.loaded.set(true);
     this._user.set(user);
   }
 }

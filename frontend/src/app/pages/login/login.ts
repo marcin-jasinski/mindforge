@@ -21,15 +21,15 @@ export class Login {
 
   readonly registering = signal(false);
   readonly error = signal<string | null>(null);
-  displayName = '';
-  email = '';
-  password = '';
+  readonly displayName = signal('');
+  readonly email = signal('');
+  readonly password = signal('');
 
   submit(): void {
     this.error.set(null);
     const request = this.registering()
-      ? this.auth.register(this.displayName, this.email, this.password)
-      : this.auth.login(this.email, this.password);
+      ? this.auth.register(this.displayName(), this.email(), this.password())
+      : this.auth.login(this.email(), this.password());
     request.subscribe({
       next: () => this.router.navigateByUrl('/dashboard'),
       error: (response) => this.error.set((response.error as ApiError | null)?.detail ?? 'Nie udało się zalogować.'),

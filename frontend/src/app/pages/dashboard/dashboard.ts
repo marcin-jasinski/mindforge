@@ -19,17 +19,17 @@ export class Dashboard implements OnInit {
   private readonly api = inject(ApiService);
 
   readonly knowledgeBases = signal<KnowledgeBase[]>([]);
-  name = '';
-  description = '';
+  readonly name = signal('');
+  readonly description = signal('');
 
   ngOnInit(): void {
     this.load();
   }
 
   create(): void {
-    this.api.post<KnowledgeBase>('/knowledge-bases', { name: this.name, description: this.description }).subscribe(() => {
-      this.name = '';
-      this.description = '';
+    this.api.post<KnowledgeBase>('/knowledge-bases', { name: this.name(), description: this.description() }).subscribe(() => {
+      this.name.set('');
+      this.description.set('');
       this.load();
     });
   }

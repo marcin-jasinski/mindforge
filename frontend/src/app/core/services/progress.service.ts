@@ -20,7 +20,7 @@ export class ProgressService implements OnDestroy {
 
   watch(kbId: string): void {
     this.close();
-    this.source = new EventSource(`/api/knowledge-bases/${kbId}/progress`, { withCredentials: true });
+    this.source = new EventSource(this.api.url(`/knowledge-bases/${kbId}/progress`), { withCredentials: true });
     this.source.onopen = () => this.reload(kbId);
     this.source.addEventListener('progress', (event) =>
       this.zone.run(() => this.apply(kbId, JSON.parse((event as MessageEvent).data) as RunProgress)),
