@@ -9,6 +9,7 @@ import java.util.UUID;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.infrastructure.persistence.entity.IngestRunEntity;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -36,6 +37,24 @@ public interface IngestRunJpaRepository extends JpaRepository<IngestRunEntity, U
         String getRevertedUploadSource();
         String getRevertedLessonId();
         String getRevertedLessonTitle();
+    }
+
+    interface RunSummaryRow {
+        UUID getRunId();
+        RunKind getKind();
+        RunStatus getStatus();
+        UUID getDocumentId();
+        String getUploadSource();
+        String getLessonTitle();
+        Short getAttempt();
+        Boolean getRetryable();
+        String getFailureReason();
+        Long getCreated();
+        Long getRevised();
+        Long getDeleted();
+        Integer getSupersessionCount();
+        Instant getCreatedAt();
+        Instant getFinishedAt();
     }
 
     @Modifying(flushAutomatically = true)
@@ -69,6 +88,32 @@ public interface IngestRunJpaRepository extends JpaRepository<IngestRunEntity, U
 
     Optional<IngestRunEntity> findFirstByKnowledgeBaseIdAndDocumentIdOrderByCreatedAtDesc(UUID knowledgeBaseId,
                                                                                          UUID documentId);
+
+    @Query(value = "SELECT DISTINCT ON (document_id) * FROM ingest_runs"
+        + " WHERE knowledge_base_id = :knowledgeBaseId AND document_id IS NOT NULL"
+        + " ORDER BY document_id, created_at DESC", nativeQuery = true)
+    List<IngestRunEntity> findLatestPerDocument(UUID knowledgeBaseId);
+
+    Optional<IngestRunEntity> findFirstByKnowledgeBaseIdAndKindAndStatusOrderByFinishedAtDesc(UUID knowledgeBaseId,
+                                                                                           RunKind kind,
+                                                                                           RunStatus status);
+
+    /** Page counts come from the run's revisions, as the log's do. */
+    @Query("SELECT r.runId AS runId, r.kind AS kind, r.status AS status, r.documentId AS documentId,"
+        + " d.uploadSource AS uploadSource, d.lessonTitle AS lessonTitle, r.attempt AS attempt,"
+        + " r.retryable AS retryable, r.failureReason AS failureReason,"
+        + " SUM(CASE WHEN pr.revision = 1 THEN 1 ELSE 0 END) AS created,"
+        + " SUM(CASE WHEN pr.revision > 1 AND pr.markdownBody IS NOT NULL THEN 1 ELSE 0 END) AS revised,"
+        + " SUM(CASE WHEN pr.pageId IS NOT NULL AND pr.markdownBody IS NULL THEN 1 ELSE 0 END) AS deleted,"
+        + " r.supersessionCount AS supersessionCount, r.createdAt AS createdAt, r.finishedAt AS finishedAt"
+        + " FROM IngestRunEntity r"
+        + " LEFT JOIN DocumentEntity d ON d.knowledgeBaseId = :knowledgeBaseId AND d.documentId = r.documentId"
+        + " LEFT JOIN PageRevisionEntity pr ON pr.knowledgeBaseId = :knowledgeBaseId AND pr.ingestRunId = r.runId"
+        + " WHERE r.knowledgeBaseId = :knowledgeBaseId"
+        + " GROUP BY r.runId, r.kind, r.status, r.documentId, d.uploadSource, d.lessonTitle, r.attempt,"
+        + " r.retryable, r.failureReason, r.supersessionCount, r.createdAt, r.finishedAt"
+        + " ORDER BY r.createdAt DESC")
+    List<RunSummaryRow> findRunSummaries(UUID knowledgeBaseId, Limit limit);
 
     boolean existsByKnowledgeBaseIdAndKindAndStatusIn(UUID knowledgeBaseId, RunKind kind,
                                                       Collection<RunStatus> statuses);

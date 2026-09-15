@@ -60,11 +60,17 @@ public class AppProperties {
         @Positive
         private long jwtExpirySeconds = 86400L;
 
+        /** Off only for local HTTP development ({@code AUTH_SECURE_COOKIES=false}). */
+        private boolean secureCookies = true;
+
         public String getJwtSecret() { return jwtSecret; }
         public void setJwtSecret(String jwtSecret) { this.jwtSecret = jwtSecret; }
 
         public long getJwtExpirySeconds() { return jwtExpirySeconds; }
         public void setJwtExpirySeconds(long jwtExpirySeconds) { this.jwtExpirySeconds = jwtExpirySeconds; }
+
+        public boolean isSecureCookies() { return secureCookies; }
+        public void setSecureCookies(boolean secureCookies) { this.secureCookies = secureCookies; }
     }
 
     public static class Ai {

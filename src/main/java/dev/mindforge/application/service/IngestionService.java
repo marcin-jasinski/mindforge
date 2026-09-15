@@ -1,10 +1,14 @@
 package dev.mindforge.application.service;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.transaction.support.TransactionOperations;
 
@@ -15,12 +19,15 @@ import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.LessonAlreadyExistsException;
 import dev.mindforge.domain.model.LessonIdentity;
 import dev.mindforge.domain.model.LessonIdentityException;
+import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.ParsedDocument;
+import dev.mindforge.domain.model.RetryNotAllowedException;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunProgress;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.model.UnknownLessonException;
 import dev.mindforge.domain.model.UploadRejectedException;
+import dev.mindforge.domain.model.UploadSource;
 import dev.mindforge.domain.port.DocumentParser;
 import dev.mindforge.domain.port.DocumentRepository;
 import dev.mindforge.domain.port.EventPublisher;
@@ -93,6 +100,49 @@ public class IngestionService {
             progress.notify(kbId, RunProgress.status(accepted.run(), RunStatus.QUEUED));
         }
         return accepted.documentId();
+    }
+
+    /** An uploaded document and its newest run, null before one exists. */
+    public record DocumentState(Document document, IngestRun latestRun) {}
+
+    /** The knowledge base's uploads, newest first; conversation turns are not documents a learner manages. */
+    public List<DocumentState> documents(UUID kbId) {
+        Map<UUID, IngestRun> latest = runs.latestPerDocument(kbId).stream()
+            .collect(Collectors.toMap(IngestRun::documentId, Function.identity()));
+        return documents.listByKnowledgeBase(kbId).stream()
+            .filter(document -> document.uploadSource() != UploadSource.CONVERSATION)
+            .sorted(Comparator.comparing(Document::createdAt).reversed())
+            .map(document -> new DocumentState(document, latest.get(document.documentId())))
+            .toList();
+    }
+
+    /** @throws NotFoundException when the knowledge base has no such document */
+    public DocumentState document(UUID kbId, UUID documentId) {
+        Document document = documents.findById(kbId, documentId).orElseThrow(() -> new NotFoundException("Document"));
+        return new DocumentState(document, runs.latestForDocument(kbId, documentId).orElse(null));
+    }
+
+    /**
+     * Queues a new first-attempt ingest of a document whose latest run failed, against the current wiki.
+     *
+     * @return the id of the queued run
+     * @throws NotFoundException when the knowledge base has no such document
+     * @throws RetryNotAllowedException unless the document's latest run is {@code FAILED}
+     */
+    public UUID retry(UUID kbId, UUID documentId) {
+        IngestRun run = transactions.execute(status -> {
+            documents.lockKnowledgeBase(kbId);
+            Optional<IngestRun> latest = runs.latestForDocument(kbId, documentId);
+            if (latest.isEmpty()) {
+                throw new NotFoundException("Document");
+            }
+            if (latest.get().status() != RunStatus.FAILED) {
+                throw new RetryNotAllowedException(documentId);
+            }
+            return enqueue(kbId, documentId);
+        });
+        progress.notify(kbId, RunProgress.status(run, RunStatus.QUEUED));
+        return run.runId();
     }
 
     /** Inserts a {@code QUEUED} ingest run of the document and publishes its event; call inside a transaction. */

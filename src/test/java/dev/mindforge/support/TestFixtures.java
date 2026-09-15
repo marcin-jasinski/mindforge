@@ -43,6 +43,7 @@ public final class TestFixtures {
             "Test KB",
             "A knowledge base used in tests",
             Instant.parse("2026-01-01T00:00:00Z"),
+            0,
             0);
     }
 

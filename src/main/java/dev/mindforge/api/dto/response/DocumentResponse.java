@@ -4,9 +4,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * View of a {@link dev.mindforge.domain.model.Document} for API responses.
- * Excludes {@code originalContent} and {@code contentBlocks} (raw ingested
- * payload, not needed by clients) and never carries a password hash.
+ * View of an uploaded document and its newest run. Excludes {@code originalContent} and {@code contentBlocks}, the
+ * raw ingested payload. {@code latestRun} is null before a run exists.
  */
 public record DocumentResponse(
     UUID documentId,
@@ -16,5 +15,5 @@ public record DocumentResponse(
     String sourceFilename,
     String mimeType,
     Instant createdAt,
-    Instant updatedAt
+    RunStateResponse latestRun
 ) {}

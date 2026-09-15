@@ -35,6 +35,7 @@ import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.model.WikiPage;
 import dev.mindforge.domain.port.IngestRunRepository;
+import dev.mindforge.domain.port.ProgressNotifier;
 import dev.mindforge.domain.port.WikiStore;
 
 class RevertServiceTest {
@@ -106,6 +107,17 @@ class RevertServiceTest {
     }
 
     @Test
+    void shouldOfferRevertOnlyForACompletedIngestThatStillTipsAPage() {
+        givenRun(RunKind.INGEST);
+        givenOnlyRevision(makeRevision(UUID.randomUUID(), 1, RUN, "nowa"));
+        assertThat(makeService().isOffered(KB, RUN)).isTrue();
+
+        givenRun(RunKind.REVERT);
+        assertThat(makeService().isOffered(KB, RUN)).isFalse();
+        verify(runs, never()).enqueue(any(), any());
+    }
+
+    @Test
     void shouldNotRevertARevertRun() {
         givenRun(RunKind.REVERT);
 
@@ -160,7 +172,7 @@ class RevertServiceTest {
     // ---------------------------------------------------------------------------
 
     private RevertService makeService() {
-        return new RevertService(runs, wiki, TransactionOperations.withoutTransaction());
+        return new RevertService(runs, wiki, mock(ProgressNotifier.class), TransactionOperations.withoutTransaction());
     }
 
     private static IngestRunRepository makeRuns() {

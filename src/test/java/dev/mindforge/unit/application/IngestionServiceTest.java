@@ -33,7 +33,9 @@ import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.LessonAlreadyExistsException;
 import dev.mindforge.domain.model.LessonIdentity;
 import dev.mindforge.domain.model.LessonIdentityException;
+import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.ParsedDocument;
+import dev.mindforge.domain.model.RetryNotAllowedException;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.model.UnknownLessonException;
@@ -172,9 +174,46 @@ class IngestionServiceTest {
         verifyNoInteractions(documents, events);
     }
 
+    @Test
+    void shouldRetryADocumentOnlyWhenItsLatestRunFailed() {
+        UUID documentId = UUID.randomUUID();
+        when(runs.latestForDocument(KB, documentId)).thenReturn(Optional.of(makeRun(documentId, RunStatus.FAILED)));
+
+        UUID runId = makeService(null).retry(KB, documentId);
+
+        ArgumentCaptor<IngestRun> enqueued = ArgumentCaptor.forClass(IngestRun.class);
+        InOrder order = inOrder(documents, runs, events, progress);
+        order.verify(documents).lockKnowledgeBase(KB);
+        order.verify(runs).enqueue(eq(KB), enqueued.capture());
+        order.verify(events).publish(any());
+        order.verify(progress).notify(eq(KB), any());
+        assertThat(enqueued.getValue()).extracting(IngestRun::runId, IngestRun::documentId, IngestRun::attempt)
+            .containsExactly(runId, documentId, 1);
+    }
+
+    @Test
+    void shouldRefuseToRetryADocumentWhoseLatestRunIsQueuedOrCompleted() {
+        UUID queued = UUID.randomUUID();
+        UUID completed = UUID.randomUUID();
+        when(runs.latestForDocument(KB, queued)).thenReturn(Optional.of(makeRun(queued, RunStatus.QUEUED)));
+        when(runs.latestForDocument(KB, completed)).thenReturn(Optional.of(makeRun(completed, RunStatus.COMPLETED)));
+
+        assertThatExceptionOfType(RetryNotAllowedException.class).isThrownBy(() -> makeService(null).retry(KB, queued));
+        assertThatExceptionOfType(RetryNotAllowedException.class)
+            .isThrownBy(() -> makeService(null).retry(KB, completed));
+        assertThatExceptionOfType(NotFoundException.class)
+            .isThrownBy(() -> makeService(null).retry(KB, UUID.randomUUID()));
+        verify(runs, never()).enqueue(any(), any());
+    }
+
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
+
+    private static IngestRun makeRun(UUID documentId, RunStatus status) {
+        return new IngestRun(UUID.randomUUID(), KB, RunKind.INGEST, documentId, null, status, 2, null, null,
+            List.of(), false, 0, Map.of(), List.of(), null, null, null);
+    }
 
     private IngestionService makeService(UploadPolicy policy) {
         return new IngestionService(

@@ -47,6 +47,11 @@ public interface IngestRunRepository {
 
     Optional<IngestRun> latestForDocument(UUID kbId, UUID documentId);
 
+    /** The newest run of each document in the knowledge base. */
+    List<IngestRun> latestPerDocument(UUID kbId);
+
+    Optional<IngestRun> latestCompleted(UUID kbId, RunKind kind);
+
     /** Whether a run of this kind is queued, running or written. */
     boolean hasQueuedOrActive(UUID kbId, RunKind kind);
 

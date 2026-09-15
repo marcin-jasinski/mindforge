@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import dev.mindforge.domain.model.LiveSupersession;
+import dev.mindforge.domain.model.RunSupersession;
 import dev.mindforge.infrastructure.persistence.entity.PageSupersessionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -33,4 +34,14 @@ public interface PageSupersessionJpaRepository extends JpaRepository<PageSuperse
         + " AND superseded.knowledgeBaseId = :knowledgeBaseId AND superseded.pageId = s.supersededPageId"
         + " AND superseding.knowledgeBaseId = :knowledgeBaseId AND superseding.pageId = s.supersedingPageId")
     List<LiveSupersession> findLive(UUID knowledgeBaseId, Collection<UUID> pageIds);
+
+    @Query("SELECT new dev.mindforge.domain.model.RunSupersession(s.supersessionId, s.sectionAnchor,"
+        + " superseded.path, superseding.path)"
+        + " FROM PageSupersessionEntity s"
+        + " LEFT JOIN WikiPageEntity superseded"
+        + "   ON superseded.knowledgeBaseId = :knowledgeBaseId AND superseded.pageId = s.supersededPageId"
+        + " LEFT JOIN WikiPageEntity superseding"
+        + "   ON superseding.knowledgeBaseId = :knowledgeBaseId AND superseding.pageId = s.supersedingPageId"
+        + " WHERE s.knowledgeBaseId = :knowledgeBaseId AND s.ingestRunId = :runId ORDER BY s.createdAt")
+    List<RunSupersession> findByRun(UUID knowledgeBaseId, UUID runId);
 }

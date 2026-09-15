@@ -103,6 +103,17 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
+    public List<IngestRun> latestPerDocument(UUID kbId) {
+        return runs.findLatestPerDocument(kbId).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public Optional<IngestRun> latestCompleted(UUID kbId, RunKind kind) {
+        return runs.findFirstByKnowledgeBaseIdAndKindAndStatusOrderByFinishedAtDesc(kbId, kind, RunStatus.COMPLETED)
+            .map(mapper::toDomain);
+    }
+
+    @Override
     public boolean hasQueuedOrActive(UUID kbId, RunKind kind) {
         return runs.existsByKnowledgeBaseIdAndKindAndStatusIn(kbId, kind, ACTIVE);
     }

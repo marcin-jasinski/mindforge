@@ -2,6 +2,15 @@ spring:
   application:
     name: mindforge
 
+  threads:
+    virtual:
+      enabled: true
+
+  servlet:
+    multipart:
+      max-file-size: ${UPLOAD_MAX_SIZE:50MB}
+      max-request-size: ${UPLOAD_MAX_SIZE:50MB}
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/mindforge}
     username: ${DATABASE_USERNAME:mindforge}
@@ -61,6 +70,7 @@ mindforge:
   security:
     jwt-secret: ${JWT_SECRET:}
     jwt-expiry-seconds: ${JWT_EXPIRY_SECONDS:86400}
+    secure-cookies: ${AUTH_SECURE_COOKIES:true}
   upload:
     max-size: ${UPLOAD_MAX_SIZE:50MB}
   runs:
