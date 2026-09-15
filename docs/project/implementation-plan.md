@@ -1037,7 +1037,7 @@ security config, global exception handler, and SPA serving.
 
 ---
 
-## [ ] Phase 9b — Bundle Export
+## [x] Phase 9b — Bundle Export
 
 > **New in v3.0.** Decided in [T11](../wayfinder/tickets/11-bundle-export.md).
 
@@ -1045,10 +1045,20 @@ security config, global exception handler, and SPA serving.
 
 > **Changed in v3.1:** reads through `BundleQuery`, escapes titles, re-worded `log.md` rule, `timestamp` source and a
 > never-empty filename (T19, T25).
+> **As built:** `BundleExporter.export(kbId, name)` renders inside its `REPEATABLE_READ` read-only transaction and
+> validates before returning, throwing `BundleNotConformantException` (logged, 500); the endpoint only streams the
+> already-validated files through `writeZip`. The index is rendered from the same page rows as the files, so it can
+> never list a page the zip lacks. Supersession notes come from `WikiStore.liveSupersessionsOf` and citations from
+> `BundleQuery.citations`, both through Phase 9's `PageRenderer`. Frontmatter is dumped by SnakeYAML in block style
+> with no line wrapping; `timestamp` is the ISO instant of `wiki_pages.updated_at`. The zip's root directory is
+> `<slug>-okf`, the filename without `.zip`. The validator caught a real defect while being built: a lesson title
+> stored with a newline broke a `log.md` line, so `LogRenderer` and citations now flatten lesson titles with
+> `TextRules.singleLine` too. Study tables do not exist yet; the no-study-data test seeds run failures, findings, step
+> versions and cost instead, and Phase 10 extends it to cards and sessions.
 
 ### Tasks
 
-- [ ] **9b.1 — `BundleExporter`** (`dev.mindforge.infrastructure.export`)
+- [x] **9b.1 — `BundleExporter`** (`dev.mindforge.infrastructure.export`)
   - One `@Transactional(readOnly = true, isolation = REPEATABLE_READ)` snapshot; no lease.
   - Per page: SnakeYAML frontmatter (`type`, `title`, `description`, `timestamp` = `wiki_pages.updated_at`) + stored
     body verbatim + supersession notes as a blockquote under the superseded level-1 heading
@@ -1057,7 +1067,7 @@ security config, global exception handler, and SPA serving.
   - Reads through `WikiStore.listBodies`, `BundleQuery` (citations, supersession notes) and
     `RunReportQuery.logEntries` — never study tables, `cost`, `step_versions`, `failures` or `findings`.
 
-- [ ] **9b.2 — `BundleConformanceValidator`** (pure function over rendered files)
+- [x] **9b.2 — `BundleConformanceValidator`** (pure function over rendered files)
   - OKF §9 rule 1: every non-reserved `.md` has parseable YAML frontmatter. Rule 2: non-empty `type`.
   - Rule 3, re-worded (T19): `index.md` has optional frontmatter holding only `okf_version`, then `# ` sections each
     followed by zero or more `* [title](url)` lines optionally ending ` - description`; `log.md` has one `# ` heading,
@@ -1065,20 +1075,20 @@ security config, global exception handler, and SPA serving.
   - Rule 4: every path is `(concepts|sources)/` + a name matching `Identifier.PATTERN`, not reserved.
   - A violation is a 500 and is logged — never a shipped bundle.
 
-- [ ] **9b.3 — Endpoint**
+- [x] **9b.3 — Endpoint**
   - `GET /api/knowledge-bases/{kbId}/export` → `application/zip`, `Content-Disposition: attachment;
     filename="<Identifier.slugify(kb name)>-okf.zip"` (never empty), the zip's root directory named the same; streamed
     via `StreamingResponseBody`; ownership checked.
 
-- [ ] **9b.4 — Tests**
+- [x] **9b.4 — Tests**
   - Validator as oracle over exporter output; YAML escaping of titles with `: ` and quotes; a title containing `]` and
     a lesson title that arrived with a newline still validate; an empty knowledge base exports a valid bundle; a
     concurrent ingest commit does not tear the bundle; no study data in any file.
 
 ### Completion Checklist
 
-- [ ] Every exported bundle passes the conformance validator.
-- [ ] No new dependency added.
+- [x] Every exported bundle passes the conformance validator.
+- [x] No new dependency added.
 
 ---
 
