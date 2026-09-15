@@ -1330,8 +1330,10 @@ all user-facing pages for the learning loop.
 > **As built:** `spring-boot-starter-actuator` provides the health check, served at `/health` by
 > `management.endpoints.web.base-path: /`. The SPA stage uses `node:22-alpine` (Angular 21's supported line); the
 > runtime runs as a non-root user. `compose.yml` fills the OAuth client variables with placeholders, because Spring
-> Security refuses an empty client id, and requires `JWT_SECRET`; `compose.override.yml` publishes PostgreSQL and
-> turns off `Secure` cookies for local HTTP. `server.port` follows `PORT`, and shutdown is graceful with a 30 s phase
+> Security refuses an empty client id, and passes `JWT_SECRET` through: Compose interpolates each file before merging,
+> so a hard requirement there would defeat the override, and the app refuses to start without a secret anyway.
+> `compose.override.yml` supplies a development secret, publishes PostgreSQL and turns off `Secure` cookies for local
+> HTTP. `server.port` follows `PORT`, and shutdown is graceful with a 30 s phase
 > timeout. Railway runs one replica with `/health` as its check; `docs/project/deployment.md` is the procedure.
 > The smoke test built the image, brought both services up healthy, and got 200 from `/health` and the SPA's
 > `index.html` from `/`.
