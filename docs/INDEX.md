@@ -48,6 +48,9 @@ One file per load-bearing decision. 0001–0009 cover the original stack; 0010�
 ### Wiki Re-cut Map (`wayfinder/okf-wiki-map.md`)
 The decision map that produced the wiki re-cut: destination, every decision with a link to the ticket holding its full reasoning (`wayfinder/tickets/`), and what was ruled out of scope. Read a ticket's `## Answer` when you need the *why* behind an ADR.
 
+### Code Review Map (`wayfinder/code-review-map.md`)
+The 2026-09-16 two-axis review of Phases 0–13 (Standards, Spec and Quality), split into 20 actionable tickets in `wayfinder/review-tickets/` (`R01`–`R20`). Carries the measured state of the build, the list of things verified correct that must not be re-litigated, and a suggested fix order. Read this before picking up remediation work; the frontier is `grep -l 'status: open' docs/wayfinder/review-tickets/*.md`.
+
 ### LLM Wiki Background (`wiki/`)
 `llm_wiki.md` describes the LLM Wiki pattern MindForge adopts; `demo-transfer-notes.md` records what transferred from the reference implementation and why.
 
