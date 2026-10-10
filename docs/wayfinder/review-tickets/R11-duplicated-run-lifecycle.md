@@ -2,7 +2,7 @@
 id: R11
 title: Duplicated run lifecycle and LintService's data clump
 type: refactor
-status: open
+status: closed
 severity: low
 assignee:
 blocked_by: [R10]
@@ -85,12 +85,23 @@ choice rather than an oversight, and revisit only if a future phase adds a step.
 
 ## Acceptance criteria
 
-- [ ] One shared `RunState`, used by both services.
-- [ ] One code path writes `step_versions`.
-- [ ] `LintService.review`/`fail` no longer take the three-parameter clump.
-- [ ] `"(nowa strona)"` exists once.
-- [ ] No new abstraction beyond the above; the diff is a net deletion.
+- [x] One shared `RunState`, used by both services.
+- [x] One code path writes `step_versions`.
+- [x] `LintService.review`/`fail` no longer take the three-parameter clump.
+- [x] `"(nowa strona)"` exists once.
+- [x] No new abstraction beyond the above; the diff is a net deletion.
 
 ## Resolution
 
-<!-- filled on close -->
+Steps 1, 2 and 4 done; step 3 deliberately skipped, as the ticket allows.
+
+- `RunState` is now a package-private top-level class in `application.service`, built with the run and
+  `ProcessingSettings`. Both `IngestPipeline` and `LintService` use it; `LintService.review`/`fail` take it instead of
+  the `run, failures, versions` triple.
+- `RunState.version(...)` is the single writer of `step_versions` keys; the inline `versions.put(getSimpleName...)` in
+  Lint is gone.
+- `"(nowa strona)"` is `PageWriter.NEW_PAGE`, used by the prompt and by `IngestPipeline.linkableIndex`.
+- Lifecycle wrapper (step 3) not extracted: the two bodies differ (ingest has retryable failures, a typed
+  `IngestRunFailedException` and a second commit after the try), so a shared `drive(...)` would need flags and
+  callbacks, which is the framework the ticket warns against. The 20-line try/catch stays in both services.
+- `step_versions` stays `Map<String,String>`, keyed by service simple name, now produced in one place.

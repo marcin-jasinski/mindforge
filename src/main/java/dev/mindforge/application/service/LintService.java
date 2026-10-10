@@ -96,11 +96,10 @@ public class LintService {
     /** Runs a claimed {@code LINT} run to {@code COMPLETED} or {@code FAILED}, unless it is fenced. */
     public void run(IngestRun run) {
         UUID kbId = run.knowledgeBaseId();
-        List<RunFailure> failures = new ArrayList<>();
-        Map<String, String> versions = new HashMap<>();
+        RunState state = new RunState(run, settings);
         String failure = "interrupted";
         try {
-            review(run, failures, versions);
+            review(state);
             failure = null;
             progress.notify(kbId, RunProgress.status(run, RunStatus.COMPLETED));
         } catch (RunFencedException e) {
@@ -111,13 +110,14 @@ public class LintService {
             failure = IngestRunFailedException.reasonFor(e);
         } finally {
             if (failure != null) {
-                fail(run, failure, failures, versions);
+                fail(state, failure);
             }
         }
     }
 
-    private void review(IngestRun run, List<RunFailure> failures, Map<String, String> versions) {
-        UUID kbId = run.knowledgeBaseId();
+    private void review(RunState state) {
+        IngestRun run = state.run;
+        UUID kbId = state.kbId();
         List<IndexEntry> index = wiki.listIndex(kbId);
         String renderedIndex = IndexRenderer.render(index);
         Set<String> livePaths = index.stream().map(IndexEntry::path).collect(Collectors.toSet());
@@ -136,7 +136,7 @@ public class LintService {
             chunks.get(i).forEach(page -> bodies.put(page.path(), page.markdownBody()));
             try {
                 List<LinkInsertion> proposals = linkChecker.check(bodies, renderedIndex);
-                versions.put(LinkChecker.class.getSimpleName(), settings.stepVersion(LinkChecker.VERSION, LinkChecker.TIER));
+                state.version(LinkChecker.class, LinkChecker.VERSION, LinkChecker.TIER);
                 Map<String, List<LinkInsertion>> byPage = proposals.stream()
                     .collect(Collectors.groupingBy(proposal -> String.valueOf(proposal.pagePath())));
                 for (WikiPage page : chunks.get(i)) {
@@ -151,29 +151,28 @@ public class LintService {
                 dropped += (int) proposals.stream().filter(proposal -> !bodies.containsKey(proposal.pagePath())).count();
             } catch (RuntimeException e) {
                 log.warn("Link check of Lint run {} failed; chunk {} gets no links", run.runId(), i, e);
-                failures.add(RunFailure.of("linkCheck", IngestRunFailedException.reasonFor(e)));
+                state.failures.add(RunFailure.of("linkCheck", IngestRunFailedException.reasonFor(e)));
             }
             try {
                 reviewer.review(bodies, renderedIndex).stream()
                     .map(item -> new ReviewItem(item.kind(), item.pages().stream().filter(livePaths::contains).toList(),
                         item.text()))
                     .forEach(findings::add);
-                versions.put(WikiReviewer.class.getSimpleName(),
-                    settings.stepVersion(WikiReviewer.VERSION, WikiReviewer.TIER));
+                state.version(WikiReviewer.class, WikiReviewer.VERSION, WikiReviewer.TIER);
             } catch (RuntimeException e) {
                 log.warn("Review of Lint run {} failed; chunk {} gets no findings", run.runId(), i, e);
-                failures.add(RunFailure.of("review", IngestRunFailedException.reasonFor(e)));
+                state.failures.add(RunFailure.of("review", IngestRunFailedException.reasonFor(e)));
             }
         }
         if (dropped > 0) {
-            failures.add(RunFailure.dropped("linkCheck", dropped));
+            state.failures.add(RunFailure.dropped("linkCheck", dropped));
         }
 
         transactions.executeWithoutResult(status -> {
-            runs.markWritten(kbId, run.runId(), failures, versions);
+            runs.markWritten(kbId, run.runId(), state.failures(), state.versions());
             linked.values().forEach(write -> wiki.savePage(kbId, write, run.runId()));
             runs.recordFindings(kbId, run.runId(), findings);
-            runs.complete(kbId, run.runId(), 0, false, failures, versions);
+            runs.complete(kbId, run.runId(), 0, false, state.failures(), state.versions());
         });
     }
 
@@ -193,9 +192,10 @@ public class LintService {
         return chunks;
     }
 
-    private void fail(IngestRun run, String reason, List<RunFailure> failures, Map<String, String> versions) {
+    private void fail(RunState state, String reason) {
+        IngestRun run = state.run;
         try {
-            runs.fail(run.knowledgeBaseId(), run.runId(), reason, true, failures, versions);
+            runs.fail(state.kbId(), run.runId(), reason, true, state.failures(), state.versions());
             progress.notify(run.knowledgeBaseId(), RunProgress.status(run, RunStatus.FAILED));
         } catch (RunFencedException e) {
             log.warn("Lint run {} lost its lease before failing: {}", run.runId(), e.getMessage());

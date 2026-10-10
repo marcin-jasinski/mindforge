@@ -52,7 +52,6 @@ import dev.mindforge.domain.model.IngestRunFailedException;
 import dev.mindforge.domain.model.LinkInsertion;
 import dev.mindforge.domain.model.LiveSupersession;
 import dev.mindforge.domain.model.MarkdownStructure;
-import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.domain.model.PageDraft;
 import dev.mindforge.domain.model.PageLink;
 import dev.mindforge.domain.model.PagePath;
@@ -89,7 +88,6 @@ public class IngestPipeline {
     private static final Logger log = LoggerFactory.getLogger(IngestPipeline.class);
 
     private static final int LINK_CHECK_PAGES_PER_CALL = 10;
-    private static final String PLANNED_DESCRIPTION = "(nowa strona)";
 
     private final DocumentRepository documents;
     private final WikiStore wiki;
@@ -122,7 +120,7 @@ public class IngestPipeline {
 
     /** Runs a claimed ({@code RUNNING}) run to {@code COMPLETED} or {@code FAILED}, unless it is fenced. */
     public void run(IngestRun run) {
-        RunState state = new RunState(run);
+        RunState state = new RunState(run, settings);
         String failure = "interrupted";
         boolean retryable = true;
         Committed committed = null;
@@ -502,7 +500,7 @@ public class IngestPipeline {
         List<IndexEntry> entries = new ArrayList<>(index.stream()
             .filter(entry -> !plan.deletions().contains(entry.path())).toList());
         plan.tasks().stream().filter(PageWriteTask::create)
-            .forEach(task -> entries.add(new IndexEntry(task.path(), task.title(), PLANNED_DESCRIPTION, task.type())));
+            .forEach(task -> entries.add(new IndexEntry(task.path(), task.title(), PageWriter.NEW_PAGE, task.type())));
         return IndexRenderer.render(entries);
     }
 
@@ -542,40 +540,6 @@ public class IngestPipeline {
 
     private void step(RunState state, String step, Integer done, Integer total) {
         progress.notify(state.kbId(), RunProgress.step(state.run, step, done, total));
-    }
-
-    // ---------------------------------------------------------------------------
-    // Run state
-    // ---------------------------------------------------------------------------
-
-    /** What a run accumulates while it generates: failures and the version of every model service it called. */
-    private final class RunState {
-
-        private final IngestRun run;
-        private final List<RunFailure> failures = Collections.synchronizedList(new ArrayList<>());
-        private final Map<String, String> versions = new ConcurrentHashMap<>();
-
-        private RunState(IngestRun run) {
-            this.run = run;
-        }
-
-        private UUID kbId() {
-            return run.knowledgeBaseId();
-        }
-
-        private void version(Class<?> service, String version, ModelTier tier) {
-            versions.put(service.getSimpleName(), settings.stepVersion(version, tier));
-        }
-
-        private List<RunFailure> failures() {
-            synchronized (failures) {
-                return List.copyOf(failures);
-            }
-        }
-
-        private Map<String, String> versions() {
-            return Map.copyOf(versions);
-        }
     }
 
     /** A write to commit; {@code drafted} is false for a retitle that kept the body. */

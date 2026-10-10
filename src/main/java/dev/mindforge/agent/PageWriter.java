@@ -21,6 +21,8 @@ public class PageWriter {
     public static final ModelTier TIER = ModelTier.LARGE;
 
     private static final String NONE = "(brak)";
+    /** What the prompt shows as the existing body of a create; the ingest pipeline reuses it as a planned description. */
+    public static final String NEW_PAGE = "(nowa strona)";
 
     private final AIGateway gateway;
     private final PromptLoader prompts;
@@ -49,7 +51,7 @@ public class PageWriter {
             "title", task.title(),
             "claims", claims,
             "source", sourceText.isBlank() ? NONE : sourceText,
-            "existingBody", existingBody == null ? "(nowa strona)" : existingBody,
+            "existingBody", existingBody == null ? NEW_PAGE : existingBody,
             "superseded", supersededList,
             "sectionRule", keepSections
                 ? "Zachowaj każdą istniejącą sekcję poziomu 1 (także poprawione): jej nagłówek może zmienić tylko"
