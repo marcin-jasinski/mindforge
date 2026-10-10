@@ -1,5 +1,6 @@
 package dev.mindforge.infrastructure.config;
 
+import jakarta.persistence.EntityManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.support.TransactionOperations;
@@ -27,8 +28,9 @@ public class WikiConfig {
     }
 
     @Bean
-    BundleExporter bundleExporter(WikiStore wikiStore, BundleQuery bundleQuery, RunReportQuery runReportQuery) {
-        return new BundleExporter(wikiStore, bundleQuery, runReportQuery);
+    BundleExporter bundleExporter(WikiStore wikiStore, BundleQuery bundleQuery, RunReportQuery runReportQuery,
+                                  EntityManager entityManager) {
+        return new BundleExporter(wikiStore, bundleQuery, runReportQuery, entityManager);
     }
 
     @Bean

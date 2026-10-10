@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Isolation;
@@ -36,8 +37,8 @@ import dev.mindforge.domain.port.WikiStore;
 /**
  * Renders a knowledge base as an OKF bundle (T11): {@code index.md}, {@code log.md} and one file per live page —
  * SnakeYAML frontmatter, the stored body with supersession notes and projected citations. Everything is read in one
- * read-only snapshot, without the lease, validated before a byte is sent and streamed a chunk of pages at a time. It reads no study table and no run's
- * cost, step versions, failures or findings.
+ * read-only snapshot, without the lease, validated before a byte is sent and written a chunk of pages at a time. It
+ * reads no study table and no run's cost, step versions, failures or findings.
  */
 public class BundleExporter {
 
@@ -52,11 +53,14 @@ public class BundleExporter {
     private final WikiStore wiki;
     private final BundleQuery bundleQuery;
     private final RunReportQuery reports;
+    private final EntityManager entityManager;
 
-    public BundleExporter(WikiStore wiki, BundleQuery bundleQuery, RunReportQuery reports) {
+    public BundleExporter(WikiStore wiki, BundleQuery bundleQuery, RunReportQuery reports,
+                          EntityManager entityManager) {
         this.wiki = wiki;
         this.bundleQuery = bundleQuery;
         this.reports = reports;
+        this.entityManager = entityManager;
     }
 
     /** The zip's root directory, which the download's filename repeats. */
@@ -111,6 +115,7 @@ public class BundleExporter {
                     page.updatedAt()) + PageRenderer.render(page, notes.getOrDefault(page.pageId(), List.of()),
                     citations.getOrDefault(page.pageId(), List.of())));
             }
+            entityManager.clear();
         }
         zip.finish();
     }
