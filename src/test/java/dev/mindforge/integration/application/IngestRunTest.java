@@ -37,6 +37,7 @@ import dev.mindforge.domain.model.IndexEntry;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.LessonIdentity;
 import dev.mindforge.domain.model.LiveSupersession;
+import dev.mindforge.domain.model.RunFailure;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.model.UploadSource;
@@ -150,10 +151,19 @@ class IngestRunTest extends TestContainerBase {
         assertThat(wiki.listIndex(kbId)).extracting(IndexEntry::path)
             .containsExactlyInAnyOrder("concepts/mitoza", "sources/biologia");
         assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody).contains(MITOZA_BODY);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
-            .containsEntry("step", "write").containsEntry("path", "concepts/mejoza"));
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
-            .containsEntry("step", "linkCheck").containsEntry("dropped", 1));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::path).containsExactly("write", "concepts/mejoza"));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::dropped).containsExactly("linkCheck", 1));
+    }
+
+    @Test
+    void aRowWrittenBeforeFailuresWereTypedStillReadsBack() {
+        UUID kbId = insertKnowledgeBase();
+        IngestRun run = awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
+        jdbc.update("UPDATE ingest_runs SET failures = '[{\"step\":\"write\",\"path\":\"concepts/a\",\"reason\":\"x\"},"
+            + "{\"step\":\"supersede\",\"omittedPages\":3}]'::jsonb WHERE run_id = ?", run.runId());
+
+        assertThat(runs.findById(kbId, run.runId()).orElseThrow().failures()).containsExactly(
+            RunFailure.ofPath("write", "concepts/a", "x"), RunFailure.omittedPages("supersede", 3));
     }
 
     @Test
@@ -220,8 +230,7 @@ class IngestRunTest extends TestContainerBase {
             RunStatus.COMPLETED);
 
         assertThat(run.supersessionCount()).isEqualTo(1);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
-            .containsEntry("step", "supersede").containsEntry("dropped", 1));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::dropped).containsExactly("supersede", 1));
         UUID mitoza = wiki.findByPath(kbId, "concepts/mitoza").orElseThrow().pageId();
         assertThat(wiki.liveSupersessionsOf(kbId, List.of(mitoza)))
             .extracting(LiveSupersession::sectionAnchor, LiveSupersession::supersedingPath)
@@ -249,8 +258,7 @@ class IngestRunTest extends TestContainerBase {
         assertThat(wiki.findByPath(kbId, "sources/biologia")).isPresent();
         assertThat(wiki.findByPath(kbId, "concepts/mitoza")).get()
             .extracting(WikiPage::title, WikiPage::markdownBody).containsExactly("Mitoza komórkowa", MITOZA_BODY);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
-            .containsEntry("item", "delete").containsEntry("path", "sources/biologia"));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::item, RunFailure::path).containsExactly("delete", "sources/biologia"));
         assertThat(LogRenderer.render(runReports.logEntries(kbId)))
             .contains("* **Edit**: conversation — 1 revised, 1 deleted.");
     }

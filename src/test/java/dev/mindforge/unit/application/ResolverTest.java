@@ -17,6 +17,7 @@ import dev.mindforge.domain.model.IngestRunFailedException;
 import dev.mindforge.domain.model.PageType;
 import dev.mindforge.domain.model.PageWriteTask;
 import dev.mindforge.domain.model.PlannedPage;
+import dev.mindforge.domain.model.RunFailure;
 
 class ResolverTest {
 
@@ -98,7 +99,7 @@ class ResolverTest {
         Resolver.Plan plan = resolver.finish(List.of(), null, null, CAP);
 
         assertThat(plan.tasks()).isEmpty();
-        assertThat(plan.failures()).extracting(failure -> failure.get("reason")).containsOnly("invalid title").hasSize(2);
+        assertThat(plan.failures()).extracting(RunFailure::reason).containsOnly("invalid title").hasSize(2);
     }
 
     @Test
@@ -109,7 +110,7 @@ class ResolverTest {
             new EditItem.Delete("sources/bio-1"), new EditItem.Delete("concepts/nie-ma")), null, null, CAP);
 
         assertThat(plan.deletions()).containsExactly("concepts/mitoza");
-        assertThat(plan.failures()).extracting(failure -> failure.get("path"))
+        assertThat(plan.failures()).extracting(RunFailure::path)
             .containsExactly("sources/bio-1", "concepts/nie-ma");
     }
 
@@ -122,7 +123,7 @@ class ResolverTest {
 
         assertThat(plan.tasks()).isEmpty();
         assertThat(plan.deletions()).isEmpty();
-        assertThat(plan.failures()).extracting(failure -> failure.get("item")).containsExactly("delete", "claim");
+        assertThat(plan.failures()).extracting(RunFailure::item).containsExactly("delete", "claim");
     }
 
     @Test
@@ -137,7 +138,7 @@ class ResolverTest {
 
         assertThat(plan.retitles()).isEqualTo(Map.of("concepts/mitoza", "Mitoza komórkowa"));
         assertThat(plan.tasks()).extracting(PageWriteTask::title).containsExactly("Mejoza redukcyjna");
-        assertThat(plan.failures()).extracting(failure -> failure.get("path")).containsExactly("sources/bio-1");
+        assertThat(plan.failures()).extracting(RunFailure::path).containsExactly("sources/bio-1");
     }
 
     @Test
@@ -148,7 +149,7 @@ class ResolverTest {
 
         Resolver.Plan plan = resolver.finish(List.of(), null, null, CAP);
         assertThat(plan.tasks()).extracting(PageWriteTask::path).containsExactly("concepts/mejoza");
-        assertThat(plan.failures()).extracting(failure -> failure.get("path")).containsExactly("concepts/mitoza");
+        assertThat(plan.failures()).extracting(RunFailure::path).containsExactly("concepts/mitoza");
     }
 
     // ---------------------------------------------------------------------------

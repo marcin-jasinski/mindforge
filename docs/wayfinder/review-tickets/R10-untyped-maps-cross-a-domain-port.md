@@ -2,7 +2,7 @@
 id: R10
 title: failures and stepVersions cross a domain port as untyped maps
 type: refactor
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -81,4 +81,15 @@ Then:
 
 ## Resolution
 
-<!-- filled on close -->
+Added `RunFailure(step, item, path, reason, dropped, omittedPages)` in `domain.model` (one record for every failure
+shape; the Lint findings already had the `ReviewItem` record, so `RunFinding` was not needed). `IngestRun`,
+`IngestRunRepository`, the entity and adapter, `Resolver.Plan`, `IngestPipeline` and `LintService` now carry
+`List<RunFailure>` / `List<ReviewItem>`; `ReviewItem.toRow()` and `RunDtoMapper`'s `text(...)` helper are deleted and
+the mapper is a straight field mapping. No `Map<String, Object>` remains in `domain.port` or `domain.model`.
+
+Persisted shape: the record component names are the old key literals, so rows written before the change deserialize
+unchanged (missing keys read as null); new rows additionally carry explicit `null` components. No migration.
+`IngestRunTest.aRowWrittenBeforeFailuresWereTypedStillReadsBack` writes a legacy-shaped row with SQL and reads it back.
+
+`stepVersions` stays `Map<String, String>` as the ticket allows; producing its key in one place is left to R11.
+`mvn verify`: 210 unit + 64 integration tests green.

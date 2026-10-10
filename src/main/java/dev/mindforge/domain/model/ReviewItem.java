@@ -1,7 +1,6 @@
 package dev.mindforge.domain.model;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -15,10 +14,5 @@ public record ReviewItem(String kind, List<String> pages, String text) {
 
     public ReviewItem {
         pages = List.copyOf(pages);
-    }
-
-    /** The shape stored in {@code ingest_runs.findings}. */
-    public Map<String, Object> toRow() {
-        return Map.of("kind", kind, "pages", pages, "text", text);
     }
 }

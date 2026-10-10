@@ -7,8 +7,8 @@ import java.util.UUID;
 
 /**
  * One execution that changes the wiki, and the record of what it changed. Pages written are derived from its
- * revisions; the run stores only what rows cannot tell. {@code failures} and {@code findings} are JSON objects
- * whose shapes belong to the step that records them.
+ * revisions; the run stores only what rows cannot tell. {@code failures} are what its steps dropped and
+ * {@code findings} what a Lint reported.
  */
 public record IngestRun(
     UUID runId,
@@ -20,11 +20,11 @@ public record IngestRun(
     int attempt,
     String failureReason,
     Boolean retryable,
-    List<Map<String, Object>> failures,
+    List<RunFailure> failures,
     boolean supersessionSkipped,
     int supersessionCount,
     Map<String, String> stepVersions,
-    List<Map<String, Object>> findings,
+    List<ReviewItem> findings,
     Instant createdAt,
     Instant startedAt,
     Instant finishedAt

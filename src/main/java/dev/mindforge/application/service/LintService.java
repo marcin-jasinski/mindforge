@@ -28,6 +28,7 @@ import dev.mindforge.domain.model.PageType;
 import dev.mindforge.domain.model.PageWrite;
 import dev.mindforge.domain.model.ProcessingSettings;
 import dev.mindforge.domain.model.ReviewItem;
+import dev.mindforge.domain.model.RunFailure;
 import dev.mindforge.domain.model.RunFencedException;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunProgress;
@@ -95,7 +96,7 @@ public class LintService {
     /** Runs a claimed {@code LINT} run to {@code COMPLETED} or {@code FAILED}, unless it is fenced. */
     public void run(IngestRun run) {
         UUID kbId = run.knowledgeBaseId();
-        List<Map<String, Object>> failures = new ArrayList<>();
+        List<RunFailure> failures = new ArrayList<>();
         Map<String, String> versions = new HashMap<>();
         String failure = "interrupted";
         try {
@@ -115,7 +116,7 @@ public class LintService {
         }
     }
 
-    private void review(IngestRun run, List<Map<String, Object>> failures, Map<String, String> versions) {
+    private void review(IngestRun run, List<RunFailure> failures, Map<String, String> versions) {
         UUID kbId = run.knowledgeBaseId();
         List<IndexEntry> index = wiki.listIndex(kbId);
         String renderedIndex = IndexRenderer.render(index);
@@ -127,7 +128,7 @@ public class LintService {
 
         List<List<WikiPage>> chunks = chunks(concepts);
         Map<String, PageWrite> linked = new LinkedHashMap<>();
-        List<Map<String, Object>> findings = new ArrayList<>();
+        List<ReviewItem> findings = new ArrayList<>();
         int dropped = 0;
         for (int i = 0; i < chunks.size(); i++) {
             progress.notify(kbId, RunProgress.step(run, "review", i, chunks.size()));
@@ -150,22 +151,22 @@ public class LintService {
                 dropped += (int) proposals.stream().filter(proposal -> !bodies.containsKey(proposal.pagePath())).count();
             } catch (RuntimeException e) {
                 log.warn("Link check of Lint run {} failed; chunk {} gets no links", run.runId(), i, e);
-                failures.add(Map.of("step", "linkCheck", "reason", IngestRunFailedException.reasonFor(e)));
+                failures.add(RunFailure.of("linkCheck", IngestRunFailedException.reasonFor(e)));
             }
             try {
                 reviewer.review(bodies, renderedIndex).stream()
                     .map(item -> new ReviewItem(item.kind(), item.pages().stream().filter(livePaths::contains).toList(),
                         item.text()))
-                    .forEach(item -> findings.add(item.toRow()));
+                    .forEach(findings::add);
                 versions.put(WikiReviewer.class.getSimpleName(),
                     settings.stepVersion(WikiReviewer.VERSION, WikiReviewer.TIER));
             } catch (RuntimeException e) {
                 log.warn("Review of Lint run {} failed; chunk {} gets no findings", run.runId(), i, e);
-                failures.add(Map.of("step", "review", "reason", IngestRunFailedException.reasonFor(e)));
+                failures.add(RunFailure.of("review", IngestRunFailedException.reasonFor(e)));
             }
         }
         if (dropped > 0) {
-            failures.add(Map.of("step", "linkCheck", "dropped", dropped));
+            failures.add(RunFailure.dropped("linkCheck", dropped));
         }
 
         transactions.executeWithoutResult(status -> {
@@ -192,7 +193,7 @@ public class LintService {
         return chunks;
     }
 
-    private void fail(IngestRun run, String reason, List<Map<String, Object>> failures, Map<String, String> versions) {
+    private void fail(IngestRun run, String reason, List<RunFailure> failures, Map<String, String> versions) {
         try {
             runs.fail(run.knowledgeBaseId(), run.runId(), reason, true, failures, versions);
             progress.notify(run.knowledgeBaseId(), RunProgress.status(run, RunStatus.FAILED));

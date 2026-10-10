@@ -8,6 +8,8 @@ import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.mindforge.domain.model.IngestRun;
+import dev.mindforge.domain.model.ReviewItem;
+import dev.mindforge.domain.model.RunFailure;
 import dev.mindforge.domain.model.RunFencedException;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
@@ -57,7 +59,7 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
-    public void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures,
+    public void markWritten(UUID kbId, UUID runId, List<RunFailure> failures,
                             Map<String, String> stepVersions) {
         IngestRunEntity run = fence(kbId, runId, RunStatus.RUNNING, RunStatus.WRITTEN);
         run.setFailures(failures);
@@ -66,7 +68,7 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
 
     @Override
     public void complete(UUID kbId, UUID runId, int supersessionCount, boolean supersessionSkipped,
-                         List<Map<String, Object>> failures, Map<String, String> stepVersions) {
+                         List<RunFailure> failures, Map<String, String> stepVersions) {
         IngestRunEntity run = fence(kbId, runId, RunStatus.WRITTEN, RunStatus.COMPLETED);
         run.setSupersessionCount(supersessionCount);
         run.setSupersessionSkipped(supersessionSkipped);
@@ -76,7 +78,7 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
-    public void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures,
+    public void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<RunFailure> failures,
                      Map<String, String> stepVersions) {
         IngestRunEntity run = fence(kbId, runId, RunStatus.RUNNING, RunStatus.FAILED);
         run.setFailureReason(reason);
@@ -87,7 +89,7 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
-    public void recordFindings(UUID kbId, UUID runId, List<Map<String, Object>> findings) {
+    public void recordFindings(UUID kbId, UUID runId, List<ReviewItem> findings) {
         runs.findByKnowledgeBaseIdAndRunId(kbId, runId).orElseThrow().setFindings(findings);
     }
 
