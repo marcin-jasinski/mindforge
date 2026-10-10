@@ -51,9 +51,6 @@ spring:
     retry:
       max-attempts: 1
 
-  cache:
-    type: caffeine
-
   lifecycle:
     timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
 
