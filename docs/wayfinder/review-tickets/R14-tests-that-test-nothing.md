@@ -2,7 +2,7 @@
 id: R14
 title: Four tests assert nothing about production code
 type: test
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -85,4 +85,9 @@ in `KnowledgeBaseService`'s delete guard, the `step_versions` audit trail, and t
 
 ## Resolution
 
-<!-- filled on close -->
+1. `StubAIGatewayTest` deleted (the echo assertions tested test infrastructure; the stub's no-match fallback now throws, so no fallback test is kept).
+2. `KnowledgeBaseServiceTest`: the busy test stubs `deleteIfIdle` to `false` explicitly; added `shouldDeleteAnIdleKnowledgeBase` with `true`.
+3. `ModelServiceVersionTest` kept (cheap reflective check). `IngestRunTest` now asserts the run's `step_versions` has exactly the five ingest services, each valued `<Service>.VERSION@<model>`. The lint path was already pinned in `LintAndHealthTest` (keys); R11 collapsed the two writers into `RunState`.
+4. `RunWorkerTest`: attempt 3 is asserted failed as `interrupted` with no enqueue of an attempt above 3.
+
+`mvn verify`: 339 tests, 0 failures.

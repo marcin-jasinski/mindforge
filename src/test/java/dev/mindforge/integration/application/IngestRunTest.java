@@ -24,6 +24,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.support.TransactionOperations;
 
+import dev.mindforge.agent.ClaimExtractor;
+import dev.mindforge.agent.LinkChecker;
+import dev.mindforge.agent.PageWriter;
+import dev.mindforge.agent.RelevanceGuard;
+import dev.mindforge.agent.SupersessionDetector;
 import dev.mindforge.application.service.DocumentUpload;
 import dev.mindforge.application.service.IngestionService;
 import dev.mindforge.application.service.RevertService;
@@ -117,8 +122,13 @@ class IngestRunTest extends TestContainerBase {
         assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody)
             .contains("# Przebieg\n\nMitoza poprzedza [mejoza](/concepts/mejoza.md).\n");
         assertThat(wiki.pageIdsForLesson(kbId, "biologia")).hasSize(2);
-        assertThat(run.stepVersions()).containsKeys("RelevanceGuard", "ClaimExtractor", "PageWriter", "LinkChecker",
-            "SupersessionDetector").containsEntry("PageWriter", "1@openai/gpt-4o");
+        assertThat(run.stepVersions()).containsOnlyKeys("RelevanceGuard", "ClaimExtractor", "PageWriter",
+            "LinkChecker", "SupersessionDetector");
+        assertThat(run.stepVersions().get("RelevanceGuard")).startsWith(RelevanceGuard.VERSION + "@");
+        assertThat(run.stepVersions().get("ClaimExtractor")).startsWith(ClaimExtractor.VERSION + "@");
+        assertThat(run.stepVersions().get("PageWriter")).isEqualTo(PageWriter.VERSION + "@openai/gpt-4o");
+        assertThat(run.stepVersions().get("LinkChecker")).startsWith(LinkChecker.VERSION + "@");
+        assertThat(run.stepVersions().get("SupersessionDetector")).startsWith(SupersessionDetector.VERSION + "@");
         assertThat(LogRenderer.render(runReports.logEntries(kbId)))
             .contains("* **Ingest**: [biologia](/sources/biologia.md) — 3 created.");
 

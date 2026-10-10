@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -115,6 +116,9 @@ class RunWorkerTest {
         verify(events).publish(published.capture());
         assertThat(published.getValue()).isInstanceOfSatisfying(DomainEvent.IngestRunQueued.class,
             event -> assertThat(event.runId()).isEqualTo(requeued.getValue().runId()));
+        // the third attempt is failed for good: no further enqueue, no further event
+        verify(runs).fail(KB, third.runId(), "interrupted", true, List.of(), Map.of());
+        verify(runs, never()).enqueue(eq(KB), argThat(run -> run.attempt() > 3));
     }
 
     @Test
