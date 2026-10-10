@@ -404,7 +404,7 @@ retry, deadline enforcement, cost tracking, and the `StubAIGateway` for tests.
 
 ---
 
-## [ ] Phase 3b — Wiki Pivot Cleanup
+## [x] Phase 3b — Wiki Pivot Cleanup
 
 > **New in v3.0.** Executes the keep / change / delete table in
 > [T12](../wayfinder/tickets/12-existing-code-fate.md). Builds no new behaviour.
@@ -492,7 +492,9 @@ re-cut and its review exposed, and squash the migration chain into a baseline �
   pgvector or `embed` in `src/`.
 - [x] Cross-knowledge-base dedup test passes.
 - [x] No identifier is validated or slugified outside `Identifier`.
-- [ ] Local databases dropped and recreated (the squash invalidates Flyway checksums).
+
+> **Local databases:** the squash invalidates Flyway checksums, so anyone with a database created
+> before Phase 3b must drop and recreate it. This is a per-developer step, not an acceptance criterion.
 
 ---
 

@@ -2,7 +2,7 @@
 id: R06
 title: Phase 3b's checkbox and the stale spec audit
 type: docs
-status: open
+status: closed
 severity: low
 assignee:
 blocked_by: []
@@ -73,4 +73,4 @@ precisely the audience this repository's documentation is written for. An agent 
 
 ## Resolution
 
-<!-- filled on close -->
+Phase 3b heading ticked; the unsatisfiable local-database item moved out of the checklist into a warning note. `verification/spec-audit.md` deleted (recommended option; the directory is gone, nothing referenced it, `docs/INDEX.md` needed no change).
