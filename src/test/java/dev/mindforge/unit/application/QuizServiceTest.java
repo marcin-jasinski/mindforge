@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import dev.mindforge.agent.QuizEvaluator;
 import dev.mindforge.agent.QuizGenerator;
 import dev.mindforge.application.service.QuizService;
+import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.NotOwnerException;
 import dev.mindforge.domain.model.PageLink;
 import dev.mindforge.domain.model.PageScore;
@@ -126,6 +127,19 @@ class QuizServiceTest {
         verify(sessions).updateCursor(KB, session.sessionId(), 1);
         assertThatExceptionOfType(QuizFinishedException.class)
             .isThrownBy(() -> service.answer(KB, USER, session.sessionId(), "Jeszcze raz."));
+    }
+
+    @Test
+    void shouldRefuseWhenTheModelWritesNoUsableQuestion() {
+        givenPages(makePage("concepts/mitoza", 1));
+        for (String completion : List.of("{\"questions\":[{}]}", "{\"questions\":[null]}", "{\"questions\":[]}",
+            "{\"questions\":[{\"pagePath\":null,\"question\":null,\"referenceAnswer\":null}]}", "{}")) {
+            gateway.answer(Prompts.QUIZ, completion);
+
+            assertThatExceptionOfType(NotFoundException.class)
+                .as(completion)
+                .isThrownBy(() -> makeService().start(KB, USER, new StudyScope.WholeKnowledgeBase()));
+        }
     }
 
     // ---------------------------------------------------------------------------

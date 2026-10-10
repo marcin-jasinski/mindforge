@@ -2,7 +2,7 @@
 id: R15
 title: Untested edge cases on the model and validation boundary
 type: test
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: [R13]
@@ -65,13 +65,22 @@ boundary. Item 4 is cost and correctness on the most-used path.
 
 ## Acceptance criteria
 
-- [ ] `QuizGenerator` malformed-output cases tested; no NPE reachable from model output.
-- [ ] `UploadSanitizerTest` covers the 255-codepoint boundary, a mid-grapheme cut, and the
+- [x] `QuizGenerator` malformed-output cases tested; no NPE reachable from model output.
+- [x] `UploadSanitizerTest` covers the 255-codepoint boundary, a mid-grapheme cut, and the
       all-unsafe-characters case.
-- [ ] An API test proves an out-of-range rating returns 400, not 500 — and the code is fixed if
+- [x] An API test proves an out-of-range rating returns 400, not 500 — and the code is fixed if
       it does not.
-- [ ] Chunker boundary coverage confirmed or added.
+- [x] Chunker boundary coverage confirmed or added.
 
 ## Resolution
 
-<!-- filled on close -->
+Tests only; no production bug surfaced.
+
+1. `QuizServiceTest.shouldRefuseWhenTheModelWritesNoUsableQuestion` drives `StubAIGateway` with `{"questions":[{}]}`,
+   `[null]`, `[]`, all-null fields and `{}`; each yields a clean `NotFoundException`, no NPE.
+2. `UploadSanitizerTest` gained the 255/256-codepoint boundary, an emoji run (each emoji becomes one `_`, so no
+   surrogate pair is split), a combining accent at the cut (NFC composes it first) and `"@@@.md"` -> `"___.md"`.
+3. Already proven: `ApiFlowTest` posts `rating: 9` to the review endpoint and asserts 400 (bean validation fires
+   before the record). No change needed.
+4. `HeadingChunkerTest` already covered the empty document; added a lone heading with no body and a long document
+   with no headings.

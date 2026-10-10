@@ -65,4 +65,35 @@ class UploadSanitizerTest {
     void shouldCapALongFilename() {
         assertThat(sanitizer.admit("a".repeat(300) + ".md", MARKDOWN, 10)).hasSize(255);
     }
+
+    @Test
+    void shouldKeepAFilenameOfExactly255CodepointsAndCutOneOf256() {
+        String exact = "a".repeat(252) + ".md";
+        String over = "a".repeat(253) + ".md";
+
+        assertThat(sanitizer.admit(exact, MARKDOWN, 10)).isEqualTo(exact);
+        assertThat(sanitizer.admit(over, MARKDOWN, 10)).isEqualTo("a".repeat(253) + ".m");
+    }
+
+    @Test
+    void shouldReplaceAnEmojiWithOneUnderscoreSoNoSurrogatePairIsSplit() {
+        String emoji = new String(Character.toChars(0x1F600));
+
+        String admitted = sanitizer.admit(emoji.repeat(300) + ".md", MARKDOWN, 10);
+
+        assertThat(admitted).isEqualTo("_".repeat(255));
+    }
+
+    @Test
+    void shouldNotLeaveACombiningAccentOrphanedAtTheCut() {
+        // "e" + combining acute composes to one codepoint under NFC, so the cut cannot separate them
+        String admitted = sanitizer.admit("a".repeat(254) + "é" + "bbb.md", MARKDOWN, 10);
+
+        assertThat(admitted).isEqualTo("a".repeat(254) + "é");
+    }
+
+    @Test
+    void shouldKeepADegenerateAllUnsafeFilenameUsable() {
+        assertThat(sanitizer.admit("@@@.md", MARKDOWN, 10)).isEqualTo("___.md");
+    }
 }

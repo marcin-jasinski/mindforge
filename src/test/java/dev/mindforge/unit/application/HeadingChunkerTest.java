@@ -74,6 +74,23 @@ class HeadingChunkerTest {
         assertThat(HeadingChunker.split(List.of(), MAX_TOKENS)).isEmpty();
     }
 
+    @Test
+    void shouldKeepALoneHeadingWithNoBodyAsOneChunk() {
+        ContentBlock heading = makeHeading("A");
+
+        assertThat(HeadingChunker.split(List.of(heading), MAX_TOKENS)).containsExactly(List.of(heading));
+    }
+
+    @Test
+    void shouldSplitALongDocumentWithNoHeadingsAtBlockBoundaries() {
+        ContentBlock first = makeText(20);
+        ContentBlock second = makeText(20);
+        ContentBlock third = makeText(20);
+
+        assertThat(HeadingChunker.split(List.of(first, second, third), MAX_TOKENS))
+            .containsExactly(List.of(first), List.of(second), List.of(third));
+    }
+
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
