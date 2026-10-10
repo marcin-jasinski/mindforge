@@ -19,13 +19,17 @@ import org.mockito.ArgumentCaptor;
 import dev.mindforge.agent.AnswerWriter;
 import dev.mindforge.agent.PageSelector;
 import dev.mindforge.application.service.QueryService;
+import dev.mindforge.application.wiki.IndexRenderer;
+import dev.mindforge.domain.model.IndexEntry;
 import dev.mindforge.domain.model.Interaction;
 import dev.mindforge.domain.model.InteractionTurn;
 import dev.mindforge.domain.model.NotOwnerException;
 import dev.mindforge.domain.model.PageLink;
 import dev.mindforge.domain.model.PageType;
 import dev.mindforge.domain.model.WikiPage;
+import dev.mindforge.domain.model.TokenEstimate;
 import dev.mindforge.domain.port.InteractionStore;
+import dev.mindforge.domain.port.PageSearchQuery;
 import dev.mindforge.domain.port.WikiStore;
 import dev.mindforge.infrastructure.ai.PromptLoader;
 import dev.mindforge.support.Prompts;
@@ -40,6 +44,7 @@ class QueryServiceTest {
     private final WikiStore wiki = mock(WikiStore.class);
     private final InteractionStore interactions = mock(InteractionStore.class);
     private final StubAIGateway gateway = new StubAIGateway();
+    private final PageSearchQuery search = mock(PageSearchQuery.class);
 
     @Test
     void shouldDropHallucinatedPathsAddLinkedNeighboursAndCiteOnlyPagesItWasGiven() {
@@ -89,9 +94,49 @@ class QueryServiceTest {
             .isThrownBy(() -> makeService().ask(KB, UUID.randomUUID(), SESSION, "Pytanie?"));
     }
 
+    @Test
+    void shouldRouteOverTheLexicalShortlistWhenTheIndexIsPastTheCeiling() {
+        givenSession();
+        givenAnOversizedIndex();
+        IndexEntry hit = new IndexEntry("concepts/mitoza", "Mitoza", "Podział komórki.", PageType.CONCEPT);
+        when(search.search(eq(KB), any(), eq(20))).thenReturn(List.of(hit));
+        gateway.answer(Prompts.SELECT, "{\"paths\": []}");
+        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Odpowiedź.\", \"citations\": []}");
+
+        makeService().ask(KB, USER, SESSION, "Czym jest mitoza?");
+
+        String select = gateway.recordedCalls().getFirst().prompt();
+        assertThat(select).contains("concepts/mitoza").doesNotContain("concepts/inne-500");
+    }
+
+    @Test
+    void shouldBoundTheIndexInThePromptWhenNothingMatchesAndTheIndexIsPastTheCeiling() {
+        givenSession();
+        givenAnOversizedIndex();
+        when(search.search(eq(KB), any(), eq(20))).thenReturn(List.of());
+        gateway.answer(Prompts.SELECT, "{\"paths\": []}");
+        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Odpowiedź.\", \"citations\": []}");
+
+        makeService().ask(KB, USER, SESSION, "Czym jest mitoza?");
+
+        // the whole index is ~45K tokens; the prompt carries at most the ceiling plus the prompt template
+        assertThat(TokenEstimate.of(gateway.recordedCalls().getFirst().prompt()))
+            .isLessThanOrEqualTo(IndexRenderer.RETRIEVAL_CEILING_TOKENS + 2_000);
+    }
+
+    private void givenAnOversizedIndex() {
+        List<IndexEntry> entries = new java.util.ArrayList<>();
+        for (int i = 0; i < 1_000; i++) {
+            entries.add(new IndexEntry("concepts/inne-" + i, "Inne pojęcie " + i, "Opis. ".repeat(20),
+                PageType.CONCEPT));
+        }
+        when(wiki.listIndex(KB)).thenReturn(entries);
+    }
+
     private QueryService makeService() {
         PromptLoader prompts = new PromptLoader("pl");
-        return new QueryService(wiki, interactions, new PageSelector(gateway, prompts), new AnswerWriter(gateway, prompts));
+        return new QueryService(wiki, interactions, new PageSelector(gateway, prompts), new AnswerWriter(gateway, prompts),
+            search);
     }
 
     private void givenSession() {

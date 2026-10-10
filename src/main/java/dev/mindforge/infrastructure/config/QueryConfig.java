@@ -29,8 +29,8 @@ public class QueryConfig {
 
     @Bean
     QueryService queryService(WikiStore wikiStore, InteractionStore interactionStore, PageSelector pageSelector,
-                              AnswerWriter answerWriter) {
-        return new QueryService(wikiStore, interactionStore, pageSelector, answerWriter);
+                              AnswerWriter answerWriter, PageSearchQuery pageSearchQuery) {
+        return new QueryService(wikiStore, interactionStore, pageSelector, answerWriter, pageSearchQuery);
     }
 
     @Bean

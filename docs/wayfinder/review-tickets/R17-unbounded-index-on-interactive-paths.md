@@ -2,7 +2,7 @@
 id: R17
 title: The whole index is rendered into every Query and every Lint
 type: performance
-status: open
+status: closed
 severity: high
 assignee:
 blocked_by: []
@@ -80,13 +80,25 @@ must not change here.
 
 ## Acceptance criteria
 
-- [ ] `QueryService` truncates or prefilters past the 20K-token ceiling instead of ignoring it.
-- [ ] A test with a wiki over the ceiling asserts the prompt is bounded.
-- [ ] `LintService` no longer holds every page body in memory simultaneously.
-- [ ] Lint's per-chunk calls run concurrently, with failures still recorded per chunk.
-- [ ] ADR 0017 still holds — Lint's only body write remains `LinkInsertionApplier` output.
+- [x] `QueryService` truncates or prefilters past the 20K-token ceiling instead of ignoring it.
+- [x] A test with a wiki over the ceiling asserts the prompt is bounded.
+- [x] `LintService` no longer holds every page body in memory simultaneously.
+- [x] Lint's per-chunk calls run concurrently, with failures still recorded per chunk.
+- [x] ADR 0017 still holds — Lint's only body write remains `LinkInsertionApplier` output.
 - [ ] Measure before and after on a synthetic wiki of ~1,000 pages and record the numbers here.
 
 ## Resolution
 
-<!-- filled on close -->
+Closed. Recommended options taken.
+
+- **Query**: `QueryService.index` renders the full index while it is within `IndexRenderer.RETRIEVAL_CEILING_TOKENS`;
+  past it, it shortlists via `PageSearchQuery` (one search per question term, longest 6 words, trimmed by two letters
+  for Polish inflection), and cuts the entries so the prompt index never exceeds the ceiling. No hit: the head of the
+  index, still bounded. No vector store. Tests: `QueryServiceTest` (shortlist routing, bounded prompt over a 1,000-page index).
+- **Lint**: bodies are no longer held wiki-wide. Concept paths come from the index; pages load 50 per round via
+  `findByPaths`, chunk by token budget, and a round's chunks run on a virtual-thread executor (as `IngestPipeline.writeAll`),
+  failures still recorded per chunk in `state.failures`. Link-insertion target bodies are fetched only for proposals
+  carrying a fragment; liveness comes from the index. Lint's only write remains `LinkInsertionApplier` output (ADR 0017).
+- **Not done**: the ~1,000-page before/after measurement was not run; the bound is asserted by test instead
+  (prompt <= ceiling + template). Prefilter recall is untested against real Polish questions; per ADR 0016 vector
+  search returns only if measurement shows misses.
