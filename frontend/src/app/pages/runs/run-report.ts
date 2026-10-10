@@ -29,7 +29,10 @@ export class RunReportView {
   }
 
   revert(): void {
-    this.act(this.runs.revert(this.kbId(), this.runId()));
+    // ponytail: native confirm; a MatDialog when the confirmation needs to show what the revert will undo
+    if (confirm('Cofnąć ten przebieg? Zmiany, które wprowadził w wiki, zostaną wycofane.')) {
+      this.act(this.runs.revert(this.kbId(), this.runId()));
+    }
   }
 
   removeSupersession(supersessionId: string): void {

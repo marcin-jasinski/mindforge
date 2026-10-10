@@ -6,8 +6,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 
-import { Evaluation, Flashcard, NextQuestion, QuizSession } from '../../core/models/api';
-import { StudyApi, StudyScope } from '../../core/services/study-api';
+import { Evaluation, Flashcard, NextQuestion, QuizSession, StudyScope } from '../../core/models/api';
+import { StudyApi } from '../../core/services/study-api';
 import { WikiApi } from '../../core/services/wiki-api';
 
 type ScopeKind = 'whole' | 'lesson' | 'page';

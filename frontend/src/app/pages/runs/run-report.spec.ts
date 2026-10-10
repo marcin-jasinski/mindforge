@@ -8,7 +8,8 @@ import { ProgressService } from '../../core/services/progress.service';
 import { RunReportView } from './run-report';
 
 describe('RunReportView revert', () => {
-  function setup(revert: ReturnType<typeof vi.fn>) {
+  function setup(revert: ReturnType<typeof vi.fn>, confirmed = true) {
+    vi.spyOn(window, 'confirm').mockReturnValue(confirmed);
     const api = { report: vi.fn(() => of({ revertOffered: true, pages: [], supersessions: [], failures: [], findings: [] })), revert };
     const progress = { reload: vi.fn() };
     TestBed.configureTestingModule({
@@ -25,11 +26,21 @@ describe('RunReportView revert', () => {
     return { fixture, api, progress };
   }
 
-  it('posts the revert for this run and refreshes the run list', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('posts the revert for this run and refreshes the run list once confirmed', () => {
     const { fixture, api, progress } = setup(vi.fn(() => of({})));
     fixture.componentInstance.revert();
+    expect(window.confirm).toHaveBeenCalled();
     expect(api.revert).toHaveBeenCalledWith('kb', 'run');
     expect(progress.reload).toHaveBeenCalledWith('kb');
+  });
+
+  it('sends nothing when the confirmation is declined', () => {
+    const { fixture, api, progress } = setup(vi.fn(() => of({})), false);
+    fixture.componentInstance.revert();
+    expect(api.revert).not.toHaveBeenCalled();
+    expect(progress.reload).not.toHaveBeenCalled();
   });
 
   it('explains a busy knowledge base instead of failing silently', () => {

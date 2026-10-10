@@ -1,14 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { Evaluation, Flashcard, NextQuestion, QuizSession } from '../models/api';
+import { Evaluation, Flashcard, NextQuestion, QuizSession, StudyScope } from '../models/api';
 import { ApiService } from './api.service';
-
-/** At most one of the two is set; neither means the whole knowledge base. */
-export interface StudyScope {
-  lessonId?: string;
-  pageId?: string;
-}
 
 /** Owns the endpoint paths of flashcards and quizzes. */
 @Injectable({ providedIn: 'root' })
@@ -30,7 +24,7 @@ export class StudyApi {
     return this.api.post(`/knowledge-bases/${kbId}/quiz-sessions`, scope);
   }
 
-  answer(kbId: string, sessionId: string, answer: string): Observable<Evaluation & { finished: boolean }> {
+  answer(kbId: string, sessionId: string, answer: string): Observable<Evaluation> {
     return this.api.post(`/knowledge-bases/${kbId}/quiz-sessions/${sessionId}/answers`, { answer });
   }
 
