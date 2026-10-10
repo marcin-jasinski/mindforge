@@ -2,7 +2,10 @@ package dev.mindforge.application.service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,6 +17,7 @@ import dev.mindforge.agent.PageSelector;
 import dev.mindforge.application.wiki.IndexRenderer;
 import dev.mindforge.application.wiki.PageRenderer;
 import dev.mindforge.domain.model.AnswerDraft;
+import dev.mindforge.domain.model.IndexEntry;
 import dev.mindforge.domain.model.Interaction;
 import dev.mindforge.domain.model.InteractionTurn;
 import dev.mindforge.domain.model.LiveSupersession;
@@ -25,6 +29,7 @@ import dev.mindforge.domain.model.TokenEstimate;
 import dev.mindforge.domain.model.TurnSummary;
 import dev.mindforge.domain.model.WikiPage;
 import dev.mindforge.domain.port.InteractionStore;
+import dev.mindforge.domain.port.PageSearchQuery;
 import dev.mindforge.domain.port.WikiStore;
 
 /**
@@ -38,6 +43,16 @@ public class QueryService {
     private static final int PRIOR_TURNS = 5;
     private static final TokenBudget CONTEXT = new TokenBudget(24_000, 4_000);
     private static final String NO_PRIOR_TURNS = "(brak)";
+    private static final int TERMS_PER_QUESTION = 6;
+    private static final int HITS_PER_TERM = 20;
+    private static final int MIN_TERM_LENGTH = 4;
+    /** A word this long loses {@link #INFLECTION_LETTERS} so a Polish inflection still matches its stem. */
+    private static final int MIN_TRIMMED_LENGTH = 6;
+    private static final int INFLECTION_LETTERS = 2;
+    /** Per entry line: the bullet, brackets, parentheses, leading slash and {@code .md} around title and path. */
+    private static final int ENTRY_MARKUP_TOKENS = 8;
+    /** Headroom for the frontmatter, the two headings and link-text escaping around the estimated entry lines. */
+    private static final int RENDER_OVERHEAD_TOKENS = 200;
 
     /** An answer and the pages it cites — never the text it was grounded on. */
     public record Answer(String answer, List<String> citedPaths) {}
@@ -46,12 +61,15 @@ public class QueryService {
     private final InteractionStore interactions;
     private final PageSelector selector;
     private final AnswerWriter writer;
+    private final PageSearchQuery search;
 
-    public QueryService(WikiStore wiki, InteractionStore interactions, PageSelector selector, AnswerWriter writer) {
+    public QueryService(WikiStore wiki, InteractionStore interactions, PageSelector selector, AnswerWriter writer,
+                        PageSearchQuery search) {
         this.wiki = wiki;
         this.interactions = interactions;
         this.selector = selector;
         this.writer = writer;
+        this.search = search;
     }
 
     public Interaction start(UUID kbId, UUID userId) {
@@ -60,9 +78,9 @@ public class QueryService {
 
     public Answer ask(UUID kbId, UUID userId, UUID interactionId, String question) {
         requireSession(kbId, userId, interactionId);
-        List<InteractionTurn> turns = interactions.turns(kbId, interactionId);
+        List<InteractionTurn> turns = interactions.recentTurns(kbId, interactionId, PRIOR_TURNS);
         String prior = prior(turns);
-        List<String> selected = selector.select(question, prior, IndexRenderer.render(wiki.listIndex(kbId)),
+        List<String> selected = selector.select(question, prior, index(kbId, question),
             MAX_SELECTED_PAGES);
 
         Map<String, WikiPage> live = wiki.findByPaths(kbId, selected).stream()
@@ -96,6 +114,46 @@ public class QueryService {
         return new Answer(draft.answer(), cited);
     }
 
+    /**
+     * The index a question is routed over: the whole rendered index while it fits the retrieval ceiling, past it the
+     * lexical prefilter's shortlist (ADR 0016), cut so the prompt never exceeds the ceiling.
+     */
+    private String index(UUID kbId, String question) {
+        List<IndexEntry> entries = wiki.listIndex(kbId);
+        String rendered = IndexRenderer.render(entries);
+        if (TokenEstimate.of(rendered) <= IndexRenderer.RETRIEVAL_CEILING_TOKENS) {
+            return rendered;
+        }
+        Map<String, IndexEntry> shortlist = new LinkedHashMap<>();
+        for (String term : terms(question)) {
+            search.search(kbId, term, HITS_PER_TERM).forEach(entry -> shortlist.putIfAbsent(entry.path(), entry));
+        }
+        // ponytail: no term hit means the question matched nothing lexically; route over the index head, still bounded
+        List<IndexEntry> candidates = shortlist.isEmpty() ? entries : List.copyOf(shortlist.values());
+        List<IndexEntry> fitted = new ArrayList<>();
+        int tokens = RENDER_OVERHEAD_TOKENS;
+        for (IndexEntry entry : candidates) {
+            tokens += TokenEstimate.of(entry.title() + entry.path() + entry.description()) + ENTRY_MARKUP_TOKENS;
+            if (tokens > IndexRenderer.RETRIEVAL_CEILING_TOKENS) {
+                break;
+            }
+            fitted.add(entry);
+        }
+        return IndexRenderer.render(fitted);
+    }
+
+    /** Longest words first, long ones stem-trimmed so a Polish inflection still matches as a substring. */
+    private static List<String> terms(String question) {
+        return new LinkedHashSet<>(Arrays.asList(question.toLowerCase().split("[^\\p{L}\\p{N}]+"))).stream()
+            .filter(word -> word.length() >= MIN_TERM_LENGTH)
+            .sorted(Comparator.comparingInt(String::length).reversed())
+            .limit(TERMS_PER_QUESTION)
+            .map(word -> word.length() >= MIN_TRIMMED_LENGTH
+                ? word.substring(0, word.length() - INFLECTION_LETTERS)
+                : word)
+            .toList();
+    }
+
     public List<TurnSummary> history(UUID kbId, UUID userId) {
         return interactions.listForUser(kbId, userId);
     }
@@ -113,7 +171,7 @@ public class QueryService {
         if (turns.isEmpty()) {
             return NO_PRIOR_TURNS;
         }
-        return turns.subList(Math.max(0, turns.size() - PRIOR_TURNS), turns.size()).stream()
+        return turns.stream()
             .map(turn -> "Pytanie: " + turn.question() + "\nOdpowiedź: " + turn.answer())
             .collect(Collectors.joining("\n\n"));
     }

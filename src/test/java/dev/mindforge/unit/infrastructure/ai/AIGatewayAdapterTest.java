@@ -114,12 +114,14 @@ class AIGatewayAdapterTest {
     }
 
     @Test
-    void shouldNotRetryNonTransientFailure() {
+    void shouldNotRetryNonTransientFailureAndHideItsMessage() {
         AIGatewayAdapter adapter = makeAdapter();
         when(chatModel.call(any(Prompt.class))).thenThrow(new NonTransientAiException("400 bad request"));
 
         assertThatThrownBy(() -> adapter.complete(ModelTier.LARGE, "hello", DeadlineProfile.INTERACTIVE))
-            .isInstanceOf(NonTransientAiException.class);
+            .isInstanceOf(AIGatewayUnavailableException.class)
+            .hasMessageNotContaining("400")
+            .hasCauseInstanceOf(NonTransientAiException.class);
         verify(chatModel, times(1)).call(any(Prompt.class));
     }
 

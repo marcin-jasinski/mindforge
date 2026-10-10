@@ -27,6 +27,14 @@ export class AuthService {
     );
   }
 
+  /** The identity providers the server can sign in with; empty when none is configured. */
+  providers(): Observable<string[]> {
+    return this.api.get<{ providers: string[] }>('/auth/providers', true).pipe(
+      map((response) => response.providers),
+      catchError(() => of([])),
+    );
+  }
+
   login(email: string, password: string): Observable<User> {
     return this.api.post<User>('/auth/login', { email, password }, true).pipe(tap((user) => this.signedIn(user)));
   }

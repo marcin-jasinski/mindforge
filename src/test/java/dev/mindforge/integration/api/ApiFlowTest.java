@@ -41,7 +41,8 @@ import dev.mindforge.support.TestContainerBase;
     "mindforge.security.jwt-secret=test-jwt-secret-for-integration-tests-minimum-length",
     "mindforge.security.secure-cookies=false",
     "spring.ai.openai.api-key=test-placeholder",
-    "spring.jpa.hibernate.ddl-auto=none"
+    "spring.jpa.hibernate.ddl-auto=none",
+    "springdoc.api-docs.enabled=true"
 })
 class ApiFlowTest extends TestContainerBase {
 
@@ -68,22 +69,22 @@ class ApiFlowTest extends TestContainerBase {
         Client client = new Client();
         String email = "ala-" + UUID.randomUUID() + "@example.com";
 
-        Response registered = client.post("/api/auth/register",
+        Response registered = client.post("/api/v1/auth/register",
             Map.of("displayName", "Ala", "email", email, "password", "sekretne-haslo"));
 
         assertThat(registered.status()).isEqualTo(201);
         assertThat(registered.setCookie()).contains("token=").contains("HttpOnly").contains("SameSite=Lax");
         assertNoSensitiveFields(registered);
-        assertThat(client.get("/api/auth/me").json().get("email").asString()).isEqualTo(email);
-        assertThat(client.post("/api/auth/logout", Map.of()).status()).isEqualTo(204);
-        assertThat(client.get("/api/auth/me").status()).isEqualTo(401);
+        assertThat(client.get("/api/v1/auth/me").json().get("email").asString()).isEqualTo(email);
+        assertThat(client.post("/api/v1/auth/logout", Map.of()).status()).isEqualTo(204);
+        assertThat(client.get("/api/v1/auth/me").status()).isEqualTo(401);
 
         Client other = new Client();
-        assertThat(other.post("/api/auth/login", Map.of("email", email, "password", "zle-haslo")).status())
+        assertThat(other.post("/api/v1/auth/login", Map.of("email", email, "password", "zle-haslo")).status())
             .isEqualTo(401);
-        assertThat(other.post("/api/auth/login", Map.of("email", email.toUpperCase(), "password", "sekretne-haslo"))
+        assertThat(other.post("/api/v1/auth/login", Map.of("email", email.toUpperCase(), "password", "sekretne-haslo"))
             .status()).isEqualTo(200);
-        assertThat(other.get("/api/auth/me").status()).isEqualTo(200);
+        assertThat(other.get("/api/v1/auth/me").status()).isEqualTo(200);
     }
 
     // ---------------------------------------------------------------------------
@@ -116,7 +117,7 @@ class ApiFlowTest extends TestContainerBase {
 
         List<Response> responses = List.of(upload, index, page, runs, report, client.get(kb),
             client.get(kb + "/documents"), client.get(kb + "/documents/" + documentId), client.get(kb + "/graph"),
-            client.get(kb + "/health"), client.get(kb + "/pages/concepts/mitoza/revisions"), client.get("/api/auth/me"));
+            client.get(kb + "/health"), client.get(kb + "/pages/concepts/mitoza/revisions"), client.get("/api/v1/auth/me"));
         responses.forEach(response -> assertThat(response.status()).as(response.body()).isLessThan(300));
         responses.forEach(ApiFlowTest::assertNoSensitiveFields);
 
@@ -163,20 +164,22 @@ class ApiFlowTest extends TestContainerBase {
             "question", "Czym jest mitoza?", "referenceAnswer", "SEKRETNA-ODPOWIEDZ",
             "groundingExcerpt", "Mitoza dzieli komórkę na dwie.")))));
         gateway.answer(Prompts.GRADE, "{\"score\": 4, \"feedback\": \"Prawie dobrze.\"}");
-        awaitRun(client, kb, client.upload(kb, "biologia.md", NOTES, false).json().get("documentId").asString(),
-            "COMPLETED");
+        String documentId = client.upload(kb, "biologia.md", NOTES, false).json().get("documentId").asString();
+        awaitRun(client, kb, documentId, "COMPLETED");
 
-        Response deck = client.get(kb + "/flashcards");
+        assertThat(client.get(kb + "/flashcards").json()).as("listing a deck generates nothing").isEmpty();
+        Response deck = client.post(kb + "/flashcards/refresh", Map.of());
         assertThat(deck.json()).hasSize(1);
+        assertThat(client.get(kb + "/flashcards").json()).hasSize(1);
         String cardId = deck.json().get(0).get("cardId").asString();
         Response reviewed = client.post(kb + "/flashcards/" + cardId + "/reviews", Map.of("rating", 5));
         assertThat(Instant.parse(reviewed.json().get("dueAt").asString())).isAfter(Instant.now());
         assertThat(client.post(kb + "/flashcards/" + cardId + "/reviews", Map.of("rating", 9)).status()).isEqualTo(400);
 
         Response started = client.post(kb + "/quiz-sessions", Map.of());
-        assertThat(started.status()).isEqualTo(201);
+        assertThat(started.status()).as("the questions are written after the response").isEqualTo(202);
         String session = kb + "/quiz-sessions/" + started.json().get("sessionId").asString();
-        Response next = client.get(session + "/next");
+        Response next = nextQuestion(client, session);
         assertThat(next.json().get("question").asString()).isEqualTo("Czym jest mitoza?");
         Response graded = client.post(session + "/answers", Map.of("answer", "Podział."));
         assertThat(graded.json().get("score").asInt()).isEqualTo(4);
@@ -191,6 +194,10 @@ class ApiFlowTest extends TestContainerBase {
         }
         Client other = signedUp();
         assertThat(other.get(kb + "/flashcards").status()).isEqualTo(403);
+        assertThat(other.post(kb + "/flashcards/refresh", Map.of()).status()).isEqualTo(403);
+        assertThat(other.delete(kb + "/documents/" + documentId).status()).isEqualTo(403);
+        assertThat(client.delete(kb + "/documents/" + documentId).status())
+            .as("a document that wrote pages is not removable").isEqualTo(409);
         assertThat(other.get(session + "/next").status()).isEqualTo(403);
     }
 
@@ -234,6 +241,74 @@ class ApiFlowTest extends TestContainerBase {
         Client other = signedUp();
         assertThat(other.post(chat + "/messages", Map.of("question", "Cudze?")).status()).isEqualTo(403);
         assertThat(client.get(kb + "/flashcards?lessonId=conversation").status()).isEqualTo(404);
+    }
+
+    @Test
+    void unreadableModelOutputIsAServiceUnavailableNotAServerError() {
+        Client client = signedUp();
+        String kb = createKnowledgeBase(client);
+        gateway.reset();
+        gateway.answer(Prompts.SELECT, "{\"paths\": []}");
+        gateway.answer(Prompts.ANSWER, "to nie jest JSON");
+        String chat = kb + "/query-sessions/"
+            + client.post(kb + "/query-sessions", Map.of()).json().get("interactionId").asString();
+
+        Response answer = client.post(chat + "/messages", Map.of("question", "Co to mitoza?"));
+        gateway.reset(); // stubs are first-match and shared across tests
+
+        assertThat(answer.status()).isEqualTo(503);
+        assertThat(answer.json().get("code").asString()).isEqualTo("MODEL_UNAVAILABLE");
+        assertThat(answer.json().get("detail").asString()).isEqualTo("The model returned unreadable output");
+    }
+
+    @Test
+    void aMalformedBodyIsAnsweredWithAFixedMessageThatEchoesNothing() {
+        Response response = new Client().postRaw("/api/v1/auth/login", "{\"email\": \"secret-snippet\", ");
+
+        assertThat(response.status()).isEqualTo(400);
+        assertThat(response.json().get("detail").asString()).isEqualTo("Malformed request body");
+        assertThat(response.body()).doesNotContain("secret-snippet").doesNotContain("dev.mindforge");
+    }
+
+    @Test
+    void onlyTheActuatorHealthProbeIsPublic() {
+        Client client = new Client();
+
+        assertThat(client.get("/actuator/health").status()).isEqualTo(200);
+        assertThat(client.get("/actuator/env").status()).isIn(401, 403);
+        assertThat(client.get("/health").status()).isEqualTo(404);
+    }
+
+    /** The question once the quiz's questions are written; a 202 means they are still being written. */
+    private Response nextQuestion(Client client, String session) {
+        Response next = client.get(session + "/next");
+        for (int attempt = 0; attempt < 200 && next.status() == 202; attempt++) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
+            next = client.get(session + "/next");
+        }
+        return next;
+    }
+
+    @Test
+    void theSignInPageIsToldWhichProvidersAreConfigured() {
+        Response providers = new Client().get("/api/v1/auth/providers");
+
+        assertThat(providers.status()).isEqualTo(200);
+        assertThat(providers.json().get("providers").isArray()).isTrue();
+        assertThat(providers.body()).doesNotContain("not-configured").doesNotContain("secret");
+    }
+
+    @Test
+    void theLoginRouteIsTheSinglePageApp() {
+        Response login = new Client().get("/login");
+
+        assertThat(login.status()).isEqualTo(200);
+        assertThat(login.body()).contains("<app-root>").doesNotContain("Please sign in");
     }
 
     @Test
@@ -352,16 +427,16 @@ class ApiFlowTest extends TestContainerBase {
 
     private Client signedUp() {
         Client client = new Client();
-        Response registered = client.post("/api/auth/register", Map.of("displayName", "Uczeń",
+        Response registered = client.post("/api/v1/auth/register", Map.of("displayName", "Uczeń",
             "email", "uczen-" + UUID.randomUUID() + "@example.com", "password", "sekretne-haslo"));
         assertThat(registered.status()).isEqualTo(201);
         return client;
     }
 
     private static String createKnowledgeBase(Client client) {
-        Response created = client.post("/api/knowledge-bases", Map.of("name", "Biologia", "description", "Notatki"));
+        Response created = client.post("/api/v1/knowledge-bases", Map.of("name", "Biologia", "description", "Notatki"));
         assertThat(created.status()).isEqualTo(201);
-        return "/api/knowledge-bases/" + created.json().get("kbId").asString();
+        return "/api/v1/knowledge-bases/" + created.json().get("kbId").asString();
     }
 
     private static void awaitRun(Client client, String kb, String documentId, String status) {
@@ -441,6 +516,11 @@ class ApiFlowTest extends TestContainerBase {
         Response post(String path, Object body) {
             return send(request(path).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(body))));
+        }
+
+        Response postRaw(String path, String body) {
+            return send(request(path).header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body)));
         }
 
         Response upload(String kb, String filename, String markdown, boolean newVersion) {

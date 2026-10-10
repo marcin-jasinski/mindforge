@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/knowledge-bases": {
+    "/api/v1/knowledge-bases": {
         parameters: {
             query?: never;
             header?: never;
@@ -22,7 +22,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/runs/{runId}/revert": {
+    "/api/v1/knowledge-bases/{kbId}/runs/{runId}/revert": {
         parameters: {
             query?: never;
             header?: never;
@@ -39,7 +39,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/quiz-sessions": {
+    "/api/v1/knowledge-bases/{kbId}/quiz-sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -48,7 +48,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Start a quiz over a study scope */
+        /** Start a quiz over a study scope; its questions are written in the background */
         post: operations["start"];
         delete?: never;
         options?: never;
@@ -56,7 +56,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/quiz-sessions/{sessionId}/answers": {
+    "/api/v1/knowledge-bases/{kbId}/quiz-sessions/{sessionId}/answers": {
         parameters: {
             query?: never;
             header?: never;
@@ -73,7 +73,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/query-sessions": {
+    "/api/v1/knowledge-bases/{kbId}/query-sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -91,7 +91,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/query-sessions/{interactionId}/messages": {
+    "/api/v1/knowledge-bases/{kbId}/query-sessions/{interactionId}/messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -108,7 +108,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/query-sessions/{interactionId}/edits": {
+    "/api/v1/knowledge-bases/{kbId}/query-sessions/{interactionId}/edits": {
         parameters: {
             query?: never;
             header?: never;
@@ -125,7 +125,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/lint-runs": {
+    "/api/v1/knowledge-bases/{kbId}/lint-runs": {
         parameters: {
             query?: never;
             header?: never;
@@ -142,7 +142,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/flashcards/{cardId}/reviews": {
+    "/api/v1/knowledge-bases/{kbId}/flashcards/{cardId}/reviews": {
         parameters: {
             query?: never;
             header?: never;
@@ -159,7 +159,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/documents": {
+    "/api/v1/knowledge-bases/{kbId}/flashcards/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cut the missing or stale cards within the session budget, wait for the model, and list the due ones */
+        post: operations["refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/knowledge-bases/{kbId}/documents": {
         parameters: {
             query?: never;
             header?: never;
@@ -177,7 +194,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/documents/{documentId}/runs": {
+    "/api/v1/knowledge-bases/{kbId}/documents/{documentId}/runs": {
         parameters: {
             query?: never;
             header?: never;
@@ -194,7 +211,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/register": {
+    "/api/v1/auth/register": {
         parameters: {
             query?: never;
             header?: never;
@@ -211,7 +228,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/logout": {
+    "/api/v1/auth/logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -228,7 +245,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/login": {
+    "/api/v1/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -245,7 +262,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/users/me": {
+    "/api/v1/users/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -262,7 +279,7 @@ export interface paths {
         patch: operations["update"];
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}": {
+    "/api/v1/knowledge-bases/{kbId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -281,7 +298,7 @@ export interface paths {
         patch: operations["update_1"];
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/runs": {
+    "/api/v1/knowledge-bases/{kbId}/runs": {
         parameters: {
             query?: never;
             header?: never;
@@ -298,7 +315,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/runs/{runId}": {
+    "/api/v1/knowledge-bases/{kbId}/runs/{runId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -315,7 +332,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/quiz-sessions/{sessionId}/next": {
+    "/api/v1/knowledge-bases/{kbId}/quiz-sessions/{sessionId}/next": {
         parameters: {
             query?: never;
             header?: never;
@@ -332,7 +349,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/progress": {
+    "/api/v1/knowledge-bases/{kbId}/progress": {
         parameters: {
             query?: never;
             header?: never;
@@ -349,7 +366,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/pages/{directory}/{name}": {
+    "/api/v1/knowledge-bases/{kbId}/pages/{directory}/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -366,7 +383,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/pages/{directory}/{name}/revisions": {
+    "/api/v1/knowledge-bases/{kbId}/pages/{directory}/{name}/revisions": {
         parameters: {
             query?: never;
             header?: never;
@@ -383,7 +400,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/pages/search": {
+    "/api/v1/knowledge-bases/{kbId}/pages/search": {
         parameters: {
             query?: never;
             header?: never;
@@ -400,7 +417,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/index": {
+    "/api/v1/knowledge-bases/{kbId}/index": {
         parameters: {
             query?: never;
             header?: never;
@@ -417,7 +434,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/health": {
+    "/api/v1/knowledge-bases/{kbId}/health": {
         parameters: {
             query?: never;
             header?: never;
@@ -434,7 +451,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/graph": {
+    "/api/v1/knowledge-bases/{kbId}/graph": {
         parameters: {
             query?: never;
             header?: never;
@@ -451,14 +468,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/flashcards": {
+    "/api/v1/knowledge-bases/{kbId}/flashcards": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Open a deck: refresh the scope's cards within the session budget and list the due ones */
+        /** List the scope's due cards as they stand; nothing is generated */
         get: operations["deck"];
         put?: never;
         post?: never;
@@ -468,7 +485,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/export": {
+    "/api/v1/knowledge-bases/{kbId}/export": {
         parameters: {
             query?: never;
             header?: never;
@@ -485,7 +502,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/documents/{documentId}": {
+    "/api/v1/knowledge-bases/{kbId}/documents/{documentId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -496,13 +513,31 @@ export interface paths {
         get: operations["get_1"];
         put?: never;
         post?: never;
+        /** Remove a document whose every run failed, so its file can be uploaded again */
+        delete: operations["remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the identity providers the sign-in page can offer */
+        get: operations["providers"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/me": {
+    "/api/v1/auth/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -519,7 +554,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/supersessions/{supersessionId}": {
+    "/api/v1/knowledge-bases/{kbId}/supersessions/{supersessionId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -850,6 +885,9 @@ export interface components {
             retryable: boolean;
             failureReason: string;
         };
+        AuthProvidersResponse: {
+            providers: string[];
+        };
         ErrorResponse: {
             error?: string;
             code?: string;
@@ -948,8 +986,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Started */
-            201: {
+            /** @description Accepted; poll the next question until it is ready */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1147,6 +1185,31 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FlashcardResponse"];
+                };
+            };
+        };
+    };
+    refresh: {
+        parameters: {
+            query?: {
+                lessonId?: string;
+                pageId?: string;
+            };
+            header?: never;
+            path: {
+                kbId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No such lesson or page */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FlashcardResponse"][];
                 };
             };
         };
@@ -1495,6 +1558,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description The questions are still being written; ask again shortly */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NextQuestionResponse"];
+                };
+            };
             /** @description The quiz is over */
             204: {
                 headers: {
@@ -1732,6 +1804,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DocumentResponse"];
+                };
+            };
+        };
+    };
+    remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kbId: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A run of the document is queued, running or has written pages */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    providers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AuthProvidersResponse"];
                 };
             };
         };

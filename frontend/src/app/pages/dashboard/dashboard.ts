@@ -7,7 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { RouterLink } from '@angular/router';
 
 import { KnowledgeBase } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { WikiApi } from '../../core/services/wiki-api';
 
 @Component({
   selector: 'app-dashboard',
@@ -16,7 +16,7 @@ import { ApiService } from '../../core/services/api.service';
   templateUrl: './dashboard.html',
 })
 export class Dashboard implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly wiki = inject(WikiApi);
 
   readonly knowledgeBases = signal<KnowledgeBase[]>([]);
   readonly name = signal('');
@@ -27,7 +27,7 @@ export class Dashboard implements OnInit {
   }
 
   create(): void {
-    this.api.post<KnowledgeBase>('/knowledge-bases', { name: this.name(), description: this.description() }).subscribe(() => {
+    this.wiki.createKnowledgeBase(this.name(), this.description()).subscribe(() => {
       this.name.set('');
       this.description.set('');
       this.load();
@@ -35,6 +35,6 @@ export class Dashboard implements OnInit {
   }
 
   private load(): void {
-    this.api.get<KnowledgeBase[]>('/knowledge-bases').subscribe((bases) => this.knowledgeBases.set(bases));
+    this.wiki.knowledgeBases().subscribe((bases) => this.knowledgeBases.set(bases));
   }
 }

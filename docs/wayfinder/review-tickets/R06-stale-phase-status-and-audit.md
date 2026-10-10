@@ -2,7 +2,7 @@
 id: R06
 title: Phase 3b's checkbox and the stale spec audit
 type: docs
-status: open
+status: closed
 severity: low
 assignee:
 blocked_by: []
@@ -66,11 +66,11 @@ precisely the audience this repository's documentation is written for. An agent 
 
 ## Acceptance criteria
 
-- [ ] `implementation-plan.md` and `roadmap.md` agree on Phase 3b's status.
-- [ ] No completion checklist contains an item that cannot be satisfied in the repository.
-- [ ] `verification/spec-audit.md` is deleted, or clearly marked historical.
-- [ ] `docs/INDEX.md` matches whatever was decided.
+- [x] `implementation-plan.md` and `roadmap.md` agree on Phase 3b's status.
+- [x] No completion checklist contains an item that cannot be satisfied in the repository.
+- [x] `verification/spec-audit.md` is deleted, or clearly marked historical.
+- [x] `docs/INDEX.md` matches whatever was decided.
 
 ## Resolution
 
-<!-- filled on close -->
+Phase 3b heading ticked; the unsatisfiable local-database item moved out of the checklist into a warning note. `verification/spec-audit.md` deleted (recommended option; the directory is gone, nothing referenced it, `docs/INDEX.md` needed no change).

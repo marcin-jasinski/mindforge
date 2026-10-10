@@ -20,13 +20,15 @@ export type Flashcard = Schemas['FlashcardResponse'];
 export type QuizSession = Schemas['QuizSessionResponse'];
 export type NextQuestion = Schemas['NextQuestionResponse'];
 export type Evaluation = Schemas['EvaluationResponse'];
+/** At most one of the two is set; neither means the whole knowledge base. */
+export type StudyScope = Schemas['QuizSessionRequest'];
 export type QuerySession = Schemas['QuerySessionResponse'];
 export type Answer = Schemas['AnswerResponse'];
 export type TurnSummary = Schemas['TurnSummaryResponse'];
 export type ApiError = Schemas['ErrorResponse'];
 
 /**
- * The SSE payload of GET /api/knowledge-bases/{kbId}/progress. An SSE event body has no OpenAPI schema, so this one
+ * The SSE payload of GET /api/v1/knowledge-bases/{kbId}/progress. An SSE event body has no OpenAPI schema, so this one
  * type mirrors the backend's RunProgress record by hand.
  */
 export interface RunProgress {

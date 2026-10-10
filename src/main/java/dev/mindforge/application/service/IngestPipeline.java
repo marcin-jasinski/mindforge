@@ -52,7 +52,6 @@ import dev.mindforge.domain.model.IngestRunFailedException;
 import dev.mindforge.domain.model.LinkInsertion;
 import dev.mindforge.domain.model.LiveSupersession;
 import dev.mindforge.domain.model.MarkdownStructure;
-import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.domain.model.PageDraft;
 import dev.mindforge.domain.model.PageLink;
 import dev.mindforge.domain.model.PagePath;
@@ -63,6 +62,7 @@ import dev.mindforge.domain.model.PageType;
 import dev.mindforge.domain.model.PageWrite;
 import dev.mindforge.domain.model.PageWriteTask;
 import dev.mindforge.domain.model.ProcessingSettings;
+import dev.mindforge.domain.model.RunFailure;
 import dev.mindforge.domain.model.RunFencedException;
 import dev.mindforge.domain.model.RunProgress;
 import dev.mindforge.domain.model.RunStatus;
@@ -88,7 +88,6 @@ public class IngestPipeline {
     private static final Logger log = LoggerFactory.getLogger(IngestPipeline.class);
 
     private static final int LINK_CHECK_PAGES_PER_CALL = 10;
-    private static final String PLANNED_DESCRIPTION = "(nowa strona)";
 
     private final DocumentRepository documents;
     private final WikiStore wiki;
@@ -121,7 +120,7 @@ public class IngestPipeline {
 
     /** Runs a claimed ({@code RUNNING}) run to {@code COMPLETED} or {@code FAILED}, unless it is fenced. */
     public void run(IngestRun run) {
-        RunState state = new RunState(run);
+        RunState state = new RunState(run, settings);
         String failure = "interrupted";
         boolean retryable = true;
         Committed committed = null;
@@ -200,7 +199,7 @@ public class IngestPipeline {
         Resolver.Plan plan = resolver.finish(edits,
             conversation ? null : PagePath.sourceSummary(document.lessonIdentity().lessonId()),
             document.lessonIdentity().title(), settings.maxPageTasksPerRun());
-        state.failures.addAll(plan.failures());
+        state.addFailures(plan.failures());
 
         Set<String> touched = new HashSet<>(plan.deletions());
         touched.addAll(plan.retitles().keySet());
@@ -214,8 +213,8 @@ public class IngestPipeline {
         int succeeded = drafted.size() + plan.deletions().size();
         for (Map.Entry<String, String> retitle : plan.retitles().entrySet()) {
             WikiPage page = livePages.get(retitle.getKey());
-            succeeded++;
             if (!page.title().equals(retitle.getValue())) {
+                succeeded++;
                 writes.add(new Drafted(new PageWrite(page.pageId(), page.path(), retitle.getValue(),
                     page.description(), page.type(), page.markdownBody()), List.of(), false));
             }
@@ -287,7 +286,7 @@ public class IngestPipeline {
                         drafted.put(task.path(),
                             result.map(write -> write.write().markdownBody()).orElseGet(() -> existing.markdownBody()));
                     } catch (TaskFailed e) {
-                        state.failures.add(Map.of("step", "write", "path", task.path(), "reason", e.getMessage()));
+                        state.addFailure(RunFailure.ofPath("write", task.path(), e.getMessage()));
                     } finally {
                         step(state, "write", done.incrementAndGet(), tasks.size());
                     }
@@ -377,13 +376,12 @@ public class IngestPipeline {
             Set<String> checkedPaths = checkable.stream().map(write -> write.write().path()).collect(Collectors.toSet());
             dropped += (int) proposals.stream().filter(proposal -> !checkedPaths.contains(proposal.pagePath())).count();
             if (dropped > 0) {
-                state.failures.add(Map.of("step", "linkCheck", "dropped", dropped));
+                state.addFailure(RunFailure.dropped("linkCheck", dropped));
             }
             return linked;
         } catch (RuntimeException e) {
             log.warn("Link check of run {} failed; committing without extra links", state.run.runId(), e);
-            state.failures.add(Map.of("step", "linkCheck", "reason",
-                IngestRunFailedException.reasonFor(e)));
+            state.addFailure(RunFailure.of("linkCheck", IngestRunFailedException.reasonFor(e)));
             return writes;
         }
     }
@@ -397,7 +395,7 @@ public class IngestPipeline {
         try {
             progress.notify(kbId, RunProgress.status(state.run, RunStatus.WRITTEN));
             if (committed.article()) {
-                state.failures.add(Map.of("step", "supersede", "reason", "article"));
+                state.addFailure(RunFailure.of("supersede", "article"));
                 complete(state, List.of(), true);
                 return;
             }
@@ -412,8 +410,7 @@ public class IngestPipeline {
             log.warn("Run {} lost its lease before commit 2: {}", state.run.runId(), e.getMessage());
         } catch (RuntimeException e) {
             log.warn("Supersede of run {} failed; completing without supersessions", state.run.runId(), e);
-            state.failures.add(Map.of("step", "supersede", "reason",
-                IngestRunFailedException.reasonFor(e)));
+            state.addFailure(RunFailure.of("supersede", IngestRunFailedException.reasonFor(e)));
             try {
                 complete(state, List.of(), true);
             } catch (RunFencedException fenced) {
@@ -453,7 +450,7 @@ public class IngestPipeline {
         SupersessionInputs.Selection selection = SupersessionInputs.select(List.copyOf(candidates.values()),
             linkCounts, superseded, settings.supersessionContextTokens());
         if (selection.omittedPages() > 0) {
-            state.failures.add(Map.of("step", "supersede", "omittedPages", selection.omittedPages()));
+            state.addFailure(RunFailure.omittedPages("supersede", selection.omittedPages()));
         }
         if (selection.sections().isEmpty()) {
             return List.of();
@@ -462,7 +459,7 @@ public class IngestPipeline {
         state.version(SupersessionDetector.class, SupersessionDetector.VERSION, SupersessionDetector.TIER);
         List<SupersessionProposal> kept = SupersessionInputs.verify(proposals, selection.sections(), writtenPaths);
         if (kept.size() < proposals.size()) {
-            state.failures.add(Map.of("step", "supersede", "dropped", proposals.size() - kept.size()));
+            state.addFailure(RunFailure.dropped("supersede", proposals.size() - kept.size()));
         }
         Map<String, UUID> ids = new HashMap<>();
         candidates.values().forEach(page -> ids.put(page.path(), page.pageId()));
@@ -503,7 +500,7 @@ public class IngestPipeline {
         List<IndexEntry> entries = new ArrayList<>(index.stream()
             .filter(entry -> !plan.deletions().contains(entry.path())).toList());
         plan.tasks().stream().filter(PageWriteTask::create)
-            .forEach(task -> entries.add(new IndexEntry(task.path(), task.title(), PLANNED_DESCRIPTION, task.type())));
+            .forEach(task -> entries.add(new IndexEntry(task.path(), task.title(), PageWriter.NEW_PAGE, task.type())));
         return IndexRenderer.render(entries);
     }
 
@@ -543,40 +540,6 @@ public class IngestPipeline {
 
     private void step(RunState state, String step, Integer done, Integer total) {
         progress.notify(state.kbId(), RunProgress.step(state.run, step, done, total));
-    }
-
-    // ---------------------------------------------------------------------------
-    // Run state
-    // ---------------------------------------------------------------------------
-
-    /** What a run accumulates while it generates: failures and the version of every model service it called. */
-    private final class RunState {
-
-        private final IngestRun run;
-        private final List<Map<String, Object>> failures = Collections.synchronizedList(new ArrayList<>());
-        private final Map<String, String> versions = new ConcurrentHashMap<>();
-
-        private RunState(IngestRun run) {
-            this.run = run;
-        }
-
-        private UUID kbId() {
-            return run.knowledgeBaseId();
-        }
-
-        private void version(Class<?> service, String version, ModelTier tier) {
-            versions.put(service.getSimpleName(), settings.stepVersion(version, tier));
-        }
-
-        private List<Map<String, Object>> failures() {
-            synchronized (failures) {
-                return List.copyOf(failures);
-            }
-        }
-
-        private Map<String, String> versions() {
-            return Map.copyOf(versions);
-        }
     }
 
     /** A write to commit; {@code drafted} is false for a retitle that kept the body. */

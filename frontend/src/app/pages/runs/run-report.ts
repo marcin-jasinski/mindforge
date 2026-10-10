@@ -4,36 +4,46 @@ import { MatButtonModule } from '@angular/material/button';
 import { RouterLink } from '@angular/router';
 
 import { ApiError, RunReport } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { RunApi } from '../../core/services/run-api';
 import { ProgressService } from '../../core/services/progress.service';
 import { DiffView } from '../../shared/diff-view';
+import { DateTimePipe } from '../../shared/date-time.pipe';
+import { apiErrorMessage, failureLine, failureReasonLabel, findingKindLabel, runKindLabel, runStatusLabel } from '../../shared/labels';
 import { pageRoute } from '../../shared/diff';
 
 @Component({
   selector: 'app-run-report',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, DiffView],
+  imports: [RouterLink, MatButtonModule, DiffView, DateTimePipe],
   templateUrl: './run-report.html',
 })
 export class RunReportView {
-  private readonly api = inject(ApiService);
+  private readonly runs = inject(RunApi);
   private readonly progress = inject(ProgressService);
 
   readonly kbId = input.required<string>();
   readonly runId = input.required<string>();
   readonly report = signal<RunReport | null>(null);
   readonly message = signal<string | null>(null);
+  protected readonly kindLabel = runKindLabel;
+  protected readonly statusLabel = runStatusLabel;
+  protected readonly reasonLabel = failureReasonLabel;
+  protected readonly failureLine = failureLine;
+  protected readonly findingLabel = findingKindLabel;
 
   constructor() {
     effect(() => this.load(this.runId()));
   }
 
   revert(): void {
-    this.act(this.api.post(`/knowledge-bases/${this.kbId()}/runs/${this.runId()}/revert`, {}, true));
+    // ponytail: native confirm; a MatDialog when the confirmation needs to show what the revert will undo
+    if (confirm('Cofnąć ten przebieg? Zmiany, które wprowadził w wiki, zostaną wycofane.')) {
+      this.act(this.runs.revert(this.kbId(), this.runId()));
+    }
   }
 
   removeSupersession(supersessionId: string): void {
-    this.act(this.api.delete(`/knowledge-bases/${this.kbId()}/supersessions/${supersessionId}`, true));
+    this.act(this.runs.removeSupersession(this.kbId(), supersessionId));
   }
 
   pageLink(path: string): string[] {
@@ -49,14 +59,12 @@ export class RunReportView {
       },
       error: (response: HttpErrorResponse) => {
         const error = response.error as ApiError | null;
-        this.message.set(error?.code === 'KNOWLEDGE_BASE_BUSY'
-          ? 'Baza wiedzy jest zajęta innym przebiegiem — spróbuj za chwilę.'
-          : (error?.detail ?? 'Nie udało się.'));
+        this.message.set(apiErrorMessage(error, 'Nie udało się.'));
       },
     });
   }
 
   private load(runId: string): void {
-    this.api.get<RunReport>(`/knowledge-bases/${this.kbId()}/runs/${runId}`).subscribe((report) => this.report.set(report));
+    this.runs.report(this.kbId(), runId).subscribe((report) => this.report.set(report));
   }
 }

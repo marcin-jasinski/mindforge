@@ -35,6 +35,14 @@ class AccountServiceTest {
     }
 
     @Test
+    void shouldCountRegisteringAsTheFirstLogin() {
+        User user = new AccountService(users, hasher).register("Ala", "ala@example.com", "sekretne-haslo");
+
+        verify(users).recordLogin(any(UUID.class), any(Instant.class));
+        assertThat(user.email()).isEqualTo("ala@example.com");
+    }
+
+    @Test
     void shouldRefuseASecondAccountForTheSameEmail() {
         when(users.findByEmail("ala@example.com")).thenReturn(Optional.of(TestFixtures.makeUser(null, "ala@example.com")));
 

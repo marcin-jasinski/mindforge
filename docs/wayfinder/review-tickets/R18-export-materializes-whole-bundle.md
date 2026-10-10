@@ -2,7 +2,7 @@
 id: R18
 title: Export materializes the whole bundle behind a streaming facade
 type: performance
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -58,13 +58,40 @@ Do not add a queue, a job table or an async export flow — Phase 9b deliberatel
 ## Acceptance criteria
 
 - [ ] Peak heap during an export does not scale with the number of pages.
-- [ ] An invalid bundle still fails before any byte reaches the client — prove it with the
+- [x] An invalid bundle still fails before any byte reaches the client — prove it with the
       existing conformance test.
-- [ ] `BundleExportTest`'s three cases still pass, including
+- [x] `BundleExportTest`'s three cases still pass, including
       `anIngestCommittedDuringAnExportDoesNotTearTheBundle` (the snapshot guarantee).
-- [ ] Export stays synchronous.
+- [x] Export stays synchronous.
 - [ ] Measure peak heap before and after on a large knowledge base; record it here.
 
 ## Resolution
 
-<!-- filled on close -->
+Option A, two passes in one snapshot. `BundleExporter.export(kbId, name, out)` (REPEATABLE_READ, read-only)
+validates the structure first - index.md, log.md and every page's path and frontmatter, built from `listIndex`
+rows without bodies - and throws `BundleNotConformantException` before the first byte. It then streams
+`index.md`, `log.md` and the pages into the `ZipOutputStream`, reading bodies, supersession notes and citations
+50 pages at a time. `Bundle` and `writeZip` are gone; the controller streams `exporter.export(...)` and takes the
+filename from `BundleExporter.root(name)`.
+
+- Validation runs on frontmatter alone (timestamp stubbed): no OKF section 9 rule reads a body, which is stored
+  verbatim. The validator is unchanged.
+- A conformance failure now surfaces inside the streaming callback, still before any body byte; covered by
+  `aNonConformantBundleIsRejectedBeforeAByteIsWritten` (zero bytes written).
+- Heap now holds the index rows plus one 50-page chunk instead of every body twice. Not measured on a large
+  knowledge base; the saving is structural (bodies are no longer retained across the write). Remaining O(pages)
+  state is the metadata rows and the index/log text.
+- Tests read the zip back through `support/ExportedBundle`; the three `BundleExportTest` cases and the snapshot
+  test pass under `mvn verify`.
+
+Follow-up review (2026-10-10):
+- The snapshot transaction used to stay open for the whole download, holding a pool connection at the client's
+  speed. `ExportController` now spools the zip to a temp file inside the snapshot, then streams the file and
+  deletes it. The connection is released before the first byte, and a conformance failure is now a 500 before any
+  response starts.
+- The exporter clears the persistence context after each 50-page chunk, so loaded page entities no longer pile up
+  in the Hibernate session.
+- Still O(pages): the index rows and the rendered `index.md`/`log.md` (metadata, not bodies). So the first
+  criterion stays unticked, and the heap measurement has not been run.
+- Citation integrity is not checked in pass one: `BundleConformanceValidator` has no citation rule, and never had
+  one.

@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 /** Set on a request whose error the calling page answers itself, so no toast is shown for it. */
-const API = '/api';
+const API = '/api/v1';
 
 export const HANDLES_ERRORS = new HttpContextToken<boolean>(() => false);
 
@@ -33,8 +33,8 @@ export class ApiService {
     return this.http.delete<T>(API + path, { context: context(handlesErrors) });
   }
 
-  getResponse<T>(path: string): Observable<import('@angular/common/http').HttpResponse<T>> {
-    return this.http.get<T>(API + path, { observe: 'response' });
+  getResponse<T>(path: string, handlesErrors = false): Observable<import('@angular/common/http').HttpResponse<T>> {
+    return this.http.get<T>(API + path, { observe: 'response', context: context(handlesErrors) });
   }
 }
 

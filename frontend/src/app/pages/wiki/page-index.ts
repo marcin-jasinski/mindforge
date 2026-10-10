@@ -6,7 +6,7 @@ import { RouterLink } from '@angular/router';
 import { Subject, debounceTime, switchMap } from 'rxjs';
 
 import { IndexEntry, IndexView } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { WikiApi } from '../../core/services/wiki-api';
 import { pageRoute } from '../../shared/diff';
 
 @Component({
@@ -42,7 +42,7 @@ import { pageRoute } from '../../shared/diff';
   styles: `.search { width: 100%; }`,
 })
 export class PageIndex implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly wiki = inject(WikiApi);
   private readonly queries = new Subject<string>();
 
   readonly kbId = input.required<string>();
@@ -61,13 +61,13 @@ export class PageIndex implements OnInit {
     this.queries
       .pipe(
         debounceTime(250),
-        switchMap((q) => this.api.get<IndexEntry[]>(`/knowledge-bases/${this.kbId()}/pages/search?q=${encodeURIComponent(q)}`)),
+        switchMap((q) => this.wiki.search(this.kbId(), q)),
       )
       .subscribe((results) => this.results.set(results));
   }
 
   ngOnInit(): void {
-    this.api.get<IndexView>(`/knowledge-bases/${this.kbId()}/index`).subscribe((index) => this.index.set(index));
+    this.wiki.index(this.kbId()).subscribe((index) => this.index.set(index));
   }
 
   search(query: string): void {

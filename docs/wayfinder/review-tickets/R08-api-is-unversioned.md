@@ -2,7 +2,7 @@
 id: R08
 title: The API is unversioned
 type: decision
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -57,12 +57,15 @@ breaking on a server deploy.
 
 ## Acceptance criteria
 
-- [ ] A decision is recorded here.
-- [ ] If A: every route is under `/api/v1`, the OpenAPI client is regenerated, `ApiFlowTest`'s
+- [x] A decision is recorded here.
+- [x] If A: every route is under `/api/v1`, the OpenAPI client is regenerated, `ApiFlowTest`'s
       11 paths updated, and the SPA works end to end.
 - [ ] If B: `api.md` no longer documents versioning as a rule this project follows.
-- [ ] The standard and the code agree either way.
+- [x] The standard and the code agree either way.
 
 ## Resolution
 
-<!-- filled on close -->
+Decision: Option A. Every route is now under `/api/v1`, written explicitly on each controller. SPA `API` base, the export link, the generated client paths, `SecurityConfig` auth matchers and `ApiFlowTest` were updated; `api.md` now states the `/api/v1` rule and its worked example matches a real route. Chosen because it is cheapest now (no external consumers) and Phases 15/18/19 add clients outside the server artifact. Verified: `ApiFlowTest` (10 tests) and frontend vitest (17) pass.
+
+Follow-up review (2026-10-10): regenerated `api.generated.ts` with `npm run openapi:generate` against a running build.
+The output is byte-identical to the committed file, so the client matches the backend contract.

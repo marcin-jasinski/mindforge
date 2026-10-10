@@ -24,7 +24,7 @@ import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.domain.model.ReviewResult;
 
 @RestController
-@RequestMapping("/api/knowledge-bases/{kbId}/flashcards")
+@RequestMapping("/api/v1/knowledge-bases/{kbId}/flashcards")
 public class FlashcardController {
 
     private final KnowledgeBaseService knowledgeBases;
@@ -38,12 +38,22 @@ public class FlashcardController {
         this.mapper = mapper;
     }
 
-    @Operation(summary = "Open a deck: refresh the scope's cards within the session budget and list the due ones")
+    @Operation(summary = "List the scope's due cards as they stand; nothing is generated")
     @ApiResponse(responseCode = "404", description = "No such lesson or page")
     @GetMapping
     public List<FlashcardResponse> deck(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID kbId,
                                         @RequestParam(required = false) String lessonId,
                                         @RequestParam(required = false) UUID pageId) {
+        knowledgeBases.requireOwner(kbId, user.userId());
+        return flashcards.due(kbId, StudyScopes.of(lessonId, pageId)).stream().map(mapper::toResponse).toList();
+    }
+
+    @Operation(summary = "Cut the missing or stale cards within the session budget, wait for the model, and list the due ones")
+    @ApiResponse(responseCode = "404", description = "No such lesson or page")
+    @PostMapping("/refresh")
+    public List<FlashcardResponse> refresh(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID kbId,
+                                           @RequestParam(required = false) String lessonId,
+                                           @RequestParam(required = false) UUID pageId) {
         knowledgeBases.requireOwner(kbId, user.userId());
         return flashcards.deck(kbId, StudyScopes.of(lessonId, pageId)).stream().map(mapper::toResponse).toList();
     }

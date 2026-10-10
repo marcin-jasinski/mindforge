@@ -23,7 +23,7 @@ import dev.mindforge.application.service.LintService;
 import dev.mindforge.application.service.RunReportService;
 
 @RestController
-@RequestMapping("/api/knowledge-bases/{kbId}")
+@RequestMapping("/api/v1/knowledge-bases/{kbId}")
 public class HealthController {
 
     private final KnowledgeBaseService knowledgeBases;

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci && npm test -- --no-watch
+        working-directory: frontend
+      # Unit + integration tests (Testcontainers, Docker is on the runner), coverage gate, frontend build.
+      - run: mvn -B verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco
+          path: target/site/jacoco/
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      # Everything but the integration tests and the coverage gate they feed: windows runners have no Linux Docker
+      # for Testcontainers. Unit tests, the frontend build and the JAR catch Windows-only failures (R01: line endings).
+      - run: mvn -B package

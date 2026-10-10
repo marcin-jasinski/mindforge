@@ -18,6 +18,8 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   jpa:
+    # controllers are thin and services return domain objects; no lazy loading happens during view rendering
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     properties:
@@ -51,11 +53,16 @@ spring:
     retry:
       max-attempts: 1
 
-  cache:
-    type: caffeine
-
   lifecycle:
     timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
+
+# The API description is the contract for the frontend's generated types, not something a deployment serves.
+# Set API_DOCS_ENABLED=true (or run with the dev profile) when regenerating them.
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:false}
 
 server:
   port: ${PORT:8080}
@@ -65,7 +72,8 @@ server:
 management:
   endpoints:
     web:
-      base-path: /
+      # Only /actuator/health is public (SecurityConfig); adding to exposure.include needs a matching rule there.
+      base-path: /actuator
       exposure:
         include: health
   endpoint:
@@ -79,6 +87,10 @@ mindforge:
     secure-cookies: ${AUTH_SECURE_COOKIES:true}
   upload:
     max-size: ${UPLOAD_MAX_SIZE:50MB}
+  rate-limits:
+    # Per user, across Query turns and edits, Quiz start, upload and retry, and Lint.
+    requests: ${RATE_LIMIT_REQUESTS:30}
+    window: ${RATE_LIMIT_WINDOW:PT1M}
   study:
     quiz-session-ttl: ${QUIZ_SESSION_TTL:PT2H}
   runs:

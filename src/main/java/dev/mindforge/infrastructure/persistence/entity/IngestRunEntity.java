@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import dev.mindforge.domain.model.ReviewItem;
+import dev.mindforge.domain.model.RunFailure;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
 import jakarta.persistence.Column;
@@ -74,7 +76,7 @@ public class IngestRunEntity implements Persistable<UUID> {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "failures", columnDefinition = "jsonb", nullable = false)
-    private List<Map<String, Object>> failures = new ArrayList<>();
+    private List<RunFailure> failures = new ArrayList<>();
 
     @Column(name = "supersession_skipped", nullable = false)
     private boolean supersessionSkipped;
@@ -88,7 +90,7 @@ public class IngestRunEntity implements Persistable<UUID> {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "findings", columnDefinition = "jsonb", nullable = false)
-    private List<Map<String, Object>> findings = new ArrayList<>();
+    private List<ReviewItem> findings = new ArrayList<>();
 
     /** The database clock, like {@code started_at} and {@code finished_at}, which native updates set with {@code now()}. */
     @CreationTimestamp(source = SourceType.DB)
@@ -128,8 +130,8 @@ public class IngestRunEntity implements Persistable<UUID> {
     public Boolean getRetryable() { return retryable; }
     public void setRetryable(Boolean retryable) { this.retryable = retryable; }
 
-    public List<Map<String, Object>> getFailures() { return failures; }
-    public void setFailures(List<Map<String, Object>> failures) { this.failures = failures; }
+    public List<RunFailure> getFailures() { return failures; }
+    public void setFailures(List<RunFailure> failures) { this.failures = failures; }
 
     public boolean isSupersessionSkipped() { return supersessionSkipped; }
     public void setSupersessionSkipped(boolean supersessionSkipped) { this.supersessionSkipped = supersessionSkipped; }
@@ -140,8 +142,8 @@ public class IngestRunEntity implements Persistable<UUID> {
     public Map<String, String> getStepVersions() { return stepVersions; }
     public void setStepVersions(Map<String, String> stepVersions) { this.stepVersions = stepVersions; }
 
-    public List<Map<String, Object>> getFindings() { return findings; }
-    public void setFindings(List<Map<String, Object>> findings) { this.findings = findings; }
+    public List<ReviewItem> getFindings() { return findings; }
+    public void setFindings(List<ReviewItem> findings) { this.findings = findings; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

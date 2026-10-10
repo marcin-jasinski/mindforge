@@ -49,9 +49,20 @@ class KnowledgeBaseServiceTest {
     @Test
     void shouldRefuseToDeleteAKnowledgeBaseWhileARunIsActive() {
         KnowledgeBase knowledgeBase = givenKnowledgeBase();
+        when(knowledgeBases.deleteIfIdle(knowledgeBase.kbId())).thenReturn(false);
 
         assertThatExceptionOfType(KnowledgeBaseBusyException.class)
             .isThrownBy(() -> new KnowledgeBaseService(knowledgeBases).delete(knowledgeBase.kbId(), OWNER));
+    }
+
+    @Test
+    void shouldDeleteAnIdleKnowledgeBase() {
+        KnowledgeBase knowledgeBase = givenKnowledgeBase();
+        when(knowledgeBases.deleteIfIdle(knowledgeBase.kbId())).thenReturn(true);
+
+        new KnowledgeBaseService(knowledgeBases).delete(knowledgeBase.kbId(), OWNER);
+
+        verify(knowledgeBases).deleteIfIdle(knowledgeBase.kbId());
     }
 
     private KnowledgeBase givenKnowledgeBase() {

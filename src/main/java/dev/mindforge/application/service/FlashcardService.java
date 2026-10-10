@@ -61,6 +61,19 @@ public class FlashcardService {
 
     /** Refreshes the scope's cards within the budget, then returns its due cards, oldest due first. */
     public List<CardState> deck(UUID kbId, StudyScope scope) {
+        refresh(kbId, scope);
+        return due(kbId, scope);
+    }
+
+    /** The scope's due cards as they stand, oldest due first; nothing is generated. */
+    public List<CardState> due(UUID kbId, StudyScope scope) {
+        List<UUID> ids = scope instanceof StudyScope.WholeKnowledgeBase
+            ? null : StudyPages.of(wiki, kbId, scope).stream().map(WikiPage::pageId).toList();
+        return study.dueCards(kbId, ids, Instant.now());
+    }
+
+    /** Generates the missing or stale cards of at most {@code cardPagesPerSession} pages and waits for them. */
+    public void refresh(UUID kbId, StudyScope scope) {
         Instant now = Instant.now();
         List<WikiPage> pages = StudyPages.of(wiki, kbId, scope);
         List<UUID> ids = pages.stream().map(WikiPage::pageId).toList();
@@ -89,7 +102,6 @@ public class FlashcardService {
             budget.stream().limit(settings.cardPagesPerSession())
                 .forEach(page -> executor.submit(() -> regenerate(kbId, page.pageId(), now)));
         }
-        return study.dueCards(kbId, scope instanceof StudyScope.WholeKnowledgeBase ? null : ids, now);
     }
 
     /** Rates a card, reschedules it by SM-2 and records the rating as a study event. */

@@ -52,6 +52,14 @@
               }
             ],
             "styles": [
+              "node_modules/@fontsource/roboto/latin-300.css",
+              "node_modules/@fontsource/roboto/latin-400.css",
+              "node_modules/@fontsource/roboto/latin-500.css",
+              "node_modules/@fontsource/roboto/latin-700.css",
+              "node_modules/@fontsource/roboto/latin-ext-300.css",
+              "node_modules/@fontsource/roboto/latin-ext-400.css",
+              "node_modules/@fontsource/roboto/latin-ext-500.css",
+              "node_modules/@fontsource/roboto/latin-ext-700.css",
               "src/styles.scss"
             ]
           },
@@ -69,7 +77,12 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "optimization": {
+                "scripts": true,
+                "fonts": true,
+                "styles": { "minify": true, "inlineCritical": false }
+              }
             },
             "development": {
               "optimization": false,
@@ -78,6 +91,12 @@
             }
           },
           "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "tsconfig.spec.json"
+          }
         },
         "serve": {
           "builder": "@angular/build:dev-server",

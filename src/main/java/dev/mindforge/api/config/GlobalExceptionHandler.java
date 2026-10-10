@@ -5,20 +5,26 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import dev.mindforge.api.dto.response.ErrorResponse;
 import dev.mindforge.domain.model.AIGatewayUnavailableException;
 import dev.mindforge.domain.model.AccountException;
 import dev.mindforge.domain.model.DeadlineExceededException;
+import dev.mindforge.domain.model.DocumentNotRemovableException;
 import dev.mindforge.domain.model.KnowledgeBaseBusyException;
 import dev.mindforge.domain.model.LessonAlreadyExistsException;
 import dev.mindforge.domain.model.LessonIdentityException;
 import dev.mindforge.domain.model.LintAlreadyQueuedException;
+import dev.mindforge.domain.model.ModelOutputException;
 import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.NotOwnerException;
 import dev.mindforge.domain.model.QuizFinishedException;
@@ -74,6 +80,11 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.CONFLICT, "RETRY_NOT_ALLOWED", e);
     }
 
+    @ExceptionHandler(DocumentNotRemovableException.class)
+    ResponseEntity<ErrorResponse> documentNotRemovable(DocumentNotRemovableException e) {
+        return error(HttpStatus.CONFLICT, "DOCUMENT_NOT_REMOVABLE", e);
+    }
+
     @ExceptionHandler(LintAlreadyQueuedException.class)
     ResponseEntity<ErrorResponse> lintQueued(LintAlreadyQueuedException e) {
         return error(HttpStatus.CONFLICT, "LINT_ALREADY_QUEUED", e);
@@ -82,6 +93,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(QuizFinishedException.class)
     ResponseEntity<ErrorResponse> quizFinished(QuizFinishedException e) {
         return error(HttpStatus.CONFLICT, "QUIZ_FINISHED", e);
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    ResponseEntity<ErrorResponse> rateLimited(RateLimitExceededException e) {
+        String seconds = Long.toString(e.retryAfterSeconds());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .header("Retry-After", seconds)
+            .header("RateLimit-Limit", Integer.toString(e.limit()))
+            .header("RateLimit-Remaining", "0")
+            .header("RateLimit-Reset", seconds)
+            .body(ErrorResponse.of(HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(), "RATE_LIMITED", e.getMessage()));
     }
 
     @ExceptionHandler(LessonIdentityException.class)
@@ -113,21 +135,52 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ErrorResponse.of("Bad Request", "VALIDATION", detail));
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ErrorResponse> unreadable(HttpMessageNotReadableException e) {
+        log.warn("Rejected request body: {}", e.getMessage());
+        return ResponseEntity.badRequest().body(ErrorResponse.of("Bad Request", "REQUEST_ERROR", "Malformed request body"));
+    }
+
     @ExceptionHandler({DeadlineExceededException.class, AIGatewayUnavailableException.class})
     ResponseEntity<ErrorResponse> modelUnavailable(RuntimeException e) {
         return error(HttpStatus.SERVICE_UNAVAILABLE, "MODEL_UNAVAILABLE", e);
+    }
+
+    /** The message quotes the parser, and the parser quotes the completion; only fixed text goes to the client. */
+    @ExceptionHandler(ModelOutputException.class)
+    ResponseEntity<ErrorResponse> unreadableModelOutput(ModelOutputException e) {
+        log.warn("Unreadable model output: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ErrorResponse.of(
+            HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(), "MODEL_UNAVAILABLE", "The model returned unreadable output"));
+    }
+
+    /** A client that navigated away from the progress stream; there is nobody left to answer. */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    void clientGone(AsyncRequestNotUsableException e) {
+        log.debug("Client disconnected: {}", e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ErrorResponse> unexpected(Exception e) {
         if (e instanceof org.springframework.web.ErrorResponse framework) {
             HttpStatusCode status = framework.getStatusCode();
+            log.warn("Rejected request: {}", e.getMessage());
             return ResponseEntity.status(status).body(ErrorResponse.of(String.valueOf(status.value()), "REQUEST_ERROR",
-                e.getMessage()));
+                safeDetail(e, status)));
         }
         log.error("Unhandled exception", e);
         return ResponseEntity.internalServerError()
             .body(ErrorResponse.of("Internal Server Error", "INTERNAL", "Something went wrong"));
+    }
+
+    /** Framework messages carry parser locations and payload snippets; only fixed text goes to the client. */
+    private static String safeDetail(Exception e, HttpStatusCode status) {
+        return switch (e) {
+            case HttpMediaTypeNotSupportedException ignored -> "Unsupported media type";
+            case MissingServletRequestParameterException missing ->
+                "Missing request parameter: " + missing.getParameterName();
+            default -> status instanceof HttpStatus known ? known.getReasonPhrase() : "Request error";
+        };
     }
 
     private static ResponseEntity<ErrorResponse> error(HttpStatus status, String code, Exception e) {

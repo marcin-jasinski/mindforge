@@ -17,6 +17,7 @@ import dev.mindforge.domain.model.PagePath;
 import dev.mindforge.domain.model.PageType;
 import dev.mindforge.domain.model.PageWriteTask;
 import dev.mindforge.domain.model.PlannedPage;
+import dev.mindforge.domain.model.RunFailure;
 import dev.mindforge.domain.model.TextRules;
 
 /**
@@ -36,12 +37,12 @@ public final class Resolver {
 
     /** What a run writes: tasks, deletions and retitles without a task, by path; and what Resolve dropped. */
     public record Plan(List<PageWriteTask> tasks, Set<String> deletions, Map<String, String> retitles,
-                       List<Map<String, Object>> failures) {}
+                       List<RunFailure> failures) {}
 
     private final Map<String, IndexEntry> live;
     private final boolean createOnly;
     private final Map<String, List<Claim>> claimsByPath = new LinkedHashMap<>();
-    private final List<Map<String, Object>> failures = new ArrayList<>();
+    private final List<RunFailure> failures = new ArrayList<>();
 
     public Resolver(List<IndexEntry> index, boolean createOnly) {
         this.live = index.stream().collect(Collectors.toMap(IndexEntry::path, Function.identity()));
@@ -153,7 +154,7 @@ public final class Resolver {
         return page != null && page.type().equals(PageType.CONCEPT);
     }
 
-    private static Map<String, Object> dropped(String item, String path, String reason) {
-        return Map.of("step", "resolve", "item", item, "path", String.valueOf(path), "reason", reason);
+    private static RunFailure dropped(String item, String path, String reason) {
+        return RunFailure.ofItem("resolve", item, String.valueOf(path), reason);
     }
 }

@@ -2,6 +2,12 @@
 # Activate with: --spring.profiles.active=dev
 # or: SPRING_PROFILES_ACTIVE=dev
 
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/mindforge_dev

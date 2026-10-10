@@ -17,6 +17,7 @@ import dev.mindforge.domain.model.ContentBlock;
 import dev.mindforge.domain.model.ContentHash;
 import dev.mindforge.domain.model.ConversationTurn;
 import dev.mindforge.domain.model.Document;
+import dev.mindforge.domain.model.DocumentNotRemovableException;
 import dev.mindforge.domain.model.DomainEvent;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.LessonAlreadyExistsException;
@@ -46,7 +47,7 @@ import dev.mindforge.domain.port.UploadPolicy;
  */
 public class IngestionService {
 
-    private static final LessonIdentity CONVERSATION_LESSON = new LessonIdentity("conversation", "Conversation");
+    private static final LessonIdentity CONVERSATION_LESSON = new LessonIdentity("conversation", "Rozmowa");
     private static final String CONVERSATION_FILENAME = "conversation";
     private static final String CONVERSATION_MIME_TYPE = "text/plain";
 
@@ -98,8 +99,13 @@ public class IngestionService {
                 throw new UnknownLessonException(lesson.lessonId());
             }
 
+            // two lessons must not read alike in a citation, so a new lesson whose title is taken carries its id
+            LessonIdentity placed = existingTitle.isEmpty()
+                && documents.lessonTitleTaken(kbId, lesson.title(), lesson.lessonId())
+                ? new LessonIdentity(lesson.lessonId(), distinctTitle(lesson))
+                : lesson;
             Document document = documents.insert(kbId, new Document(
-                UUID.randomUUID(), kbId, lesson, hash, filename, upload.mimeType(), parsed.text(), parsed.blocks(),
+                UUID.randomUUID(), kbId, placed, hash, filename, upload.mimeType(), parsed.text(), parsed.blocks(),
                 upload.source(), upload.uploadedBy(), null, null));
             return new Accepted(document.documentId(), enqueue(kbId, document.documentId()));
         });
@@ -130,6 +136,14 @@ public class IngestionService {
         return run.runId();
     }
 
+    /** "Mitoza" becomes "Mitoza (mitoza-2)", kept inside the title length the lesson identity allows. */
+    private static String distinctTitle(LessonIdentity lesson) {
+        String suffix = " (" + lesson.lessonId() + ")";
+        String title = lesson.title();
+        int room = LessonIdentity.MAX_TITLE_LENGTH - suffix.length();
+        return (title.length() > room ? title.substring(0, Math.max(room, 0)).stripTrailing() : title) + suffix;
+    }
+
     /** An uploaded document and its newest run, null before one exists. */
     public record DocumentState(Document document, IngestRun latestRun) {}
 
@@ -148,6 +162,28 @@ public class IngestionService {
     public DocumentState document(UUID kbId, UUID documentId) {
         Document document = documents.findById(kbId, documentId).orElseThrow(() -> new NotFoundException("Document"));
         return new DocumentState(document, runs.latestForDocument(kbId, documentId).orElse(null));
+    }
+
+    /**
+     * Removes a document whose every run failed, so a file the pipeline refused can be uploaded again; an identical
+     * upload is otherwise answered with the failed document's id. Pages, revisions and sources are untouched: a
+     * failed run wrote none.
+     *
+     * @throws NotFoundException when the knowledge base has no such document
+     * @throws DocumentNotRemovableException when any run of the document is queued, running, written or completed
+     */
+    public void remove(UUID kbId, UUID documentId) {
+        transactions.executeWithoutResult(status -> {
+            documents.lockKnowledgeBase(kbId);
+            if (documents.findById(kbId, documentId).isEmpty()) {
+                throw new NotFoundException("Document");
+            }
+            if (!runs.onlyFailedRuns(kbId, documentId)) {
+                throw new DocumentNotRemovableException(documentId);
+            }
+            runs.deleteForDocument(kbId, documentId);
+            documents.delete(kbId, documentId);
+        });
     }
 
     /**

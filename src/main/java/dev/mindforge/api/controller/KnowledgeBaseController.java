@@ -25,7 +25,7 @@ import dev.mindforge.api.mapper.KnowledgeBaseDtoMapper;
 import dev.mindforge.application.service.KnowledgeBaseService;
 
 @RestController
-@RequestMapping("/api/knowledge-bases")
+@RequestMapping("/api/v1/knowledge-bases")
 public class KnowledgeBaseController {
 
     private final KnowledgeBaseService knowledgeBases;

@@ -34,3 +34,8 @@ Decided in [T09](../wayfinder/tickets/09-query-retrieval-neo4j.md).
 2026-09-12, from the spec review ([T23](../wayfinder/tickets/23-extract-long-documents.md)): tokens are estimated as
 characters ÷ 3 in one domain function. Crossing the 20K ceiling logs a warning and shows in the knowledge base's health
 view; nothing truncates the index before the prefilter exists.
+
+2026-10-10, from the code review ([R17](../wayfinder/review-tickets/R17-unbounded-index-on-interactive-paths.md)):
+Query now enforces the ceiling. Past 20K tokens of index it routes over the lexical shortlist of `PageSearchQuery`
+(one search per question term, stem-trimmed) and cuts it to the ceiling; with no hit it routes over the head of the
+index. The prompt never carries more than the ceiling.

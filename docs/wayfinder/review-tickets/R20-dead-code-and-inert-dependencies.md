@@ -2,7 +2,7 @@
 id: R20
 title: One dead enum and two inert dependencies
 type: chore
-status: open
+status: closed
 severity: low
 assignee:
 blocked_by: []
@@ -77,13 +77,17 @@ each have confirmed importers, checked per file.
 
 ## Acceptance criteria
 
-- [ ] `CostTier.java` is deleted.
-- [ ] `spring-boot-starter-oauth2-resource-server` is removed; OAuth2 **client** login still works
+- [x] `CostTier.java` is deleted.
+- [x] `spring-boot-starter-oauth2-resource-server` is removed; OAuth2 **client** login still works
       and `ApiFlowTest` still passes.
-- [ ] `spring-boot-starter-cache` and `spring.cache.type` are removed; the raw `caffeine`
+- [x] `spring-boot-starter-cache` and `spring.cache.type` are removed; the raw `caffeine`
       dependency stays and the quiz session cache is unaffected.
-- [ ] `mvn verify` green; the built JAR still starts.
+- [x] `mvn verify` green; the built JAR still starts.
 
 ## Resolution
 
-<!-- filled on close -->
+Deleted `CostTier.java`; removed `spring-boot-starter-oauth2-resource-server` and
+`spring-boot-starter-cache` from `pom.xml` and `spring.cache.type` from `application.yml`. The
+OAuth2 client starter and raw `caffeine` stay. Re-grepped src, tests, config and frontend first: no
+usages. `mvn verify` green. Historical mentions of `CostTier` in ADR 0013 and the plan are left as
+record.

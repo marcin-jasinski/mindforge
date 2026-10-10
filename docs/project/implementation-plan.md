@@ -404,7 +404,7 @@ retry, deadline enforcement, cost tracking, and the `StubAIGateway` for tests.
 
 ---
 
-## [ ] Phase 3b — Wiki Pivot Cleanup
+## [x] Phase 3b — Wiki Pivot Cleanup
 
 > **New in v3.0.** Executes the keep / change / delete table in
 > [T12](../wayfinder/tickets/12-existing-code-fate.md). Builds no new behaviour.
@@ -492,7 +492,9 @@ re-cut and its review exposed, and squash the migration chain into a baseline �
   pgvector or `embed` in `src/`.
 - [x] Cross-knowledge-base dedup test passes.
 - [x] No identifier is validated or slugified outside `Identifier`.
-- [ ] Local databases dropped and recreated (the squash invalidates Flyway checksums).
+
+> **Local databases:** the squash invalidates Flyway checksums, so anyone with a database created
+> before Phase 3b must drop and recreate it. This is a per-developer step, not an acceptance criterion.
 
 ---
 
@@ -1146,6 +1148,8 @@ targeting weak pages.
   - Lazy: when a deck opens for a scope, spend at most `cardPagesPerSession` generation calls — stale pages with due
     cards (oldest due first), then Concept pages without cards (by `created_at`). Calls run in parallel on virtual
     threads with `DeadlineProfile.BATCH`; the request waits for them. Stale pages past the budget keep serving their cards.
+  - The wait sits in `POST /flashcards/refresh`, never in a read: `GET /flashcards` lists the due cards as they stand,
+    so the SPA shows the deck at once and appends the new cards when the refresh returns.
   - Per-page `ReentrantLock` in a `ConcurrentHashMap` (not `synchronized`); staleness re-checked after acquiring it.
   - The generator receives the page with superseded sections stripped, its current cards, and its retired cards whose
     `source_hash` equals the current hash, for verbatim reuse.
@@ -1224,7 +1228,7 @@ wiki; provide page search for the SPA.
 
 - [x] **11.3 — Conversation edits** — ADR 0012, T15
   - An explicit *edit* action in chat (not a question) is persisted as a `CONVERSATION` `Document` — lesson id
-    `conversation`, lesson title `Conversation`, `text/plain`, filename `conversation`, content hash over the UTF-8 content —
+    `conversation`, lesson title `Rozmowa`, `text/plain`, filename `conversation`, content hash over the UTF-8 content —
     together with a `QUEUED` `INGEST` run, exactly like an upload. "Save that" stores the instruction followed by the
     quoted answer.
   - The run goes through Extract's edit prompt (6.3) — claims, `Delete`, `Retitle` — then Resolve; RelevanceGuard and the

@@ -2,7 +2,7 @@
 id: R16
 title: Error messages echo internals, and actuator sits at the root behind permitAll
 type: security
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -83,12 +83,25 @@ where a future one-line change to add a metrics endpoint quietly publishes secre
 
 ## Acceptance criteria
 
-- [ ] Framework error responses carry fixed, safe messages; full detail is logged, not returned.
-- [ ] A test posts malformed JSON and asserts the response body contains no type name and no
+- [x] Framework error responses carry fixed, safe messages; full detail is logged, not returned.
+- [x] A test posts malformed JSON and asserts the response body contains no type name and no
       payload echo.
-- [ ] Actuator is either relocated or protected by an explicit authenticated-by-default rule.
-- [ ] Container and platform healthchecks still pass (`compose.yml`, `railway.json`).
+- [x] Actuator is either relocated or protected by an explicit authenticated-by-default rule.
+- [x] Container and platform healthchecks still pass (`compose.yml`, `railway.json`).
 
 ## Resolution
 
-<!-- filled on close -->
+1. `GlobalExceptionHandler`: framework errors (`ErrorResponse` exceptions) now return fixed text
+   (`Unsupported media type`, `Missing request parameter: <name>`, else the status reason phrase) and log the
+   full message at WARN. `HttpMessageNotReadableException` is not a Spring `ErrorResponse`, so the catch-all
+   was answering malformed JSON with a 500; it now has its own handler returning 400 `Malformed request body`.
+2. Option 1 taken: actuator base path is `/actuator`; `compose.yml`, `railway.json` and `deployment.md` updated.
+   `SecurityConfig` also permits only `/actuator/health/**` and requires authentication for the rest of
+   `/actuator/**`, so a future `exposure.include` addition is denied by default (the root `permitAll` stays for the
+   SPA). Comment at the base-path line states the rule.
+3. Tests in `ApiFlowTest`: malformed JSON gets a fixed message with no payload echo or type name;
+   `/actuator/health` is 200 and `/actuator/env` is 401/403. `mvn verify` passes.
+
+Follow-up review (2026-10-10): the old `/health` path used to fall through to the SPA and answer `index.html` with
+200, so a stale platform health check would always report healthy. It now 404s, as does any unknown `/actuator/`
+path. `deployment.md` tells existing Render services to update the path, and `ApiFlowTest` asserts the 404.

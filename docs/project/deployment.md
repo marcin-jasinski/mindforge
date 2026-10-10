@@ -12,11 +12,16 @@ The Dockerfile builds the SPA (`npm ci && npm run build`), packages the JAR with
 `classpath:/static/`, and runs it on `eclipse-temurin:21-jre-alpine` as a non-root user. Without Docker,
 `mvn package -DskipFrontend=false` does the same on the host.
 
+`mvn test` runs the unit tests only and needs no Docker daemon. `mvn verify` also runs the Testcontainers-backed
+`integration/` and `e2e/` tests (failsafe) and enforces the 70% coverage gate on the combined result, so it
+**requires a running Docker daemon**. `-DskipITs` skips the integration tests (and the Docker need), but the coverage
+gate then measures unit tests only and will fail; pair it with `-Djacoco.skip=true`.
+
 ## Run locally
 
 ```bash
 docker compose up --build
-curl http://localhost:8080/health   # {"status":"UP"}
+curl http://localhost:8080/actuator/health   # {"status":"UP"}
 ```
 
 `compose.yml` starts `postgres` (data in the `postgres-data` volume) and `app`, which waits for PostgreSQL to be
@@ -41,10 +46,11 @@ Every variable is listed in `env.example`. The ones a deployment must set:
 1. Create a project from the repository; Railway builds the `Dockerfile` (see `railway.json`).
 2. Add the PostgreSQL plugin and set `DATABASE_URL` to its JDBC form, with the username and password variables.
 3. Set `JWT_SECRET`, `OPENROUTER_API_KEY` and the OAuth variables.
-4. Keep **one replica**. The health check is `/health`.
+4. Keep **one replica**. The health check is `/actuator/health`.
 
 On Render, create a Docker web service from the same repository with the same variables and health check path. The
-`Procfile` covers buildpack platforms that run a pre-built JAR.
+`Procfile` covers buildpack platforms that run a pre-built JAR. A service created before the actuator moved still
+checks `/health`, which now answers 404: set its health check path to `/actuator/health` in the dashboard.
 
 ## One live instance
 

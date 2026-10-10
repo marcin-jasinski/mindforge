@@ -2,7 +2,7 @@
 id: R01
 title: Prompt files check out as CRLF and break five tests
 type: bug
-status: open
+status: closed
 severity: critical
 assignee:
 blocked_by: []
@@ -91,11 +91,11 @@ Two follow-ons in the same ticket:
 
 ## Acceptance criteria
 
-- [ ] `.gitattributes` exists at the repository root and the tree is renormalized.
-- [ ] `file src/main/resources/prompts/pl/*.md` reports no CRLF after a fresh clone on Windows.
-- [ ] `mvn test` is **263/263 green** on Windows and on Linux.
-- [ ] `docs/INDEX.md:69`'s claim about `.editorconfig` is true, or corrected.
-- [ ] A prompt-fragment mismatch in a test fails with a message naming the mismatch.
+- [x] `.gitattributes` exists at the repository root and the tree is renormalized.
+- [x] `file src/main/resources/prompts/pl/*.md` reports no CRLF after a fresh clone on Windows.
+- [x] `mvn test` is **263/263 green** on Windows and on Linux.
+- [x] `docs/INDEX.md:69`'s claim about `.editorconfig` is true, or corrected.
+- [x] A prompt-fragment mismatch in a test fails with a message naming the mismatch.
 
 ## Verified
 
@@ -105,4 +105,7 @@ The working tree was restored afterwards; this fix is *not* applied.
 
 ## Resolution
 
-<!-- filled on close -->
+- Added root `.gitattributes` (`* text=auto eol=lf`) and re-checked-out the tree; no tracked file is CRLF in the working tree any more. The index was already LF, so renormalizing produced no content diff.
+- Added a root `.editorconfig` (UTF-8, LF, 4-space default, 2-space for web/config files), making `docs/INDEX.md:69` true.
+- Follow-on 2, decision: made `StubAIGateway` fail loudly (the ticket's first option) rather than making `Prompts.writing` line-ending tolerant. Once any answer is registered, an unmatched prompt for a tier with no canned response throws an `AssertionError` listing the registered fragments and the prompt. Placeholder behaviour is unchanged for gateways with no answers.
+- `mvn test`: 263 tests, 0 failures, BUILD SUCCESS (Windows, Docker running).

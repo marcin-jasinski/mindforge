@@ -1,7 +1,6 @@
 package dev.mindforge.api.mapper;
 
 import java.util.List;
-import java.util.Map;
 
 import org.mapstruct.Mapper;
 
@@ -14,10 +13,12 @@ import dev.mindforge.api.dto.response.RunSupersessionResponse;
 import dev.mindforge.application.service.RunReportService;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.PageRevision;
+import dev.mindforge.domain.model.ReviewItem;
+import dev.mindforge.domain.model.RunFailure;
 import dev.mindforge.domain.model.RunSummary;
 import dev.mindforge.domain.model.RunSupersession;
 
-/** Runs as the SPA shows them. Step versions are never mapped, and failures pass through a fixed set of keys. */
+/** Runs as the SPA shows them. Step versions are never mapped. */
 @Mapper(componentModel = "spring", uses = WikiDtoMapper.class)
 public interface RunDtoMapper {
 
@@ -45,22 +46,13 @@ public interface RunDtoMapper {
             after.isTombstone() ? null : after.markdownBody().length());
     }
 
-    static List<FindingResponse> toFindings(List<Map<String, Object>> findings) {
-        return findings.stream()
-            .map(finding -> new FindingResponse(text(finding, "kind"),
-                finding.get("pages") instanceof List<?> pages ? pages.stream().map(String::valueOf).toList() : List.of(),
-                text(finding, "text")))
+    static List<FindingResponse> toFindings(List<ReviewItem> findings) {
+        return findings.stream().map(finding -> new FindingResponse(finding.kind(), finding.pages(), finding.text()))
             .toList();
     }
 
-    private static FailureResponse toFailure(Map<String, Object> failure) {
-        Object count = failure.containsKey("dropped") ? failure.get("dropped") : failure.get("omittedPages");
-        return new FailureResponse(text(failure, "step"), text(failure, "item"), text(failure, "path"),
-            text(failure, "reason"), count instanceof Number number ? number.intValue() : null);
-    }
-
-    private static String text(Map<String, Object> row, String key) {
-        Object value = row.get(key);
-        return value == null ? null : value.toString();
+    private static FailureResponse toFailure(RunFailure failure) {
+        return new FailureResponse(failure.step(), failure.item(), failure.path(), failure.reason(),
+            failure.dropped() != null ? failure.dropped() : failure.omittedPages());
     }
 }

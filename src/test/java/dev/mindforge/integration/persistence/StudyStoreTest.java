@@ -34,6 +34,7 @@ import dev.mindforge.domain.port.QuizSessionStore;
 import dev.mindforge.domain.port.StudyProgressStore;
 import dev.mindforge.domain.port.WikiStore;
 import dev.mindforge.infrastructure.export.BundleExporter;
+import dev.mindforge.support.ExportedBundle;
 import dev.mindforge.support.TestContainerBase;
 
 @Tag("integration")
@@ -155,7 +156,7 @@ class StudyStoreTest extends TestContainerBase {
         sessions.insert(kbId, session);
 
         assertThat(sessions.find(kbId, session.sessionId(), NOW)).contains(session);
-        assertThat(exporter.export(kbId, "Biologia").files().values()).noneMatch(file -> file.contains("SEKRET"));
+        assertThat(ExportedBundle.files(exporter, kbId, "Biologia").values()).noneMatch(file -> file.contains("SEKRET"));
 
         jdbc.update("DELETE FROM users WHERE user_id = ?", owner);
         for (String table : List.of("flashcards", "study_events", "quiz_sessions")) {

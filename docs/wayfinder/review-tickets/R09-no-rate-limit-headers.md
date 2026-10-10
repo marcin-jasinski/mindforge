@@ -2,7 +2,7 @@
 id: R09
 title: No rate limiting and no rate-limit headers
 type: feature
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -64,12 +64,26 @@ unimplemented. Do not leave the mismatch.
 
 ## Acceptance criteria
 
-- [ ] The four LLM-spending endpoint groups are rate limited per user.
-- [ ] Limits are configurable without a rebuild.
-- [ ] `RateLimit-*` headers are present, and exhaustion returns 429 with `Retry-After`.
-- [ ] An integration test proves the limit fires and resets.
-- [ ] The SPA handles 429 distinctly.
+- [x] The four LLM-spending endpoint groups are rate limited per user.
+- [x] Limits are configurable without a rebuild.
+- [x] `RateLimit-*` headers are present, and exhaustion returns 429 with `Retry-After`.
+- [x] An integration test proves the limit fires and resets.
+- [x] The SPA handles 429 distinctly.
 
 ## Resolution
 
-<!-- filled on close -->
+Implemented the ticket's recommended option: an in-process, per-user limiter (Caffeine, fixed window)
+in a `HandlerInterceptor` (`RateLimitInterceptor`, registered by `RateLimitConfig`) on the POST endpoints that
+spend model calls: query-session messages and edits, quiz-session start, document upload and retry, lint-runs.
+One allowance per user across all of them, configured under `mindforge.rate-limits` (`requests` = 30,
+`window` = PT1M; env `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW`). Responses carry `RateLimit-Limit`,
+`RateLimit-Remaining`, `RateLimit-Reset`; exhaustion throws `RateLimitExceededException`, mapped in
+`GlobalExceptionHandler` to 429 `{error, code: RATE_LIMITED, detail}` with `Retry-After`. The SPA error
+interceptor shows a distinct "slow down" toast on 429. `api.md` now describes the real behaviour.
+`RateLimitTest` proves the limit fires and resets. Simplifications: one shared bucket rather than per-endpoint
+limits; fixed window; not distributed (one live instance).
+
+Follow-up review (2026-10-10): quiz grading (`POST .../quiz-sessions/*/answers`, one model call per answer) is now
+limited too. `RateLimitExceededException` moved from `domain.model` to `api.config`, since only the API layer throws
+it. Header names stay `RateLimit-Limit/Remaining/Reset`, the names `api.md` documents. Rejected requests still
+count, on purpose: the limiter caps attempts, not successes.

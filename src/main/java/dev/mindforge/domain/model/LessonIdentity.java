@@ -31,7 +31,7 @@ public record LessonIdentity(String lessonId, String title) {
     /** Metadata key of a PDF document's title. */
     public static final String KEY_PDF_TITLE = "Title";
 
-    private static final int MAX_TITLE_LENGTH = 200;
+    public static final int MAX_TITLE_LENGTH = 200;
     private static final String ELLIPSIS = "…";
     private static final String RESERVED_SUFFIX = "-lesson";
 

@@ -30,7 +30,7 @@ public class SearchController {
     }
 
     @Operation(summary = "Search pages by title, description and body")
-    @GetMapping("/api/knowledge-bases/{kbId}/pages/search")
+    @GetMapping("/api/v1/knowledge-bases/{kbId}/pages/search")
     public List<IndexEntryResponse> search(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID kbId,
                                            @RequestParam String q) {
         knowledgeBases.requireOwner(kbId, user.userId());

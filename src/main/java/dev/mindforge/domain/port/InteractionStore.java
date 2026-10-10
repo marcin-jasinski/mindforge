@@ -17,8 +17,8 @@ public interface InteractionStore {
 
     Optional<Interaction> getInteraction(UUID kbId, UUID interactionId);
 
-    /** The interaction's turns, oldest first. */
-    List<InteractionTurn> turns(UUID kbId, UUID interactionId);
+    /** The interaction's last {@code limit} turns, oldest first. */
+    List<InteractionTurn> recentTurns(UUID kbId, UUID interactionId, int limit);
 
     /** The user's turns in the knowledge base, newest first, redacted to question and answer. */
     List<TurnSummary> listForUser(UUID kbId, UUID userId);

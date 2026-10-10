@@ -25,7 +25,9 @@ public class SpaConfig implements WebMvcConfigurer {
                         return requested;
                     }
                     String lastSegment = resourcePath.substring(resourcePath.lastIndexOf('/') + 1);
-                    if (resourcePath.startsWith("api/") || lastSegment.contains(".")) {
+                    // the pre-actuator health path 404s, so a stale health check fails instead of reading index.html
+                    if (resourcePath.startsWith("api/") || resourcePath.startsWith("actuator/")
+                        || resourcePath.equals("health") || lastSegment.contains(".")) {
                         return null;
                     }
                     Resource index = location.createRelative("index.html");

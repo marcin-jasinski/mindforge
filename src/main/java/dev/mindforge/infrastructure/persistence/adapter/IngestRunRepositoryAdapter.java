@@ -8,6 +8,8 @@ import java.util.UUID;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.mindforge.domain.model.IngestRun;
+import dev.mindforge.domain.model.ReviewItem;
+import dev.mindforge.domain.model.RunFailure;
 import dev.mindforge.domain.model.RunFencedException;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
@@ -57,7 +59,7 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
-    public void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures,
+    public void markWritten(UUID kbId, UUID runId, List<RunFailure> failures,
                             Map<String, String> stepVersions) {
         IngestRunEntity run = fence(kbId, runId, RunStatus.RUNNING, RunStatus.WRITTEN);
         run.setFailures(failures);
@@ -66,17 +68,19 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
 
     @Override
     public void complete(UUID kbId, UUID runId, int supersessionCount, boolean supersessionSkipped,
-                         List<Map<String, Object>> failures, Map<String, String> stepVersions) {
+                         List<RunFailure> failures, Map<String, String> stepVersions) {
         IngestRunEntity run = fence(kbId, runId, RunStatus.WRITTEN, RunStatus.COMPLETED);
         run.setSupersessionCount(supersessionCount);
         run.setSupersessionSkipped(supersessionSkipped);
         run.setFailures(failures);
         run.setStepVersions(stepVersions);
         runs.releaseLease(kbId, runId);
+        // the document got past its earlier failures, so they are no longer worth keeping
+        runs.deleteFailuresBefore(kbId, runId);
     }
 
     @Override
-    public void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures,
+    public void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<RunFailure> failures,
                      Map<String, String> stepVersions) {
         IngestRunEntity run = fence(kbId, runId, RunStatus.RUNNING, RunStatus.FAILED);
         run.setFailureReason(reason);
@@ -87,7 +91,7 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
-    public void recordFindings(UUID kbId, UUID runId, List<Map<String, Object>> findings) {
+    public void recordFindings(UUID kbId, UUID runId, List<ReviewItem> findings) {
         runs.findByKnowledgeBaseIdAndRunId(kbId, runId).orElseThrow().setFindings(findings);
     }
 
@@ -100,6 +104,17 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     public Optional<IngestRun> latestForDocument(UUID kbId, UUID documentId) {
         return runs.findFirstByKnowledgeBaseIdAndDocumentIdOrderByCreatedAtDesc(kbId, documentId)
             .map(mapper::toDomain);
+    }
+
+    @Override
+    public boolean onlyFailedRuns(UUID kbId, UUID documentId) {
+        return runs.countByKnowledgeBaseIdAndDocumentId(kbId, documentId) > 0
+            && runs.countByKnowledgeBaseIdAndDocumentIdAndStatusNot(kbId, documentId, RunStatus.FAILED) == 0;
+    }
+
+    @Override
+    public void deleteForDocument(UUID kbId, UUID documentId) {
+        runs.deleteByKnowledgeBaseIdAndDocumentId(kbId, documentId);
     }
 
     @Override

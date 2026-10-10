@@ -24,6 +24,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.support.TransactionOperations;
 
+import dev.mindforge.agent.ClaimExtractor;
+import dev.mindforge.agent.LinkChecker;
+import dev.mindforge.agent.PageWriter;
+import dev.mindforge.agent.RelevanceGuard;
+import dev.mindforge.agent.SupersessionDetector;
 import dev.mindforge.application.service.DocumentUpload;
 import dev.mindforge.application.service.IngestionService;
 import dev.mindforge.application.service.RevertService;
@@ -37,6 +42,7 @@ import dev.mindforge.domain.model.IndexEntry;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.LessonIdentity;
 import dev.mindforge.domain.model.LiveSupersession;
+import dev.mindforge.domain.model.RunFailure;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.model.UploadSource;
@@ -116,8 +122,13 @@ class IngestRunTest extends TestContainerBase {
         assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody)
             .contains("# Przebieg\n\nMitoza poprzedza [mejoza](/concepts/mejoza.md).\n");
         assertThat(wiki.pageIdsForLesson(kbId, "biologia")).hasSize(2);
-        assertThat(run.stepVersions()).containsKeys("RelevanceGuard", "ClaimExtractor", "PageWriter", "LinkChecker",
-            "SupersessionDetector").containsEntry("PageWriter", "1@openai/gpt-4o");
+        assertThat(run.stepVersions()).containsOnlyKeys("RelevanceGuard", "ClaimExtractor", "PageWriter",
+            "LinkChecker", "SupersessionDetector");
+        assertThat(run.stepVersions().get("RelevanceGuard")).startsWith(RelevanceGuard.VERSION + "@");
+        assertThat(run.stepVersions().get("ClaimExtractor")).startsWith(ClaimExtractor.VERSION + "@");
+        assertThat(run.stepVersions().get("PageWriter")).isEqualTo(PageWriter.VERSION + "@openai/gpt-4o");
+        assertThat(run.stepVersions().get("LinkChecker")).startsWith(LinkChecker.VERSION + "@");
+        assertThat(run.stepVersions().get("SupersessionDetector")).startsWith(SupersessionDetector.VERSION + "@");
         assertThat(LogRenderer.render(runReports.logEntries(kbId)))
             .contains("* **Ingest**: [biologia](/sources/biologia.md) — 3 created.");
 
@@ -141,6 +152,69 @@ class IngestRunTest extends TestContainerBase {
     }
 
     @Test
+    void aSecondLessonWithATakenTitleCarriesItsIdSoCitationsDoNotReadAlike() {
+        UUID kbId = insertKnowledgeBase();
+        UUID first = upload(kbId, "mitoza.md", NOTES, false);
+        UUID second = ingestion.ingest(new DocumentUpload(kbId, ownerOf(kbId), UploadSource.API, "mitoza.md",
+            MarkdownParser.MIME_TYPE, (NOTES + "\nDruga wersja.\n").getBytes(StandardCharsets.UTF_8), "mitoza-2",
+            false));
+
+        assertThat(documents.findById(kbId, first)).get().extracting(d -> d.lessonIdentity().title()).isEqualTo("mitoza");
+        assertThat(documents.findById(kbId, second)).get().extracting(d -> d.lessonIdentity().title())
+            .isEqualTo("mitoza (mitoza-2)");
+        assertThat(documents.findById(kbId, second)).get().extracting(d -> d.lessonIdentity().lessonId()).isEqualTo("mitoza-2");
+    }
+
+    @Test
+    void aDocumentWhoseEveryRunFailedCanBeRemovedAndUploadedAgain() {
+        UUID kbId = insertKnowledgeBase();
+        gateway.reset();
+        gateway.answer(Prompts.GUARD, prompt -> {
+            throw new IllegalStateException("provider down");
+        });
+        UUID documentId = upload(kbId, "biologia.md", NOTES, false);
+        awaitRun(kbId, documentId, RunStatus.FAILED);
+
+        ingestion.remove(kbId, documentId);
+
+        assertThat(documents.findById(kbId, documentId)).isEmpty();
+        assertThat(runs.latestForDocument(kbId, documentId)).isEmpty();
+        assertThat(upload(kbId, "biologia.md", NOTES, false)).isNotEqualTo(documentId);
+    }
+
+    @Test
+    void aRetryThatCompletesDropsTheFailedAttemptsItGotPast() {
+        UUID kbId = insertKnowledgeBase();
+        gateway.reset();
+        gateway.answer(Prompts.GUARD, prompt -> {
+            throw new IllegalStateException("provider down");
+        });
+        UUID documentId = upload(kbId, "biologia.md", NOTES, false);
+        awaitRun(kbId, documentId, RunStatus.FAILED);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM ingest_runs WHERE document_id = ?", Integer.class,
+            documentId)).isEqualTo(1);
+
+        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, LINK_TO_MEJOZA);
+        ingestion.retry(kbId, documentId);
+        awaitRun(kbId, documentId, RunStatus.COMPLETED);
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM ingest_runs WHERE document_id = ?", Integer.class,
+            documentId)).as("only the run that got past the failure is kept").isEqualTo(1);
+    }
+
+    @Test
+    void aDocumentThatWrotePagesCannotBeRemoved() {
+        UUID kbId = insertKnowledgeBase();
+        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, LINK_TO_MEJOZA);
+        UUID documentId = upload(kbId, "biologia.md", NOTES, false);
+        awaitRun(kbId, documentId, RunStatus.COMPLETED);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> ingestion.remove(kbId, documentId))
+            .isInstanceOf(dev.mindforge.domain.model.DocumentNotRemovableException.class);
+        assertThat(documents.findById(kbId, documentId)).isPresent();
+    }
+
+    @Test
     void partialSuccessLandsAndRecordsTheFailedPageAndTheLinkToIt() {
         UUID kbId = insertKnowledgeBase();
         givenTheNotesAnswers(MITOZA_BODY, "![schemat](https://example.org/a.png)\n", LINK_TO_MEJOZA);
@@ -150,10 +224,19 @@ class IngestRunTest extends TestContainerBase {
         assertThat(wiki.listIndex(kbId)).extracting(IndexEntry::path)
             .containsExactlyInAnyOrder("concepts/mitoza", "sources/biologia");
         assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody).contains(MITOZA_BODY);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
-            .containsEntry("step", "write").containsEntry("path", "concepts/mejoza"));
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
-            .containsEntry("step", "linkCheck").containsEntry("dropped", 1));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::path).containsExactly("write", "concepts/mejoza"));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::dropped).containsExactly("linkCheck", 1));
+    }
+
+    @Test
+    void aRowWrittenBeforeFailuresWereTypedStillReadsBack() {
+        UUID kbId = insertKnowledgeBase();
+        IngestRun run = awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
+        jdbc.update("UPDATE ingest_runs SET failures = '[{\"step\":\"write\",\"path\":\"concepts/a\",\"reason\":\"x\"},"
+            + "{\"step\":\"supersede\",\"omittedPages\":3}]'::jsonb WHERE run_id = ?", run.runId());
+
+        assertThat(runs.findById(kbId, run.runId()).orElseThrow().failures()).containsExactly(
+            RunFailure.ofPath("write", "concepts/a", "x"), RunFailure.omittedPages("supersede", 3));
     }
 
     @Test
@@ -220,8 +303,7 @@ class IngestRunTest extends TestContainerBase {
             RunStatus.COMPLETED);
 
         assertThat(run.supersessionCount()).isEqualTo(1);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
-            .containsEntry("step", "supersede").containsEntry("dropped", 1));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::dropped).containsExactly("supersede", 1));
         UUID mitoza = wiki.findByPath(kbId, "concepts/mitoza").orElseThrow().pageId();
         assertThat(wiki.liveSupersessionsOf(kbId, List.of(mitoza)))
             .extracting(LiveSupersession::sectionAnchor, LiveSupersession::supersedingPath)
@@ -249,8 +331,7 @@ class IngestRunTest extends TestContainerBase {
         assertThat(wiki.findByPath(kbId, "sources/biologia")).isPresent();
         assertThat(wiki.findByPath(kbId, "concepts/mitoza")).get()
             .extracting(WikiPage::title, WikiPage::markdownBody).containsExactly("Mitoza komórkowa", MITOZA_BODY);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
-            .containsEntry("item", "delete").containsEntry("path", "sources/biologia"));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::item, RunFailure::path).containsExactly("delete", "sources/biologia"));
         assertThat(LogRenderer.render(runReports.logEntries(kbId)))
             .contains("* **Edit**: conversation — 1 revised, 1 deleted.");
     }
@@ -265,6 +346,22 @@ class IngestRunTest extends TestContainerBase {
 
         assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
             .containsExactly("edit named no page", false);
+    }
+
+    @Test
+    void aConversationEditThatOnlyRetitlesToTheCurrentTitleFailsAsNotRetryable() {
+        UUID kbId = insertKnowledgeBase();
+        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, NO_LINKS);
+        awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
+        String title = wiki.findByPath(kbId, "concepts/mitoza").orElseThrow().title();
+        gateway.reset();
+        gateway.answer(Prompts.EDIT, Prompts.json(Map.of("items", List.of(
+            Map.of("kind", "retitle", "path", "concepts/mitoza", "title", title)))));
+
+        IngestRun run = awaitRun(kbId, edit(kbId, "Nazwij mitozę tak samo."), RunStatus.FAILED);
+
+        assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
+            .containsExactly("no applicable change", false);
     }
 
     // ---------------------------------------------------------------------------

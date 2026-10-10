@@ -30,6 +30,7 @@ import dev.mindforge.domain.model.MarkdownStructure;
 import dev.mindforge.domain.model.PageSupersession;
 import dev.mindforge.domain.model.PageType;
 import dev.mindforge.domain.model.PageWrite;
+import dev.mindforge.domain.model.ReviewItem;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.model.WikiPage;
@@ -143,11 +144,27 @@ class LintAndHealthTest extends TestContainerBase {
         WikiPage mitoza = wiki.findByPath(kbId, "concepts/mitoza").orElseThrow();
         assertThat(mitoza.markdownBody()).isEqualTo("# Faza\n\nPo mitozie następuje [mejoza](/concepts/mejoza.md).\n");
         assertThat(MarkdownStructure.stripLinks(mitoza.markdownBody())).isEqualTo(MITOZA_BODY);
-        assertThat(completed.findings()).containsExactly(Map.of("kind", "contradiction",
-            "pages", List.of("concepts/mitoza"), "text", "Strony różnie opisują fazy."));
+        assertThat(completed.findings()).containsExactly(new ReviewItem("contradiction",
+            List.of("concepts/mitoza"), "Strony różnie opisują fazy."));
         assertThat(completed.stepVersions()).containsKeys("LinkChecker", "WikiReviewer");
 
         revertService.revert(kbId, lintRun);
+
+        assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody).contains(MITOZA_BODY);
+    }
+
+    @Test
+    void aFullLintLinksOnlyToConceptsAndSourceSummaries() {
+        UUID kbId = insertKnowledgeBase();
+        seedTwoConcepts(kbId);
+        completedRun(kbId, runId -> wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/kopernik", "Kopernik",
+            new PageType("Person"), "Astronom.\n"), runId));
+        gateway.reset();
+        gateway.answer(Prompts.LINKS, Prompts.json(Map.of("insertions", List.of(
+            Map.of("pagePath", "concepts/mitoza", "phrase", "mejoza", "targetPath", "concepts/kopernik")))));
+        gateway.answer(Prompts.REVIEW, Prompts.json(Map.of("items", List.of())));
+
+        awaitRun(kbId, lintService.request(kbId), RunStatus.COMPLETED);
 
         assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody).contains(MITOZA_BODY);
     }

@@ -2,7 +2,7 @@
 id: R14
 title: Four tests assert nothing about production code
 type: test
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -77,12 +77,17 @@ in `KnowledgeBaseService`'s delete guard, the `step_versions` audit trail, and t
 
 ## Acceptance criteria
 
-- [ ] `StubAIGatewayTest` is deleted or reduced to a single fallback-behaviour test under `support/`.
-- [ ] The delete-guard test arranges its scenario and has a passing-case sibling.
-- [ ] A test asserts `step_versions` content after a run, not just that constants exist.
-- [ ] The retry test asserts attempt 3's terminal state.
-- [ ] Coverage does not drop below the 70% gate (it is 91.1% today, so there is room).
+- [x] `StubAIGatewayTest` is deleted or reduced to a single fallback-behaviour test under `support/`.
+- [x] The delete-guard test arranges its scenario and has a passing-case sibling.
+- [x] A test asserts `step_versions` content after a run, not just that constants exist.
+- [x] The retry test asserts attempt 3's terminal state.
+- [x] Coverage does not drop below the 70% gate (it is 91.1% today, so there is room).
 
 ## Resolution
 
-<!-- filled on close -->
+1. `StubAIGatewayTest` deleted (the echo assertions tested test infrastructure; the stub's no-match fallback now throws, so no fallback test is kept).
+2. `KnowledgeBaseServiceTest`: the busy test stubs `deleteIfIdle` to `false` explicitly; added `shouldDeleteAnIdleKnowledgeBase` with `true`.
+3. `ModelServiceVersionTest` kept (cheap reflective check). `IngestRunTest` now asserts the run's `step_versions` has exactly the five ingest services, each valued `<Service>.VERSION@<model>`. The lint path was already pinned in `LintAndHealthTest` (keys); R11 collapsed the two writers into `RunState`.
+4. `RunWorkerTest`: attempt 3 is asserted failed as `interrupted` with no enqueue of an attempt above 3.
+
+`mvn verify`: 339 tests, 0 failures.

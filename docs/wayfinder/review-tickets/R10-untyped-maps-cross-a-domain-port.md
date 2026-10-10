@@ -2,7 +2,7 @@
 id: R10
 title: failures and stepVersions cross a domain port as untyped maps
 type: refactor
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -72,13 +72,24 @@ Then:
 
 ## Acceptance criteria
 
-- [ ] No `Map<String, Object>` remains in `dev.mindforge.domain.port` or `dev.mindforge.domain.model`.
-- [ ] Failure construction is type-checked at every site.
-- [ ] `RunDtoMapper`'s string-key reads and the `text(...)` helper are gone.
-- [ ] Existing persisted run rows still render correctly in the run report — prove it with an
+- [x] No `Map<String, Object>` remains in `dev.mindforge.domain.port` or `dev.mindforge.domain.model`.
+- [x] Failure construction is type-checked at every site.
+- [x] `RunDtoMapper`'s string-key reads and the `text(...)` helper are gone.
+- [x] Existing persisted run rows still render correctly in the run report — prove it with an
       integration test that reads a row written before the change, or confirm the JSON shape is
       byte-identical.
 
 ## Resolution
 
-<!-- filled on close -->
+Added `RunFailure(step, item, path, reason, dropped, omittedPages)` in `domain.model` (one record for every failure
+shape; the Lint findings already had the `ReviewItem` record, so `RunFinding` was not needed). `IngestRun`,
+`IngestRunRepository`, the entity and adapter, `Resolver.Plan`, `IngestPipeline` and `LintService` now carry
+`List<RunFailure>` / `List<ReviewItem>`; `ReviewItem.toRow()` and `RunDtoMapper`'s `text(...)` helper are deleted and
+the mapper is a straight field mapping. No `Map<String, Object>` remains in `domain.port` or `domain.model`.
+
+Persisted shape: the record component names are the old key literals, so rows written before the change deserialize
+unchanged (missing keys read as null); new rows additionally carry explicit `null` components. No migration.
+`IngestRunTest.aRowWrittenBeforeFailuresWereTypedStillReadsBack` writes a legacy-shaped row with SQL and reads it back.
+
+`stepVersions` stays `Map<String, String>` as the ticket allows; producing its key in one place is left to R11.
+`mvn verify`: 210 unit + 64 integration tests green.

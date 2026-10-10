@@ -8,6 +8,8 @@ import java.util.UUID;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.KnowledgeBaseBusyException;
 import dev.mindforge.domain.model.RunFencedException;
+import dev.mindforge.domain.model.ReviewItem;
+import dev.mindforge.domain.model.RunFailure;
 import dev.mindforge.domain.model.RunKind;
 
 /**
@@ -30,22 +32,31 @@ public interface IngestRunRepository {
     Optional<IngestRun> oldestQueued(UUID kbId);
 
     /** {@code RUNNING → WRITTEN}, recording the run's failures and step versions so far. */
-    void markWritten(UUID kbId, UUID runId, List<Map<String, Object>> failures, Map<String, String> stepVersions);
+    void markWritten(UUID kbId, UUID runId, List<RunFailure> failures, Map<String, String> stepVersions);
 
-    /** {@code WRITTEN → COMPLETED}, releasing the lease. */
+    /**
+     * {@code WRITTEN → COMPLETED}, releasing the lease and dropping the document's earlier failed attempts, which
+     * wrote nothing and which this run got past.
+     */
     void complete(UUID kbId, UUID runId, int supersessionCount, boolean supersessionSkipped,
-                  List<Map<String, Object>> failures, Map<String, String> stepVersions);
+                  List<RunFailure> failures, Map<String, String> stepVersions);
 
     /** {@code RUNNING → FAILED}, releasing the lease. */
-    void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<Map<String, Object>> failures,
+    void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<RunFailure> failures,
               Map<String, String> stepVersions);
 
     /** Stores a Lint's findings and suggestions; call inside the run's fenced commit. */
-    void recordFindings(UUID kbId, UUID runId, List<Map<String, Object>> findings);
+    void recordFindings(UUID kbId, UUID runId, List<ReviewItem> findings);
 
     Optional<IngestRun> findById(UUID kbId, UUID runId);
 
     Optional<IngestRun> latestForDocument(UUID kbId, UUID documentId);
+
+    /** True when the document has runs and every one of them {@code FAILED}. */
+    boolean onlyFailedRuns(UUID kbId, UUID documentId);
+
+    /** Removes every run of the document; only failed runs, which wrote nothing, are removed this way. */
+    void deleteForDocument(UUID kbId, UUID documentId);
 
     /** The newest run of each document in the knowledge base. */
     List<IngestRun> latestPerDocument(UUID kbId);

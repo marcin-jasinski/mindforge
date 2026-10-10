@@ -41,7 +41,7 @@ public final class IndexRenderer {
         String rendered = index.toString();
         int tokens = TokenEstimate.of(rendered);
         if (tokens > RETRIEVAL_CEILING_TOKENS) {
-            // ponytail: warn only; the lexical prefilter (ADR 0016) replaces this when an index first gets here
+            // past the ceiling QueryService routes over the lexical prefilter (ADR 0016); the log shows an index got here
             log.warn("Index of {} pages is {} tokens, past the {}-token retrieval ceiling",
                 entries.size(), tokens, RETRIEVAL_CEILING_TOKENS);
         }

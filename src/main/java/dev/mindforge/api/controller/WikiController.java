@@ -22,7 +22,7 @@ import dev.mindforge.application.service.WikiService;
 
 /** The wiki as the SPA browses it. A page path is its two segments, {@code concepts/mitoza}. */
 @RestController
-@RequestMapping("/api/knowledge-bases/{kbId}")
+@RequestMapping("/api/v1/knowledge-bases/{kbId}")
 public class WikiController {
 
     private final KnowledgeBaseService knowledgeBases;

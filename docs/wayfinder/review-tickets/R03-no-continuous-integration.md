@@ -2,7 +2,7 @@
 id: R03
 title: There is no CI
 type: chore
-status: open
+status: closed
 severity: high
 assignee:
 blocked_by: [R01, R02]
@@ -50,11 +50,25 @@ no caching cleverness.
 
 ## Acceptance criteria
 
-- [ ] A push to `develop` runs the full suite and the coverage gate automatically.
-- [ ] The workflow runs on both Linux and Windows.
+- [x] A push to `develop` runs the full suite and the coverage gate automatically.
+- [x] The workflow runs on both Linux and Windows.
 - [ ] A failing test fails the workflow — verified once by deliberately breaking a test.
-- [ ] The README carries a status badge.
+- [x] The README carries a status badge.
 
 ## Resolution
 
-<!-- filled on close -->
+Added `.github/workflows/ci.yml` and a README status badge.
+
+- `linux` job (ubuntu-latest, Temurin 21, maven cache): `mvn -B verify` (unit + failsafe integration
+  tests, jacoco 70% gate, and the frontend build, which the pom already runs through
+  frontend-maven-plugin), then uploads `target/site/jacoco/`.
+- `windows` job (windows-latest): `mvn -B test`, unit tests only. Decision: GitHub's Windows runners
+  cannot run Linux containers, so Testcontainers integration tests cannot run there; the Windows leg
+  exists to catch R01-style platform failures in the unit suite.
+- Triggers on every push and pull request.
+- Not done: the deliberate-failure check (needs a remote run), and frontend tests (blocked on R04).
+  YAML parses locally; first real run happens on push.
+
+Follow-up review (2026-10-10): the Windows leg now runs `mvn -B package` (unit tests, frontend build, JAR) rather
+than `mvn -B test`. `mvn -B verify` cannot run there: it would run the Testcontainers integration tests, which need
+Linux containers, and the jacoco gate they feed. The deliberate-failure check is still open and needs a pushed run.

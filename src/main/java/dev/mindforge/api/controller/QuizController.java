@@ -28,7 +28,7 @@ import dev.mindforge.application.service.QuizService;
 
 /** Quizzes whose reference answers stay on the server: a response carries a question, a score and feedback only. */
 @RestController
-@RequestMapping("/api/knowledge-bases/{kbId}/quiz-sessions")
+@RequestMapping("/api/v1/knowledge-bases/{kbId}/quiz-sessions")
 public class QuizController {
 
     private final KnowledgeBaseService knowledgeBases;
@@ -41,23 +41,27 @@ public class QuizController {
         this.mapper = mapper;
     }
 
-    @Operation(summary = "Start a quiz over a study scope")
-    @ApiResponse(responseCode = "201", description = "Started")
+    @Operation(summary = "Start a quiz over a study scope; its questions are written in the background")
+    @ApiResponse(responseCode = "202", description = "Accepted; poll the next question until it is ready")
     @ApiResponse(responseCode = "404", description = "Nothing to ask about in the scope")
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     public QuizSessionResponse start(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID kbId,
                                      @RequestBody QuizSessionRequest request) {
         knowledgeBases.requireOwner(kbId, user.userId());
-        return mapper.toResponse(quizzes.start(kbId, user.userId(), StudyScopes.of(request.lessonId(), request.pageId())));
+        return mapper.toResponse(quizzes.begin(kbId, user.userId(), StudyScopes.of(request.lessonId(), request.pageId())));
     }
 
     @Operation(summary = "Get the next question's text")
+    @ApiResponse(responseCode = "202", description = "The questions are still being written; ask again shortly")
     @ApiResponse(responseCode = "204", description = "The quiz is over")
     @GetMapping("/{sessionId}/next")
     public ResponseEntity<NextQuestionResponse> next(@AuthenticationPrincipal CurrentUser user,
                                                      @PathVariable UUID kbId, @PathVariable UUID sessionId) {
         knowledgeBases.requireOwner(kbId, user.userId());
+        if (quizzes.isPreparing(kbId, user.userId(), sessionId)) {
+            return ResponseEntity.accepted().build();
+        }
         return quizzes.next(kbId, user.userId(), sessionId).map(mapper::toResponse).map(ResponseEntity::ok)
             .orElseGet(() -> ResponseEntity.noContent().build());
     }

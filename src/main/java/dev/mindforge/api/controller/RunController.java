@@ -27,7 +27,7 @@ import dev.mindforge.application.service.RunReportService;
 import dev.mindforge.infrastructure.event.SseProgressNotifier;
 
 @RestController
-@RequestMapping("/api/knowledge-bases/{kbId}")
+@RequestMapping("/api/v1/knowledge-bases/{kbId}")
 public class RunController {
 
     private final KnowledgeBaseService knowledgeBases;

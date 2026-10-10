@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,7 +31,7 @@ import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.domain.model.UploadSource;
 
 @RestController
-@RequestMapping("/api/knowledge-bases/{kbId}/documents")
+@RequestMapping("/api/v1/knowledge-bases/{kbId}/documents")
 public class DocumentController {
 
     private final KnowledgeBaseService knowledgeBases;
@@ -84,5 +85,16 @@ public class DocumentController {
                                      @PathVariable UUID documentId) {
         knowledgeBases.requireOwner(kbId, user.userId());
         return new RunAcceptedResponse(ingestion.retry(kbId, documentId));
+    }
+
+    @Operation(summary = "Remove a document whose every run failed, so its file can be uploaded again")
+    @ApiResponse(responseCode = "204", description = "Removed")
+    @ApiResponse(responseCode = "409", description = "A run of the document is queued, running or has written pages")
+    @DeleteMapping("/{documentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void remove(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID kbId,
+                       @PathVariable UUID documentId) {
+        knowledgeBases.requireOwner(kbId, user.userId());
+        ingestion.remove(kbId, documentId);
     }
 }

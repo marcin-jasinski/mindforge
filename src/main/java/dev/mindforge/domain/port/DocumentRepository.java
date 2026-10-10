@@ -24,4 +24,10 @@ public interface DocumentRepository {
     Optional<String> findLessonTitle(UUID knowledgeBaseId, String lessonId);
 
     List<Document> listByKnowledgeBase(UUID knowledgeBaseId);
+
+    /** True when a lesson other than {@code lessonId} already carries this title, ignoring case. */
+    boolean lessonTitleTaken(UUID knowledgeBaseId, String title, String lessonId);
+
+    /** Removes the document's row; its runs must already be gone. */
+    void delete(UUID knowledgeBaseId, UUID documentId);
 }

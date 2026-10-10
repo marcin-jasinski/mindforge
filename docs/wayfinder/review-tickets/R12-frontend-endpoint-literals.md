@@ -2,7 +2,7 @@
 id: R12
 title: Endpoint literals are inline in eleven page components
 type: refactor
-status: open
+status: closed
 severity: low
 assignee:
 blocked_by: []
@@ -43,11 +43,11 @@ of the ticket.
 
 ## Acceptance criteria
 
-- [ ] No endpoint path literal remains in a component under `frontend/src/app/pages/`.
-- [ ] Each feature service is injected with `inject()` and exposes signals or observables, per
+- [x] No endpoint path literal remains in a component under `frontend/src/app/pages/`.
+- [x] Each feature service is injected with `inject()` and exposes signals or observables, per
       `angular-patterns.md`.
-- [ ] A hypothetical `/api/v1` prefix would be a change in one place per resource area.
+- [x] A hypothetical `/api/v1` prefix would be a change in one place per resource area.
 
 ## Resolution
 
-<!-- filled on close -->
+Added four root-provided feature services in `frontend/src/app/core/services/`, each over `ApiService` and owning its paths: `WikiApi` (knowledge bases, documents, index, search, pages, revisions, graph, health, export URL), `RunApi` (runs, run report, revert, supersessions, document retry, lint, progress SSE URL), `StudyApi` (flashcards, reviews, quiz sessions) and `QueryApi` (query sessions, messages, edits). All pages and `ProgressService` now inject them; no `/knowledge-bases/...` literal remains under `pages/`, and the hard-coded `/api/v1/...` export link in `kb-shell.ts` now comes from `WikiApi.exportUrl`. The `/api/v1` prefix stays in `ApiService` (the single place), landed by R08. `auth.service.ts` already was a feature service and is unchanged. Specs for `RunReportView` and `ProgressService` now stub `RunApi`. Frontend tests (17) and build pass.
