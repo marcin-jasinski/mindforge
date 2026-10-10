@@ -2,7 +2,7 @@
 id: R05
 title: A no-op retitle counts as a succeeded page task
 type: bug
-status: open
+status: closed
 severity: high
 assignee:
 blocked_by: []
@@ -93,4 +93,4 @@ that is a second defect to record here.
 
 ## Resolution
 
-<!-- filled on close -->
+Moved `succeeded++` inside the title-changed branch in `IngestPipeline`. A retitle to the existing title no longer counts, so a conversation edit consisting only of that fails with "no applicable change", `retryable = false`. NPE check: Resolver drops retitles whose path is not a live Concept (`isLiveConcept`), so `livePages.get` cannot return null; left as is. Added `aConversationEditThatOnlyRetitlesToTheCurrentTitleFailsAsNotRetryable` to `IngestRunTest`; `IngestRunTest` and `QueryAndEditTest` pass.

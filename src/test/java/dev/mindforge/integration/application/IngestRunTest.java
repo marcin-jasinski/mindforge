@@ -267,6 +267,22 @@ class IngestRunTest extends TestContainerBase {
             .containsExactly("edit named no page", false);
     }
 
+    @Test
+    void aConversationEditThatOnlyRetitlesToTheCurrentTitleFailsAsNotRetryable() {
+        UUID kbId = insertKnowledgeBase();
+        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, NO_LINKS);
+        awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
+        String title = wiki.findByPath(kbId, "concepts/mitoza").orElseThrow().title();
+        gateway.reset();
+        gateway.answer(Prompts.EDIT, Prompts.json(Map.of("items", List.of(
+            Map.of("kind", "retitle", "path", "concepts/mitoza", "title", title)))));
+
+        IngestRun run = awaitRun(kbId, edit(kbId, "Nazwij mitozę tak samo."), RunStatus.FAILED);
+
+        assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
+            .containsExactly("no applicable change", false);
+    }
+
     // ---------------------------------------------------------------------------
     // Queue, lease and fencing
     // ---------------------------------------------------------------------------

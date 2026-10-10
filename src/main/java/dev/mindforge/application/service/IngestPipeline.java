@@ -214,8 +214,8 @@ public class IngestPipeline {
         int succeeded = drafted.size() + plan.deletions().size();
         for (Map.Entry<String, String> retitle : plan.retitles().entrySet()) {
             WikiPage page = livePages.get(retitle.getKey());
-            succeeded++;
             if (!page.title().equals(retitle.getValue())) {
+                succeeded++;
                 writes.add(new Drafted(new PageWrite(page.pageId(), page.path(), retitle.getValue(),
                     page.description(), page.type(), page.markdownBody()), List.of(), false));
             }
