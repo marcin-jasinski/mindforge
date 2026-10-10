@@ -3,7 +3,8 @@ import { Component, OnInit, inject, input, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 
 import { ApiError, Health } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { WikiApi } from '../../core/services/wiki-api';
+import { RunApi } from '../../core/services/run-api';
 import { ProgressService } from '../../core/services/progress.service';
 
 @Component({
@@ -65,7 +66,8 @@ import { ProgressService } from '../../core/services/progress.service';
   `,
 })
 export class HealthView implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly wiki = inject(WikiApi);
+  private readonly runs = inject(RunApi);
   private readonly progress = inject(ProgressService);
 
   readonly kbId = input.required<string>();
@@ -73,11 +75,11 @@ export class HealthView implements OnInit {
   readonly message = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.api.get<Health>(`/knowledge-bases/${this.kbId()}/health`).subscribe((health) => this.health.set(health));
+    this.wiki.health(this.kbId()).subscribe((health) => this.health.set(health));
   }
 
   runReview(): void {
-    this.api.post(`/knowledge-bases/${this.kbId()}/lint-runs`, {}, true).subscribe({
+    this.runs.startLint(this.kbId()).subscribe({
       next: () => {
         this.message.set('Przegląd dodany do kolejki.');
         this.progress.reload(this.kbId());

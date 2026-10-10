@@ -2,7 +2,7 @@
 id: R12
 title: Endpoint literals are inline in eleven page components
 type: refactor
-status: open
+status: closed
 severity: low
 assignee:
 blocked_by: []
@@ -50,4 +50,4 @@ of the ticket.
 
 ## Resolution
 
-<!-- filled on close -->
+Added four root-provided feature services in `frontend/src/app/core/services/`, each over `ApiService` and owning its paths: `WikiApi` (knowledge bases, documents, index, search, pages, revisions, graph, health, export URL), `RunApi` (runs, run report, revert, supersessions, document retry, lint, progress SSE URL), `StudyApi` (flashcards, reviews, quiz sessions) and `QueryApi` (query sessions, messages, edits). All pages and `ProgressService` now inject them; no `/knowledge-bases/...` literal remains under `pages/`, and the hard-coded `/api/v1/...` export link in `kb-shell.ts` now comes from `WikiApi.exportUrl`. The `/api/v1` prefix stays in `ApiService` (the single place), landed by R08. `auth.service.ts` already was a feature service and is unchanged. Specs for `RunReportView` and `ProgressService` now stub `RunApi`. Frontend tests (17) and build pass.

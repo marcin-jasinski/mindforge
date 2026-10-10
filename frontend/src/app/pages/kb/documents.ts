@@ -9,7 +9,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
 
 import { ApiError, DocumentView, RunSummary } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { WikiApi } from '../../core/services/wiki-api';
+import { RunApi } from '../../core/services/run-api';
 import { ProgressService } from '../../core/services/progress.service';
 
 interface Collision {
@@ -29,7 +30,8 @@ interface Collision {
   `,
 })
 export class Documents implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly wiki = inject(WikiApi);
+  private readonly runs = inject(RunApi);
   protected readonly progress = inject(ProgressService);
 
   readonly kbId = input.required<string>();
@@ -78,7 +80,7 @@ export class Documents implements OnInit {
     }
     form.append('newVersion', String(options.newVersion ?? false));
     this.uploadError.set(null);
-    this.api.post(`/knowledge-bases/${this.kbId()}/documents`, form, true).subscribe({
+    this.wiki.uploadDocument(this.kbId(), form).subscribe({
       next: () => {
         this.file.set(null);
         this.collision.set(null);
@@ -98,7 +100,7 @@ export class Documents implements OnInit {
   }
 
   retry(run: RunSummary): void {
-    this.api.post(`/knowledge-bases/${this.kbId()}/documents/${run.documentId}/runs`).subscribe(() =>
+    this.runs.retryDocument(this.kbId(), run.documentId).subscribe(() =>
       this.progress.reload(this.kbId()),
     );
   }
@@ -109,7 +111,7 @@ export class Documents implements OnInit {
   }
 
   private loadDocuments(): void {
-    this.api.get<DocumentView[]>(`/knowledge-bases/${this.kbId()}/documents`).subscribe((docs) => this.documents.set(docs));
+    this.wiki.documents(this.kbId()).subscribe((docs) => this.documents.set(docs));
   }
 }
 

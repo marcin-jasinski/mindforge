@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 
-import { ApiService } from './api.service';
+import { RunApi } from './run-api';
 import { ProgressService } from './progress.service';
 
 class FakeSource {
@@ -31,7 +31,7 @@ describe('ProgressService', () => {
     vi.stubGlobal('EventSource', FakeSource);
     get = vi.fn(() => of([{ runId: 'r1' }]));
     TestBed.configureTestingModule({
-      providers: [ProgressService, { provide: ApiService, useValue: { get, url: (p: string) => p } }],
+      providers: [ProgressService, { provide: RunApi, useValue: { runs: get, progressUrl: (kbId: string) => kbId } }],
     });
     service = TestBed.inject(ProgressService);
   });

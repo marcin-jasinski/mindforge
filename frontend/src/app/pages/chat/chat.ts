@@ -8,8 +8,9 @@ import { MatInputModule } from '@angular/material/input';
 import { RouterLink } from '@angular/router';
 import { filter, interval, switchMap, take } from 'rxjs';
 
-import { Answer, ApiError, QuerySession, RunAccepted, RunReport } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { ApiError, RunReport } from '../../core/models/api';
+import { QueryApi } from '../../core/services/query-api';
+import { RunApi } from '../../core/services/run-api';
 import { ProgressService } from '../../core/services/progress.service';
 import { renderMarkdown } from '../../shared/markdown';
 import { PageLinksDirective } from '../../shared/page-links.directive';
@@ -33,7 +34,8 @@ const EDIT_NAMED_NO_PAGE = 'edit named no page';
     .message.user { background: var(--mat-sys-primary-container); }`,
 })
 export class Chat implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly query = inject(QueryApi);
+  private readonly runs = inject(RunApi);
   private readonly progress = inject(ProgressService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -44,7 +46,7 @@ export class Chat implements OnInit {
   readonly draft = signal('');
 
   ngOnInit(): void {
-    this.api.post<QuerySession>(`/knowledge-bases/${this.kbId()}/query-sessions`).subscribe((session) => {
+    this.query.open(this.kbId()).subscribe((session) => {
       this.sessionId.set(session.interactionId);
     });
   }
@@ -54,7 +56,7 @@ export class Chat implements OnInit {
     this.push({ role: 'user', text: question });
     this.draft.set('');
     this.busy.set(true);
-    this.api.post<Answer>(this.chatPath('/messages'), { question }).subscribe({
+    this.query.ask(this.kbId(), this.sessionId(), question).subscribe({
       next: (answer) =>
         this.push({ role: 'assistant', text: answer.answer, html: renderMarkdown(answer.answer, this.kbId()), cited: answer.citedPaths }),
       complete: () => this.busy.set(false),
@@ -66,13 +68,13 @@ export class Chat implements OnInit {
     const instruction = quotedAnswer ? 'Zapisz tę odpowiedź w wiki.' : this.draft().trim();
     this.push({ role: 'user', text: instruction });
     this.draft.set('');
-    this.api.post<RunAccepted>(this.chatPath('/edits'), { instruction, quotedAnswer }).subscribe((accepted) =>
+    this.query.edit(this.kbId(), this.sessionId(), instruction, quotedAnswer).subscribe((accepted) =>
       this.follow(accepted.runId),
     );
   }
 
   revert(run: RunReport): void {
-    this.api.post(`/knowledge-bases/${this.kbId()}/runs/${run.runId}/revert`, {}, true).subscribe({
+    this.runs.revert(this.kbId(), run.runId).subscribe({
       next: () => {
         this.push({ role: 'edit', text: 'Cofnięto zmianę.' });
         this.progress.reload(this.kbId());
@@ -92,7 +94,7 @@ export class Chat implements OnInit {
   private follow(runId: string): void {
     interval(1000)
       .pipe(
-        switchMap(() => this.api.get<RunReport>(`/knowledge-bases/${this.kbId()}/runs/${runId}`)),
+        switchMap(() => this.runs.report(this.kbId(), runId)),
         filter((run) => run.status === 'COMPLETED' || run.status === 'FAILED'),
         take(1),
         takeUntilDestroyed(this.destroyRef),
@@ -108,9 +110,5 @@ export class Chat implements OnInit {
 
   private push(message: Message): void {
     this.messages.update((messages) => [...messages, message]);
-  }
-
-  private chatPath(suffix: string): string {
-    return `/knowledge-bases/${this.kbId()}/query-sessions/${this.sessionId()}${suffix}`;
   }
 }

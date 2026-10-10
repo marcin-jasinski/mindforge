@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { RouterLink } from '@angular/router';
 
 import { ApiError, RunReport } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { RunApi } from '../../core/services/run-api';
 import { ProgressService } from '../../core/services/progress.service';
 import { DiffView } from '../../shared/diff-view';
 import { pageRoute } from '../../shared/diff';
@@ -16,7 +16,7 @@ import { pageRoute } from '../../shared/diff';
   templateUrl: './run-report.html',
 })
 export class RunReportView {
-  private readonly api = inject(ApiService);
+  private readonly runs = inject(RunApi);
   private readonly progress = inject(ProgressService);
 
   readonly kbId = input.required<string>();
@@ -29,11 +29,11 @@ export class RunReportView {
   }
 
   revert(): void {
-    this.act(this.api.post(`/knowledge-bases/${this.kbId()}/runs/${this.runId()}/revert`, {}, true));
+    this.act(this.runs.revert(this.kbId(), this.runId()));
   }
 
   removeSupersession(supersessionId: string): void {
-    this.act(this.api.delete(`/knowledge-bases/${this.kbId()}/supersessions/${supersessionId}`, true));
+    this.act(this.runs.removeSupersession(this.kbId(), supersessionId));
   }
 
   pageLink(path: string): string[] {
@@ -57,6 +57,6 @@ export class RunReportView {
   }
 
   private load(runId: string): void {
-    this.api.get<RunReport>(`/knowledge-bases/${this.kbId()}/runs/${runId}`).subscribe((report) => this.report.set(report));
+    this.runs.report(this.kbId(), runId).subscribe((report) => this.report.set(report));
   }
 }

@@ -3,18 +3,18 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 
-import { ApiService } from '../../core/services/api.service';
+import { RunApi } from '../../core/services/run-api';
 import { ProgressService } from '../../core/services/progress.service';
 import { RunReportView } from './run-report';
 
 describe('RunReportView revert', () => {
-  function setup(post: ReturnType<typeof vi.fn>) {
-    const api = { get: vi.fn(() => of({ revertOffered: true, pages: [], supersessions: [], failures: [], findings: [] })), post };
+  function setup(revert: ReturnType<typeof vi.fn>) {
+    const api = { report: vi.fn(() => of({ revertOffered: true, pages: [], supersessions: [], failures: [], findings: [] })), revert };
     const progress = { reload: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        { provide: ApiService, useValue: api },
+        { provide: RunApi, useValue: api },
         { provide: ProgressService, useValue: progress },
       ],
     });
@@ -28,7 +28,7 @@ describe('RunReportView revert', () => {
   it('posts the revert for this run and refreshes the run list', () => {
     const { fixture, api, progress } = setup(vi.fn(() => of({})));
     fixture.componentInstance.revert();
-    expect(api.post).toHaveBeenCalledWith('/knowledge-bases/kb/runs/run/revert', {}, true);
+    expect(api.revert).toHaveBeenCalledWith('kb', 'run');
     expect(progress.reload).toHaveBeenCalledWith('kb');
   });
 

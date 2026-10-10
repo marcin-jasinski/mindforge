@@ -4,7 +4,7 @@ import { MatListModule } from '@angular/material/list';
 import { RouterLink } from '@angular/router';
 
 import { Page, Revision } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { WikiApi } from '../../core/services/wiki-api';
 import { DiffView } from '../../shared/diff-view';
 import { renderMarkdown } from '../../shared/markdown';
 import { PageLinksDirective } from '../../shared/page-links.directive';
@@ -44,7 +44,7 @@ import { PageLinksDirective } from '../../shared/page-links.directive';
   `,
 })
 export class PageView {
-  private readonly api = inject(ApiService);
+  private readonly wiki = inject(WikiApi);
 
   readonly kbId = input.required<string>();
   readonly directory = input.required<string>();
@@ -68,10 +68,9 @@ export class PageView {
   constructor() {
     effect(() => {
       const path = `${this.directory()}/${this.name()}`;
-      const base = `/knowledge-bases/${this.kbId()}/pages/${path}`;
       this.selected.set(null);
-      this.api.get<Page>(base).subscribe((page) => this.page.set(page));
-      this.api.get<Revision[]>(`${base}/revisions`).subscribe((revisions) => this.revisions.set(revisions));
+      this.wiki.page(this.kbId(), path).subscribe((page) => this.page.set(page));
+      this.wiki.revisions(this.kbId(), path).subscribe((revisions) => this.revisions.set(revisions));
     });
   }
 }

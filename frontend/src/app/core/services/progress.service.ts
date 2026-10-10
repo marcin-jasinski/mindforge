@@ -1,7 +1,7 @@
 import { Injectable, NgZone, OnDestroy, inject, signal } from '@angular/core';
 
 import { RunProgress, RunSummary } from '../models/api';
-import { ApiService } from './api.service';
+import { RunApi } from './run-api';
 
 /**
  * Follows every run of one knowledge base: on (re)connect it reads the run list, then applies progress messages on
@@ -9,7 +9,7 @@ import { ApiService } from './api.service';
  */
 @Injectable()
 export class ProgressService implements OnDestroy {
-  private readonly api = inject(ApiService);
+  private readonly api = inject(RunApi);
   private readonly zone = inject(NgZone);
   private source: EventSource | null = null;
   private readonly _runs = signal<RunSummary[]>([]);
@@ -20,7 +20,7 @@ export class ProgressService implements OnDestroy {
 
   watch(kbId: string): void {
     this.close();
-    this.source = new EventSource(this.api.url(`/knowledge-bases/${kbId}/progress`), { withCredentials: true });
+    this.source = new EventSource(this.api.progressUrl(kbId), { withCredentials: true });
     this.source.onopen = () => this.reload(kbId);
     this.source.addEventListener('progress', (event) =>
       this.zone.run(() => this.apply(kbId, JSON.parse((event as MessageEvent).data) as RunProgress)),
@@ -29,7 +29,7 @@ export class ProgressService implements OnDestroy {
   }
 
   reload(kbId: string): void {
-    this.api.get<RunSummary[]>(`/knowledge-bases/${kbId}/runs`).subscribe((runs) => this._runs.set(runs));
+    this.api.runs(kbId).subscribe((runs) => this._runs.set(runs));
   }
 
   ngOnDestroy(): void {

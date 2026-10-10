@@ -4,7 +4,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { KnowledgeBase } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { WikiApi } from '../../core/services/wiki-api';
 import { ProgressService } from '../../core/services/progress.service';
 
 @Component({
@@ -16,7 +16,7 @@ import { ProgressService } from '../../core/services/progress.service';
     <header class="row">
       <h1>{{ kb()?.name }}</h1>
       <span class="spacer"></span>
-      <a mat-stroked-button [href]="'/api/v1/knowledge-bases/' + kbId() + '/export'">Eksportuj bundle</a>
+      <a mat-stroked-button [href]="wiki.exportUrl(kbId())">Eksportuj bundle</a>
     </header>
     <nav mat-tab-nav-bar [tabPanel]="panel" aria-label="Sekcje bazy wiedzy">
       @for (tab of tabs; track tab.path) {
@@ -31,7 +31,7 @@ import { ProgressService } from '../../core/services/progress.service';
   styles: `.spacer { flex: 1; } mat-tab-nav-panel { display: block; padding-top: 1rem; }`,
 })
 export class KbShell implements OnInit {
-  private readonly api = inject(ApiService);
+  readonly wiki = inject(WikiApi);
   private readonly progress = inject(ProgressService);
 
   readonly kbId = input.required<string>();
@@ -46,7 +46,7 @@ export class KbShell implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.api.get<KnowledgeBase>(`/knowledge-bases/${this.kbId()}`).subscribe((kb) => this.kb.set(kb));
+    this.wiki.knowledgeBase(this.kbId()).subscribe((kb) => this.kb.set(kb));
     this.progress.watch(this.kbId());
   }
 }

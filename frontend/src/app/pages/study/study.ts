@@ -6,8 +6,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 
-import { DocumentView, Evaluation, Flashcard, NextQuestion, QuizSession } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { Evaluation, Flashcard, NextQuestion, QuizSession } from '../../core/models/api';
+import { StudyApi, StudyScope } from '../../core/services/study-api';
+import { WikiApi } from '../../core/services/wiki-api';
 
 type ScopeKind = 'whole' | 'lesson' | 'page';
 
@@ -18,7 +19,8 @@ type ScopeKind = 'whole' | 'lesson' | 'page';
   templateUrl: './study.html',
 })
 export class Study implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly study = inject(StudyApi);
+  private readonly wiki = inject(WikiApi);
 
   readonly kbId = input.required<string>();
   /** Set when a page's own "study this page" link opened the view. */
@@ -39,7 +41,7 @@ export class Study implements OnInit {
 
   ngOnInit(): void {
     // the reserved conversation lesson is not a document a learner uploaded, so it never appears here
-    this.api.get<DocumentView[]>(`/knowledge-bases/${this.kbId()}/documents`).subscribe((docs) => {
+    this.wiki.documents(this.kbId()).subscribe((docs) => {
       const lessons = new Map(docs.map((doc) => [doc.lessonId, doc.lessonTitle]));
       this.lessons.set([...lessons].map(([id, title]) => ({ id, title })));
     });
@@ -49,7 +51,7 @@ export class Study implements OnInit {
   }
 
   openDeck(): void {
-    this.api.get<Flashcard[]>(`/knowledge-bases/${this.kbId()}/flashcards${this.scopeQuery()}`).subscribe((cards) => {
+    this.study.flashcards(this.kbId(), this.studyScope()).subscribe((cards) => {
       this.cards.set(cards);
       this.cardIndex.set(0);
       this.showBack.set(false);
@@ -61,15 +63,14 @@ export class Study implements OnInit {
     if (!card) {
       return;
     }
-    this.api.post(`/knowledge-bases/${this.kbId()}/flashcards/${card.cardId}/reviews`, { rating }).subscribe(() => {
+    this.study.review(this.kbId(), card.cardId, rating).subscribe(() => {
       this.cardIndex.update((i) => i + 1);
       this.showBack.set(false);
     });
   }
 
   startQuiz(): void {
-    const body = this.scope() === 'lesson' ? { lessonId: this.lessonId() } : this.scope() === 'page' ? { pageId: this.pageId() } : {};
-    this.api.post<QuizSession>(`/knowledge-bases/${this.kbId()}/quiz-sessions`, body).subscribe((session) => {
+    this.study.startQuiz(this.kbId(), this.studyScope()).subscribe((session) => {
       this.session.set(session);
       this.finished.set(false);
       this.next();
@@ -77,8 +78,8 @@ export class Study implements OnInit {
   }
 
   submitAnswer(): void {
-    this.api
-      .post<Evaluation & { finished: boolean }>(this.sessionPath() + '/answers', { answer: this.answer() })
+    this.study
+      .answer(this.kbId(), this.sessionId(), this.answer())
       .subscribe((evaluation) => {
         this.evaluation.set(evaluation);
         this.answer.set('');
@@ -87,21 +88,21 @@ export class Study implements OnInit {
 
   next(): void {
     this.evaluation.set(null);
-    this.api.get<NextQuestion | null>(this.sessionPath() + '/next').subscribe((question) => {
+    this.study.next(this.kbId(), this.sessionId()).subscribe((question) => {
       this.question.set(question);
       this.finished.set(question === null);
     });
   }
 
-  private sessionPath(): string {
-    return `/knowledge-bases/${this.kbId()}/quiz-sessions/${this.session()?.sessionId}`;
+  private sessionId(): string {
+    return this.session()?.sessionId ?? '';
   }
 
-  private scopeQuery(): string {
+  private studyScope(): StudyScope {
     if (this.scope() === 'lesson' && this.lessonId()) {
-      return `?lessonId=${encodeURIComponent(this.lessonId())}`;
+      return { lessonId: this.lessonId() };
     }
     const pageId = this.pageId();
-    return this.scope() === 'page' && pageId ? `?pageId=${encodeURIComponent(pageId)}` : '';
+    return this.scope() === 'page' && pageId ? { pageId } : {};
   }
 }

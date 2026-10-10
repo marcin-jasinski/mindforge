@@ -2,8 +2,7 @@ import { Component, ElementRef, OnDestroy, afterNextRender, inject, input, viewC
 import { Router } from '@angular/router';
 import type { Core } from 'cytoscape';
 
-import { Graph } from '../../core/models/api';
-import { ApiService } from '../../core/services/api.service';
+import { WikiApi } from '../../core/services/wiki-api';
 
 @Component({
   selector: 'app-graph',
@@ -15,7 +14,7 @@ import { ApiService } from '../../core/services/api.service';
   styles: `.canvas { height: 70vh; border: 1px solid var(--mat-sys-outline-variant); border-radius: 0.5rem; }`,
 })
 export class GraphView implements OnDestroy {
-  private readonly api = inject(ApiService);
+  private readonly wiki = inject(WikiApi);
   private readonly router = inject(Router);
   private readonly canvas = viewChild.required<ElementRef<HTMLDivElement>>('canvas');
   private cy: Core | null = null;
@@ -24,7 +23,7 @@ export class GraphView implements OnDestroy {
 
   constructor() {
     afterNextRender(() => {
-      this.api.get<Graph>(`/knowledge-bases/${this.kbId()}/graph`).subscribe(async (graph) => {
+      this.wiki.graph(this.kbId()).subscribe(async (graph) => {
         const cytoscape = (await import('cytoscape')).default;
         const live = new Set(graph.pages.map((page) => page.path));
         const dangling = [...new Set(graph.links.map((link) => link.targetPath))].filter((path) => !live.has(path));
