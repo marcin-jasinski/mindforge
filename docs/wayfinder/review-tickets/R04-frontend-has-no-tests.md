@@ -2,7 +2,7 @@
 id: R04
 title: The frontend has no tests and no test runner
 type: chore
-status: open
+status: closed
 severity: high
 assignee:
 blocked_by: []
@@ -61,4 +61,11 @@ than 60% coverage of template bindings.
 
 ## Resolution
 
-<!-- filled on close -->
+Added vitest + jsdom as devDependencies (installed with npm@11.9.0) and a `test` target
+(`@angular/build:unit-test`) in `angular.json`; `npm test` now runs. 17 tests in 5 specs cover
+`lineDiff`/`pageRoute`, `ProgressService` (connect, reconnect, new-run and terminal reloads,
+close), `renderMarkdown` (page links, external links, escaping), `PageLinksDirective`, and the
+revert flow in `RunReportView` (success and busy-KB error). No component-template tests, no
+coverage target, per the ticket. The revert button currently has no confirmation step, so the
+test covers the request and its error handling only. CI: the linux job runs `npm ci && npm test`
+in `frontend/` before `mvn verify`.
