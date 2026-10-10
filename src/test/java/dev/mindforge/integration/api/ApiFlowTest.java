@@ -251,6 +251,7 @@ class ApiFlowTest extends TestContainerBase {
 
         assertThat(answer.status()).isEqualTo(503);
         assertThat(answer.json().get("code").asString()).isEqualTo("MODEL_UNAVAILABLE");
+        assertThat(answer.json().get("detail").asString()).isEqualTo("The model returned unreadable output");
     }
 
     @Test
@@ -268,6 +269,7 @@ class ApiFlowTest extends TestContainerBase {
 
         assertThat(client.get("/actuator/health").status()).isEqualTo(200);
         assertThat(client.get("/actuator/env").status()).isIn(401, 403);
+        assertThat(client.get("/health").status()).isEqualTo(404);
     }
 
     @Test

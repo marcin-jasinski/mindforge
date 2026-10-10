@@ -1,4 +1,4 @@
-package dev.mindforge.domain.model;
+package dev.mindforge.api.config;
 
 /** Thrown when a user has spent their allowance of model-calling requests for the current window. */
 public class RateLimitExceededException extends RuntimeException {

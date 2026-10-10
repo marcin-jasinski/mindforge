@@ -49,7 +49,8 @@ Every variable is listed in `env.example`. The ones a deployment must set:
 4. Keep **one replica**. The health check is `/actuator/health`.
 
 On Render, create a Docker web service from the same repository with the same variables and health check path. The
-`Procfile` covers buildpack platforms that run a pre-built JAR.
+`Procfile` covers buildpack platforms that run a pre-built JAR. A service created before the actuator moved still
+checks `/health`, which now answers 404: set its health check path to `/actuator/health` in the dashboard.
 
 ## One live instance
 

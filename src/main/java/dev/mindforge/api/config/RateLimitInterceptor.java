@@ -11,8 +11,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import dev.mindforge.domain.model.RateLimitExceededException;
-
 /**
  * Caps how many model-calling POSTs a user may make per window. In-process: the deployment has one live instance.
  * Sets {@code RateLimit-Limit/Remaining/Reset}; an exhausted allowance throws, and the exception handler answers 429.

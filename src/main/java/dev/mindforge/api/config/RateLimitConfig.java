@@ -6,7 +6,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import dev.mindforge.infrastructure.config.AppProperties;
 
-/** Rate limits the endpoints that spend model calls: Query turns and edits, Quiz start, upload and retry, Lint. */
+/**
+ * Rate limits the endpoints that spend model calls: Query turns and edits, Quiz start and grading, upload and retry,
+ * Lint.
+ */
 @Configuration
 public class RateLimitConfig implements WebMvcConfigurer {
 
@@ -22,6 +25,7 @@ public class RateLimitConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new RateLimitInterceptor(limits.getRequests(), limits.getWindow()))
             .addPathPatterns(KB + "/query-sessions/*/messages", KB + "/query-sessions/*/edits",
-                KB + "/quiz-sessions", KB + "/documents", KB + "/documents/*/runs", KB + "/lint-runs");
+                KB + "/quiz-sessions", KB + "/quiz-sessions/*/answers", KB + "/documents", KB + "/documents/*/runs",
+                KB + "/lint-runs");
     }
 }

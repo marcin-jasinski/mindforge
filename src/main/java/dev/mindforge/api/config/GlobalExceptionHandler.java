@@ -9,9 +9,9 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import dev.mindforge.api.dto.response.ErrorResponse;
@@ -26,7 +26,6 @@ import dev.mindforge.domain.model.ModelOutputException;
 import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.NotOwnerException;
 import dev.mindforge.domain.model.QuizFinishedException;
-import dev.mindforge.domain.model.RateLimitExceededException;
 import dev.mindforge.domain.model.RetryNotAllowedException;
 import dev.mindforge.domain.model.RevertNotAllowedException;
 import dev.mindforge.domain.model.UnknownLessonException;
@@ -135,10 +134,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ErrorResponse.of("Bad Request", "REQUEST_ERROR", "Malformed request body"));
     }
 
-    @ExceptionHandler({DeadlineExceededException.class, AIGatewayUnavailableException.class,
-        ModelOutputException.class})
+    @ExceptionHandler({DeadlineExceededException.class, AIGatewayUnavailableException.class})
     ResponseEntity<ErrorResponse> modelUnavailable(RuntimeException e) {
         return error(HttpStatus.SERVICE_UNAVAILABLE, "MODEL_UNAVAILABLE", e);
+    }
+
+    /** The message quotes the parser, and the parser quotes the completion; only fixed text goes to the client. */
+    @ExceptionHandler(ModelOutputException.class)
+    ResponseEntity<ErrorResponse> unreadableModelOutput(ModelOutputException e) {
+        log.warn("Unreadable model output: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ErrorResponse.of(
+            HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(), "MODEL_UNAVAILABLE", "The model returned unreadable output"));
     }
 
     @ExceptionHandler(Exception.class)
