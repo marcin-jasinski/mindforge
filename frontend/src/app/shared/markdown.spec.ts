@@ -19,6 +19,14 @@ describe('renderMarkdown', () => {
     expect(html).toContain('x');
   });
 
+  it('shows the projected Citations section under its Polish name', () => {
+    expect(renderMarkdown('# Citations\n\n[1] a', 'kb1')).toContain('<h1>Źródła</h1>');
+  });
+
+  it('leaves other headings alone', () => {
+    expect(renderMarkdown('# Definicja', 'kb1')).toContain('<h1>Definicja</h1>');
+  });
+
   it('escapes raw HTML instead of executing it', () => {
     const html = renderMarkdown('<script>alert(1)</script>', 'kb1');
     expect(html).not.toContain('<script>');

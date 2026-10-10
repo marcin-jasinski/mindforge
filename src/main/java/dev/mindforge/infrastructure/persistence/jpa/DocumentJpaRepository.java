@@ -28,4 +28,10 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, UUI
     Optional<String> findLessonTitle(UUID knowledgeBaseId, String lessonId);
 
     List<DocumentEntity> findByKnowledgeBaseId(UUID knowledgeBaseId);
+
+    @Query(value = "SELECT EXISTS (SELECT 1 FROM documents WHERE knowledge_base_id = :knowledgeBaseId"
+        + " AND lower(lesson_title) = lower(:title) AND lesson_id <> :lessonId)", nativeQuery = true)
+    boolean lessonTitleTaken(UUID knowledgeBaseId, String title, String lessonId);
+
+    void deleteByKnowledgeBaseIdAndDocumentId(UUID knowledgeBaseId, UUID documentId);
 }

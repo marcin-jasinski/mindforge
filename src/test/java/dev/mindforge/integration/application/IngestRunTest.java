@@ -152,6 +152,69 @@ class IngestRunTest extends TestContainerBase {
     }
 
     @Test
+    void aSecondLessonWithATakenTitleCarriesItsIdSoCitationsDoNotReadAlike() {
+        UUID kbId = insertKnowledgeBase();
+        UUID first = upload(kbId, "mitoza.md", NOTES, false);
+        UUID second = ingestion.ingest(new DocumentUpload(kbId, ownerOf(kbId), UploadSource.API, "mitoza.md",
+            MarkdownParser.MIME_TYPE, (NOTES + "\nDruga wersja.\n").getBytes(StandardCharsets.UTF_8), "mitoza-2",
+            false));
+
+        assertThat(documents.findById(kbId, first)).get().extracting(d -> d.lessonIdentity().title()).isEqualTo("mitoza");
+        assertThat(documents.findById(kbId, second)).get().extracting(d -> d.lessonIdentity().title())
+            .isEqualTo("mitoza (mitoza-2)");
+        assertThat(documents.findById(kbId, second)).get().extracting(d -> d.lessonIdentity().lessonId()).isEqualTo("mitoza-2");
+    }
+
+    @Test
+    void aDocumentWhoseEveryRunFailedCanBeRemovedAndUploadedAgain() {
+        UUID kbId = insertKnowledgeBase();
+        gateway.reset();
+        gateway.answer(Prompts.GUARD, prompt -> {
+            throw new IllegalStateException("provider down");
+        });
+        UUID documentId = upload(kbId, "biologia.md", NOTES, false);
+        awaitRun(kbId, documentId, RunStatus.FAILED);
+
+        ingestion.remove(kbId, documentId);
+
+        assertThat(documents.findById(kbId, documentId)).isEmpty();
+        assertThat(runs.latestForDocument(kbId, documentId)).isEmpty();
+        assertThat(upload(kbId, "biologia.md", NOTES, false)).isNotEqualTo(documentId);
+    }
+
+    @Test
+    void aRetryThatCompletesDropsTheFailedAttemptsItGotPast() {
+        UUID kbId = insertKnowledgeBase();
+        gateway.reset();
+        gateway.answer(Prompts.GUARD, prompt -> {
+            throw new IllegalStateException("provider down");
+        });
+        UUID documentId = upload(kbId, "biologia.md", NOTES, false);
+        awaitRun(kbId, documentId, RunStatus.FAILED);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM ingest_runs WHERE document_id = ?", Integer.class,
+            documentId)).isEqualTo(1);
+
+        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, LINK_TO_MEJOZA);
+        ingestion.retry(kbId, documentId);
+        awaitRun(kbId, documentId, RunStatus.COMPLETED);
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM ingest_runs WHERE document_id = ?", Integer.class,
+            documentId)).as("only the run that got past the failure is kept").isEqualTo(1);
+    }
+
+    @Test
+    void aDocumentThatWrotePagesCannotBeRemoved() {
+        UUID kbId = insertKnowledgeBase();
+        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, LINK_TO_MEJOZA);
+        UUID documentId = upload(kbId, "biologia.md", NOTES, false);
+        awaitRun(kbId, documentId, RunStatus.COMPLETED);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> ingestion.remove(kbId, documentId))
+            .isInstanceOf(dev.mindforge.domain.model.DocumentNotRemovableException.class);
+        assertThat(documents.findById(kbId, documentId)).isPresent();
+    }
+
+    @Test
     void partialSuccessLandsAndRecordsTheFailedPageAndTheLinkToIt() {
         UUID kbId = insertKnowledgeBase();
         givenTheNotesAnswers(MITOZA_BODY, "![schemat](https://example.org/a.png)\n", LINK_TO_MEJOZA);

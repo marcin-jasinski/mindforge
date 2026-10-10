@@ -41,7 +41,8 @@ import dev.mindforge.support.TestContainerBase;
     "mindforge.security.jwt-secret=test-jwt-secret-for-integration-tests-minimum-length",
     "mindforge.security.secure-cookies=false",
     "spring.ai.openai.api-key=test-placeholder",
-    "spring.jpa.hibernate.ddl-auto=none"
+    "spring.jpa.hibernate.ddl-auto=none",
+    "springdoc.api-docs.enabled=true"
 })
 class ApiFlowTest extends TestContainerBase {
 
@@ -163,20 +164,22 @@ class ApiFlowTest extends TestContainerBase {
             "question", "Czym jest mitoza?", "referenceAnswer", "SEKRETNA-ODPOWIEDZ",
             "groundingExcerpt", "Mitoza dzieli komórkę na dwie.")))));
         gateway.answer(Prompts.GRADE, "{\"score\": 4, \"feedback\": \"Prawie dobrze.\"}");
-        awaitRun(client, kb, client.upload(kb, "biologia.md", NOTES, false).json().get("documentId").asString(),
-            "COMPLETED");
+        String documentId = client.upload(kb, "biologia.md", NOTES, false).json().get("documentId").asString();
+        awaitRun(client, kb, documentId, "COMPLETED");
 
-        Response deck = client.get(kb + "/flashcards");
+        assertThat(client.get(kb + "/flashcards").json()).as("listing a deck generates nothing").isEmpty();
+        Response deck = client.post(kb + "/flashcards/refresh", Map.of());
         assertThat(deck.json()).hasSize(1);
+        assertThat(client.get(kb + "/flashcards").json()).hasSize(1);
         String cardId = deck.json().get(0).get("cardId").asString();
         Response reviewed = client.post(kb + "/flashcards/" + cardId + "/reviews", Map.of("rating", 5));
         assertThat(Instant.parse(reviewed.json().get("dueAt").asString())).isAfter(Instant.now());
         assertThat(client.post(kb + "/flashcards/" + cardId + "/reviews", Map.of("rating", 9)).status()).isEqualTo(400);
 
         Response started = client.post(kb + "/quiz-sessions", Map.of());
-        assertThat(started.status()).isEqualTo(201);
+        assertThat(started.status()).as("the questions are written after the response").isEqualTo(202);
         String session = kb + "/quiz-sessions/" + started.json().get("sessionId").asString();
-        Response next = client.get(session + "/next");
+        Response next = nextQuestion(client, session);
         assertThat(next.json().get("question").asString()).isEqualTo("Czym jest mitoza?");
         Response graded = client.post(session + "/answers", Map.of("answer", "Podział."));
         assertThat(graded.json().get("score").asInt()).isEqualTo(4);
@@ -191,6 +194,10 @@ class ApiFlowTest extends TestContainerBase {
         }
         Client other = signedUp();
         assertThat(other.get(kb + "/flashcards").status()).isEqualTo(403);
+        assertThat(other.post(kb + "/flashcards/refresh", Map.of()).status()).isEqualTo(403);
+        assertThat(other.delete(kb + "/documents/" + documentId).status()).isEqualTo(403);
+        assertThat(client.delete(kb + "/documents/" + documentId).status())
+            .as("a document that wrote pages is not removable").isEqualTo(409);
         assertThat(other.get(session + "/next").status()).isEqualTo(403);
     }
 
@@ -270,6 +277,38 @@ class ApiFlowTest extends TestContainerBase {
         assertThat(client.get("/actuator/health").status()).isEqualTo(200);
         assertThat(client.get("/actuator/env").status()).isIn(401, 403);
         assertThat(client.get("/health").status()).isEqualTo(404);
+    }
+
+    /** The question once the quiz's questions are written; a 202 means they are still being written. */
+    private Response nextQuestion(Client client, String session) {
+        Response next = client.get(session + "/next");
+        for (int attempt = 0; attempt < 200 && next.status() == 202; attempt++) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
+            next = client.get(session + "/next");
+        }
+        return next;
+    }
+
+    @Test
+    void theSignInPageIsToldWhichProvidersAreConfigured() {
+        Response providers = new Client().get("/api/v1/auth/providers");
+
+        assertThat(providers.status()).isEqualTo(200);
+        assertThat(providers.json().get("providers").isArray()).isTrue();
+        assertThat(providers.body()).doesNotContain("not-configured").doesNotContain("secret");
+    }
+
+    @Test
+    void theLoginRouteIsTheSinglePageApp() {
+        Response login = new Client().get("/login");
+
+        assertThat(login.status()).isEqualTo(200);
+        assertThat(login.body()).contains("<app-root>").doesNotContain("Please sign in");
     }
 
     @Test

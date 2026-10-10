@@ -184,7 +184,8 @@ There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
 - **Links are truth in the body**, stored in canonical bundle-relative form (`/concepts/<id>.md#<anchor>`) and parsed
   into `page_links`; they are resolved by join at read time. Any other link to a page fails the draft; external
   `http(s)` links are allowed. **Metadata is truth in rows** and is projected into frontmatter and `# Citations` on
-  export.
+  export. The heading's name is fixed by OKF §8, so the export keeps it in English whatever the wiki's language; the
+  SPA shows it as "Źródła".
 - **`index.md` and `log.md` are projections.** The same index renderer feeds the model prompts,
   the SPA and export.
 - **Supersession** is a row. It renders as a note under the superseded heading and never

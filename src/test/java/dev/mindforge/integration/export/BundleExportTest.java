@@ -104,7 +104,7 @@ class BundleExportTest extends TestContainerBase {
         assertThat(files.get("concepts/mitoza.md"))
             .contains("# Faza\n\n> Superseded by [Mejoza](/concepts/mejoza.md).\n")
             .endsWith("# Citations\n\n[1] [Lekcja pierwsza](/sources/bio-1.md)\n");
-        assertThat(files.get("concepts/mejoza.md")).containsPattern("\\[1\\] Conversation, \\d{4}-\\d{2}-\\d{2}");
+        assertThat(files.get("concepts/mejoza.md")).containsPattern("\\[1\\] Rozmowa, \\d{4}-\\d{2}-\\d{2}");
         assertThat(files.get("sources/bio-1.md")).contains("[1] notatki.md, uploaded ");
         assertThat(files.get("log.md")).contains("**Ingest**");
         assertThat(files.values()).noneMatch(content -> content.contains("SEKRET") || content.contains("12.5"));

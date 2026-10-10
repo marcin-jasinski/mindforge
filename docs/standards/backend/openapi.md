@@ -5,7 +5,7 @@ MindForge generates its OpenAPI spec from annotated Spring MVC controllers via `
 ### Contract-First Workflow
 
 1. Annotate the controller method and its DTOs.
-2. Start the app and fetch the generated spec from `GET /v3/api-docs` (human-readable UI at `/swagger-ui.html`).
+2. Start the app with `API_DOCS_ENABLED=true` (or the `dev` profile) — the endpoints are off by default — and fetch the generated spec from `GET /v3/api-docs` (human-readable UI at `/swagger-ui.html`).
 3. Run `openapi-typescript` against that endpoint to regenerate the frontend's TypeScript types.
 4. Never hand-maintain a duplicate spec file or duplicate frontend types — the backend annotations are the single source of truth.
 

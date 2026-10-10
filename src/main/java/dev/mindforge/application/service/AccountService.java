@@ -28,8 +28,12 @@ public class AccountService {
         if (users.findByEmail(normalised).isPresent()) {
             throw AccountException.emailTaken();
         }
-        return users.insert(new User(UUID.randomUUID(), TextRules.singleLine(displayName), normalised,
+        User created = users.insert(new User(UUID.randomUUID(), TextRules.singleLine(displayName), normalised,
             hasher.hash(password), null, null, null));
+        // registering signs the person in, so it is their first login
+        Instant now = Instant.now();
+        users.recordLogin(created.userId(), now);
+        return users.findById(created.userId()).orElse(created);
     }
 
     /** @throws AccountException for an unknown email, an account without a password, or a wrong password */

@@ -10,6 +10,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import dev.mindforge.agent.QuizEvaluator;
@@ -54,6 +59,11 @@ public class QuizService {
     private final QuizEvaluator evaluator;
     private final ProcessingSettings settings;
     private final Duration sessionTtl;
+    private final Executor generation = Executors.newVirtualThreadPerTaskExecutor();
+    /** Quizzes whose questions are still being written (or whose writing failed and was not yet reported). */
+    private final Map<UUID, Preparing> preparing = new ConcurrentHashMap<>();
+
+    private record Preparing(UUID kbId, UUID userId, Instant expiresAt, CompletableFuture<Void> generation) {}
 
     public QuizService(WikiStore wiki, StudyProgressStore study, QuizSessionStore sessions, QuizGenerator generator,
                        QuizEvaluator evaluator, ProcessingSettings settings, Duration sessionTtl) {
@@ -66,8 +76,66 @@ public class QuizService {
         this.sessionTtl = sessionTtl;
     }
 
-    /** @throws NotFoundException when the scope has no page to ask about, or the model wrote no usable question */
+    /**
+     * Writes the quiz's questions and returns the stored session.
+     *
+     * @throws NotFoundException when the scope has no page to ask about, or the model wrote no usable question
+     */
     public QuizSession start(UUID kbId, UUID userId, StudyScope scope) {
+        return generate(kbId, userId, UUID.randomUUID(), Instant.now().plus(sessionTtl), pagesToAskAbout(kbId, scope));
+    }
+
+    /**
+     * Accepts a quiz and writes its questions in the background, so the request does not wait for the model; the
+     * returned session has no questions yet. {@link #isPreparing} says when they are ready, or why they never will be.
+     *
+     * @throws NotFoundException when the scope has no page to ask about
+     */
+    public QuizSession begin(UUID kbId, UUID userId, StudyScope scope) {
+        Map<String, WikiPage> shown = pagesToAskAbout(kbId, scope);
+        Instant now = Instant.now();
+        preparing.values().removeIf(pending -> pending.expiresAt().isBefore(now));
+        UUID sessionId = UUID.randomUUID();
+        Instant expiresAt = now.plus(sessionTtl);
+        CompletableFuture<Void> work = CompletableFuture.runAsync(() -> {
+            generate(kbId, userId, sessionId, expiresAt, shown);
+            preparing.remove(sessionId);
+        }, generation);
+        preparing.put(sessionId, new Preparing(kbId, userId, expiresAt, work));
+        return new QuizSession(sessionId, kbId, userId, List.of(), 0, expiresAt);
+    }
+
+    /**
+     * Whether the quiz's questions are still being written.
+     *
+     * @throws NotOwnerException when the quiz belongs to someone else
+     * @throws NotFoundException when the model wrote no usable question (the quiz is dropped)
+     */
+    public boolean isPreparing(UUID kbId, UUID userId, UUID sessionId) {
+        Preparing pending = preparing.get(sessionId);
+        if (pending == null) {
+            return false;
+        }
+        if (!pending.kbId().equals(kbId) || !pending.userId().equals(userId)) {
+            throw new NotOwnerException(kbId);
+        }
+        if (!pending.generation().isDone()) {
+            return true;
+        }
+        preparing.remove(sessionId);
+        try {
+            pending.generation().join();
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof RuntimeException failure) {
+                throw failure;
+            }
+            throw e;
+        }
+        return false;
+    }
+
+    /** The scope's pages in asking order, as the model will see them. */
+    private Map<String, WikiPage> pagesToAskAbout(UUID kbId, StudyScope scope) {
         List<WikiPage> ordered = targetOrder(kbId, StudyPages.of(wiki, kbId, scope));
         Map<String, WikiPage> shown = new LinkedHashMap<>();
         int tokens = 0;
@@ -83,6 +151,12 @@ public class QuizService {
         if (shown.isEmpty()) {
             throw new NotFoundException("Pages to study");
         }
+        return shown;
+    }
+
+    /** One model call over the pages; stores and returns the session. */
+    private QuizSession generate(UUID kbId, UUID userId, UUID sessionId, Instant expiresAt,
+                                 Map<String, WikiPage> shown) {
         Map<String, String> bodies = new LinkedHashMap<>();
         shown.forEach((path, page) -> bodies.put(path, page.markdownBody()));
         List<QuizQuestion> questions = generator.generate(bodies, QUESTIONS_PER_SESSION).stream()
@@ -95,8 +169,7 @@ public class QuizService {
         if (questions.isEmpty()) {
             throw new NotFoundException("Questions for this scope");
         }
-        QuizSession session = new QuizSession(UUID.randomUUID(), kbId, userId, questions, 0,
-            Instant.now().plus(sessionTtl));
+        QuizSession session = new QuizSession(sessionId, kbId, userId, questions, 0, expiresAt);
         sessions.insert(kbId, session);
         return session;
     }

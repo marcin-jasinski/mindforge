@@ -48,7 +48,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Start a quiz over a study scope */
+        /** Start a quiz over a study scope; its questions are written in the background */
         post: operations["start"];
         delete?: never;
         options?: never;
@@ -153,6 +153,23 @@ export interface paths {
         put?: never;
         /** Rate a card and reschedule it */
         post: operations["review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/knowledge-bases/{kbId}/flashcards/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cut the missing or stale cards within the session budget, wait for the model, and list the due ones */
+        post: operations["refresh"];
         delete?: never;
         options?: never;
         head?: never;
@@ -458,7 +475,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Open a deck: refresh the scope's cards within the session budget and list the due ones */
+        /** List the scope's due cards as they stand; nothing is generated */
         get: operations["deck"];
         put?: never;
         post?: never;
@@ -494,6 +511,24 @@ export interface paths {
         };
         /** Get a document with its latest run */
         get: operations["get_1"];
+        put?: never;
+        post?: never;
+        /** Remove a document whose every run failed, so its file can be uploaded again */
+        delete: operations["remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the identity providers the sign-in page can offer */
+        get: operations["providers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -850,6 +885,9 @@ export interface components {
             retryable: boolean;
             failureReason: string;
         };
+        AuthProvidersResponse: {
+            providers: string[];
+        };
         ErrorResponse: {
             error?: string;
             code?: string;
@@ -948,8 +986,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Started */
-            201: {
+            /** @description Accepted; poll the next question until it is ready */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1147,6 +1185,31 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FlashcardResponse"];
+                };
+            };
+        };
+    };
+    refresh: {
+        parameters: {
+            query?: {
+                lessonId?: string;
+                pageId?: string;
+            };
+            header?: never;
+            path: {
+                kbId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No such lesson or page */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FlashcardResponse"][];
                 };
             };
         };
@@ -1495,6 +1558,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description The questions are still being written; ask again shortly */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NextQuestionResponse"];
+                };
+            };
             /** @description The quiz is over */
             204: {
                 headers: {
@@ -1732,6 +1804,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DocumentResponse"];
+                };
+            };
+        };
+    };
+    remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kbId: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A run of the document is queued, running or has written pages */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    providers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AuthProvidersResponse"];
                 };
             };
         };

@@ -36,8 +36,8 @@
     @for (run of progress.runs(); track run.runId) {
       <mat-list-item>
         <span matListItemTitle>
-          <a [routerLink]="['runs', run.runId]">{{ run.kind }} · {{ run.lessonTitle ?? (run.conversation ? 'rozmowa' : '—') }}</a>
-          — {{ run.status }}
+          <a [routerLink]="['runs', run.runId]">{{ runTitle(run) }}</a>
+          — {{ statusLabel(run.status) }}
           @if (progress.steps()[run.runId]?.step; as step) {
             ({{ step }})
           }
@@ -45,13 +45,13 @@
         <span matListItemLine>
           {{ run.created }} utworzone · {{ run.revised }} zmienione · {{ run.deleted }} usunięte
           @if (run.failureReason) {
-            <span class="error"> · {{ run.failureReason }}</span>
+            <span class="error"> · {{ reasonLabel(run.failureReason) }}</span>
           }
         </span>
         @if (percent(run.runId); as value) {
           <mat-progress-bar mode="determinate" [value]="value" [attr.aria-label]="'Zapisane strony: ' + value + '%'" />
         }
-        @if (run.status === 'FAILED' && run.retryable && run.documentId) {
+        @if (canRetry(run)) {
           <button mat-button type="button" matListItemMeta (click)="retry(run)">Ponów</button>
         }
       </mat-list-item>
@@ -67,7 +67,10 @@
     @for (doc of documents(); track doc.documentId) {
       <mat-list-item>
         <span matListItemTitle>{{ doc.lessonTitle }} <small>({{ doc.sourceFilename }})</small></span>
-        <span matListItemLine>{{ doc.latestRun?.status ?? 'bez przebiegu' }}</span>
+        <span matListItemLine>{{ doc.latestRun ? statusLabel(doc.latestRun.status) : 'bez przebiegu' }}</span>
+        @if (doc.latestRun?.status === 'FAILED') {
+          <button mat-button type="button" matListItemMeta (click)="remove(doc)">Usuń</button>
+        }
       </mat-list-item>
     } @empty {
       <p>Nie przesłano jeszcze żadnego dokumentu.</p>

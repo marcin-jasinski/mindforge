@@ -145,10 +145,13 @@ public class AIGatewayAdapter implements AIGateway, DisposableBean {
             if (cause instanceof CallNotPermittedException) {
                 throw new AIGatewayUnavailableException(cause);
             }
-            if (cause instanceof RuntimeException runtimeException) {
+            if (cause instanceof RuntimeException runtimeException
+                && runtimeException.getClass().getPackageName().startsWith("dev.mindforge.domain")) {
                 throw runtimeException;
             }
-            throw new IllegalStateException("AI gateway call failed", cause);
+            // the provider's message can quote the request or the response, so a run records fixed text
+            log.warn("AI provider call failed", cause);
+            throw new AIGatewayUnavailableException("AI provider call failed — check the model server", cause);
         }
     }
 

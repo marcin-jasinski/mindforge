@@ -6,11 +6,13 @@ import { ApiError, Health } from '../../core/models/api';
 import { WikiApi } from '../../core/services/wiki-api';
 import { RunApi } from '../../core/services/run-api';
 import { ProgressService } from '../../core/services/progress.service';
+import { DateTimePipe } from '../../shared/date-time.pipe';
+import { apiErrorMessage, findingKindLabel } from '../../shared/labels';
 
 @Component({
   selector: 'app-health',
   standalone: true,
-  imports: [MatButtonModule],
+  imports: [MatButtonModule, DateTimePipe],
   template: `
     @if (health(); as h) {
       <p>
@@ -53,10 +55,10 @@ import { ProgressService } from '../../core/services/progress.service';
       </ul>
       <h2>Ostatni pełny przegląd</h2>
       @if (h.latestReview; as review) {
-        <p>Zakończony {{ review.finishedAt }}</p>
+        <p>Zakończony {{ review.finishedAt | dateTime }}</p>
         <ul>
           @for (finding of review.findings; track $index) {
-            <li><strong>{{ finding.kind }}</strong>: {{ finding.text }} {{ finding.pages.join(', ') }}</li>
+            <li><strong>{{ kindLabel(finding.kind) }}</strong>: {{ finding.text }} {{ finding.pages.join(', ') }}</li>
           } @empty { <li>Bez ustaleń.</li> }
         </ul>
       } @else {
@@ -73,6 +75,7 @@ export class HealthView implements OnInit {
   readonly kbId = input.required<string>();
   readonly health = signal<Health | null>(null);
   readonly message = signal<string | null>(null);
+  protected readonly kindLabel = findingKindLabel;
 
   ngOnInit(): void {
     this.wiki.health(this.kbId()).subscribe((health) => this.health.set(health));
@@ -85,7 +88,7 @@ export class HealthView implements OnInit {
         this.progress.reload(this.kbId());
       },
       error: (response: HttpErrorResponse) =>
-        this.message.set((response.error as ApiError | null)?.detail ?? 'Nie udało się uruchomić przeglądu.'),
+        this.message.set(apiErrorMessage(response.error as ApiError | null, 'Nie udało się uruchomić przeglądu.')),
     });
   }
 }

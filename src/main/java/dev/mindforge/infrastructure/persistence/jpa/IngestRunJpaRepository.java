@@ -57,6 +57,20 @@ public interface IngestRunJpaRepository extends JpaRepository<IngestRunEntity, U
         Instant getFinishedAt();
     }
 
+    long countByKnowledgeBaseIdAndDocumentId(UUID knowledgeBaseId, UUID documentId);
+
+    long countByKnowledgeBaseIdAndDocumentIdAndStatusNot(UUID knowledgeBaseId, UUID documentId, RunStatus status);
+
+    void deleteByKnowledgeBaseIdAndDocumentId(UUID knowledgeBaseId, UUID documentId);
+
+    /** Removes the failed attempts at the run's document that came before the run. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = "DELETE FROM ingest_runs failed USING ingest_runs done"
+        + " WHERE done.run_id = :runId AND done.knowledge_base_id = :knowledgeBaseId"
+        + " AND failed.knowledge_base_id = done.knowledge_base_id AND failed.document_id = done.document_id"
+        + " AND failed.status = 'FAILED' AND failed.created_at < done.created_at", nativeQuery = true)
+    int deleteFailuresBefore(UUID knowledgeBaseId, UUID runId);
+
     @Modifying(flushAutomatically = true)
     @Query(value = "UPDATE knowledge_bases SET active_run_id = :runId"
         + " WHERE kb_id = :knowledgeBaseId AND active_run_id IS NULL", nativeQuery = true)

@@ -18,9 +18,18 @@
     </mat-form-field>
   }
   <div class="row">
-    <button mat-flat-button type="button" (click)="openDeck()">Otwórz fiszki</button>
-    <button mat-stroked-button type="button" (click)="startQuiz()">Rozpocznij quiz</button>
+    <button mat-flat-button type="button" [disabled]="loadingDeck()" (click)="openDeck()">Otwórz fiszki</button>
+    <button mat-stroked-button type="button" [disabled]="startingQuiz()" (click)="startQuiz()">Rozpocznij quiz</button>
   </div>
+  @if (loadingDeck()) {
+    <p role="status">Dopisuję brakujące fiszki — te, które już są, możesz przeglądać od razu…</p>
+  }
+  @if (startingQuiz()) {
+    <p role="status">Układam pytania do quizu — to chwilę potrwa…</p>
+  }
+  @if (error(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  }
 </section>
 
 @if (cards().length) {
@@ -31,10 +40,12 @@
       @if (showBack()) {
         <p class="back">{{ current.back }}</p>
         <div class="row" role="group" aria-label="Jak dobrze pamiętasz?">
-          @for (rating of ratings; track rating) {
-            <button mat-stroked-button type="button" (click)="rate(rating)">{{ rating }}</button>
+          @for (rating of ratings; track rating.value) {
+            <button mat-stroked-button type="button" [attr.aria-label]="rating.value + ' — ' + rating.label"
+              [title]="rating.label" (click)="rate(rating.value)">{{ rating.value }}</button>
           }
         </div>
+        <small>0 — zupełnie nie pamiętam · 5 — pamiętam bez wysiłku</small>
       } @else {
         <button mat-flat-button type="button" (click)="showBack.set(true)">Pokaż odpowiedź</button>
       }
@@ -57,7 +68,10 @@
           <mat-label>Twoja odpowiedź</mat-label>
           <textarea matInput [(ngModel)]="answer" rows="3"></textarea>
         </mat-form-field>
-        <button mat-flat-button type="button" [disabled]="!answer().trim()" (click)="submitAnswer()">Sprawdź</button>
+        <button mat-flat-button type="button" [disabled]="!answer().trim() || grading()" (click)="submitAnswer()">Sprawdź</button>
+        @if (grading()) {
+          <p role="status">Sprawdzam odpowiedź…</p>
+        }
       }
     }
     @if (finished()) {

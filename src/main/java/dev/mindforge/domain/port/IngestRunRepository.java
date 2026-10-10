@@ -34,7 +34,10 @@ public interface IngestRunRepository {
     /** {@code RUNNING → WRITTEN}, recording the run's failures and step versions so far. */
     void markWritten(UUID kbId, UUID runId, List<RunFailure> failures, Map<String, String> stepVersions);
 
-    /** {@code WRITTEN → COMPLETED}, releasing the lease. */
+    /**
+     * {@code WRITTEN → COMPLETED}, releasing the lease and dropping the document's earlier failed attempts, which
+     * wrote nothing and which this run got past.
+     */
     void complete(UUID kbId, UUID runId, int supersessionCount, boolean supersessionSkipped,
                   List<RunFailure> failures, Map<String, String> stepVersions);
 
@@ -48,6 +51,12 @@ public interface IngestRunRepository {
     Optional<IngestRun> findById(UUID kbId, UUID runId);
 
     Optional<IngestRun> latestForDocument(UUID kbId, UUID documentId);
+
+    /** True when the document has runs and every one of them {@code FAILED}. */
+    boolean onlyFailedRuns(UUID kbId, UUID documentId);
+
+    /** Removes every run of the document; only failed runs, which wrote nothing, are removed this way. */
+    void deleteForDocument(UUID kbId, UUID documentId);
 
     /** The newest run of each document in the knowledge base. */
     List<IngestRun> latestPerDocument(UUID kbId);

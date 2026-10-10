@@ -18,6 +18,8 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   jpa:
+    # controllers are thin and services return domain objects; no lazy loading happens during view rendering
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     properties:
@@ -53,6 +55,14 @@ spring:
 
   lifecycle:
     timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
+
+# The API description is the contract for the frontend's generated types, not something a deployment serves.
+# Set API_DOCS_ENABLED=true (or run with the dev profile) when regenerating them.
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:false}
 
 server:
   port: ${PORT:8080}

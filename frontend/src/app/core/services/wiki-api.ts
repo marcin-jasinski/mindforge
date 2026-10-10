@@ -30,6 +30,10 @@ export class WikiApi {
     return this.api.get(`/knowledge-bases/${kbId}/documents`);
   }
 
+  removeDocument(kbId: string, documentId: string): Observable<unknown> {
+    return this.api.delete(`/knowledge-bases/${kbId}/documents/${documentId}`);
+  }
+
   uploadDocument(kbId: string, form: FormData): Observable<unknown> {
     return this.api.post(`/knowledge-bases/${kbId}/documents`, form, true);
   }

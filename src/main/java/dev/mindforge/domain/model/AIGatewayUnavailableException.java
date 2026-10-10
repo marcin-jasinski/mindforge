@@ -1,14 +1,19 @@
 package dev.mindforge.domain.model;
 
 /**
- * Thrown when the {@code AIGateway}'s circuit breaker is open and rejects a call outright,
- * so no request reaches the provider. Distinct from {@link DeadlineExceededException}: the
- * deadline case means a call ran but outlived its timeout budget; this case means the gateway
- * gave up early because the provider is unhealthy.
+ * Thrown when the {@code AIGateway} cannot get an answer from the provider: its circuit breaker is
+ * open and rejects the call outright, or the provider call itself failed (unreachable, refused, an
+ * HTTP error). Distinct from {@link DeadlineExceededException}: the deadline case means a call ran
+ * but outlived its timeout budget. The provider's own message stays on the cause and in the log;
+ * only fixed text reaches a run's failure reason or an API response.
  */
 public class AIGatewayUnavailableException extends RuntimeException {
 
     public AIGatewayUnavailableException(Throwable cause) {
         super("AI gateway circuit is open — provider unavailable", cause);
+    }
+
+    public AIGatewayUnavailableException(String reason, Throwable cause) {
+        super(reason, cause);
     }
 }

@@ -12,12 +12,14 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import dev.mindforge.api.dto.response.ErrorResponse;
 import dev.mindforge.domain.model.AIGatewayUnavailableException;
 import dev.mindforge.domain.model.AccountException;
 import dev.mindforge.domain.model.DeadlineExceededException;
+import dev.mindforge.domain.model.DocumentNotRemovableException;
 import dev.mindforge.domain.model.KnowledgeBaseBusyException;
 import dev.mindforge.domain.model.LessonAlreadyExistsException;
 import dev.mindforge.domain.model.LessonIdentityException;
@@ -76,6 +78,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RetryNotAllowedException.class)
     ResponseEntity<ErrorResponse> retryNotAllowed(RetryNotAllowedException e) {
         return error(HttpStatus.CONFLICT, "RETRY_NOT_ALLOWED", e);
+    }
+
+    @ExceptionHandler(DocumentNotRemovableException.class)
+    ResponseEntity<ErrorResponse> documentNotRemovable(DocumentNotRemovableException e) {
+        return error(HttpStatus.CONFLICT, "DOCUMENT_NOT_REMOVABLE", e);
     }
 
     @ExceptionHandler(LintAlreadyQueuedException.class)
@@ -145,6 +152,12 @@ public class GlobalExceptionHandler {
         log.warn("Unreadable model output: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ErrorResponse.of(
             HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(), "MODEL_UNAVAILABLE", "The model returned unreadable output"));
+    }
+
+    /** A client that navigated away from the progress stream; there is nobody left to answer. */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    void clientGone(AsyncRequestNotUsableException e) {
+        log.debug("Client disconnected: {}", e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

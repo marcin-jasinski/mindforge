@@ -4,14 +4,28 @@ import type { Core } from 'cytoscape';
 
 import { WikiApi } from '../../core/services/wiki-api';
 
+const SMALL_GRAPH = 12;
+
 @Component({
   selector: 'app-graph',
   standalone: true,
   template: `
     <p>Pojęcia i źródła połączone linkami. Przerywana obwódka to strona, której jeszcze nie ma.</p>
+    <ul class="legend" aria-label="Legenda">
+      <li><span class="swatch concept"></span> Pojęcie</li>
+      <li><span class="swatch source"></span> Podsumowanie źródła</li>
+      <li><span class="swatch dangling"></span> Brakująca strona</li>
+    </ul>
     <div #canvas class="canvas" role="img" aria-label="Graf stron i linków między nimi"></div>
   `,
-  styles: `.canvas { height: 70vh; border: 1px solid var(--mat-sys-outline-variant); border-radius: 0.5rem; }`,
+  styles: `
+    .canvas { height: 70vh; border: 1px solid var(--mat-sys-outline-variant); border-radius: 0.5rem; }
+    .legend { display: flex; flex-wrap: wrap; gap: 1rem; padding: 0; list-style: none; }
+    .swatch { display: inline-block; width: 0.9rem; height: 0.9rem; vertical-align: middle; border-radius: 50%; }
+    .swatch.concept { background: #4f6ef7; }
+    .swatch.source { background: #16a34a; border-radius: 0.2rem; }
+    .swatch.dangling { border: 2px dashed currentColor; box-sizing: border-box; }
+  `,
 })
 export class GraphView implements OnDestroy {
   private readonly wiki = inject(WikiApi);
@@ -36,9 +50,12 @@ export class GraphView implements OnDestroy {
             ...dangling.map((path) => ({ data: { id: path, label: path, kind: 'dangling' } })),
             ...graph.links.map((link, i) => ({ data: { id: `e${i}`, source: link.sourcePath, target: link.targetPath } })),
           ],
-          layout: { name: 'cose' },
+          // a force layout collapses a handful of nodes into a clump; a circle keeps every label readable
+          layout: graph.pages.length + dangling.length <= SMALL_GRAPH ? { name: 'circle', padding: 60 } : { name: 'cose', padding: 40 },
+          // a handful of pages would otherwise be zoomed until labels and arrows swallow the canvas
+          maxZoom: 1.5,
           style: [
-            { selector: 'node', style: { label: 'data(label)', 'font-size': 10, 'background-color': '#4f6ef7' } },
+            { selector: 'node', style: { label: 'data(label)', 'font-size': 12, 'background-color': '#4f6ef7' } },
             { selector: 'node[kind = "source"]', style: { 'background-color': '#16a34a', shape: 'round-rectangle' } },
             { selector: 'node[kind = "dangling"]', style: { 'background-color': '#fff', 'border-width': 2, 'border-style': 'dashed' } },
             { selector: 'edge', style: { width: 1, 'curve-style': 'bezier', 'target-arrow-shape': 'triangle' } },

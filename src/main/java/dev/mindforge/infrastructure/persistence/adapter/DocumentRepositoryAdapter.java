@@ -55,6 +55,16 @@ public class DocumentRepositoryAdapter implements DocumentRepository {
     }
 
     @Override
+    public boolean lessonTitleTaken(UUID knowledgeBaseId, String title, String lessonId) {
+        return jpaRepository.lessonTitleTaken(knowledgeBaseId, title, lessonId);
+    }
+
+    @Override
+    public void delete(UUID knowledgeBaseId, UUID documentId) {
+        jpaRepository.deleteByKnowledgeBaseIdAndDocumentId(knowledgeBaseId, documentId);
+    }
+
+    @Override
     public List<Document> listByKnowledgeBase(UUID knowledgeBaseId) {
         return jpaRepository.findByKnowledgeBaseId(knowledgeBaseId)
             .stream()

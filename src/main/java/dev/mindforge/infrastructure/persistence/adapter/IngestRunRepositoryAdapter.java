@@ -75,6 +75,8 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
         run.setFailures(failures);
         run.setStepVersions(stepVersions);
         runs.releaseLease(kbId, runId);
+        // the document got past its earlier failures, so they are no longer worth keeping
+        runs.deleteFailuresBefore(kbId, runId);
     }
 
     @Override
@@ -102,6 +104,17 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     public Optional<IngestRun> latestForDocument(UUID kbId, UUID documentId) {
         return runs.findFirstByKnowledgeBaseIdAndDocumentIdOrderByCreatedAtDesc(kbId, documentId)
             .map(mapper::toDomain);
+    }
+
+    @Override
+    public boolean onlyFailedRuns(UUID kbId, UUID documentId) {
+        return runs.countByKnowledgeBaseIdAndDocumentId(kbId, documentId) > 0
+            && runs.countByKnowledgeBaseIdAndDocumentIdAndStatusNot(kbId, documentId, RunStatus.FAILED) == 0;
+    }
+
+    @Override
+    public void deleteForDocument(UUID kbId, UUID documentId) {
+        runs.deleteByKnowledgeBaseIdAndDocumentId(kbId, documentId);
     }
 
     @Override

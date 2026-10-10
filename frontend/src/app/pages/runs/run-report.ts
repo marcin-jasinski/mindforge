@@ -7,12 +7,14 @@ import { ApiError, RunReport } from '../../core/models/api';
 import { RunApi } from '../../core/services/run-api';
 import { ProgressService } from '../../core/services/progress.service';
 import { DiffView } from '../../shared/diff-view';
+import { DateTimePipe } from '../../shared/date-time.pipe';
+import { apiErrorMessage, failureLine, failureReasonLabel, findingKindLabel, runKindLabel, runStatusLabel } from '../../shared/labels';
 import { pageRoute } from '../../shared/diff';
 
 @Component({
   selector: 'app-run-report',
   standalone: true,
-  imports: [RouterLink, MatButtonModule, DiffView],
+  imports: [RouterLink, MatButtonModule, DiffView, DateTimePipe],
   templateUrl: './run-report.html',
 })
 export class RunReportView {
@@ -23,6 +25,11 @@ export class RunReportView {
   readonly runId = input.required<string>();
   readonly report = signal<RunReport | null>(null);
   readonly message = signal<string | null>(null);
+  protected readonly kindLabel = runKindLabel;
+  protected readonly statusLabel = runStatusLabel;
+  protected readonly reasonLabel = failureReasonLabel;
+  protected readonly failureLine = failureLine;
+  protected readonly findingLabel = findingKindLabel;
 
   constructor() {
     effect(() => this.load(this.runId()));
@@ -52,9 +59,7 @@ export class RunReportView {
       },
       error: (response: HttpErrorResponse) => {
         const error = response.error as ApiError | null;
-        this.message.set(error?.code === 'KNOWLEDGE_BASE_BUSY'
-          ? 'Baza wiedzy jest zajęta innym przebiegiem — spróbuj za chwilę.'
-          : (error?.detail ?? 'Nie udało się.'));
+        this.message.set(apiErrorMessage(error, 'Nie udało się.'));
       },
     });
   }

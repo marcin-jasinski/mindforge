@@ -36,7 +36,7 @@ class PageRendererTest {
             makeSource("bio-1", "Lekcja 1 — poprawiona", "2026-09-03T10:00:00Z", false));
 
         assertThat(PageRenderer.withCitations("Treść.\n", PageType.CONCEPT, sources)).isEqualTo("Treść.\n\n# Citations\n\n"
-            + "[1] Conversation, 2026-09-02\n[2] [Lekcja 1 — poprawiona](/sources/bio-1.md)\n");
+            + "[1] Rozmowa, 2026-09-02\n[2] [Lekcja 1 — poprawiona](/sources/bio-1.md)\n");
     }
 
     @Test

@@ -12,6 +12,7 @@ import { ApiError, DocumentView, RunSummary } from '../../core/models/api';
 import { WikiApi } from '../../core/services/wiki-api';
 import { RunApi } from '../../core/services/run-api';
 import { ProgressService } from '../../core/services/progress.service';
+import { apiErrorMessage, failureReasonLabel, runKindLabel, runStatusLabel } from '../../shared/labels';
 
 interface Collision {
   lessonId: string;
@@ -27,6 +28,9 @@ interface Collision {
   styles: `
     .dropzone { border: 2px dashed var(--mat-sys-outline); padding: 1.5rem; text-align: center; border-radius: 0.5rem; }
     .dropzone.over { background: var(--mat-sys-surface-container-high); }
+    .dropzone { position: relative; cursor: pointer; }
+    .dropzone:focus-within { outline: 2px solid var(--mat-sys-primary); }
+    .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
   `,
 })
 export class Documents implements OnInit {
@@ -93,16 +97,41 @@ export class Documents implements OnInit {
           this.collision.set({ lessonId: error.lessonId ?? '', lessonTitle: error.lessonTitle ?? '' });
           this.newLessonId.set(`${error.lessonId}-2`);
         } else {
-          this.uploadError.set(error?.detail ?? 'Nie udało się przesłać pliku.');
+          this.uploadError.set(apiErrorMessage(error, 'Nie udało się przesłać pliku.'));
         }
       },
     });
+  }
+
+  remove(doc: DocumentView): void {
+    // ponytail: native confirm, as for a revert; a MatDialog when it needs to say what else goes with the document
+    if (confirm(`Usunąć dokument „${doc.lessonTitle}”? Plik będzie można przesłać ponownie.`)) {
+      this.wiki.removeDocument(this.kbId(), doc.documentId).subscribe(() => {
+        this.loadDocuments();
+        this.progress.reload(this.kbId());
+      });
+    }
   }
 
   retry(run: RunSummary): void {
     this.runs.retryDocument(this.kbId(), run.documentId).subscribe(() =>
       this.progress.reload(this.kbId()),
     );
+  }
+
+  protected readonly statusLabel = runStatusLabel;
+  protected readonly reasonLabel = failureReasonLabel;
+
+  /** "Przetwarzanie · photosynthesis"; a revert has no subject, so no dangling separator. */
+  runTitle(run: RunSummary): string {
+    const subject = run.conversation ? 'rozmowa' : run.lessonTitle;
+    return subject ? `${runKindLabel(run.kind)} · ${subject}` : runKindLabel(run.kind);
+  }
+
+  /** Only a document's newest run can be retried; an older failure was already answered by a later run. */
+  canRetry(run: RunSummary): boolean {
+    return run.status === 'FAILED' && run.retryable && !!run.documentId
+      && this.progress.runs().find((other) => other.documentId === run.documentId)?.runId === run.runId;
   }
 
   percent(runId: string): number | null {

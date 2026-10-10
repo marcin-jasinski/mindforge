@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -140,6 +142,59 @@ class QuizServiceTest {
                 .as(completion)
                 .isThrownBy(() -> makeService().start(KB, USER, new StudyScope.WholeKnowledgeBase()));
         }
+    }
+
+    @Test
+    void shouldAcceptAQuizAtOnceAndWriteItsQuestionsInTheBackground() throws InterruptedException {
+        givenPages(makePage("concepts/mitoza", 1));
+        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitoza"));
+        QuizService service = makeService();
+
+        QuizSession accepted = service.begin(KB, USER, new StudyScope.WholeKnowledgeBase());
+
+        assertThat(accepted.questions()).as("no question exists when the request returns").isEmpty();
+        for (int attempt = 0; attempt < 100 && service.isPreparing(KB, USER, accepted.sessionId()); attempt++) {
+            Thread.sleep(20);
+        }
+        assertThat(service.isPreparing(KB, USER, accepted.sessionId())).isFalse();
+        ArgumentCaptor<QuizSession> stored = ArgumentCaptor.forClass(QuizSession.class);
+        verify(sessions).insert(eq(KB), stored.capture());
+        assertThat(stored.getValue().sessionId()).isEqualTo(accepted.sessionId());
+    }
+
+    @Test
+    void shouldReportABackgroundFailureOnceAndNotTheNextTime() throws InterruptedException {
+        givenPages(makePage("concepts/mitoza", 1));
+        gateway.answer(Prompts.QUIZ, "{\"questions\":[]}");
+        QuizService service = makeService();
+        QuizSession accepted = service.begin(KB, USER, new StudyScope.WholeKnowledgeBase());
+
+        Thread.sleep(300);
+
+        assertThatExceptionOfType(NotFoundException.class)
+            .isThrownBy(() -> service.isPreparing(KB, USER, accepted.sessionId()));
+        assertThat(service.isPreparing(KB, USER, accepted.sessionId())).isFalse();
+    }
+
+    @Test
+    void shouldNotTellAnotherUserWhetherAQuizIsBeingPrepared() {
+        givenPages(makePage("concepts/mitoza", 1));
+        CountDownLatch release = new CountDownLatch(1);
+        gateway.answer(Prompts.QUIZ, prompt -> {
+            try {
+                release.await(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return questionAbout("concepts/mitoza");
+        });
+        QuizService service = makeService();
+        QuizSession accepted = service.begin(KB, USER, new StudyScope.WholeKnowledgeBase());
+
+        assertThat(service.isPreparing(KB, USER, accepted.sessionId())).isTrue();
+        assertThatExceptionOfType(NotOwnerException.class)
+            .isThrownBy(() -> service.isPreparing(KB, UUID.randomUUID(), accepted.sessionId()));
+        release.countDown();
     }
 
     // ---------------------------------------------------------------------------

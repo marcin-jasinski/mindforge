@@ -1,12 +1,12 @@
 @if (report(); as run) {
-  <h1>{{ run.kind }} — {{ run.status }}</h1>
+  <h1>{{ kindLabel(run.kind) }} — {{ statusLabel(run.status) }}</h1>
   <p>
-    Utworzono {{ run.createdAt }}
+    Utworzono {{ run.createdAt | dateTime }}
     @if (run.finishedAt) {
-      · zakończono {{ run.finishedAt }}
+      · zakończono {{ run.finishedAt | dateTime }}
     }
     @if (run.failureReason) {
-      · <span class="error">{{ run.failureReason }}</span>
+      · <span class="error">{{ reasonLabel(run.failureReason) }}</span>
     }
   </p>
   @if (run.revertOffered) {
@@ -49,7 +49,7 @@
     <h2>Pominięte i nieudane</h2>
     <ul>
       @for (failure of run.failures; track $index) {
-        <li>{{ failure.step }}{{ failure.item ? ' · ' + failure.item : '' }}{{ failure.path ? ' · ' + failure.path : '' }}{{ failure.reason ? ': ' + failure.reason : '' }}{{ failure.count ? ' (' + failure.count + ')' : '' }}</li>
+        <li>{{ failureLine(failure) }}</li>
       }
     </ul>
   }
@@ -58,7 +58,7 @@
     <h2>Ustalenia przeglądu</h2>
     <ul>
       @for (finding of run.findings; track $index) {
-        <li><strong>{{ finding.kind }}</strong>: {{ finding.text }} {{ finding.pages.join(', ') }}</li>
+        <li><strong>{{ findingLabel(finding.kind) }}</strong>: {{ finding.text }} {{ finding.pages.join(', ') }}</li>
       }
     </ul>
   }
