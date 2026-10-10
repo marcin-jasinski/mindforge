@@ -154,6 +154,22 @@ class LintAndHealthTest extends TestContainerBase {
     }
 
     @Test
+    void aFullLintLinksOnlyToConceptsAndSourceSummaries() {
+        UUID kbId = insertKnowledgeBase();
+        seedTwoConcepts(kbId);
+        completedRun(kbId, runId -> wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/kopernik", "Kopernik",
+            new PageType("Person"), "Astronom.\n"), runId));
+        gateway.reset();
+        gateway.answer(Prompts.LINKS, Prompts.json(Map.of("insertions", List.of(
+            Map.of("pagePath", "concepts/mitoza", "phrase", "mejoza", "targetPath", "concepts/kopernik")))));
+        gateway.answer(Prompts.REVIEW, Prompts.json(Map.of("items", List.of())));
+
+        awaitRun(kbId, lintService.request(kbId), RunStatus.COMPLETED);
+
+        assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody).contains(MITOZA_BODY);
+    }
+
+    @Test
     void aFullLintQueuesBehindAnActiveRunAndRunsWhenTheWorkerDrains() {
         UUID kbId = insertKnowledgeBase();
         seedTwoConcepts(kbId);

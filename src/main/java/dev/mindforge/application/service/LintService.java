@@ -124,6 +124,8 @@ public class LintService {
     /** Concept pages loaded per round; a round's bodies are the most Lint holds at once. */
     private static final int PAGES_PER_ROUND = 50;
 
+    private static final int CONCURRENT_CHUNKS = 4;
+
     /** What one chunk contributes: its verified link insertions, its findings and its dropped proposals. */
     private record ChunkResult(List<PageWrite> linked, List<ReviewItem> findings, int dropped) {}
 
@@ -133,6 +135,9 @@ public class LintService {
         List<IndexEntry> index = wiki.listIndex(kbId);
         String renderedIndex = IndexRenderer.render(index);
         Set<String> livePaths = index.stream().map(IndexEntry::path).collect(Collectors.toSet());
+        Set<String> targetPaths = index.stream()
+            .filter(entry -> entry.type().equals(PageType.CONCEPT) || entry.type().equals(PageType.SOURCE_SUMMARY))
+            .map(IndexEntry::path).collect(Collectors.toSet());
         List<String> conceptPaths = index.stream().filter(entry -> entry.type().equals(PageType.CONCEPT))
             .map(IndexEntry::path).sorted().toList();
 
@@ -146,14 +151,14 @@ public class LintService {
                 Math.min(conceptPaths.size(), (round + 1) * PAGES_PER_ROUND));
             List<WikiPage> pages = wiki.findByPaths(kbId, paths).stream()
                 .sorted(Comparator.comparing(WikiPage::path)).toList();
-            for (ChunkResult result : reviewAll(state, chunks(pages), renderedIndex, livePaths)) {
+            for (ChunkResult result : reviewAll(state, chunks(pages), renderedIndex, livePaths, targetPaths)) {
                 result.linked().forEach(write -> linked.put(write.path(), write));
                 findings.addAll(result.findings());
                 dropped += result.dropped();
             }
         }
         if (dropped > 0) {
-            state.failures.add(RunFailure.dropped("linkCheck", dropped));
+            state.addFailure(RunFailure.dropped("linkCheck", dropped));
         }
 
         transactions.executeWithoutResult(status -> {
@@ -164,12 +169,16 @@ public class LintService {
         });
     }
 
-    /** A chunk's two model calls are independent of other chunks, so a round's chunks run concurrently, as in ingest. */
+    /**
+     * A chunk's two model calls are independent of other chunks, so a round's chunks run concurrently, as in ingest —
+     * at most {@link #CONCURRENT_CHUNKS} at once, below the connection pool, since a chunk may also read targets.
+     */
     private List<ChunkResult> reviewAll(RunState state, List<List<WikiPage>> chunks, String renderedIndex,
-                                        Set<String> livePaths) {
-        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                                        Set<String> livePaths, Set<String> targetPaths) {
+        try (ExecutorService executor = Executors.newFixedThreadPool(CONCURRENT_CHUNKS, Thread.ofVirtual().factory())) {
             List<Future<ChunkResult>> futures = chunks.stream()
-                .map(chunk -> executor.submit(() -> reviewChunk(state, chunk, renderedIndex, livePaths))).toList();
+                .map(chunk -> executor.submit(() -> reviewChunk(state, chunk, renderedIndex, livePaths, targetPaths)))
+                .toList();
             List<ChunkResult> results = new ArrayList<>();
             for (Future<ChunkResult> future : futures) {
                 results.add(future.get());
@@ -183,7 +192,8 @@ public class LintService {
         }
     }
 
-    private ChunkResult reviewChunk(RunState state, List<WikiPage> chunk, String renderedIndex, Set<String> livePaths) {
+    private ChunkResult reviewChunk(RunState state, List<WikiPage> chunk, String renderedIndex, Set<String> livePaths,
+                                    Set<String> targetPaths) {
         Map<String, String> bodies = new LinkedHashMap<>();
         chunk.forEach(page -> bodies.put(page.path(), page.markdownBody()));
         List<PageWrite> linked = new ArrayList<>();
@@ -192,7 +202,7 @@ public class LintService {
         try {
             List<LinkInsertion> proposals = linkChecker.check(bodies, renderedIndex);
             state.version(LinkChecker.class, LinkChecker.VERSION, LinkChecker.TIER);
-            Map<String, String> targets = targetBodies(state.kbId(), proposals, livePaths);
+            Map<String, String> targets = targetBodies(state.kbId(), proposals, targetPaths);
             Map<String, List<LinkInsertion>> byPage = proposals.stream()
                 .collect(Collectors.groupingBy(proposal -> String.valueOf(proposal.pagePath())));
             for (WikiPage page : chunk) {
@@ -209,7 +219,7 @@ public class LintService {
             log.warn("Link check of Lint run {} failed; a chunk gets no links", state.run.runId(), e);
             linked.clear();
             dropped = 0;
-            state.failures.add(RunFailure.of("linkCheck", IngestRunFailedException.reasonFor(e)));
+            state.addFailure(RunFailure.of("linkCheck", IngestRunFailedException.reasonFor(e)));
         }
         try {
             reviewer.review(bodies, renderedIndex).stream()
@@ -219,21 +229,22 @@ public class LintService {
             state.version(WikiReviewer.class, WikiReviewer.VERSION, WikiReviewer.TIER);
         } catch (RuntimeException e) {
             log.warn("Review of Lint run {} failed; a chunk gets no findings", state.run.runId(), e);
-            state.failures.add(RunFailure.of("review", IngestRunFailedException.reasonFor(e)));
+            state.addFailure(RunFailure.of("review", IngestRunFailedException.reasonFor(e)));
         }
         return new ChunkResult(linked, findings, dropped);
     }
 
     /**
-     * What {@link LinkInsertionApplier} needs of the targets: that each is live, and the body only of one a fragment
-     * points into. A live target without a fragment maps to an empty body, so no whole-wiki body map is built.
+     * What {@link LinkInsertionApplier} needs of the targets: that each is a live Concept or Source Summary, and the
+     * body only of one a fragment points into. A target without a fragment maps to an empty body, so no whole-wiki
+     * body map is built.
      */
-    private Map<String, String> targetBodies(UUID kbId, List<LinkInsertion> proposals, Set<String> livePaths) {
+    private Map<String, String> targetBodies(UUID kbId, List<LinkInsertion> proposals, Set<String> targetPaths) {
         Map<String, String> targets = new HashMap<>();
         Set<String> needBody = new HashSet<>();
         for (LinkInsertion proposal : proposals) {
             String target = proposal.targetPath();
-            if (target != null && livePaths.contains(target)) {
+            if (target != null && targetPaths.contains(target)) {
                 targets.put(target, "");
                 if (proposal.fragment() != null) {
                     needBody.add(target);

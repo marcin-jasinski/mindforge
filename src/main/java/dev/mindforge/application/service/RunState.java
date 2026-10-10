@@ -19,7 +19,7 @@ import dev.mindforge.domain.model.RunFailure;
 final class RunState {
 
     final IngestRun run;
-    final List<RunFailure> failures = Collections.synchronizedList(new ArrayList<>());
+    private final List<RunFailure> failures = Collections.synchronizedList(new ArrayList<>());
     private final Map<String, String> versions = new ConcurrentHashMap<>();
     private final ProcessingSettings settings;
 
@@ -34,6 +34,14 @@ final class RunState {
 
     void version(Class<?> service, String version, ModelTier tier) {
         versions.put(service.getSimpleName(), settings.stepVersion(version, tier));
+    }
+
+    void addFailure(RunFailure failure) {
+        failures.add(failure);
+    }
+
+    void addFailures(List<RunFailure> more) {
+        failures.addAll(more);
     }
 
     List<RunFailure> failures() {

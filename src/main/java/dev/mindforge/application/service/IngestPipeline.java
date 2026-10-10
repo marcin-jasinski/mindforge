@@ -199,7 +199,7 @@ public class IngestPipeline {
         Resolver.Plan plan = resolver.finish(edits,
             conversation ? null : PagePath.sourceSummary(document.lessonIdentity().lessonId()),
             document.lessonIdentity().title(), settings.maxPageTasksPerRun());
-        state.failures.addAll(plan.failures());
+        state.addFailures(plan.failures());
 
         Set<String> touched = new HashSet<>(plan.deletions());
         touched.addAll(plan.retitles().keySet());
@@ -286,7 +286,7 @@ public class IngestPipeline {
                         drafted.put(task.path(),
                             result.map(write -> write.write().markdownBody()).orElseGet(() -> existing.markdownBody()));
                     } catch (TaskFailed e) {
-                        state.failures.add(RunFailure.ofPath("write", task.path(), e.getMessage()));
+                        state.addFailure(RunFailure.ofPath("write", task.path(), e.getMessage()));
                     } finally {
                         step(state, "write", done.incrementAndGet(), tasks.size());
                     }
@@ -376,12 +376,12 @@ public class IngestPipeline {
             Set<String> checkedPaths = checkable.stream().map(write -> write.write().path()).collect(Collectors.toSet());
             dropped += (int) proposals.stream().filter(proposal -> !checkedPaths.contains(proposal.pagePath())).count();
             if (dropped > 0) {
-                state.failures.add(RunFailure.dropped("linkCheck", dropped));
+                state.addFailure(RunFailure.dropped("linkCheck", dropped));
             }
             return linked;
         } catch (RuntimeException e) {
             log.warn("Link check of run {} failed; committing without extra links", state.run.runId(), e);
-            state.failures.add(RunFailure.of("linkCheck", IngestRunFailedException.reasonFor(e)));
+            state.addFailure(RunFailure.of("linkCheck", IngestRunFailedException.reasonFor(e)));
             return writes;
         }
     }
@@ -395,7 +395,7 @@ public class IngestPipeline {
         try {
             progress.notify(kbId, RunProgress.status(state.run, RunStatus.WRITTEN));
             if (committed.article()) {
-                state.failures.add(RunFailure.of("supersede", "article"));
+                state.addFailure(RunFailure.of("supersede", "article"));
                 complete(state, List.of(), true);
                 return;
             }
@@ -410,7 +410,7 @@ public class IngestPipeline {
             log.warn("Run {} lost its lease before commit 2: {}", state.run.runId(), e.getMessage());
         } catch (RuntimeException e) {
             log.warn("Supersede of run {} failed; completing without supersessions", state.run.runId(), e);
-            state.failures.add(RunFailure.of("supersede", IngestRunFailedException.reasonFor(e)));
+            state.addFailure(RunFailure.of("supersede", IngestRunFailedException.reasonFor(e)));
             try {
                 complete(state, List.of(), true);
             } catch (RunFencedException fenced) {
@@ -450,7 +450,7 @@ public class IngestPipeline {
         SupersessionInputs.Selection selection = SupersessionInputs.select(List.copyOf(candidates.values()),
             linkCounts, superseded, settings.supersessionContextTokens());
         if (selection.omittedPages() > 0) {
-            state.failures.add(RunFailure.omittedPages("supersede", selection.omittedPages()));
+            state.addFailure(RunFailure.omittedPages("supersede", selection.omittedPages()));
         }
         if (selection.sections().isEmpty()) {
             return List.of();
@@ -459,7 +459,7 @@ public class IngestPipeline {
         state.version(SupersessionDetector.class, SupersessionDetector.VERSION, SupersessionDetector.TIER);
         List<SupersessionProposal> kept = SupersessionInputs.verify(proposals, selection.sections(), writtenPaths);
         if (kept.size() < proposals.size()) {
-            state.failures.add(RunFailure.dropped("supersede", proposals.size() - kept.size()));
+            state.addFailure(RunFailure.dropped("supersede", proposals.size() - kept.size()));
         }
         Map<String, UUID> ids = new HashMap<>();
         candidates.values().forEach(page -> ids.put(page.path(), page.pageId()));
