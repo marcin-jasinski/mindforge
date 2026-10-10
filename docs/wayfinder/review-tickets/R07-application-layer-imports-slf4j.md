@@ -2,7 +2,7 @@
 id: R07
 title: The application layer imports slf4j against an exhaustive allow-list
 type: decision
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -67,12 +67,12 @@ the import itself, because the same table holds the domain-purity rule that genu
 
 ## Acceptance criteria
 
-- [ ] A decision is recorded here with its rationale.
-- [ ] The standard and the code agree — whichever moved.
-- [ ] If A: `hexagonal.md` and `CLAUDE.md` both updated, and the exception is explained, not just
+- [x] A decision is recorded here with its rationale.
+- [x] The standard and the code agree — whichever moved.
+- [x] If A: `hexagonal.md` and `CLAUDE.md` both updated, and the exception is explained, not just
       listed.
-- [ ] If B: no `org.slf4j` import remains under `dev.mindforge.application`.
+- [x] If B: no `org.slf4j` import remains under `dev.mindforge.application`.
 
 ## Resolution
 
-<!-- filled on close -->
+Decision: Option A. `org.slf4j.*` added to the application row in `docs/standards/architecture/hexagonal.md` and the CLAUDE.md Architecture table, with the explicit reason that SLF4J is an I/O-free facade (not a precedent for other third-party facades). No code changed: the five classes already comply. Chosen because it is one line of docs versus a logging port and adapter that minimal-implementation.md argues against, and domain purity (JDK only) is untouched.

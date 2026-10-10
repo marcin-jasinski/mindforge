@@ -27,7 +27,7 @@ Dependencies always point **inward**: adapters → application → domain.
 | Layer | Package | Allowed imports |
 |---|---|---|
 | Domain | `dev.mindforge.domain` | JDK only — zero I/O, zero framework |
-| Application | `dev.mindforge.application` | `dev.mindforge.domain.*`, `dev.mindforge.agent.*` (the model services it sequences), plus Spring's transaction API (`org.springframework.transaction.*`) |
+| Application | `dev.mindforge.application` | `dev.mindforge.domain.*`, `dev.mindforge.agent.*` (the model services it sequences), plus Spring's transaction API (`org.springframework.transaction.*`) and the SLF4J logging facade (`org.slf4j.*`) — SLF4J only because it is an I/O-free facade |
 | Infrastructure | `dev.mindforge.infrastructure` | domain + application + any third-party |
 | Model services | `dev.mindforge.agent` | domain + `infrastructure.ai.*` — concrete services that call a model; no `Agent` interface |
 | Adapters | `dev.mindforge.api`, `dev.mindforge.cli` | all layers (thin; no business logic) |
