@@ -2,7 +2,7 @@
 id: R02
 title: Integration tests run under surefire, so the build needs Docker
 type: chore
-status: open
+status: closed
 severity: high
 assignee:
 blocked_by: []
@@ -74,11 +74,11 @@ Also state the Docker requirement for `mvn verify` in `docs/project/deployment.m
 
 ## Acceptance criteria
 
-- [ ] `mvn test` runs only `unit/` and passes with **no Docker daemon running**.
-- [ ] `mvn verify` runs everything and still enforces the 70% gate against combined coverage.
-- [ ] `-DskipITs` actually skips integration tests.
-- [ ] The Docker requirement for `mvn verify` is documented.
+- [x] `mvn test` runs only `unit/` and passes with **no Docker daemon running**.
+- [x] `mvn verify` runs everything and still enforces the 70% gate against combined coverage.
+- [x] `-DskipITs` actually skips integration tests.
+- [x] The Docker requirement for `mvn verify` is documented.
 
 ## Resolution
 
-<!-- filled on close -->
+Added `maven-failsafe-plugin` (integration-test + verify goals, includes `**/integration/**/*Test.java` and `**/e2e/**/*Test.java`) and excluded those two folders from surefire, as the ticket prescribed. Jacoco needed no change: `prepare-agent` sets `argLine`, which both plugins use, so both write the same `target/jacoco.exec` and the 70% check (bound to `verify`) still sees combined coverage. `mvn verify` passes: unit tests under surefire, 62 integration tests under failsafe, all coverage checks met. `-DskipITs` now skips the ITs, but then the gate sees unit coverage only, so `docs/project/deployment.md` documents pairing it with `-Djacoco.skip=true` and states that `mvn verify` needs Docker.
