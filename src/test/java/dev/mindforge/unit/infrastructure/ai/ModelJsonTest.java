@@ -13,36 +13,36 @@ class ModelJsonTest {
     record Draft(String description, String body) {}
 
     @Test
-    void readsACleanObject() {
+    void shouldReadACleanObject() {
         assertThat(read("{\"description\":\"a\",\"body\":\"b\"}")).isEqualTo(new Draft("a", "b"));
     }
 
     @Test
-    void readsAnObjectWrappedInProse() {
+    void shouldReadAnObjectWrappedInProse() {
         assertThat(read("Oto wynik: {\"description\":\"a\",\"body\":\"b\"} Pozdrawiam."))
             .isEqualTo(new Draft("a", "b"));
     }
 
     @Test
-    void readsAnObjectInAFencedCodeBlock() {
+    void shouldReadAnObjectInAFencedCodeBlock() {
         assertThat(read("```json\n{\"description\":\"a\",\"body\":\"b\"}\n```")).isEqualTo(new Draft("a", "b"));
     }
 
     @Test
-    void readsTheFirstOfTwoObjects() {
+    void shouldReadTheFirstOfTwoObjects() {
         assertThat(read("Oto wynik: {\"description\":\"a\",\"body\":\"b\"} oraz {\"note\":\"ignore\"}"))
             .isEqualTo(new Draft("a", "b"));
     }
 
     @Test
-    void namesTheServiceWhenThereIsNoJson() {
+    void shouldNameTheServiceWhenThereIsNoJson() {
         assertThatThrownBy(() -> read("brak obiektu"))
             .isInstanceOf(ModelOutputException.class)
             .hasMessageContaining("PageWriter");
     }
 
     @Test
-    void leavesAMissingFieldNullForTheServiceToReject() {
+    void shouldLeaveAMissingFieldNullForTheServiceToReject() {
         assertThat(read("{\"description\":\"a\"}")).isEqualTo(new Draft("a", null));
     }
 

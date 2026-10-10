@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,8 +27,8 @@ import dev.mindforge.domain.model.InteractionTurn;
 import dev.mindforge.domain.model.NotOwnerException;
 import dev.mindforge.domain.model.PageLink;
 import dev.mindforge.domain.model.PageType;
-import dev.mindforge.domain.model.WikiPage;
 import dev.mindforge.domain.model.TokenEstimate;
+import dev.mindforge.domain.model.WikiPage;
 import dev.mindforge.domain.port.InteractionStore;
 import dev.mindforge.domain.port.PageSearchQuery;
 import dev.mindforge.domain.port.WikiStore;
@@ -98,7 +99,7 @@ class QueryServiceTest {
     void shouldRouteOverTheLexicalShortlistWhenTheIndexIsPastTheCeiling() {
         givenSession();
         givenAnOversizedIndex();
-        IndexEntry hit = new IndexEntry("concepts/mitoza", "Mitoza", "Podział komórki.", PageType.CONCEPT);
+        IndexEntry hit = makeEntry("concepts/mitoza", "Mitoza", "Podział komórki.");
         when(search.search(eq(KB), any(), eq(20))).thenReturn(List.of(hit));
         gateway.answer(Prompts.SELECT, "{\"paths\": []}");
         gateway.answer(Prompts.ANSWER, "{\"answer\": \"Odpowiedź.\", \"citations\": []}");
@@ -125,10 +126,9 @@ class QueryServiceTest {
     }
 
     private void givenAnOversizedIndex() {
-        List<IndexEntry> entries = new java.util.ArrayList<>();
+        List<IndexEntry> entries = new ArrayList<>();
         for (int i = 0; i < 1_000; i++) {
-            entries.add(new IndexEntry("concepts/inne-" + i, "Inne pojęcie " + i, "Opis. ".repeat(20),
-                PageType.CONCEPT));
+            entries.add(makeEntry("concepts/inne-" + i, "Inne pojęcie " + i, "Opis. ".repeat(20)));
         }
         when(wiki.listIndex(KB)).thenReturn(entries);
     }
@@ -145,6 +145,10 @@ class QueryServiceTest {
         when(interactions.recentTurns(KB, SESSION, 5)).thenReturn(List.of());
         when(wiki.listIndex(KB)).thenReturn(List.of());
         when(wiki.liveSupersessionsOf(eq(KB), any())).thenReturn(List.of());
+    }
+
+    private static IndexEntry makeEntry(String path, String title, String description) {
+        return new IndexEntry(path, title, description, PageType.CONCEPT);
     }
 
     private static WikiPage makePage(String path, String body) {

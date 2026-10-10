@@ -2,6 +2,7 @@ package dev.mindforge.application.service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -16,8 +17,8 @@ import dev.mindforge.agent.PageSelector;
 import dev.mindforge.application.wiki.IndexRenderer;
 import dev.mindforge.application.wiki.PageRenderer;
 import dev.mindforge.domain.model.AnswerDraft;
-import dev.mindforge.domain.model.Interaction;
 import dev.mindforge.domain.model.IndexEntry;
+import dev.mindforge.domain.model.Interaction;
 import dev.mindforge.domain.model.InteractionTurn;
 import dev.mindforge.domain.model.LiveSupersession;
 import dev.mindforge.domain.model.NotFoundException;
@@ -45,6 +46,11 @@ public class QueryService {
     private static final int TERMS_PER_QUESTION = 6;
     private static final int HITS_PER_TERM = 20;
     private static final int MIN_TERM_LENGTH = 4;
+    /** A word this long loses {@link #INFLECTION_LETTERS} so a Polish inflection still matches its stem. */
+    private static final int MIN_TRIMMED_LENGTH = 6;
+    private static final int INFLECTION_LETTERS = 2;
+    /** Per entry line: the bullet, brackets, parentheses, leading slash and {@code .md} around title and path. */
+    private static final int ENTRY_MARKUP_TOKENS = 8;
     /** Headroom for the frontmatter, the two headings and link-text escaping around the estimated entry lines. */
     private static final int RENDER_OVERHEAD_TOKENS = 200;
 
@@ -127,7 +133,7 @@ public class QueryService {
         List<IndexEntry> fitted = new ArrayList<>();
         int tokens = RENDER_OVERHEAD_TOKENS;
         for (IndexEntry entry : candidates) {
-            tokens += TokenEstimate.of(entry.title() + entry.path() + entry.description()) + 8;
+            tokens += TokenEstimate.of(entry.title() + entry.path() + entry.description()) + ENTRY_MARKUP_TOKENS;
             if (tokens > IndexRenderer.RETRIEVAL_CEILING_TOKENS) {
                 break;
             }
@@ -136,13 +142,15 @@ public class QueryService {
         return IndexRenderer.render(fitted);
     }
 
-    /** Longest words first, each cut by two letters so a Polish inflection still matches its stem as a substring. */
+    /** Longest words first, long ones stem-trimmed so a Polish inflection still matches as a substring. */
     private static List<String> terms(String question) {
-        return new LinkedHashSet<>(java.util.Arrays.asList(question.toLowerCase().split("[^\\p{L}\\p{N}]+"))).stream()
+        return new LinkedHashSet<>(Arrays.asList(question.toLowerCase().split("[^\\p{L}\\p{N}]+"))).stream()
             .filter(word -> word.length() >= MIN_TERM_LENGTH)
             .sorted(Comparator.comparingInt(String::length).reversed())
             .limit(TERMS_PER_QUESTION)
-            .map(word -> word.length() >= 6 ? word.substring(0, word.length() - 2) : word)
+            .map(word -> word.length() >= MIN_TRIMMED_LENGTH
+                ? word.substring(0, word.length() - INFLECTION_LETTERS)
+                : word)
             .toList();
     }
 
