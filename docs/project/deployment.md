@@ -21,7 +21,7 @@ gate then measures unit tests only and will fail; pair it with `-Djacoco.skip=tr
 
 ```bash
 docker compose up --build
-curl http://localhost:8080/health   # {"status":"UP"}
+curl http://localhost:8080/actuator/health   # {"status":"UP"}
 ```
 
 `compose.yml` starts `postgres` (data in the `postgres-data` volume) and `app`, which waits for PostgreSQL to be
@@ -46,7 +46,7 @@ Every variable is listed in `env.example`. The ones a deployment must set:
 1. Create a project from the repository; Railway builds the `Dockerfile` (see `railway.json`).
 2. Add the PostgreSQL plugin and set `DATABASE_URL` to its JDBC form, with the username and password variables.
 3. Set `JWT_SECRET`, `OPENROUTER_API_KEY` and the OAuth variables.
-4. Keep **one replica**. The health check is `/health`.
+4. Keep **one replica**. The health check is `/actuator/health`.
 
 On Render, create a Docker web service from the same repository with the same variables and health check path. The
 `Procfile` covers buildpack platforms that run a pre-built JAR.

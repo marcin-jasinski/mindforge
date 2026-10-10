@@ -2,7 +2,7 @@
 id: R16
 title: Error messages echo internals, and actuator sits at the root behind permitAll
 type: security
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -91,4 +91,13 @@ where a future one-line change to add a metrics endpoint quietly publishes secre
 
 ## Resolution
 
-<!-- filled on close -->
+1. `GlobalExceptionHandler`: framework errors (`ErrorResponse` exceptions) now return fixed text
+   (`Unsupported media type`, `Missing request parameter: <name>`, else the status reason phrase) and log the
+   full message at WARN. `HttpMessageNotReadableException` is not a Spring `ErrorResponse`, so the catch-all
+   was answering malformed JSON with a 500; it now has its own handler returning 400 `Malformed request body`.
+2. Option 1 taken: actuator base path is `/actuator`; `compose.yml`, `railway.json` and `deployment.md` updated.
+   `SecurityConfig` also permits only `/actuator/health/**` and requires authentication for the rest of
+   `/actuator/**`, so a future `exposure.include` addition is denied by default (the root `permitAll` stays for the
+   SPA). Comment at the base-path line states the rule.
+3. Tests in `ApiFlowTest`: malformed JSON gets a fixed message with no payload echo or type name;
+   `/actuator/health` is 200 and `/actuator/env` is 401/403. `mvn verify` passes.

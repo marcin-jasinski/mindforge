@@ -18,7 +18,8 @@ import dev.mindforge.infrastructure.security.JwtService;
 /**
  * The filter chain: every {@code /api/**} request except register, login and logout needs the session cookie, and
  * gets 401 rather than a redirect without it. CSRF is off for the API, whose cookie is {@code SameSite=Lax}; OAuth
- * sign-in keeps Spring Security's state validation. The SPA and static files are public.
+ * sign-in keeps Spring Security's state validation. Only the health probe is public under
+ * {@code /actuator}; the SPA and static files are public.
  */
 @Configuration
 @EnableWebSecurity
@@ -33,7 +34,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(requests -> requests
                 .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                 .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/logout").permitAll()
-                .requestMatchers("/api/**").authenticated()
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                .requestMatchers("/api/**", "/actuator/**").authenticated()
                 .anyRequest().permitAll())
             .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),

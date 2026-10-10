@@ -65,7 +65,8 @@ server:
 management:
   endpoints:
     web:
-      base-path: /
+      # Only /actuator/health is public (SecurityConfig); adding to exposure.include needs a matching rule there.
+      base-path: /actuator
       exposure:
         include: health
   endpoint:

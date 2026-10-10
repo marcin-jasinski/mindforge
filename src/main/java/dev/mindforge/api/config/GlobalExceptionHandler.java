@@ -5,10 +5,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import dev.mindforge.api.dto.response.ErrorResponse;
@@ -126,6 +129,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ErrorResponse.of("Bad Request", "VALIDATION", detail));
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ErrorResponse> unreadable(HttpMessageNotReadableException e) {
+        log.warn("Rejected request body: {}", e.getMessage());
+        return ResponseEntity.badRequest().body(ErrorResponse.of("Bad Request", "REQUEST_ERROR", "Malformed request body"));
+    }
+
     @ExceptionHandler({DeadlineExceededException.class, AIGatewayUnavailableException.class,
         ModelOutputException.class})
     ResponseEntity<ErrorResponse> modelUnavailable(RuntimeException e) {
@@ -136,12 +145,23 @@ public class GlobalExceptionHandler {
     ResponseEntity<ErrorResponse> unexpected(Exception e) {
         if (e instanceof org.springframework.web.ErrorResponse framework) {
             HttpStatusCode status = framework.getStatusCode();
+            log.warn("Rejected request: {}", e.getMessage());
             return ResponseEntity.status(status).body(ErrorResponse.of(String.valueOf(status.value()), "REQUEST_ERROR",
-                e.getMessage()));
+                safeDetail(e, status)));
         }
         log.error("Unhandled exception", e);
         return ResponseEntity.internalServerError()
             .body(ErrorResponse.of("Internal Server Error", "INTERNAL", "Something went wrong"));
+    }
+
+    /** Framework messages carry parser locations and payload snippets; only fixed text goes to the client. */
+    private static String safeDetail(Exception e, HttpStatusCode status) {
+        return switch (e) {
+            case HttpMediaTypeNotSupportedException ignored -> "Unsupported media type";
+            case MissingServletRequestParameterException missing ->
+                "Missing request parameter: " + missing.getParameterName();
+            default -> status instanceof HttpStatus known ? known.getReasonPhrase() : "Request error";
+        };
     }
 
     private static ResponseEntity<ErrorResponse> error(HttpStatus status, String code, Exception e) {

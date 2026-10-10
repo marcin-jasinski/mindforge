@@ -254,6 +254,23 @@ class ApiFlowTest extends TestContainerBase {
     }
 
     @Test
+    void aMalformedBodyIsAnsweredWithAFixedMessageThatEchoesNothing() {
+        Response response = new Client().postRaw("/api/v1/auth/login", "{\"email\": \"secret-snippet\", ");
+
+        assertThat(response.status()).isEqualTo(400);
+        assertThat(response.json().get("detail").asString()).isEqualTo("Malformed request body");
+        assertThat(response.body()).doesNotContain("secret-snippet").doesNotContain("dev.mindforge");
+    }
+
+    @Test
+    void onlyTheActuatorHealthProbeIsPublic() {
+        Client client = new Client();
+
+        assertThat(client.get("/actuator/health").status()).isEqualTo(200);
+        assertThat(client.get("/actuator/env").status()).isIn(401, 403);
+    }
+
+    @Test
     void theOpenApiDocumentIsServed() {
         Response docs = new Client().get("/v3/api-docs");
 
@@ -458,6 +475,11 @@ class ApiFlowTest extends TestContainerBase {
         Response post(String path, Object body) {
             return send(request(path).header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(body))));
+        }
+
+        Response postRaw(String path, String body) {
+            return send(request(path).header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body)));
         }
 
         Response upload(String kb, String filename, String markdown, boolean newVersion) {
