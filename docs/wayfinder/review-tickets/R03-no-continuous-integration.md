@@ -2,7 +2,7 @@
 id: R03
 title: There is no CI
 type: chore
-status: open
+status: closed
 severity: high
 assignee:
 blocked_by: [R01, R02]
@@ -57,4 +57,14 @@ no caching cleverness.
 
 ## Resolution
 
-<!-- filled on close -->
+Added `.github/workflows/ci.yml` and a README status badge.
+
+- `linux` job (ubuntu-latest, Temurin 21, maven cache): `mvn -B verify` (unit + failsafe integration
+  tests, jacoco 70% gate, and the frontend build, which the pom already runs through
+  frontend-maven-plugin), then uploads `target/site/jacoco/`.
+- `windows` job (windows-latest): `mvn -B test`, unit tests only. Decision: GitHub's Windows runners
+  cannot run Linux containers, so Testcontainers integration tests cannot run there; the Windows leg
+  exists to catch R01-style platform failures in the unit suite.
+- Triggers on every push and pull request.
+- Not done: the deliberate-failure check (needs a remote run), and frontend tests (blocked on R04).
+  YAML parses locally; first real run happens on push.
