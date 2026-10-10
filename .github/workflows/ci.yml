@@ -38,6 +38,6 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: maven
-      # Unit tests only: windows runners have no Linux Docker for Testcontainers.
-      # This leg exists to catch Windows-only failures (R01: line endings).
-      - run: mvn -B test
+      # Everything but the integration tests and the coverage gate they feed: windows runners have no Linux Docker
+      # for Testcontainers. Unit tests, the frontend build and the JAR catch Windows-only failures (R01: line endings).
+      - run: mvn -B package
