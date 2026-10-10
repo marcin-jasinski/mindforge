@@ -15,6 +15,8 @@ are resolved or explicitly accepted.
 
 The map is done when every ticket below is `status: closed`.
 
+**Status: done.** All tickets R01-R20 are closed.
+
 ## Notes
 
 **What was reviewed.** The diff from the repository root commit `08f4542` to `HEAD`
