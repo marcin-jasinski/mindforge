@@ -1,7 +1,9 @@
 package dev.mindforge.integration.export;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.ByteArrayOutputStream;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,8 @@ import dev.mindforge.domain.port.IngestRunRepository;
 import dev.mindforge.domain.port.WikiStore;
 import dev.mindforge.infrastructure.export.BundleConformanceValidator;
 import dev.mindforge.infrastructure.export.BundleExporter;
+import dev.mindforge.infrastructure.export.BundleNotConformantException;
+import dev.mindforge.support.ExportedBundle;
 import dev.mindforge.support.TestContainerBase;
 
 @Tag("integration")
@@ -87,10 +91,9 @@ class BundleExportTest extends TestContainerBase {
             + " findings = '[{\"text\":\"SEKRET-FINDING\"}]'::jsonb, step_versions = '{\"PageWriter\":\"SEKRET\"}'::jsonb,"
             + " cost = 12.5 WHERE run_id = ?", ingest);
 
-        BundleExporter.Bundle bundle = exporter.export(kbId, "Biologia: podstawy");
+        Map<String, String> files = ExportedBundle.files(exporter, kbId, "Biologia: podstawy");
 
-        Map<String, String> files = bundle.files();
-        assertThat(bundle.root()).isEqualTo("biologia-podstawy-okf");
+        assertThat(BundleExporter.root("Biologia: podstawy")).isEqualTo("biologia-podstawy-okf");
         assertThat(files).containsOnlyKeys("index.md", "log.md", "concepts/mejoza.md", "concepts/mitoza.md",
             "sources/bio-1.md");
         assertThat(BundleConformanceValidator.violations(files)).isEmpty();
@@ -109,11 +112,11 @@ class BundleExportTest extends TestContainerBase {
 
     @Test
     void anEmptyKnowledgeBaseExportsAValidBundle() {
-        BundleExporter.Bundle bundle = exporter.export(insertKnowledgeBase(), "細胞");
+        Map<String, String> files = ExportedBundle.files(exporter, insertKnowledgeBase(), "細胞");
 
-        assertThat(bundle.files()).containsOnlyKeys("index.md", "log.md");
-        assertThat(BundleConformanceValidator.violations(bundle.files())).isEmpty();
-        assertThat(bundle.root()).matches("x-[0-9a-f]{8}-okf");
+        assertThat(files).containsOnlyKeys("index.md", "log.md");
+        assertThat(BundleConformanceValidator.violations(files)).isEmpty();
+        assertThat(BundleExporter.root("細胞")).matches("x-[0-9a-f]{8}-okf");
     }
 
     @Test
@@ -124,7 +127,7 @@ class BundleExportTest extends TestContainerBase {
         snapshot.setReadOnly(true);
         snapshot.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
 
-        BundleExporter.Bundle bundle = snapshot.execute(status -> {
+        Map<String, String> files = snapshot.execute(status -> {
             jdbc.queryForObject("SELECT COUNT(*) FROM wiki_pages WHERE knowledge_base_id = ?", Integer.class, kbId);
             try (ExecutorService other = Executors.newSingleThreadExecutor()) {
                 other.submit(() -> completedRun(kbId, lesson, runId -> wiki.savePage(kbId, new PageWrite(UUID.randomUUID(),
@@ -132,13 +135,26 @@ class BundleExportTest extends TestContainerBase {
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
-            return exporter.export(kbId, "Biologia");
+            return ExportedBundle.files(exporter, kbId, "Biologia");
         });
 
-        assertThat(bundle.files()).containsOnlyKeys("index.md", "log.md");
-        assertThat(bundle.files().get("index.md")).doesNotContain("mitoza");
-        assertThat(bundle.files().get("log.md")).doesNotContain("Ingest");
-        assertThat(exporter.export(kbId, "Biologia").files()).containsKey("concepts/mitoza.md");
+        assertThat(files).containsOnlyKeys("index.md", "log.md");
+        assertThat(files.get("index.md")).doesNotContain("mitoza");
+        assertThat(files.get("log.md")).doesNotContain("Ingest");
+        assertThat(ExportedBundle.files(exporter, kbId, "Biologia")).containsKey("concepts/mitoza.md");
+    }
+
+    @Test
+    void aNonConformantBundleIsRejectedBeforeAByteIsWritten() {
+        UUID kbId = insertKnowledgeBase();
+        UUID lesson = insertDocument(kbId, "bio-1", "Lekcja", "API");
+        completedRun(kbId, lesson, runId -> wiki.savePage(kbId, new PageWrite(UUID.randomUUID(), "concepts/log",
+            "Log", "Opis.", PageType.CONCEPT, "Treść."), runId));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        assertThatThrownBy(() -> exporter.export(kbId, "Biologia", out))
+            .isInstanceOf(BundleNotConformantException.class);
+        assertThat(out.size()).isZero();
     }
 
     // ---------------------------------------------------------------------------

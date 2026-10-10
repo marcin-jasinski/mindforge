@@ -2,7 +2,7 @@
 id: R18
 title: Export materializes the whole bundle behind a streaming facade
 type: performance
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -67,4 +67,19 @@ Do not add a queue, a job table or an async export flow — Phase 9b deliberatel
 
 ## Resolution
 
-<!-- filled on close -->
+Option A, two passes in one snapshot. `BundleExporter.export(kbId, name, out)` (REPEATABLE_READ, read-only)
+validates the structure first - index.md, log.md and every page's path and frontmatter, built from `listIndex`
+rows without bodies - and throws `BundleNotConformantException` before the first byte. It then streams
+`index.md`, `log.md` and the pages into the `ZipOutputStream`, reading bodies, supersession notes and citations
+50 pages at a time. `Bundle` and `writeZip` are gone; the controller streams `exporter.export(...)` and takes the
+filename from `BundleExporter.root(name)`.
+
+- Validation runs on frontmatter alone (timestamp stubbed): no OKF section 9 rule reads a body, which is stored
+  verbatim. The validator is unchanged.
+- A conformance failure now surfaces inside the streaming callback, still before any body byte; covered by
+  `aNonConformantBundleIsRejectedBeforeAByteIsWritten` (zero bytes written).
+- Heap now holds the index rows plus one 50-page chunk instead of every body twice. Not measured on a large
+  knowledge base; the saving is structural (bodies are no longer retained across the write). Remaining O(pages)
+  state is the metadata rows and the index/log text.
+- Tests read the zip back through `support/ExportedBundle`; the three `BundleExportTest` cases and the snapshot
+  test pass under `mvn verify`.

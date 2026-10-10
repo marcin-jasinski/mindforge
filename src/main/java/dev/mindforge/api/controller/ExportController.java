@@ -36,11 +36,11 @@ public class ExportController {
     @GetMapping(value = "/api/v1/knowledge-bases/{kbId}/export", produces = "application/zip")
     public ResponseEntity<StreamingResponseBody> export(@AuthenticationPrincipal CurrentUser user,
                                                         @PathVariable UUID kbId) {
-        BundleExporter.Bundle bundle = exporter.export(kbId, knowledgeBases.get(kbId, user.userId()).name());
+        String name = knowledgeBases.get(kbId, user.userId()).name();
         return ResponseEntity.ok()
             .contentType(ZIP)
             .header(HttpHeaders.CONTENT_DISPOSITION,
-                ContentDisposition.attachment().filename(bundle.root() + ".zip").build().toString())
-            .body(out -> BundleExporter.writeZip(bundle, out));
+                ContentDisposition.attachment().filename(BundleExporter.root(name) + ".zip").build().toString())
+            .body(out -> exporter.export(kbId, name, out));
     }
 }
