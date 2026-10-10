@@ -83,11 +83,11 @@ where a future one-line change to add a metrics endpoint quietly publishes secre
 
 ## Acceptance criteria
 
-- [ ] Framework error responses carry fixed, safe messages; full detail is logged, not returned.
-- [ ] A test posts malformed JSON and asserts the response body contains no type name and no
+- [x] Framework error responses carry fixed, safe messages; full detail is logged, not returned.
+- [x] A test posts malformed JSON and asserts the response body contains no type name and no
       payload echo.
-- [ ] Actuator is either relocated or protected by an explicit authenticated-by-default rule.
-- [ ] Container and platform healthchecks still pass (`compose.yml`, `railway.json`).
+- [x] Actuator is either relocated or protected by an explicit authenticated-by-default rule.
+- [x] Container and platform healthchecks still pass (`compose.yml`, `railway.json`).
 
 ## Resolution
 
@@ -101,3 +101,7 @@ where a future one-line change to add a metrics endpoint quietly publishes secre
    SPA). Comment at the base-path line states the rule.
 3. Tests in `ApiFlowTest`: malformed JSON gets a fixed message with no payload echo or type name;
    `/actuator/health` is 200 and `/actuator/env` is 401/403. `mvn verify` passes.
+
+Follow-up review (2026-10-10): the old `/health` path used to fall through to the SPA and answer `index.html` with
+200, so a stale platform health check would always report healthy. It now 404s, as does any unknown `/actuator/`
+path. `deployment.md` tells existing Render services to update the path, and `ApiFlowTest` asserts the 404.

@@ -55,9 +55,9 @@ than 60% coverage of template bindings.
 
 ## Acceptance criteria
 
-- [ ] `npm test` in `frontend/` runs and passes.
-- [ ] Diff computation, SSE progress, wiki-link rendering and the revert flow each have a test.
-- [ ] The frontend test command runs in CI (coordinate with R03).
+- [x] `npm test` in `frontend/` runs and passes.
+- [x] Diff computation, SSE progress, wiki-link rendering and the revert flow each have a test.
+- [x] The frontend test command runs in CI (coordinate with R03).
 
 ## Resolution
 
@@ -69,3 +69,6 @@ revert flow in `RunReportView` (success and busy-KB error). No component-templat
 coverage target, per the ticket. The revert button currently has no confirmation step, so the
 test covers the request and its error handling only. CI: the linux job runs `npm ci && npm test`
 in `frontend/` before `mvn verify`.
+
+Follow-up review (2026-10-10): Revert now asks for confirmation (native `confirm()`) before it posts.
+`run-report.spec.ts` covers a confirmed revert, a declined one (nothing sent) and the busy-KB error. 18 tests pass.

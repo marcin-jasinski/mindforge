@@ -64,11 +64,11 @@ unimplemented. Do not leave the mismatch.
 
 ## Acceptance criteria
 
-- [ ] The four LLM-spending endpoint groups are rate limited per user.
-- [ ] Limits are configurable without a rebuild.
-- [ ] `RateLimit-*` headers are present, and exhaustion returns 429 with `Retry-After`.
-- [ ] An integration test proves the limit fires and resets.
-- [ ] The SPA handles 429 distinctly.
+- [x] The four LLM-spending endpoint groups are rate limited per user.
+- [x] Limits are configurable without a rebuild.
+- [x] `RateLimit-*` headers are present, and exhaustion returns 429 with `Retry-After`.
+- [x] An integration test proves the limit fires and resets.
+- [x] The SPA handles 429 distinctly.
 
 ## Resolution
 
@@ -82,3 +82,8 @@ One allowance per user across all of them, configured under `mindforge.rate-limi
 interceptor shows a distinct "slow down" toast on 429. `api.md` now describes the real behaviour.
 `RateLimitTest` proves the limit fires and resets. Simplifications: one shared bucket rather than per-endpoint
 limits; fixed window; not distributed (one live instance).
+
+Follow-up review (2026-10-10): quiz grading (`POST .../quiz-sessions/*/answers`, one model call per answer) is now
+limited too. `RateLimitExceededException` moved from `domain.model` to `api.config`, since only the API layer throws
+it. Header names stay `RateLimit-Limit/Remaining/Reset`, the names `api.md` documents. Rejected requests still
+count, on purpose: the limiter caps attempts, not successes.

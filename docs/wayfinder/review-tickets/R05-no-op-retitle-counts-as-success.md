@@ -85,10 +85,10 @@ that is a second defect to record here.
 
 ## Acceptance criteria
 
-- [ ] `succeeded` counts a retitle only when the title actually changes.
-- [ ] A new test in `IngestRunTest`: a conversation edit consisting solely of a retitle to the
+- [x] `succeeded` counts a retitle only when the title actually changes.
+- [x] A new test in `IngestRunTest`: a conversation edit consisting solely of a retitle to the
       existing title ends `FAILED` with reason `"no applicable change"` and `retryable = false`.
-- [ ] The existing test `aConversationEditDeletesAndRetitlesLiveConceptsAndDropsWhatItMayNotChange`
+- [x] The existing test `aConversationEditDeletesAndRetitlesLiveConceptsAndDropsWhatItMayNotChange`
       still passes — it exercises a retitle that *does* change the title.
 
 ## Resolution

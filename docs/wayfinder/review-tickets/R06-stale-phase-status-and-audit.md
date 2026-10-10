@@ -66,10 +66,10 @@ precisely the audience this repository's documentation is written for. An agent 
 
 ## Acceptance criteria
 
-- [ ] `implementation-plan.md` and `roadmap.md` agree on Phase 3b's status.
-- [ ] No completion checklist contains an item that cannot be satisfied in the repository.
-- [ ] `verification/spec-audit.md` is deleted, or clearly marked historical.
-- [ ] `docs/INDEX.md` matches whatever was decided.
+- [x] `implementation-plan.md` and `roadmap.md` agree on Phase 3b's status.
+- [x] No completion checklist contains an item that cannot be satisfied in the repository.
+- [x] `verification/spec-audit.md` is deleted, or clearly marked historical.
+- [x] `docs/INDEX.md` matches whatever was decided.
 
 ## Resolution
 

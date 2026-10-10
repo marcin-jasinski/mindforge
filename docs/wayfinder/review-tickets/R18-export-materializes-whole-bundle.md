@@ -58,11 +58,11 @@ Do not add a queue, a job table or an async export flow — Phase 9b deliberatel
 ## Acceptance criteria
 
 - [ ] Peak heap during an export does not scale with the number of pages.
-- [ ] An invalid bundle still fails before any byte reaches the client — prove it with the
+- [x] An invalid bundle still fails before any byte reaches the client — prove it with the
       existing conformance test.
-- [ ] `BundleExportTest`'s three cases still pass, including
+- [x] `BundleExportTest`'s three cases still pass, including
       `anIngestCommittedDuringAnExportDoesNotTearTheBundle` (the snapshot guarantee).
-- [ ] Export stays synchronous.
+- [x] Export stays synchronous.
 - [ ] Measure peak heap before and after on a large knowledge base; record it here.
 
 ## Resolution
@@ -83,3 +83,15 @@ filename from `BundleExporter.root(name)`.
   state is the metadata rows and the index/log text.
 - Tests read the zip back through `support/ExportedBundle`; the three `BundleExportTest` cases and the snapshot
   test pass under `mvn verify`.
+
+Follow-up review (2026-10-10):
+- The snapshot transaction used to stay open for the whole download, holding a pool connection at the client's
+  speed. `ExportController` now spools the zip to a temp file inside the snapshot, then streams the file and
+  deletes it. The connection is released before the first byte, and a conformance failure is now a 500 before any
+  response starts.
+- The exporter clears the persistence context after each 50-page chunk, so loaded page entities no longer pile up
+  in the Hibernate session.
+- Still O(pages): the index rows and the rendered `index.md`/`log.md` (metadata, not bodies). So the first
+  criterion stays unticked, and the heap measurement has not been run.
+- Citation integrity is not checked in pass one: `BundleConformanceValidator` has no citation rule, and never had
+  one.

@@ -65,10 +65,10 @@ no `@OneToMany`/`@ManyToOne` anywhere, and the V2-V4 migrations index foreign ke
 
 ## Acceptance criteria
 
-- [ ] The turns query fetches at most what `QueryService` uses, with the count declared once.
-- [ ] `log.md`'s contract is stated here, and `findLogEntries` is bounded or paginated accordingly.
-- [ ] Exported bundles still contain whatever `log.md` is contractually required to contain.
-- [ ] A test pins the turn-fetch bound — e.g. 20 turns stored, at most 5 rows read.
+- [x] The turns query fetches at most what `QueryService` uses, with the count declared once.
+- [x] `log.md`'s contract is stated here, and `findLogEntries` is bounded or paginated accordingly.
+- [x] Exported bundles still contain whatever `log.md` is contractually required to contain.
+- [x] A test pins the turn-fetch bound — e.g. 20 turns stored, at most 5 rows read.
 
 ## Resolution
 

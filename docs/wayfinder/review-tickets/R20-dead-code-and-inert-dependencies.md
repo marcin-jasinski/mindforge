@@ -77,12 +77,12 @@ each have confirmed importers, checked per file.
 
 ## Acceptance criteria
 
-- [ ] `CostTier.java` is deleted.
-- [ ] `spring-boot-starter-oauth2-resource-server` is removed; OAuth2 **client** login still works
+- [x] `CostTier.java` is deleted.
+- [x] `spring-boot-starter-oauth2-resource-server` is removed; OAuth2 **client** login still works
       and `ApiFlowTest` still passes.
-- [ ] `spring-boot-starter-cache` and `spring.cache.type` are removed; the raw `caffeine`
+- [x] `spring-boot-starter-cache` and `spring.cache.type` are removed; the raw `caffeine`
       dependency stays and the quiz session cache is unaffected.
-- [ ] `mvn verify` green; the built JAR still starts.
+- [x] `mvn verify` green; the built JAR still starts.
 
 ## Resolution
 

@@ -89,11 +89,11 @@ not 500.
 
 ## Acceptance criteria
 
-- [ ] `ModelOutputException` maps to 503 `MODEL_UNAVAILABLE`.
-- [ ] It no longer logs at `ERROR` as "Unhandled exception".
-- [ ] `ModelJsonTest` exists and covers the six cases above.
-- [ ] An integration test asserts the 503 end to end.
-- [ ] Consider whether `ModelJson`'s first-brace/last-brace extraction should be tightened; if it
+- [x] `ModelOutputException` maps to 503 `MODEL_UNAVAILABLE`.
+- [x] It no longer logs at `ERROR` as "Unhandled exception".
+- [x] `ModelJsonTest` exists and covers the six cases above.
+- [x] An integration test asserts the 503 end to end.
+- [x] Consider whether `ModelJson`'s first-brace/last-brace extraction should be tightened; if it
       is left as is, say why here.
 
 ## Resolution
@@ -106,3 +106,8 @@ not 500.
 breaks the read. Added `ModelJsonTest` (six cases) and an `ApiFlowTest` case asserting a Query turn with unreadable
 output returns 503. Note: the missing-field case is enforced by the services (e.g. `PageWriter`), so `ModelJson`
 returns the null field and the test documents that.
+
+Follow-up review (2026-10-10): the 503 put `e.getMessage()` in the response, and that message embeds the parser's
+error text, which can quote the completion and internal type names (against R16). `ModelOutputException` now has
+its own handler: fixed detail `The model returned unreadable output`, full message logged at WARN. `ApiFlowTest`
+asserts the fixed detail.

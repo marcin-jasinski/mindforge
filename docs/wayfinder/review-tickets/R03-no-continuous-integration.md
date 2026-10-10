@@ -50,10 +50,10 @@ no caching cleverness.
 
 ## Acceptance criteria
 
-- [ ] A push to `develop` runs the full suite and the coverage gate automatically.
-- [ ] The workflow runs on both Linux and Windows.
+- [x] A push to `develop` runs the full suite and the coverage gate automatically.
+- [x] The workflow runs on both Linux and Windows.
 - [ ] A failing test fails the workflow — verified once by deliberately breaking a test.
-- [ ] The README carries a status badge.
+- [x] The README carries a status badge.
 
 ## Resolution
 
@@ -68,3 +68,7 @@ Added `.github/workflows/ci.yml` and a README status badge.
 - Triggers on every push and pull request.
 - Not done: the deliberate-failure check (needs a remote run), and frontend tests (blocked on R04).
   YAML parses locally; first real run happens on push.
+
+Follow-up review (2026-10-10): the Windows leg now runs `mvn -B package` (unit tests, frontend build, JAR) rather
+than `mvn -B test`. `mvn -B verify` cannot run there: it would run the Testcontainers integration tests, which need
+Linux containers, and the jacoco gate they feed. The deliberate-failure check is still open and needs a pushed run.

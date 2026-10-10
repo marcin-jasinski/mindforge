@@ -72,10 +72,10 @@ Then:
 
 ## Acceptance criteria
 
-- [ ] No `Map<String, Object>` remains in `dev.mindforge.domain.port` or `dev.mindforge.domain.model`.
-- [ ] Failure construction is type-checked at every site.
-- [ ] `RunDtoMapper`'s string-key reads and the `text(...)` helper are gone.
-- [ ] Existing persisted run rows still render correctly in the run report — prove it with an
+- [x] No `Map<String, Object>` remains in `dev.mindforge.domain.port` or `dev.mindforge.domain.model`.
+- [x] Failure construction is type-checked at every site.
+- [x] `RunDtoMapper`'s string-key reads and the `text(...)` helper are gone.
+- [x] Existing persisted run rows still render correctly in the run report — prove it with an
       integration test that reads a row written before the change, or confirm the JSON shape is
       byte-identical.
 

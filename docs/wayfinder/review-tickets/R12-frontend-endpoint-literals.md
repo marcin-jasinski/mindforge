@@ -43,10 +43,10 @@ of the ticket.
 
 ## Acceptance criteria
 
-- [ ] No endpoint path literal remains in a component under `frontend/src/app/pages/`.
-- [ ] Each feature service is injected with `inject()` and exposes signals or observables, per
+- [x] No endpoint path literal remains in a component under `frontend/src/app/pages/`.
+- [x] Each feature service is injected with `inject()` and exposes signals or observables, per
       `angular-patterns.md`.
-- [ ] A hypothetical `/api/v1` prefix would be a change in one place per resource area.
+- [x] A hypothetical `/api/v1` prefix would be a change in one place per resource area.
 
 ## Resolution
 

@@ -102,3 +102,13 @@ Closed. Recommended options taken.
 - **Not done**: the ~1,000-page before/after measurement was not run; the bound is asserted by test instead
   (prompt <= ceiling + template). Prefilter recall is untested against real Polish questions; per ADR 0016 vector
   search returns only if measurement shows misses.
+
+Follow-up review (2026-10-10):
+- Lint's link targets are again only live Concepts and Source Summaries, as before this ticket. Accepting any index
+  path had let imported custom-type pages receive links. `LintAndHealthTest.aFullLintLinksOnlyToConceptsAndSourceSummaries`
+  pins this.
+- A round's chunks now run on a fixed pool of 4 virtual threads instead of one thread per chunk, which keeps a
+  chunk's target reads below the connection pool.
+- Open: the prefilter is `PageSearchQuery` (ILIKE on title and description, `plainto_tsquery` on body), not trigram.
+  A stem-trimmed term matches a body only as a whole lexeme, so body recall for inflected words is weak. A
+  `pg_trgm` index is the upgrade, but it needs a migration and an extension the deployment must allow.

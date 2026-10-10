@@ -77,11 +77,11 @@ in `KnowledgeBaseService`'s delete guard, the `step_versions` audit trail, and t
 
 ## Acceptance criteria
 
-- [ ] `StubAIGatewayTest` is deleted or reduced to a single fallback-behaviour test under `support/`.
-- [ ] The delete-guard test arranges its scenario and has a passing-case sibling.
-- [ ] A test asserts `step_versions` content after a run, not just that constants exist.
-- [ ] The retry test asserts attempt 3's terminal state.
-- [ ] Coverage does not drop below the 70% gate (it is 91.1% today, so there is room).
+- [x] `StubAIGatewayTest` is deleted or reduced to a single fallback-behaviour test under `support/`.
+- [x] The delete-guard test arranges its scenario and has a passing-case sibling.
+- [x] A test asserts `step_versions` content after a run, not just that constants exist.
+- [x] The retry test asserts attempt 3's terminal state.
+- [x] Coverage does not drop below the 70% gate (it is 91.1% today, so there is room).
 
 ## Resolution
 
