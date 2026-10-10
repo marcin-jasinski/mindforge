@@ -23,6 +23,7 @@ import dev.mindforge.domain.model.ModelOutputException;
 import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.NotOwnerException;
 import dev.mindforge.domain.model.QuizFinishedException;
+import dev.mindforge.domain.model.RateLimitExceededException;
 import dev.mindforge.domain.model.RetryNotAllowedException;
 import dev.mindforge.domain.model.RevertNotAllowedException;
 import dev.mindforge.domain.model.UnknownLessonException;
@@ -83,6 +84,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(QuizFinishedException.class)
     ResponseEntity<ErrorResponse> quizFinished(QuizFinishedException e) {
         return error(HttpStatus.CONFLICT, "QUIZ_FINISHED", e);
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    ResponseEntity<ErrorResponse> rateLimited(RateLimitExceededException e) {
+        String seconds = Long.toString(e.retryAfterSeconds());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .header("Retry-After", seconds)
+            .header("RateLimit-Limit", Integer.toString(e.limit()))
+            .header("RateLimit-Remaining", "0")
+            .header("RateLimit-Reset", seconds)
+            .body(ErrorResponse.of(HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(), "RATE_LIMITED", e.getMessage()));
     }
 
     @ExceptionHandler(LessonIdentityException.class)

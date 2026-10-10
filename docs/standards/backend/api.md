@@ -22,7 +22,7 @@ Use query parameters for filtering, sorting, and pagination.
 Return appropriate HTTP status codes (200, 201, 400, 404, 500).
 
 ### Rate Limit Headers
-Include rate limit information in response headers.
+Endpoints that spend model calls (Query turns and edits, Quiz start, upload and retry, Lint) are limited per user, configured under `mindforge.rate-limits`. They return `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`; an exhausted allowance is `429` with `Retry-After` and code `RATE_LIMITED`.
 
 ---
 

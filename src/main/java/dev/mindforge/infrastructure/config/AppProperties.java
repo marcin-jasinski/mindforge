@@ -31,6 +31,12 @@ public class AppProperties {
     @Valid
     private Study study = new Study();
 
+    @Valid
+    private RateLimits rateLimits = new RateLimits();
+
+    public RateLimits getRateLimits() { return rateLimits; }
+    public void setRateLimits(RateLimits rateLimits) { this.rateLimits = rateLimits; }
+
     public Security getSecurity() { return security; }
     public void setSecurity(Security security) { this.security = security; }
 
@@ -46,6 +52,22 @@ public class AppProperties {
     // ---------------------------------------------------------------------------
     // Nested configuration types
     // ---------------------------------------------------------------------------
+
+    /** Per-user cap on the endpoints that spend model calls (Query, Quiz start, upload and retry, Lint). */
+    public static class RateLimits {
+
+        @Positive
+        private int requests = 30;
+
+        @NotNull
+        private Duration window = Duration.ofMinutes(1);
+
+        public int getRequests() { return requests; }
+        public void setRequests(int requests) { this.requests = requests; }
+
+        public Duration getWindow() { return window; }
+        public void setWindow(Duration window) { this.window = window; }
+    }
 
     public static class Study {
 

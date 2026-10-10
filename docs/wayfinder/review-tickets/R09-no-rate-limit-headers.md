@@ -2,7 +2,7 @@
 id: R09
 title: No rate limiting and no rate-limit headers
 type: feature
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -72,4 +72,13 @@ unimplemented. Do not leave the mismatch.
 
 ## Resolution
 
-<!-- filled on close -->
+Implemented the ticket's recommended option: an in-process, per-user limiter (Caffeine, fixed window)
+in a `HandlerInterceptor` (`RateLimitInterceptor`, registered by `RateLimitConfig`) on the POST endpoints that
+spend model calls: query-session messages and edits, quiz-session start, document upload and retry, lint-runs.
+One allowance per user across all of them, configured under `mindforge.rate-limits` (`requests` = 30,
+`window` = PT1M; env `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW`). Responses carry `RateLimit-Limit`,
+`RateLimit-Remaining`, `RateLimit-Reset`; exhaustion throws `RateLimitExceededException`, mapped in
+`GlobalExceptionHandler` to 429 `{error, code: RATE_LIMITED, detail}` with `Retry-After`. The SPA error
+interceptor shows a distinct "slow down" toast on 429. `api.md` now describes the real behaviour.
+`RateLimitTest` proves the limit fires and resets. Simplifications: one shared bucket rather than per-endpoint
+limits; fixed window; not distributed (one live instance).

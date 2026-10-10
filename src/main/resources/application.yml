@@ -79,6 +79,10 @@ mindforge:
     secure-cookies: ${AUTH_SECURE_COOKIES:true}
   upload:
     max-size: ${UPLOAD_MAX_SIZE:50MB}
+  rate-limits:
+    # Per user, across Query turns and edits, Quiz start, upload and retry, and Lint.
+    requests: ${RATE_LIMIT_REQUESTS:30}
+    window: ${RATE_LIMIT_WINDOW:PT1M}
   study:
     quiz-session-ttl: ${QUIZ_SESSION_TTL:PT2H}
   runs:
