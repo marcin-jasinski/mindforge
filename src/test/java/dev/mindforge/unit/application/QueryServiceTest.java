@@ -97,7 +97,7 @@ class QueryServiceTest {
     private void givenSession() {
         when(interactions.getInteraction(KB, SESSION)).thenReturn(Optional.of(new Interaction(SESSION, KB, USER,
             Instant.EPOCH)));
-        when(interactions.turns(KB, SESSION)).thenReturn(List.of());
+        when(interactions.recentTurns(KB, SESSION, 5)).thenReturn(List.of());
         when(wiki.listIndex(KB)).thenReturn(List.of());
         when(wiki.liveSupersessionsOf(eq(KB), any())).thenReturn(List.of());
     }

@@ -93,8 +93,23 @@ class QueryAndEditTest extends TestContainerBase {
 
         assertThat(interactions.listForUser(kbId, owner))
             .containsExactly(new TurnSummary("Drugie?", "Nie."), new TurnSummary("Pierwsze?", "Tak."));
-        assertThat(interactions.turns(kbId, mine.interactionId()).getFirst().usedPagePaths())
+        assertThat(interactions.recentTurns(kbId, mine.interactionId(), 5).getFirst().usedPagePaths())
             .containsExactly("concepts/mitoza");
+    }
+
+    @Test
+    void recentTurnsReadsOnlyTheLastNOldestFirst() {
+        UUID kbId = insertKnowledgeBase();
+        Interaction session = interactions.createInteraction(kbId,
+            new Interaction(UUID.randomUUID(), kbId, ownerOf(kbId), Instant.now()));
+        Instant start = Instant.now().minusSeconds(100);
+        for (int i = 0; i < 20; i++) {
+            interactions.addTurn(kbId, session.interactionId(), new InteractionTurn(UUID.randomUUID(), "Q" + i, "A",
+                List.of(), start.plusSeconds(i)));
+        }
+
+        assertThat(interactions.recentTurns(kbId, session.interactionId(), 5)).extracting(InteractionTurn::question)
+            .containsExactly("Q15", "Q16", "Q17", "Q18", "Q19");
     }
 
     @Test

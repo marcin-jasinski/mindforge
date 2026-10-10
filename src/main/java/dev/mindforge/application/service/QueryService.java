@@ -60,7 +60,7 @@ public class QueryService {
 
     public Answer ask(UUID kbId, UUID userId, UUID interactionId, String question) {
         requireSession(kbId, userId, interactionId);
-        List<InteractionTurn> turns = interactions.turns(kbId, interactionId);
+        List<InteractionTurn> turns = interactions.recentTurns(kbId, interactionId, PRIOR_TURNS);
         String prior = prior(turns);
         List<String> selected = selector.select(question, prior, IndexRenderer.render(wiki.listIndex(kbId)),
             MAX_SELECTED_PAGES);
@@ -113,7 +113,7 @@ public class QueryService {
         if (turns.isEmpty()) {
             return NO_PRIOR_TURNS;
         }
-        return turns.subList(Math.max(0, turns.size() - PRIOR_TURNS), turns.size()).stream()
+        return turns.stream()
             .map(turn -> "Pytanie: " + turn.question() + "\nOdpowiedź: " + turn.answer())
             .collect(Collectors.joining("\n\n"));
     }

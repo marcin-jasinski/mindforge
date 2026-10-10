@@ -2,7 +2,7 @@
 id: R19
 title: Two repository queries have no limit
 type: performance
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -72,4 +72,11 @@ no `@OneToMany`/`@ManyToOne` anywhere, and the V2-V4 migrations index foreign ke
 
 ## Resolution
 
-<!-- filled on close -->
+1. `InteractionStore.turns` became `recentTurns(kbId, interactionId, limit)`; the adapter reads
+   `...OrderByCreatedAtDesc(..., Limit)` and reverses, so `QueryService.PRIOR_TURNS` is the single
+   declaration of the 5 and the in-memory `subList` is gone. `QueryAndEditTest` pins it: 20 turns
+   stored, the last 5 returned oldest first.
+2. `log.md` is the full completed-run history by contract (ADR 0010: a projection, never stored), and
+   `findLogEntries` has no consumer other than `BundleExporter` — there is no log view to paginate.
+   Truncating it would break bundle fidelity, so the query stays unbounded deliberately. If a log
+   view is ever added, paginate there and leave export on the full set.

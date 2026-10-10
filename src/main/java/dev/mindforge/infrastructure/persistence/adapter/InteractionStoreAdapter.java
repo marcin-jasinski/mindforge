@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.mindforge.domain.model.Interaction;
@@ -47,9 +48,9 @@ public class InteractionStoreAdapter implements InteractionStore {
     }
 
     @Override
-    public List<InteractionTurn> turns(UUID kbId, UUID interactionId) {
-        return turns.findByKnowledgeBaseIdAndInteractionIdOrderByCreatedAt(kbId, interactionId).stream()
-            .map(mapper::toDomain).toList();
+    public List<InteractionTurn> recentTurns(UUID kbId, UUID interactionId, int limit) {
+        return turns.findByKnowledgeBaseIdAndInteractionIdOrderByCreatedAtDesc(kbId, interactionId, Limit.of(limit))
+            .reversed().stream().map(mapper::toDomain).toList();
     }
 
     @Override
