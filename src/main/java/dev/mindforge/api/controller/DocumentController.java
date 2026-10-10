@@ -30,7 +30,7 @@ import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.domain.model.UploadSource;
 
 @RestController
-@RequestMapping("/api/knowledge-bases/{kbId}/documents")
+@RequestMapping("/api/v1/knowledge-bases/{kbId}/documents")
 public class DocumentController {
 
     private final KnowledgeBaseService knowledgeBases;

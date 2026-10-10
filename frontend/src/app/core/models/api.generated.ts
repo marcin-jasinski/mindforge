@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/knowledge-bases": {
+    "/api/v1/knowledge-bases": {
         parameters: {
             query?: never;
             header?: never;
@@ -22,7 +22,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/runs/{runId}/revert": {
+    "/api/v1/knowledge-bases/{kbId}/runs/{runId}/revert": {
         parameters: {
             query?: never;
             header?: never;
@@ -39,7 +39,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/quiz-sessions": {
+    "/api/v1/knowledge-bases/{kbId}/quiz-sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -56,7 +56,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/quiz-sessions/{sessionId}/answers": {
+    "/api/v1/knowledge-bases/{kbId}/quiz-sessions/{sessionId}/answers": {
         parameters: {
             query?: never;
             header?: never;
@@ -73,7 +73,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/query-sessions": {
+    "/api/v1/knowledge-bases/{kbId}/query-sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -91,7 +91,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/query-sessions/{interactionId}/messages": {
+    "/api/v1/knowledge-bases/{kbId}/query-sessions/{interactionId}/messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -108,7 +108,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/query-sessions/{interactionId}/edits": {
+    "/api/v1/knowledge-bases/{kbId}/query-sessions/{interactionId}/edits": {
         parameters: {
             query?: never;
             header?: never;
@@ -125,7 +125,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/lint-runs": {
+    "/api/v1/knowledge-bases/{kbId}/lint-runs": {
         parameters: {
             query?: never;
             header?: never;
@@ -142,7 +142,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/flashcards/{cardId}/reviews": {
+    "/api/v1/knowledge-bases/{kbId}/flashcards/{cardId}/reviews": {
         parameters: {
             query?: never;
             header?: never;
@@ -159,7 +159,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/documents": {
+    "/api/v1/knowledge-bases/{kbId}/documents": {
         parameters: {
             query?: never;
             header?: never;
@@ -177,7 +177,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/documents/{documentId}/runs": {
+    "/api/v1/knowledge-bases/{kbId}/documents/{documentId}/runs": {
         parameters: {
             query?: never;
             header?: never;
@@ -194,7 +194,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/register": {
+    "/api/v1/auth/register": {
         parameters: {
             query?: never;
             header?: never;
@@ -211,7 +211,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/logout": {
+    "/api/v1/auth/logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -228,7 +228,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/login": {
+    "/api/v1/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -245,7 +245,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/users/me": {
+    "/api/v1/users/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -262,7 +262,7 @@ export interface paths {
         patch: operations["update"];
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}": {
+    "/api/v1/knowledge-bases/{kbId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -281,7 +281,7 @@ export interface paths {
         patch: operations["update_1"];
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/runs": {
+    "/api/v1/knowledge-bases/{kbId}/runs": {
         parameters: {
             query?: never;
             header?: never;
@@ -298,7 +298,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/runs/{runId}": {
+    "/api/v1/knowledge-bases/{kbId}/runs/{runId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -315,7 +315,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/quiz-sessions/{sessionId}/next": {
+    "/api/v1/knowledge-bases/{kbId}/quiz-sessions/{sessionId}/next": {
         parameters: {
             query?: never;
             header?: never;
@@ -332,7 +332,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/progress": {
+    "/api/v1/knowledge-bases/{kbId}/progress": {
         parameters: {
             query?: never;
             header?: never;
@@ -349,7 +349,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/pages/{directory}/{name}": {
+    "/api/v1/knowledge-bases/{kbId}/pages/{directory}/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -366,7 +366,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/pages/{directory}/{name}/revisions": {
+    "/api/v1/knowledge-bases/{kbId}/pages/{directory}/{name}/revisions": {
         parameters: {
             query?: never;
             header?: never;
@@ -383,7 +383,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/pages/search": {
+    "/api/v1/knowledge-bases/{kbId}/pages/search": {
         parameters: {
             query?: never;
             header?: never;
@@ -400,7 +400,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/index": {
+    "/api/v1/knowledge-bases/{kbId}/index": {
         parameters: {
             query?: never;
             header?: never;
@@ -417,7 +417,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/health": {
+    "/api/v1/knowledge-bases/{kbId}/health": {
         parameters: {
             query?: never;
             header?: never;
@@ -434,7 +434,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/graph": {
+    "/api/v1/knowledge-bases/{kbId}/graph": {
         parameters: {
             query?: never;
             header?: never;
@@ -451,7 +451,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/flashcards": {
+    "/api/v1/knowledge-bases/{kbId}/flashcards": {
         parameters: {
             query?: never;
             header?: never;
@@ -468,7 +468,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/export": {
+    "/api/v1/knowledge-bases/{kbId}/export": {
         parameters: {
             query?: never;
             header?: never;
@@ -485,7 +485,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/documents/{documentId}": {
+    "/api/v1/knowledge-bases/{kbId}/documents/{documentId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -502,7 +502,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/me": {
+    "/api/v1/auth/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -519,7 +519,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/knowledge-bases/{kbId}/supersessions/{supersessionId}": {
+    "/api/v1/knowledge-bases/{kbId}/supersessions/{supersessionId}": {
         parameters: {
             query?: never;
             header?: never;

@@ -30,7 +30,7 @@ import dev.mindforge.application.service.QueryService;
 
 /** Chat over the wiki: questions are answered read-only; an explicit edit is queued as an ingest run. */
 @RestController
-@RequestMapping("/api/knowledge-bases/{kbId}/query-sessions")
+@RequestMapping("/api/v1/knowledge-bases/{kbId}/query-sessions")
 public class QueryController {
 
     private final KnowledgeBaseService knowledgeBases;

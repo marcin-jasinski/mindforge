@@ -16,7 +16,7 @@ import dev.mindforge.application.service.AccountService;
 
 /** The signed-in user's own profile; there is no way to reach another user's. */
 @RestController
-@RequestMapping("/api/users/me")
+@RequestMapping("/api/v1/users/me")
 public class UserController {
 
     private final AccountService accounts;

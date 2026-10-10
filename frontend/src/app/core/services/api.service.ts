@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 /** Set on a request whose error the calling page answers itself, so no toast is shown for it. */
-const API = '/api';
+const API = '/api/v1';
 
 export const HANDLES_ERRORS = new HttpContextToken<boolean>(() => false);
 

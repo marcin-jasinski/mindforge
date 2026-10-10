@@ -7,7 +7,7 @@ Use resource-based URLs with appropriate HTTP methods (GET, POST, PUT, PATCH, DE
 Use lowercase, hyphenated or underscored names consistently across endpoints.
 
 ### Versioning
-Implement versioning (URL path or headers) to manage breaking changes.
+All routes live under the `/api/v1` URL prefix, written explicitly on each controller. Bump the prefix only for a breaking change.
 
 ### Plural Nouns
 Use plural nouns for resources (`/users`, `/products`).
@@ -57,7 +57,7 @@ Always use constructor injection for services. Never use field injection (`@Auto
 ```java
 // CORRECT
 @RestController
-@RequestMapping("/api/v1/quiz")
+@RequestMapping("/api/v1/quiz-sessions")
 public class QuizController {
     private final QuizService quizService;
 

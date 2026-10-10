@@ -16,7 +16,7 @@ import { ProgressService } from '../../core/services/progress.service';
     <header class="row">
       <h1>{{ kb()?.name }}</h1>
       <span class="spacer"></span>
-      <a mat-stroked-button [href]="'/api/knowledge-bases/' + kbId() + '/export'">Eksportuj bundle</a>
+      <a mat-stroked-button [href]="'/api/v1/knowledge-bases/' + kbId() + '/export'">Eksportuj bundle</a>
     </header>
     <nav mat-tab-nav-bar [tabPanel]="panel" aria-label="Sekcje bazy wiedzy">
       @for (tab of tabs; track tab.path) {

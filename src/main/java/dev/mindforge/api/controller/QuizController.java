@@ -28,7 +28,7 @@ import dev.mindforge.application.service.QuizService;
 
 /** Quizzes whose reference answers stay on the server: a response carries a question, a score and feedback only. */
 @RestController
-@RequestMapping("/api/knowledge-bases/{kbId}/quiz-sessions")
+@RequestMapping("/api/v1/knowledge-bases/{kbId}/quiz-sessions")
 public class QuizController {
 
     private final KnowledgeBaseService knowledgeBases;

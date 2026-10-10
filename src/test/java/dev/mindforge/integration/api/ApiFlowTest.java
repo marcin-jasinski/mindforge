@@ -68,22 +68,22 @@ class ApiFlowTest extends TestContainerBase {
         Client client = new Client();
         String email = "ala-" + UUID.randomUUID() + "@example.com";
 
-        Response registered = client.post("/api/auth/register",
+        Response registered = client.post("/api/v1/auth/register",
             Map.of("displayName", "Ala", "email", email, "password", "sekretne-haslo"));
 
         assertThat(registered.status()).isEqualTo(201);
         assertThat(registered.setCookie()).contains("token=").contains("HttpOnly").contains("SameSite=Lax");
         assertNoSensitiveFields(registered);
-        assertThat(client.get("/api/auth/me").json().get("email").asString()).isEqualTo(email);
-        assertThat(client.post("/api/auth/logout", Map.of()).status()).isEqualTo(204);
-        assertThat(client.get("/api/auth/me").status()).isEqualTo(401);
+        assertThat(client.get("/api/v1/auth/me").json().get("email").asString()).isEqualTo(email);
+        assertThat(client.post("/api/v1/auth/logout", Map.of()).status()).isEqualTo(204);
+        assertThat(client.get("/api/v1/auth/me").status()).isEqualTo(401);
 
         Client other = new Client();
-        assertThat(other.post("/api/auth/login", Map.of("email", email, "password", "zle-haslo")).status())
+        assertThat(other.post("/api/v1/auth/login", Map.of("email", email, "password", "zle-haslo")).status())
             .isEqualTo(401);
-        assertThat(other.post("/api/auth/login", Map.of("email", email.toUpperCase(), "password", "sekretne-haslo"))
+        assertThat(other.post("/api/v1/auth/login", Map.of("email", email.toUpperCase(), "password", "sekretne-haslo"))
             .status()).isEqualTo(200);
-        assertThat(other.get("/api/auth/me").status()).isEqualTo(200);
+        assertThat(other.get("/api/v1/auth/me").status()).isEqualTo(200);
     }
 
     // ---------------------------------------------------------------------------
@@ -116,7 +116,7 @@ class ApiFlowTest extends TestContainerBase {
 
         List<Response> responses = List.of(upload, index, page, runs, report, client.get(kb),
             client.get(kb + "/documents"), client.get(kb + "/documents/" + documentId), client.get(kb + "/graph"),
-            client.get(kb + "/health"), client.get(kb + "/pages/concepts/mitoza/revisions"), client.get("/api/auth/me"));
+            client.get(kb + "/health"), client.get(kb + "/pages/concepts/mitoza/revisions"), client.get("/api/v1/auth/me"));
         responses.forEach(response -> assertThat(response.status()).as(response.body()).isLessThan(300));
         responses.forEach(ApiFlowTest::assertNoSensitiveFields);
 
@@ -369,16 +369,16 @@ class ApiFlowTest extends TestContainerBase {
 
     private Client signedUp() {
         Client client = new Client();
-        Response registered = client.post("/api/auth/register", Map.of("displayName", "Uczeń",
+        Response registered = client.post("/api/v1/auth/register", Map.of("displayName", "Uczeń",
             "email", "uczen-" + UUID.randomUUID() + "@example.com", "password", "sekretne-haslo"));
         assertThat(registered.status()).isEqualTo(201);
         return client;
     }
 
     private static String createKnowledgeBase(Client client) {
-        Response created = client.post("/api/knowledge-bases", Map.of("name", "Biologia", "description", "Notatki"));
+        Response created = client.post("/api/v1/knowledge-bases", Map.of("name", "Biologia", "description", "Notatki"));
         assertThat(created.status()).isEqualTo(201);
-        return "/api/knowledge-bases/" + created.json().get("kbId").asString();
+        return "/api/v1/knowledge-bases/" + created.json().get("kbId").asString();
     }
 
     private static void awaitRun(Client client, String kb, String documentId, String status) {

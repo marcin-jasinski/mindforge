@@ -33,7 +33,7 @@ public class ExportController {
 
     @Operation(summary = "Download the knowledge base as an OKF bundle")
     @ApiResponse(responseCode = "200", description = "A zip rendered and validated before it is sent")
-    @GetMapping(value = "/api/knowledge-bases/{kbId}/export", produces = "application/zip")
+    @GetMapping(value = "/api/v1/knowledge-bases/{kbId}/export", produces = "application/zip")
     public ResponseEntity<StreamingResponseBody> export(@AuthenticationPrincipal CurrentUser user,
                                                         @PathVariable UUID kbId) {
         BundleExporter.Bundle bundle = exporter.export(kbId, knowledgeBases.get(kbId, user.userId()).name());

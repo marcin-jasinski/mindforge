@@ -24,7 +24,7 @@ import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.domain.model.ReviewResult;
 
 @RestController
-@RequestMapping("/api/knowledge-bases/{kbId}/flashcards")
+@RequestMapping("/api/v1/knowledge-bases/{kbId}/flashcards")
 public class FlashcardController {
 
     private final KnowledgeBaseService knowledgeBases;

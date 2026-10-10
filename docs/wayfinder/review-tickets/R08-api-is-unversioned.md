@@ -2,7 +2,7 @@
 id: R08
 title: The API is unversioned
 type: decision
-status: open
+status: closed
 severity: medium
 assignee:
 blocked_by: []
@@ -65,4 +65,4 @@ breaking on a server deploy.
 
 ## Resolution
 
-<!-- filled on close -->
+Decision: Option A. Every route is now under `/api/v1`, written explicitly on each controller. SPA `API` base, the export link, the generated client paths, `SecurityConfig` auth matchers and `ApiFlowTest` were updated; `api.md` now states the `/api/v1` rule and its worked example matches a real route. Chosen because it is cheapest now (no external consumers) and Phases 15/18/19 add clients outside the server artifact. Verified: `ApiFlowTest` (10 tests) and frontend vitest (17) pass.

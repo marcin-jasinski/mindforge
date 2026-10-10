@@ -24,7 +24,7 @@ import dev.mindforge.infrastructure.security.JwtService;
 
 /** Password accounts. The session token is set as a cookie and never appears in a body. */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 
     private final AccountService accounts;
