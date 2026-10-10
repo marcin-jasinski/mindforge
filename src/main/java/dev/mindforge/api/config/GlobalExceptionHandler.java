@@ -19,6 +19,7 @@ import dev.mindforge.domain.model.KnowledgeBaseBusyException;
 import dev.mindforge.domain.model.LessonAlreadyExistsException;
 import dev.mindforge.domain.model.LessonIdentityException;
 import dev.mindforge.domain.model.LintAlreadyQueuedException;
+import dev.mindforge.domain.model.ModelOutputException;
 import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.NotOwnerException;
 import dev.mindforge.domain.model.QuizFinishedException;
@@ -113,7 +114,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ErrorResponse.of("Bad Request", "VALIDATION", detail));
     }
 
-    @ExceptionHandler({DeadlineExceededException.class, AIGatewayUnavailableException.class})
+    @ExceptionHandler({DeadlineExceededException.class, AIGatewayUnavailableException.class,
+        ModelOutputException.class})
     ResponseEntity<ErrorResponse> modelUnavailable(RuntimeException e) {
         return error(HttpStatus.SERVICE_UNAVAILABLE, "MODEL_UNAVAILABLE", e);
     }

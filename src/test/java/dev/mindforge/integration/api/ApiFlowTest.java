@@ -237,6 +237,23 @@ class ApiFlowTest extends TestContainerBase {
     }
 
     @Test
+    void unreadableModelOutputIsAServiceUnavailableNotAServerError() {
+        Client client = signedUp();
+        String kb = createKnowledgeBase(client);
+        gateway.reset();
+        gateway.answer(Prompts.SELECT, "{\"paths\": []}");
+        gateway.answer(Prompts.ANSWER, "to nie jest JSON");
+        String chat = kb + "/query-sessions/"
+            + client.post(kb + "/query-sessions", Map.of()).json().get("interactionId").asString();
+
+        Response answer = client.post(chat + "/messages", Map.of("question", "Co to mitoza?"));
+        gateway.reset(); // stubs are first-match and shared across tests
+
+        assertThat(answer.status()).isEqualTo(503);
+        assertThat(answer.json().get("code").asString()).isEqualTo("MODEL_UNAVAILABLE");
+    }
+
+    @Test
     void theOpenApiDocumentIsServed() {
         Response docs = new Client().get("/v3/api-docs");
 

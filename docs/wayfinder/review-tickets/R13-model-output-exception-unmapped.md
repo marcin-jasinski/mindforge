@@ -2,7 +2,7 @@
 id: R13
 title: ModelOutputException is unmapped and untested
 type: bug
-status: open
+status: closed
 severity: high
 assignee:
 blocked_by: []
@@ -98,4 +98,11 @@ not 500.
 
 ## Resolution
 
-<!-- filled on close -->
+`ModelOutputException` is now mapped to 503 `MODEL_UNAVAILABLE` in `GlobalExceptionHandler` (no more `ERROR`
+"Unhandled exception"). `Retry-After` not set: no sibling handler sets it, so it stays consistent.
+
+`ModelJson` extraction tightened: it now parses from the first `{` and ignores trailing content
+(`FAIL_ON_TRAILING_TOKENS` off) instead of slicing to the last `}`, so a second object or trailing prose no longer
+breaks the read. Added `ModelJsonTest` (six cases) and an `ApiFlowTest` case asserting a Query turn with unreadable
+output returns 503. Note: the missing-field case is enforced by the services (e.g. `PageWriter`), so `ModelJson`
+returns the null field and the test documents that.
