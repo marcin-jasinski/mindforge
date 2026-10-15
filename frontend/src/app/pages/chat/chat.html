@@ -1,0 +1,107 @@
+<div class="chat">
+  <section class="thread" aria-live="polite" aria-label="Conversation">
+    @for (message of messages(); track $index) {
+      @if (message.role === 'user') {
+        <div class="bubble user"><p>{{ message.text }}</p></div>
+      } @else if (message.role === 'assistant') {
+        <div class="turn">
+          <span class="avatar"><app-icon name="sparkle" size="1rem" /></span>
+          <div class="bubble assistant">
+            <div class="markdown" appPageLinks [innerHTML]="message.html"></div>
+            @if (message.cited?.length) {
+              <div class="sources">
+                <span class="eyebrow">Sources</span>
+                @for (path of message.cited; track path) {
+                  <a class="chip accent" [routerLink]="citedLink(path)" [title]="path">{{ citedTitle(path) }}</a>
+                }
+              </div>
+            }
+            <div class="row tools">
+              @if (message.saved) {
+                <span class="chip success"><app-icon name="check" size="0.9rem" /> Sent to the wiki</span>
+              } @else {
+                <button mat-button type="button" [disabled]="busy()" (click)="edit(message.text)"
+                  title="Ask MindForge to add this answer to the wiki">
+                  <app-icon name="save" /> Save to wiki
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div class="notice card">
+          <span class="icon-tile" [class.success]="!message.failed" [class.danger]="message.failed">
+            <app-icon [name]="message.failed ? 'error' : message.run ? 'edit' : 'undo'" />
+          </span>
+          <div class="stack grow">
+            <p>{{ message.text }}</p>
+            @if (message.run; as run) {
+              @if (run.pages.length) {
+                <div class="row">
+                  <span class="muted small">Changed:</span>
+                  @for (change of run.pages; track change.pageId) {
+                    @if (change.after.markdownBody) {
+                      <a class="chip accent" [routerLink]="pageLink(change.path)">{{ change.after.title }}</a>
+                    } @else {
+                      <span class="chip danger">{{ change.after.title }} (deleted)</span>
+                    }
+                  }
+                </div>
+              }
+              @for (failure of run.failures; track $index) {
+                <p class="muted small">Skipped: {{ failureLine(failure) }}</p>
+              }
+              <div class="row">
+                <a mat-button [routerLink]="['..', 'runs', run.runId]">View report</a>
+                @if (run.revertOffered) {
+                  <button mat-button type="button" (click)="revert(run)"><app-icon name="undo" /> Revert</button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    } @empty {
+      <div class="welcome">
+        <span class="icon-tile big"><app-icon name="sparkle" size="1.6rem" /></span>
+        <h2>Ask your wiki anything</h2>
+        <p class="muted">Answers come only from your pages, with the sources cited. You can also tell MindForge to change a page.</p>
+        <div class="suggestions">
+          @for (suggestion of suggestions; track suggestion) {
+            <button type="button" class="suggestion" (click)="draft.set(suggestion); ask()" [disabled]="!sessionId()">
+              <app-icon name="lightbulb" size="1rem" /> {{ suggestion }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+    @if (busy()) {
+      <div class="turn" role="status">
+        <span class="avatar"><app-icon name="sparkle" size="1rem" /></span>
+        <div class="bubble assistant thinking"><span class="dot-loader"><span></span><span></span><span></span></span>
+          <span class="muted small">{{ editStatus() ?? 'Thinking…' }}</span>
+          @if (editStatus()) {
+            <span class="muted small">· this can take a few minutes</span>
+          }</div>
+      </div>
+    }
+    <div #end class="end"></div>
+  </section>
+
+  <form class="composer" (ngSubmit)="ask()">
+    <label class="visually-hidden" for="chat-draft">Ask a question or request a page change</label>
+    <textarea id="chat-draft" name="draft" [(ngModel)]="draft" rows="1" cdkTextareaAutosize cdkAutosizeMaxRows="8"
+      placeholder="Ask a question, or tell MindForge what to change…" (keydown.enter)="onEnter($event)"></textarea>
+    <div class="row">
+      <span class="muted small hint"><span class="kbd">Enter</span> to ask · <span class="kbd">Shift</span>+<span class="kbd">Enter</span> new line</span>
+      <span class="spacer"></span>
+      <button mat-stroked-button type="button" [disabled]="!draft().trim() || busy()" (click)="edit()"
+        title="Treat the text as an instruction to change the wiki">
+        <app-icon name="edit" /> Change wiki
+      </button>
+      <button mat-flat-button type="submit" [disabled]="!draft().trim() || busy()">
+        <app-icon name="send" /> Ask
+      </button>
+    </div>
+  </form>
+</div>

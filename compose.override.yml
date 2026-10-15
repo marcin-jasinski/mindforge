@@ -1,0 +1,10 @@
+# Local development: PostgreSQL on the host's 5432, plain-HTTP cookies and a throwaway JWT secret.
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  app:
+    environment:
+      AUTH_SECURE_COOKIES: "false"
+      JWT_SECRET: ${JWT_SECRET:-local-development-secret-at-least-32-bytes}

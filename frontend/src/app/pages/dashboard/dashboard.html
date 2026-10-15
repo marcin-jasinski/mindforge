@@ -1,0 +1,66 @@
+<header class="section-head head">
+  <div class="stack intro">
+    <span class="eyebrow">Library</span>
+    <h1>Your knowledge bases</h1>
+    <p class="muted">Each knowledge base is a wiki that grows with every document you upload.</p>
+  </div>
+  <span class="spacer"></span>
+  <button [matButton]="creating() ? 'outlined' : 'filled'" type="button" (click)="creating.set(!creating())" [attr.aria-expanded]="creating()"
+    aria-controls="new-kb">
+    <app-icon [name]="creating() ? 'close' : 'add'" /> {{ creating() ? 'Cancel' : 'New knowledge base' }}
+  </button>
+</header>
+
+@if (creating() || (loaded() && !knowledgeBases().length)) {
+  <form id="new-kb" class="card create" (ngSubmit)="create()" aria-labelledby="new-kb-heading">
+    <h2 id="new-kb-heading">New knowledge base</h2>
+    <div class="fields">
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>Name</mat-label>
+        <input matInput name="name" [(ngModel)]="name" required maxlength="255" placeholder="e.g. Biology 101" />
+      </mat-form-field>
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>Description (optional)</mat-label>
+        <input matInput name="description" [(ngModel)]="description" maxlength="2000" placeholder="What is it about?" />
+      </mat-form-field>
+      <button mat-flat-button type="submit" [disabled]="!name().trim()">Create</button>
+    </div>
+  </form>
+}
+
+<section class="grid" aria-label="Knowledge bases" [attr.aria-busy]="!loaded()">
+  @if (!loaded()) {
+    @for (i of [1, 2, 3]; track i) {
+      <div class="skeleton tile-skeleton"></div>
+    }
+  }
+  @for (kb of knowledgeBases(); track kb.kbId) {
+    <article class="card kb">
+      <div class="row top">
+        <span class="icon-tile monogram">{{ kb.name.charAt(0).toUpperCase() }}</span>
+        <h2><a class="stretched" [routerLink]="['/kb', kb.kbId]">{{ kb.name }}</a></h2>
+      </div>
+      <p class="muted description">{{ kb.description || 'No description.' }}</p>
+      <div class="row">
+        <span class="chip"><app-icon name="document" size="0.9rem" /> {{ kb.documentCount }} {{ kb.documentCount === 1 ? 'document' : 'documents' }}</span>
+        <span class="chip"><app-icon name="article" size="0.9rem" /> {{ kb.pageCount }} {{ kb.pageCount === 1 ? 'page' : 'pages' }}</span>
+      </div>
+      <footer class="row actions">
+        @if (kb.pageCount) {
+          <a mat-button [routerLink]="['/kb', kb.kbId, 'study']"><app-icon name="school" /> Study</a>
+          <a mat-button [routerLink]="['/kb', kb.kbId, 'chat']"><app-icon name="chat" /> Ask</a>
+        } @else {
+          <a mat-button [routerLink]="['/kb', kb.kbId]"><app-icon name="upload" /> Upload a first document</a>
+        }
+      </footer>
+    </article>
+  }
+</section>
+
+@if (loaded() && !knowledgeBases().length) {
+  <div class="empty">
+    <span class="icon-tile"><app-icon name="sparkle" /></span>
+    <strong>Start your first knowledge base</strong>
+    <p>Give it a name above, then upload a document. MindForge writes the wiki pages for you.</p>
+  </div>
+}

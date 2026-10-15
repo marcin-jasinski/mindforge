@@ -1,4 +1,11 @@
+---
+status: superseded by ADR-0016
+---
+
 # Neo4j is a derived read projection, not a source of truth
+
+> **Superseded (2026-09-10)** by [ADR 0016](0016-rendered-index-retrieval-no-neo4j-no-pgvector.md): the concept map
+> became the wiki's `page_links` rows in PostgreSQL, and Neo4j is removed. Kept for history.
 
 MindForge operates two databases: PostgreSQL (source of truth for all business data)
 and Neo4j (a derived, read-optimised projection of concept relationships). Neo4j is

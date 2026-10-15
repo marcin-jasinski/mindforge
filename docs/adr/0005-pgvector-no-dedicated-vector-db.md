@@ -1,4 +1,11 @@
+---
+status: superseded by ADR-0016
+---
+
 # pgvector in PostgreSQL instead of a dedicated vector database
+
+> **Superseded (2026-09-10)** by [ADR 0016](0016-rendered-index-retrieval-no-neo4j-no-pgvector.md): the rendered wiki
+> index is the retrieval system and no embeddings are stored. Kept for history.
 
 MindForge stores and queries embedding vectors using the `pgvector` extension in the
 existing PostgreSQL instance rather than operating a separate vector database service.

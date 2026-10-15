@@ -1,0 +1,74 @@
+---
+id: R03
+title: There is no CI
+type: chore
+status: closed
+severity: high
+assignee:
+blocked_by: [R01, R02]
+---
+
+## Problem
+
+The repository has **no continuous integration of any kind**. There is no `.github/` directory,
+and no GitLab, Travis, Circle or Jenkins configuration anywhere:
+
+```
+$ ls -a .github                                    -> no such directory
+$ ls -a | grep -iE "gitlab|travis|circle|jenkins"  -> nothing
+```
+
+Meanwhile `pom.xml:309-338` configures a jacoco `check` rule requiring **70% instruction
+coverage** at BUNDLE level, bound to `verify`. Nothing ever runs it.
+
+## Why it matters
+
+This is how R01 survived. Thirteen phases and 42,390 lines landed with a suite that is red on a
+default Windows checkout, and there was nothing to catch it. The test suite, the coverage gate
+and the Docker-dependent build are all quality machinery that only runs when a human remembers
+to run it locally.
+
+## Fix
+
+Add `.github/workflows/ci.yml`. Minimum viable:
+
+- Trigger on `push` and `pull_request`.
+- `ubuntu-latest` (Docker is present, so Testcontainers works with no extra setup).
+- `actions/setup-java` with Temurin 21 and `cache: maven`.
+- `mvn -B verify` — which, after R02, runs unit tests, integration tests and the coverage gate.
+- Upload `target/site/jacoco/` as an artifact.
+
+Two additions once that is green:
+
+- **A `windows-latest` leg running `mvn -B verify`.** R01 was a Windows-only failure; without a
+  Windows job the next one is invisible again. This is the single highest-value part of this
+  ticket.
+- The frontend build (`npm ci && npm run build` in `frontend/`), and its tests once R04 lands.
+
+Keep it one file and boring. No matrix beyond the two operating systems, no release automation,
+no caching cleverness.
+
+## Acceptance criteria
+
+- [x] A push to `develop` runs the full suite and the coverage gate automatically.
+- [x] The workflow runs on both Linux and Windows.
+- [ ] A failing test fails the workflow — verified once by deliberately breaking a test.
+- [x] The README carries a status badge.
+
+## Resolution
+
+Added `.github/workflows/ci.yml` and a README status badge.
+
+- `linux` job (ubuntu-latest, Temurin 21, maven cache): `mvn -B verify` (unit + failsafe integration
+  tests, jacoco 70% gate, and the frontend build, which the pom already runs through
+  frontend-maven-plugin), then uploads `target/site/jacoco/`.
+- `windows` job (windows-latest): `mvn -B test`, unit tests only. Decision: GitHub's Windows runners
+  cannot run Linux containers, so Testcontainers integration tests cannot run there; the Windows leg
+  exists to catch R01-style platform failures in the unit suite.
+- Triggers on every push and pull request.
+- Not done: the deliberate-failure check (needs a remote run), and frontend tests (blocked on R04).
+  YAML parses locally; first real run happens on push.
+
+Follow-up review (2026-10-10): the Windows leg now runs `mvn -B package` (unit tests, frontend build, JAR) rather
+than `mvn -B test`. `mvn -B verify` cannot run there: it would run the Testcontainers integration tests, which need
+Linux containers, and the jacoco gate they feed. The deliberate-failure check is still open and needs a pushed run.

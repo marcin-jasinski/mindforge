@@ -7,7 +7,7 @@ Use resource-based URLs with appropriate HTTP methods (GET, POST, PUT, PATCH, DE
 Use lowercase, hyphenated or underscored names consistently across endpoints.
 
 ### Versioning
-Implement versioning (URL path or headers) to manage breaking changes.
+All routes live under the `/api/v1` URL prefix, written explicitly on each controller. Bump the prefix only for a breaking change.
 
 ### Plural Nouns
 Use plural nouns for resources (`/users`, `/products`).
@@ -22,7 +22,7 @@ Use query parameters for filtering, sorting, and pagination.
 Return appropriate HTTP status codes (200, 201, 400, 404, 500).
 
 ### Rate Limit Headers
-Include rate limit information in response headers.
+Endpoints that spend model calls (Query turns and edits, Quiz start, upload and retry, Lint) are limited per user, configured under `mindforge.rate-limits`. They return `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`; an exhausted allowance is `429` with `Retry-After` and code `RATE_LIMITED`.
 
 ---
 
@@ -57,7 +57,7 @@ Always use constructor injection for services. Never use field injection (`@Auto
 ```java
 // CORRECT
 @RestController
-@RequestMapping("/api/v1/quiz")
+@RequestMapping("/api/v1/quiz-sessions")
 public class QuizController {
     private final QuizService quizService;
 
@@ -74,3 +74,19 @@ private QuizService quizService;  // ❌ field injection
 ### Virtual Thread Blocking
 
 All controllers run on virtual threads (`spring.threads.virtual.enabled=true`) — blocking I/O is permitted and expected. Never introduce `CompletableFuture` chains or reactive types in controllers.
+
+## DTO Layer
+
+MindForge uses a three-tier object model: domain records (`domain.model`) → JPA entities (`persistence.entity`) → view DTOs (`api.dto`). Controllers never accept or return domain or entity types directly.
+
+- `api/dto/response/` — `record` types returned from controllers. Must never expose the fields forbidden by `docs/standards/security/web-security.md` (`reference_answer`, `grounding_context`, `raw_prompt`, `raw_completion`, `cost`), the password hash, or internal run state (e.g. `ingest_runs.step_versions`, raw `failures`, the lease).
+- `api/dto/request/` — `record` types accepted as `@RequestBody`, annotated with `jakarta.validation` constraints.
+- `api/mapper/` — `@Mapper(componentModel = "spring")` MapStruct interfaces mapping domain → response DTO. These import domain types only; entity types never cross into the `api` package.
+
+```java
+// CORRECT
+@Mapper(componentModel = "spring")
+public interface DocumentDtoMapper {
+    DocumentResponse toResponse(Document d);
+}
+```
