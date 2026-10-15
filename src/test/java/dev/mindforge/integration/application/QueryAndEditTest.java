@@ -25,6 +25,7 @@ import dev.mindforge.domain.model.IndexEntry;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.Interaction;
 import dev.mindforge.domain.model.InteractionTurn;
+import dev.mindforge.domain.model.KnowledgeBase;
 import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.PageType;
 import dev.mindforge.domain.model.PageWrite;
@@ -34,6 +35,7 @@ import dev.mindforge.domain.model.StudyScope;
 import dev.mindforge.domain.model.TurnSummary;
 import dev.mindforge.domain.port.IngestRunRepository;
 import dev.mindforge.domain.port.InteractionStore;
+import dev.mindforge.domain.port.KnowledgeBaseRepository;
 import dev.mindforge.domain.port.WikiStore;
 import dev.mindforge.support.Prompts;
 import dev.mindforge.support.StubAIGateway;
@@ -64,6 +66,9 @@ class QueryAndEditTest extends TestContainerBase {
 
     @Autowired
     private WikiStore wiki;
+
+    @Autowired
+    private KnowledgeBaseRepository knowledgeBases;
 
     @Autowired
     private IngestRunRepository runs;
@@ -149,6 +154,8 @@ class QueryAndEditTest extends TestContainerBase {
             + " WHERE knowledge_base_id = ?", kbId)).hasSize(3)
             .filteredOn(row -> "conversation".equals(row.get("lesson_id"))).hasSize(2)
             .allMatch(row -> "CONVERSATION".equals(row.get("upload_source")));
+        // the learner uploaded one document; the edit turns are not counted as uploads
+        assertThat(knowledgeBases.findById(kbId)).get().extracting(KnowledgeBase::documentCount).isEqualTo(1L);
 
         gateway.reset();
         gateway.answer(Prompts.EDIT, "{\"items\": []}");
