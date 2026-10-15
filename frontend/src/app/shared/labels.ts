@@ -77,6 +77,20 @@ export function failureLine(failure: {
   return where + why + count;
 }
 
+const PROGRESS_STEPS: Record<string, string> = {
+  extract: 'Reading the document',
+  resolve: 'Choosing the pages to write',
+  write: 'Writing pages',
+  linkCheck: 'Checking links',
+  supersede: 'Marking outdated sections',
+  review: 'Reviewing the wiki',
+};
+
+/** A running step in the interface's language; an unknown step is shown as sent. */
+export function progressStepLabel(step: string): string {
+  return PROGRESS_STEPS[step] ?? step;
+}
+
 const FINDING_KINDS: Record<string, string> = {
   contradiction: 'Contradiction',
   unmarked_supersession: 'Unmarked supersession',

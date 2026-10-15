@@ -1,11 +1,19 @@
-<mat-toolbar color="primary" role="banner">
-  <a routerLink="/dashboard" class="brand">MindForge</a>
-  <span class="spacer"></span>
-  @if (auth.user(); as user) {
-    <span class="user">{{ user.displayName }}</span>
-    <button mat-button type="button" (click)="logout()">Sign out</button>
-  }
-</mat-toolbar>
+<header class="topbar" role="banner">
+  <div class="topbar-inner">
+    <a routerLink="/dashboard" class="brand" aria-label="MindForge — your knowledge bases">
+      <span class="logo"><app-icon name="sparkle" size="1.1rem" /></span>
+      <span>Mind<span class="gradient-text">Forge</span></span>
+    </a>
+    <span class="spacer"></span>
+    @if (auth.user(); as user) {
+      <span class="avatar" aria-hidden="true">{{ initials(user.displayName) }}</span>
+      <span class="user">{{ user.displayName }}</span>
+      <button mat-icon-button type="button" (click)="logout()" aria-label="Sign out" title="Sign out">
+        <app-icon name="logout" />
+      </button>
+    }
+  </div>
+</header>
 <main>
   <router-outlet />
 </main>

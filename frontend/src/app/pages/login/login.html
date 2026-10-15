@@ -1,20 +1,32 @@
-<mat-card class="stack" appearance="outlined">
-  <mat-card-header>
-    <h1 mat-card-title>{{ registering() ? 'Create an account' : 'Sign in' }}</h1>
-  </mat-card-header>
-  <mat-card-content>
+<div class="auth">
+  <section class="hero" aria-labelledby="hero-heading">
+    <span class="chip accent"><app-icon name="sparkle" size="0.9rem" /> AI learning platform</span>
+    <h1 id="hero-heading">Turn your notes into a wiki that <span class="gradient-text">teaches you back</span>.</h1>
+    <ol class="steps">
+      <li><span class="icon-tile"><app-icon name="upload" /></span>
+        <div><strong>Upload</strong><p class="muted">Markdown, PDF, DOCX or TXT.</p></div></li>
+      <li><span class="icon-tile cyan"><app-icon name="graph" /></span>
+        <div><strong>Grow the wiki</strong><p class="muted">Each document adds and links concept pages.</p></div></li>
+      <li><span class="icon-tile success"><app-icon name="school" /></span>
+        <div><strong>Study</strong><p class="muted">Spaced-repetition flashcards, quizzes and chat.</p></div></li>
+    </ol>
+  </section>
+
+  <section class="card form-card" aria-labelledby="form-heading">
+    <h2 id="form-heading">{{ registering() ? 'Create your account' : 'Welcome back' }}</h2>
+    <p class="muted small">{{ registering() ? 'It takes less than a minute.' : 'Sign in to continue learning.' }}</p>
     <form class="stack" #form="ngForm" (ngSubmit)="submit()">
       @if (registering()) {
-        <mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
           <mat-label>Name</mat-label>
           <input matInput name="displayName" [(ngModel)]="displayName" required autocomplete="name" />
         </mat-form-field>
       }
-      <mat-form-field>
+      <mat-form-field subscriptSizing="dynamic">
         <mat-label>E-mail</mat-label>
         <input matInput type="email" name="email" [(ngModel)]="email" required autocomplete="email" />
       </mat-form-field>
-      <mat-form-field>
+      <mat-form-field subscriptSizing="dynamic">
         <mat-label>Password</mat-label>
         <input matInput type="password" name="password" [(ngModel)]="password" required [minlength]="registering() ? 8 : 0"
           [attr.autocomplete]="registering() ? 'new-password' : 'current-password'" />
@@ -23,24 +35,26 @@
         }
       </mat-form-field>
       @if (error(); as message) {
-        <p class="error" role="alert">{{ message }}</p>
+        <p class="alert" role="alert"><app-icon name="error" /> {{ message }}</p>
       }
-      <div class="row">
-        <button mat-flat-button type="submit" [disabled]="form.invalid">{{ registering() ? 'Create account' : 'Sign in' }}</button>
-        <button mat-button type="button" (click)="toggle()">
-          {{ registering() ? 'I already have an account' : 'I have no account' }}
-        </button>
-      </div>
+      <button mat-flat-button class="submit" type="submit" [disabled]="form.invalid">
+        {{ registering() ? 'Create account' : 'Sign in' }}
+      </button>
     </form>
     @if (providers().length) {
-      <div class="row">
+      <div class="divider"><span>or</span></div>
+      <div class="stack providers">
         @if (providers().includes('google')) {
-          <a mat-stroked-button href="/oauth2/authorization/google">Sign in with Google</a>
+          <a mat-stroked-button href="/oauth2/authorization/google">Continue with Google</a>
         }
         @if (providers().includes('github')) {
-          <a mat-stroked-button href="/oauth2/authorization/github">Sign in with GitHub</a>
+          <a mat-stroked-button href="/oauth2/authorization/github">Continue with GitHub</a>
         }
       </div>
     }
-  </mat-card-content>
-</mat-card>
+    <p class="switch muted small">
+      {{ registering() ? 'Already have an account?' : 'New to MindForge?' }}
+      <button mat-button type="button" (click)="toggle()">{{ registering() ? 'Sign in' : 'Create an account' }}</button>
+    </p>
+  </section>
+</div>

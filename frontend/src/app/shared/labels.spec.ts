@@ -1,4 +1,4 @@
-import { apiErrorMessage, failureLine, failureReasonLabel } from './labels';
+import { apiErrorMessage, failureLine, failureReasonLabel, progressStepLabel } from './labels';
 
 describe('labels', () => {
   it('answers an error by its code, not by the server text', () => {
@@ -16,5 +16,10 @@ describe('labels', () => {
   it('translates known failure reasons and leaves unknown ones', () => {
     expect(failureReasonLabel('unexpected error')).toContain('Unexpected error');
     expect(failureReasonLabel('Extract returned 400 claims')).toBe('Extract returned 400 claims');
+  });
+
+  it('names a running step in plain words and shows an unknown step as sent', () => {
+    expect(progressStepLabel('linkCheck')).toBe('Checking links');
+    expect(progressStepLabel('newStep')).toBe('newStep');
   });
 });
