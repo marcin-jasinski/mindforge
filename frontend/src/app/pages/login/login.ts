@@ -1,20 +1,21 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { ApiError } from '../../core/models/api';
 import { AuthService } from '../../core/services/auth.service';
+import { Icon } from '../../shared/icon';
 import { apiErrorMessage } from '../../shared/labels';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule],
+  imports: [FormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, Icon],
   templateUrl: './login.html',
+  styleUrl: './login.scss',
 })
 export class Login implements OnInit {
   private readonly auth = inject(AuthService);

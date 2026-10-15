@@ -1,79 +1,121 @@
-<section class="stack" aria-labelledby="upload-heading">
-  <h2 id="upload-heading">Upload a document</h2>
-  <label class="dropzone" [class.over]="dragging()" (dragover)="$event.preventDefault(); dragging.set(true)"
+<section class="card upload" aria-labelledby="upload-heading">
+  <div class="section-head">
+    <span class="icon-tile"><app-icon name="upload" /></span>
+    <div>
+      <h2 id="upload-heading">Add a document</h2>
+      <p class="muted small">MindForge reads it and weaves what it teaches into this wiki.</p>
+    </div>
+  </div>
+  <label class="dropzone" [class.over]="dragging()" [class.has-file]="file()" (dragover)="$event.preventDefault(); dragging.set(true)"
     (dragleave)="dragging.set(false)" (drop)="drop($event)">
-    <span>{{ file()?.name ?? 'Drop a file (Markdown, PDF, DOCX, TXT) or choose one' }}</span>
-    <input type="file" accept=".md,.markdown,.pdf,.docx,.txt" (change)="choose($event)" />
+    <app-icon [name]="file() ? 'document' : 'upload'" size="2rem" />
+    @if (file(); as chosen) {
+      <strong>{{ chosen.name }}</strong>
+      <span class="small">{{ size(chosen.size) }} · click to choose another file</span>
+    } @else {
+      <strong>Drop a file here or click to browse</strong>
+      <span class="small">Markdown, PDF, DOCX or TXT</span>
+    }
+    <input type="file" accept=".md,.markdown,.pdf,.docx,.txt" (change)="choose($event)" aria-label="Choose a document" />
   </label>
-  <div class="row">
-    <button mat-flat-button type="button" [disabled]="!file()" (click)="upload()">Upload</button>
+  <div class="row end">
+    @if (file()) {
+      <button mat-button type="button" (click)="file.set(null); collision.set(null)">Clear</button>
+    }
+    <button mat-flat-button type="button" [disabled]="!file() || uploading()" (click)="upload()">
+      <app-icon name="sparkle" /> {{ uploading() ? 'Uploading…' : 'Upload and build pages' }}
+    </button>
   </div>
   @if (uploadError(); as message) {
-    <p class="error" role="alert">{{ message }}</p>
+    <p class="alert" role="alert"><app-icon name="error" /> {{ message }}</p>
   }
   @if (collision(); as lesson) {
-    <div class="stack" role="alertdialog" aria-labelledby="collision-heading">
-      <p id="collision-heading">The lesson “{{ lesson.lessonTitle }}” already exists. What is this file?</p>
-      <div class="row">
-        <button mat-flat-button type="button" (click)="upload({ lessonId: lesson.lessonId, newVersion: true })">
-          New version of “{{ lesson.lessonTitle }}”
-        </button>
-        <mat-form-field>
-          <mat-label>New lesson identifier</mat-label>
-          <input matInput [(ngModel)]="newLessonId" pattern="[a-z0-9]+(-[a-z0-9]+)*" />
-        </mat-form-field>
-        <button mat-stroked-button type="button" [disabled]="!newLessonId()" (click)="upload({ lessonId: newLessonId() })">
-          New lesson
-        </button>
+    <div class="alert info collision" role="alertdialog" aria-labelledby="collision-heading">
+      <app-icon name="warning" />
+      <div class="stack">
+        <p id="collision-heading">The lesson <strong>“{{ lesson.lessonTitle }}”</strong> already exists. What is this file?</p>
+        <div class="row">
+          <button mat-flat-button type="button" (click)="upload({ lessonId: lesson.lessonId, newVersion: true })">
+            New version of “{{ lesson.lessonTitle }}”
+          </button>
+          <span class="small">or</span>
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>New lesson identifier</mat-label>
+            <input matInput [(ngModel)]="newLessonId" pattern="[a-z0-9]+(-[a-z0-9]+)*" />
+          </mat-form-field>
+          <button mat-stroked-button type="button" [disabled]="!newLessonId()" (click)="upload({ lessonId: newLessonId() })">
+            Save as a new lesson
+          </button>
+        </div>
       </div>
     </div>
   }
 </section>
 
-<section aria-labelledby="runs-heading">
-  <h2 id="runs-heading">Recent runs</h2>
-  <mat-list>
-    @for (run of progress.runs(); track run.runId) {
-      <mat-list-item>
-        <span matListItemTitle>
-          <a [routerLink]="['runs', run.runId]">{{ runTitle(run) }}</a>
-          — {{ statusLabel(run.status) }}
-          @if (progress.steps()[run.runId]?.step; as step) {
-            ({{ step }})
+<div class="columns">
+  <section class="card" aria-labelledby="documents-heading">
+    <div class="section-head">
+      <h2 id="documents-heading">Documents</h2>
+      <span class="chip">{{ documents().length }}</span>
+    </div>
+    <ul class="list">
+      @for (doc of documents(); track doc.documentId) {
+        <li class="item">
+          <span class="icon-tile cyan"><app-icon name="document" /></span>
+          <div class="grow">
+            <strong>{{ doc.lessonTitle }}</strong>
+            <p class="muted small mono">{{ doc.sourceFilename }}</p>
+          </div>
+          @if (doc.latestRun; as run) {
+            <span class="chip" [class]="'chip status-' + run.status.toLowerCase()">{{ statusLabel(run.status) }}</span>
+          } @else {
+            <span class="chip">no run</span>
           }
-        </span>
-        <span matListItemLine>
-          {{ run.created }} created · {{ run.revised }} revised · {{ run.deleted }} deleted
-          @if (run.failureReason) {
-            <span class="error"> · {{ reasonLabel(run.failureReason) }}</span>
+          @if (doc.latestRun?.status === 'FAILED') {
+            <button mat-icon-button type="button" (click)="remove(doc)" [attr.aria-label]="'Remove ' + doc.lessonTitle" title="Remove">
+              <app-icon name="delete" />
+            </button>
           }
-        </span>
-        @if (percent(run.runId); as value) {
-          <mat-progress-bar mode="determinate" [value]="value" [attr.aria-label]="'Pages written: ' + value + '%'" />
-        }
-        @if (canRetry(run)) {
-          <button mat-button type="button" matListItemMeta (click)="retry(run)">Retry</button>
-        }
-      </mat-list-item>
-    } @empty {
-      <p>No runs yet.</p>
-    }
-  </mat-list>
-</section>
+        </li>
+      } @empty {
+        <li class="muted small">No documents yet. Upload your first document above to start the wiki.</li>
+      }
+    </ul>
+  </section>
 
-<section aria-labelledby="documents-heading">
-  <h2 id="documents-heading">Documents</h2>
-  <mat-list>
-    @for (doc of documents(); track doc.documentId) {
-      <mat-list-item>
-        <span matListItemTitle>{{ doc.lessonTitle }} <small>({{ doc.sourceFilename }})</small></span>
-        <span matListItemLine>{{ doc.latestRun ? statusLabel(doc.latestRun.status) : 'no run' }}</span>
-        @if (doc.latestRun?.status === 'FAILED') {
-          <button mat-button type="button" matListItemMeta (click)="remove(doc)">Remove</button>
-        }
-      </mat-list-item>
-    } @empty {
-      <p>No documents uploaded yet.</p>
-    }
-  </mat-list>
-</section>
+  <section class="card" aria-labelledby="runs-heading">
+    <div class="section-head">
+      <h2 id="runs-heading">Activity</h2>
+    </div>
+    <ul class="list" aria-live="polite">
+      @for (run of progress.runs(); track run.runId) {
+        <li class="stack run">
+          <div class="row">
+            <span [class]="'chip status-' + run.status.toLowerCase()">{{ statusLabel(run.status) }}</span>
+            <a class="grow title" [routerLink]="['runs', run.runId]">{{ runTitle(run) }}</a>
+            @if (canRetry(run)) {
+              <button mat-stroked-button type="button" (click)="retry(run)"><app-icon name="refresh" /> Retry</button>
+            }
+          </div>
+          @if (progress.steps()[run.runId]?.step; as step) {
+            <span class="info-text small">{{ stepLabel(step) }}…</span>
+          } @else if (run.status === 'RUNNING') {
+            <span class="info-text small">Working…</span>
+          }
+          @if (percent(run.runId); as value) {
+            <div class="progress-track" role="progressbar" [attr.aria-valuenow]="value" aria-valuemin="0" aria-valuemax="100"
+              [attr.aria-label]="'Pages written: ' + value + '%'"><span [style.width.%]="value"></span></div>
+          }
+          <span class="muted small">
+            <span class="added">+{{ run.created }}</span> created · {{ run.revised }} revised · {{ run.deleted }} deleted
+          </span>
+          @if (run.failureReason) {
+            <span class="error small">{{ reasonLabel(run.failureReason) }}</span>
+          }
+        </li>
+      } @empty {
+        <li class="muted small">No runs yet. Each upload starts one.</li>
+      }
+    </ul>
+  </section>
+</div>

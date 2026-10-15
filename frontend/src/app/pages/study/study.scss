@@ -1,0 +1,152 @@
+.scope { gap: 0.9rem; }
+.lesson { max-width: 24rem; }
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  width: fit-content;
+  border-radius: 0.8rem;
+  border: 1px solid var(--mf-border);
+  background: var(--mf-surface);
+  button {
+    padding: 0.5rem 0.9rem;
+    border: 0;
+    border-radius: 0.55rem;
+    background: none;
+    color: var(--mf-muted);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 550;
+    cursor: pointer;
+    &:hover { color: var(--mf-text); }
+    &[aria-checked='true'] { color: var(--mf-text); background: var(--mf-accent-soft); box-shadow: inset 0 0 0 1px rgb(165 148 255 / 0.35); }
+  }
+}
+
+.modes {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+.mode {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  p { flex: 1; }
+}
+
+.session {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.session-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  h2 { flex: 1; font-weight: 500; }
+}
+
+.flashcard, .question {
+  min-height: 12rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  border-color: rgb(165 148 255 / 0.25);
+  animation: mf-rise 220ms ease;
+  hr { width: 100%; border: 0; border-top: 1px dashed var(--mf-border-strong); margin: 0.25rem 0; }
+}
+
+.question { min-height: 0; }
+
+.flashcard.revealed { border-color: rgb(94 234 212 / 0.35); }
+
+.front { font-size: clamp(1.15rem, 1rem + 0.6vw, 1.4rem); font-weight: 600; line-height: 1.45; white-space: pre-line; }
+.back { font-size: 1.05rem; line-height: 1.6; color: var(--mf-cyan); white-space: pre-line; animation: mf-rise 220ms ease; }
+
+@keyframes mf-rise { from { opacity: 0; transform: translateY(6px); } }
+
+.center { text-align: center; justify-content: center; }
+.end { justify-content: flex-end; }
+.reveal { height: 3rem; padding-inline: 1.5rem; }
+
+.grades {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(3, 1fr);
+  @media (min-width: 40rem) { grid-template-columns: repeat(6, 1fr); }
+}
+
+.grade {
+  --c: var(--mf-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 3.75rem;
+  padding: 0.6rem 0.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
+  background: color-mix(in srgb, var(--c) 9%, transparent);
+  color: var(--c);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 120ms, background-color 120ms;
+  &:hover { transform: translateY(-2px); background: color-mix(in srgb, var(--c) 18%, transparent); }
+  .kbd { color: inherit; border-color: currentColor; opacity: 0.75; }
+  &.g0, &.g1 { --c: var(--mf-danger); }
+  &.g2 { --c: #fb923c; }
+  &.g3 { --c: var(--mf-warn); }
+  &.g4 { --c: var(--mf-success); }
+  &.g5 { --c: var(--mf-cyan); }
+}
+
+.verdict {
+  --c: var(--mf-warn);
+  border-color: color-mix(in srgb, var(--c) 40%, transparent);
+  background: color-mix(in srgb, var(--c) 6%, var(--mf-surface));
+  animation: mf-rise 220ms ease;
+  &.s0, &.s1 { --c: var(--mf-danger); }
+  &.s4, &.s5 { --c: var(--mf-success); }
+  strong { color: var(--c); }
+}
+
+.meter {
+  display: inline-flex;
+  gap: 0.25rem;
+  span { width: 1.25rem; height: 0.45rem; border-radius: 999px; background: rgb(255 255 255 / 0.1); }
+  span.on { background: var(--c); }
+}
+
+.done {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  animation: mf-rise 220ms ease;
+  .icon-tile { width: 3.5rem; height: 3.5rem; border-radius: 1rem; }
+  h3 { font-size: 1.4rem; }
+  .wide { width: min(100%, 20rem); }
+}
+
+.score-big { font-size: 3rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; span { font-size: 1.25rem; } }
+
+.results {
+  width: 100%;
+  text-align: left;
+  li { display: flex; gap: 0.75rem; align-items: flex-start; }
+  strong { display: block; margin-bottom: 0.2rem; }
+}

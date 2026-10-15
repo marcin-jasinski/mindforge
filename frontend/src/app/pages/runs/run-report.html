@@ -1,65 +1,96 @@
+<a class="crumb" routerLink="../.."><app-icon name="arrowBack" size="1rem" /> Documents</a>
 @if (report(); as run) {
-  <h1>{{ kindLabel(run.kind) }} — {{ statusLabel(run.status) }}</h1>
-  <p>
-    Created {{ run.createdAt | dateTime }}
-    @if (run.finishedAt) {
-      · finished {{ run.finishedAt | dateTime }}
+  <header class="head">
+    <div class="stack">
+      <div class="row">
+        <span [class]="'chip status-' + run.status.toLowerCase()">{{ statusLabel(run.status) }}</span>
+        <span class="muted small">
+          Created {{ run.createdAt | dateTime }}
+          @if (run.finishedAt) {
+            · finished {{ run.finishedAt | dateTime }}
+          }
+        </span>
+      </div>
+      <h1>{{ kindLabel(run.kind) }} run</h1>
+    </div>
+    @if (run.revertOffered) {
+      <button mat-stroked-button type="button" (click)="revert()"><app-icon name="undo" /> Revert this run</button>
     }
-    @if (run.failureReason) {
-      · <span class="error">{{ reasonLabel(run.failureReason) }}</span>
-    }
-  </p>
-  @if (run.revertOffered) {
-    <button mat-flat-button type="button" (click)="revert()">Revert this run</button>
+  </header>
+  @if (run.failureReason) {
+    <p class="alert" role="alert"><app-icon name="error" /> {{ reasonLabel(run.failureReason) }}</p>
+  }
+  @if (done(); as text) {
+    <p class="alert success" role="status"><app-icon name="check" /> {{ text }}</p>
   }
   @if (message(); as text) {
-    <p class="error" role="alert">{{ text }}</p>
+    <p class="alert" role="alert"><app-icon name="error" /> {{ text }}</p>
   }
 
-  <h2>Pages written</h2>
-  @for (change of run.pages; track change.pageId) {
-    <section class="stack">
-      <h3>
-        @if (change.after.markdownBody) {
-          <a [routerLink]="pageLink(change.path)">{{ change.after.title }}</a>
-        } @else {
-          {{ change.after.title }} (deleted)
-        }
-        <small>· length {{ change.lengthBefore ?? 0 }} → {{ change.lengthAfter ?? 0 }}</small>
-      </h3>
-      <app-diff-view [before]="change.before?.markdownBody" [after]="change.after.markdownBody" />
-    </section>
-  } @empty {
-    <p>This run wrote no pages.</p>
-  }
+  <div class="stats">
+    <div class="card"><strong>{{ run.pages.length }}</strong><span class="muted small">pages written</span></div>
+    <div class="card"><strong>{{ run.supersessions.length }}</strong><span class="muted small">superseded sections</span></div>
+    <div class="card"><strong>{{ run.failures.length }}</strong><span class="muted small">skipped or failed</span></div>
+  </div>
+
+  <section class="stack" aria-labelledby="pages-heading">
+    <h2 id="pages-heading">Pages written</h2>
+    @for (change of run.pages; track change.pageId) {
+      <details class="card change" [open]="run.pages.length <= 3">
+        <summary>
+          <app-icon name="chevronRight" class="caret" />
+          @if (change.after.markdownBody) {
+            <a [routerLink]="pageLink(change.path)" (click)="$event.stopPropagation()">{{ change.after.title }}</a>
+            <span [class]="change.before ? 'chip info' : 'chip success'">{{ change.before ? 'revised' : 'new' }}</span>
+          } @else {
+            <span>{{ change.after.title }}</span><span class="chip danger">deleted</span>
+          }
+          <span class="spacer"></span>
+          <span class="muted small mono">{{ change.lengthBefore ?? 0 }} → {{ change.lengthAfter ?? 0 }} chars</span>
+        </summary>
+        <app-diff-view [before]="change.before?.markdownBody" [after]="change.after.markdownBody" />
+      </details>
+    } @empty {
+      <p class="muted">This run wrote no pages.</p>
+    }
+  </section>
 
   @if (run.supersessions.length) {
-    <h2>Superseded sections</h2>
-    <ul>
-      @for (row of run.supersessions; track row.supersessionId) {
-        <li>
-          {{ row.supersededPath ?? '(deleted page)' }}#{{ row.sectionAnchor }} ← {{ row.supersedingPath ?? '(deleted page)' }}
-          <button mat-button type="button" (click)="removeSupersession(row.supersessionId)">Remove</button>
-        </li>
-      }
-    </ul>
+    <section class="card stack" aria-labelledby="sup-heading">
+      <h2 id="sup-heading">Superseded sections</h2>
+      <ul class="list">
+        @for (row of run.supersessions; track row.supersessionId) {
+          <li class="row">
+            <span class="mono small grow">{{ row.supersededPath ?? '(deleted page)' }}#{{ row.sectionAnchor }} ← {{ row.supersedingPath ?? '(deleted page)' }}</span>
+            <button mat-button type="button" (click)="removeSupersession(row.supersessionId)">Remove</button>
+          </li>
+        }
+      </ul>
+    </section>
   }
 
   @if (run.failures.length) {
-    <h2>Skipped and failed</h2>
-    <ul>
-      @for (failure of run.failures; track $index) {
-        <li>{{ failureLine(failure) }}</li>
-      }
-    </ul>
+    <section class="card stack" aria-labelledby="failures-heading">
+      <h2 id="failures-heading">Skipped and failed</h2>
+      <ul class="list">
+        @for (failure of run.failures; track $index) {
+          <li class="small">{{ failureLine(failure) }}</li>
+        }
+      </ul>
+    </section>
   }
 
   @if (run.findings.length) {
-    <h2>Review findings</h2>
-    <ul>
-      @for (finding of run.findings; track $index) {
-        <li><strong>{{ findingLabel(finding.kind) }}</strong>: {{ finding.text }} {{ finding.pages.join(', ') }}</li>
-      }
-    </ul>
+    <section class="card stack" aria-labelledby="findings-heading">
+      <h2 id="findings-heading">Review findings</h2>
+      <ul class="list">
+        @for (finding of run.findings; track $index) {
+          <li class="row"><span class="chip accent">{{ findingLabel(finding.kind) }}</span> {{ finding.text }}
+            @for (path of finding.pages; track path) { <a [routerLink]="pageLink(path)" class="mono small">{{ path }}</a> }</li>
+        }
+      </ul>
+    </section>
   }
+} @else {
+  <div class="skeleton" style="height: 12rem"></div>
 }

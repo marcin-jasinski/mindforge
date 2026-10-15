@@ -1,81 +1,209 @@
-<section class="stack" aria-labelledby="scope-heading">
-  <h2 id="scope-heading">Study scope</h2>
-  <mat-radio-group class="row" [(ngModel)]="scope" aria-labelledby="scope-heading">
-    <mat-radio-button value="whole">Whole knowledge base</mat-radio-button>
-    <mat-radio-button value="lesson">Lesson</mat-radio-button>
-    @if (pageId()) {
-      <mat-radio-button value="page">This page and the pages it links to</mat-radio-button>
-    }
-  </mat-radio-group>
-  @if (scope() === 'lesson') {
-    <mat-form-field>
-      <mat-label>Lesson</mat-label>
-      <mat-select [(ngModel)]="lessonId">
-        @for (lesson of lessons(); track lesson.id) {
-          <mat-option [value]="lesson.id">{{ lesson.title }}</mat-option>
+@if (mode() === 'setup') {
+  <section class="stack-lg" aria-labelledby="scope-heading">
+    <div class="stack scope">
+      <h2 id="scope-heading">What do you want to study?</h2>
+      <div class="segmented" role="radiogroup" aria-labelledby="scope-heading">
+        @for (option of scopeOptions(); track option.value) {
+          <button type="button" role="radio" [attr.aria-checked]="scope() === option.value" (click)="scope.set(option.value)">
+            {{ option.label }}
+          </button>
         }
-      </mat-select>
-    </mat-form-field>
-  }
-  <div class="row">
-    <button mat-flat-button type="button" [disabled]="loadingDeck()" (click)="openDeck()">Open flashcards</button>
-    <button mat-stroked-button type="button" [disabled]="startingQuiz()" (click)="startQuiz()">Start quiz</button>
-  </div>
-  @if (loadingDeck()) {
-    <p role="status">Adding the missing flashcards — you can review the existing ones now…</p>
-  }
-  @if (startingQuiz()) {
-    <p role="status">Writing the quiz questions — this can take a moment…</p>
-  }
-  @if (error(); as message) {
-    <p class="error" role="alert">{{ message }}</p>
-  }
-</section>
-
-@if (cards().length) {
-  <section class="stack" aria-labelledby="cards-heading">
-    <h2 id="cards-heading">Flashcards ({{ cardIndex() + 1 }} / {{ cards().length }})</h2>
-    @if (card(); as current) {
-      <p class="front">{{ current.front }}</p>
-      @if (showBack()) {
-        <p class="back">{{ current.back }}</p>
-        <div class="row" role="group" aria-label="How well do you remember?">
-          @for (rating of ratings; track rating.value) {
-            <button mat-stroked-button type="button" [attr.aria-label]="rating.value + ' — ' + rating.label"
-              [title]="rating.label" (click)="rate(rating.value)">{{ rating.value }}</button>
-          }
-        </div>
-        <small>0 — no memory at all · 5 — remembered with no effort</small>
-      } @else {
-        <button mat-flat-button type="button" (click)="showBack.set(true)">Show answer</button>
+      </div>
+      @if (scope() === 'lesson') {
+        <mat-form-field subscriptSizing="dynamic" class="lesson">
+          <mat-label>Lesson</mat-label>
+          <mat-select [(ngModel)]="lessonId">
+            @for (lesson of lessons(); track lesson.id) {
+              <mat-option [value]="lesson.id">{{ lesson.title }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
       }
-    } @else {
-      <p>These are all the flashcards for today.</p>
+    </div>
+
+    <div class="modes">
+      <article class="card mode">
+        <span class="icon-tile"><app-icon name="layers" /></span>
+        <h3>Flashcards</h3>
+        <p class="muted">Spaced repetition: review the cards that are due today. The better you remember, the later a card comes back.</p>
+        <button mat-flat-button type="button" [disabled]="loadingDeck() || !scopeReady()" (click)="openDeck()">
+          <app-icon name="layers" /> {{ loadingDeck() ? 'Opening…' : 'Review flashcards' }}
+        </button>
+      </article>
+      <article class="card mode">
+        <span class="icon-tile cyan"><app-icon name="quiz" /></span>
+        <h3>Quiz</h3>
+        <p class="muted">Answer open questions in your own words. The AI grades each answer and targets your weakest pages.</p>
+        <button mat-stroked-button type="button" [disabled]="startingQuiz() || !scopeReady()" (click)="startQuiz()">
+          <app-icon name="quiz" /> {{ startingQuiz() ? 'Writing questions…' : 'Start a quiz' }}
+        </button>
+      </article>
+    </div>
+    @if (startingQuiz()) {
+      <p class="alert info" role="status"><span class="dot-loader"><span></span><span></span><span></span></span>
+        Writing the quiz questions — this can take a moment…</p>
+    }
+    @if (error(); as message) {
+      <p class="alert" role="alert"><app-icon name="error" /> {{ message }}</p>
     }
   </section>
 }
 
-@if (session()) {
-  <section class="stack" aria-labelledby="quiz-heading">
-    <h2 id="quiz-heading">Quiz</h2>
-    @if (question(); as q) {
-      <p>Question {{ q.index }} of {{ q.total }}: {{ q.question }}</p>
-      @if (evaluation(); as graded) {
-        <p role="status">Score {{ graded.score }} / 5 — {{ graded.feedback }}</p>
-        <button mat-flat-button type="button" (click)="next()">Next</button>
-      } @else {
-        <mat-form-field>
-          <mat-label>Your answer</mat-label>
-          <textarea matInput [(ngModel)]="answer" rows="3"></textarea>
-        </mat-form-field>
-        <button mat-flat-button type="button" [disabled]="!answer().trim() || grading()" (click)="submitAnswer()">Check</button>
-        @if (grading()) {
-          <p role="status">Checking the answer…</p>
-        }
+@if (mode() === 'cards') {
+  <section class="session" aria-labelledby="cards-heading">
+    <div class="session-head">
+      <button mat-button type="button" (click)="exit()"><app-icon name="arrowBack" /> End session</button>
+      <h2 id="cards-heading" class="muted small">
+        Flashcards @if (cards().length) { · {{ Math.min(cardIndex() + 1, cards().length) }} / {{ cards().length }} }
+      </h2>
+      @if (loadingDeck()) {
+        <span class="chip info status-running">Adding cards</span>
       }
+    </div>
+    <div class="progress-track"><span [style.width.%]="cards().length ? (cardIndex() / cards().length) * 100 : 0"></span></div>
+
+    @if (card(); as current) {
+      <div class="flashcard card" [class.revealed]="showBack()">
+        <span class="chip accent">{{ current.cardType === 'CLOZE' ? 'Fill the gap' : current.cardType === 'REVERSE' ? 'Reverse' : 'Question' }}</span>
+        <p class="front">{{ current.front }}</p>
+        @if (showBack()) {
+          <hr />
+          <p class="back" role="status">{{ current.back }}</p>
+        }
+      </div>
+      @if (showBack()) {
+        <div class="stack rate">
+          <p class="muted small center">How well did you remember it?</p>
+          <div class="grades" role="group" aria-label="How well do you remember?">
+            @for (rating of ratings; track rating.value) {
+              <button type="button" class="grade" [class]="'g' + rating.value"
+                [attr.aria-label]="rating.value + ' — ' + rating.label" [title]="rating.label" (click)="rate(rating.value)">
+                <span class="kbd">{{ rating.value }}</span>
+                <span>{{ rating.short }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      } @else {
+        <div class="center">
+          <button mat-flat-button type="button" class="reveal" (click)="showBack.set(true)">
+            <app-icon name="visibility" /> Show answer <span class="kbd">Space</span>
+          </button>
+        </div>
+      }
+    } @else if (loadingDeck()) {
+      <div class="card done" role="status">
+        <span class="dot-loader"><span></span><span></span><span></span></span>
+        <h3>Writing your flashcards</h3>
+        <p class="muted">MindForge is cutting cards from your pages. On a local model this can take a few minutes.</p>
+      </div>
+    } @else {
+      <div class="card done">
+        <span class="icon-tile success"><app-icon name="trophy" size="1.6rem" /></span>
+        <h3>Session complete</h3>
+        <p class="muted">You reviewed {{ reviewed() }} {{ reviewed() === 1 ? 'card' : 'cards' }} and remembered {{ remembered() }}.</p>
+        @if (reviewed()) {
+          <div class="progress-track wide"><span [style.width.%]="(remembered() / reviewed()) * 100"></span></div>
+        }
+        <p class="muted small">These are all the cards due today. Come back tomorrow, or test yourself with a quiz.</p>
+        <div class="row center">
+          <button mat-flat-button type="button" (click)="startQuiz()"><app-icon name="quiz" /> Start a quiz</button>
+          <button mat-stroked-button type="button" (click)="exit()">Done</button>
+        </div>
+      </div>
     }
+    @if (error(); as message) {
+      <p class="alert" role="alert"><app-icon name="error" /> {{ message }}</p>
+    }
+  </section>
+}
+
+@if (mode() === 'quiz') {
+  <section class="session" aria-labelledby="quiz-heading">
+    <div class="session-head">
+      <button mat-button type="button" (click)="exit()"><app-icon name="arrowBack" /> End quiz</button>
+      <h2 id="quiz-heading" class="muted small">
+        Quiz @if (question(); as q) { · {{ q.index }} / {{ q.total }} }
+      </h2>
+    </div>
+    @if (question(); as q) {
+      <div class="progress-track"><span [style.width.%]="((q.index - (evaluation() ? 0 : 1)) / q.total) * 100"></span></div>
+    }
+
     @if (finished()) {
-      <p>End of the quiz.</p>
+      <div class="card done">
+        @if (+average() >= 3) {
+          <span class="icon-tile success"><app-icon name="trophy" size="1.6rem" /></span>
+        } @else {
+          <span class="icon-tile warn"><app-icon name="lightbulb" size="1.6rem" /></span>
+        }
+        <h3>Quiz complete</h3>
+        @if (results().length) {
+          <p class="score-big">{{ average() }}<span class="muted"> / 5</span></p>
+          <p class="muted">Average score over {{ results().length }} {{ results().length === 1 ? 'question' : 'questions' }}.
+            @if (+average() < 3) { Review the weakest answers below, then try again. }</p>
+          <ul class="list results">
+            @for (result of weakestFirst(); track $index) {
+              <li>
+                <span class="chip" [class.danger]="result.score <= 2" [class.warn]="result.score === 3"
+                  [class.success]="result.score >= 4">{{ result.score }} / 5</span>
+                <div>
+                  <strong>{{ result.question }}</strong>
+                  <p class="muted small">{{ result.feedback }}</p>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+        <div class="row center">
+          <button mat-flat-button type="button" (click)="startQuiz()"><app-icon name="refresh" /> New quiz</button>
+          <button mat-stroked-button type="button" (click)="openDeck()"><app-icon name="layers" /> Review flashcards</button>
+        </div>
+      </div>
+    } @else if (question(); as q) {
+      <div class="card stack question">
+        <span class="eyebrow">Question {{ q.index }}</span>
+        <p class="front">{{ q.question }}</p>
+      </div>
+      @if (evaluation(); as graded) {
+        <div class="card stack verdict" [class]="'s' + graded.score" role="status">
+          <div class="row">
+            <span class="meter" [attr.aria-label]="'Score ' + graded.score + ' of 5'">
+              @for (i of [1, 2, 3, 4, 5]; track i) { <span [class.on]="i <= graded.score"></span> }
+            </span>
+            <strong>{{ graded.score }} / 5 · {{ verdict(graded.score) }}</strong>
+          </div>
+          <p>{{ graded.feedback }}</p>
+          <div class="row end">
+            <button mat-flat-button type="button" (click)="next()">
+              {{ graded.finished ? 'See results' : 'Next question' }} <span class="kbd">Enter</span>
+            </button>
+          </div>
+        </div>
+      } @else {
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Your answer</mat-label>
+          <textarea matInput [(ngModel)]="answer" rows="4" (keydown.control.enter)="submitAnswer()"
+            (keydown.meta.enter)="submitAnswer()"></textarea>
+        </mat-form-field>
+        <div class="row end">
+          @if (grading()) {
+            <span class="muted small" role="status"><span class="dot-loader"><span></span><span></span><span></span></span> Checking…</span>
+          } @else {
+            <span class="muted small"><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> to submit</span>
+          }
+          <button mat-flat-button type="button" [disabled]="!answer().trim() || grading()" (click)="submitAnswer()">Check answer</button>
+        </div>
+      }
+    } @else {
+      <div class="card done" role="status">
+        <span class="dot-loader"><span></span><span></span><span></span></span>
+        <h3>Writing your quiz</h3>
+        <p class="muted">MindForge picks your weakest pages and writes questions about them. On a local model this can take a minute.</p>
+      </div>
+    }
+    @if (error(); as message) {
+      <p class="alert" role="alert"><app-icon name="error" /> {{ message }}</p>
     }
   </section>
 }

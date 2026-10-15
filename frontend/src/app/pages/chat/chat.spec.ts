@@ -17,7 +17,7 @@ describe('Chat', () => {
         provideRouter([]),
         { provide: QueryApi, useValue: queryApi },
         { provide: RunApi, useValue: { revert, report: vi.fn() } },
-        { provide: ProgressService, useValue: { reload: vi.fn() } },
+        { provide: ProgressService, useValue: { reload: vi.fn(), steps: () => ({}) } },
         { provide: WikiApi, useValue: { index: vi.fn(() => of({ pages: [{ path: 'concepts/mitosis', title: 'Mitosis' }] })) } },
       ],
     });
@@ -47,6 +47,16 @@ describe('Chat', () => {
     expect(chat.citedTitle('concepts/nieznana')).toBe('concepts/nieznana');
   });
 
+  it('says the wiki is changing while an edit runs, not that it is thinking', () => {
+    const { chat } = setup({ edit: vi.fn(() => of({ runId: 'run' })) });
+    expect(chat.editStatus()).toBeNull();
+    chat.draft.set('Add the birth year to Hannibal.');
+
+    chat.edit();
+
+    expect(chat.editStatus()).toBe('Changing the wiki…');
+  });
+
   it('asks before undoing a change and sends nothing when declined', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     const { chat, revert } = setup({});
@@ -64,5 +74,16 @@ describe('Chat', () => {
     chat.revert({ runId: 'run' } as never);
 
     expect(revert).toHaveBeenCalledWith('kb', 'run');
+  });
+
+  it('stops offering a revert for a change once it is reverted', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { chat } = setup({});
+    chat.messages.set([{ role: 'edit', text: 'The wiki was changed.', run: { runId: 'run', revertOffered: true } as never }]);
+
+    chat.revert({ runId: 'run' } as never);
+
+    expect(chat.messages()[0].run?.revertOffered).toBe(false);
+    expect(chat.messages().at(-1)?.text).toBe('The change was reverted.');
   });
 });

@@ -10,7 +10,7 @@ import { RunReportView } from './run-report';
 describe('RunReportView revert', () => {
   function setup(revert: ReturnType<typeof vi.fn>, confirmed = true) {
     vi.spyOn(window, 'confirm').mockReturnValue(confirmed);
-    const api = { report: vi.fn(() => of({ revertOffered: true, pages: [], supersessions: [], failures: [], findings: [] })), revert };
+    const api = { report: vi.fn(() => of({ status: 'COMPLETED', revertOffered: true, pages: [], supersessions: [], failures: [], findings: [] })), revert };
     const progress = { reload: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
