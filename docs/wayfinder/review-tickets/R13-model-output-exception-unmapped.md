@@ -51,7 +51,7 @@ The 6 production sites that raise it are all untested for this path.
 completion like:
 
 ```
-Oto wynik: {"description":"a","body":"b"} oraz {"note":"ignore"}
+Here is the result: {"description":"a","body":"b"} and {"note":"ignore"}
 ```
 
 the span runs from the first `{` to the *last* `}`, swallowing both objects, and parsing fails.

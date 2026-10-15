@@ -31,11 +31,11 @@ describe('Login', () => {
   it('says so when an identity provider sent the person back with an error', () => {
     const login = setup({}, { error: '' }, []);
 
-    expect(login.error()).toContain('nie powiodło się');
+    expect(login.error()).toContain('failed');
   });
 
   it('explains a provider that shared no verified email', () => {
-    expect(setup({}, { error: 'email' }, []).error()).toContain('zweryfikowanego adresu e-mail');
+    expect(setup({}, { error: 'email' }, []).error()).toContain('verified e-mail address');
   });
 
   it('offers only the providers the server has configured', () => {

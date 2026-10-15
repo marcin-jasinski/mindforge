@@ -27,12 +27,12 @@ class HealthServiceTest {
     void shouldReportASupersessionWhoseAnchorExistsOnlyInsideAFenceOrWhoseSupersedingPageIsGone() {
         UUID fenced = UUID.randomUUID();
         UUID gone = UUID.randomUUID();
-        String body = "# Faza\n\nProfaza.\n\n```\n# Etapy\n```\n";
+        String body = "# Phase\n\nProphase.\n\n```\n# Stages\n```\n";
         when(health.supersessionsToCheck(KB)).thenReturn(List.of(
-            new WikiHealthQuery.SupersessionToCheck(fenced, "concepts/mitoza", "etapy", body, "concepts/mejoza"),
-            new WikiHealthQuery.SupersessionToCheck(gone, "concepts/mitoza", "faza", body, null),
-            new WikiHealthQuery.SupersessionToCheck(UUID.randomUUID(), "concepts/mitoza", "faza", body,
-                "concepts/mejoza")));
+            new WikiHealthQuery.SupersessionToCheck(fenced, "concepts/mitosis", "stages", body, "concepts/meiosis"),
+            new WikiHealthQuery.SupersessionToCheck(gone, "concepts/mitosis", "phase", body, null),
+            new WikiHealthQuery.SupersessionToCheck(UUID.randomUUID(), "concepts/mitosis", "phase", body,
+                "concepts/meiosis")));
 
         assertThat(new HealthService(health, wiki).health(KB).danglingSupersessions())
             .extracting(KnowledgeBaseHealth.DanglingSupersession::supersessionId)
@@ -42,7 +42,7 @@ class HealthServiceTest {
     @Test
     void shouldShowTheIndexAgainstItsCeilingAndSayWhenThePrefilterIsDue() {
         when(wiki.listIndex(KB)).thenReturn(List.of(
-            new IndexEntry("concepts/mitoza", "Mitoza", "x".repeat(70_000), PageType.CONCEPT)));
+            new IndexEntry("concepts/mitosis", "Mitosis", "x".repeat(70_000), PageType.CONCEPT)));
 
         KnowledgeBaseHealth report = new HealthService(health, wiki).health(KB);
 

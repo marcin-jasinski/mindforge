@@ -70,18 +70,18 @@ class LessonIdentityTest {
     @Test
     void shouldFlattenAMultiLineTitleAndDropInvisibleCharacters() {
         LessonIdentity identity = LessonIdentity.resolve(
-            Map.of("Title", "Mitoza\r\n\tkomórkowa\u200B "), "scan.pdf");
+            Map.of("Title", "Cell\r\n\tmitosis\u200B "), "scan.pdf");
 
-        assertThat(identity.title()).isEqualTo("Mitoza komórkowa");
-        assertThat(identity.lessonId()).isEqualTo("mitoza-komorkowa");
+        assertThat(identity.title()).isEqualTo("Cell mitosis");
+        assertThat(identity.lessonId()).isEqualTo("cell-mitosis");
     }
 
     @Test
     void shouldFallBackToFilenameStemWhenATitleIsBlankOnceCleaned() {
-        LessonIdentity identity = LessonIdentity.resolve(Map.of("Title", "\u200B\n "), "Notatki.pdf");
+        LessonIdentity identity = LessonIdentity.resolve(Map.of("Title", "\u200B\n "), "Notes.pdf");
 
-        assertThat(identity.title()).isEqualTo("Notatki");
-        assertThat(identity.lessonId()).isEqualTo("notatki");
+        assertThat(identity.title()).isEqualTo("Notes");
+        assertThat(identity.lessonId()).isEqualTo("notes");
     }
 
     @Test

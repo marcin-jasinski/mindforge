@@ -49,7 +49,7 @@ import dev.mindforge.support.TestContainerBase;
 })
 class LintAndHealthTest extends TestContainerBase {
 
-    private static final String MITOZA_BODY = "# Faza\n\nPo mitozie następuje mejoza.\n";
+    private static final String MITOSIS_BODY = "# Phase\n\nAfter mitosis comes meiosis.\n";
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
     @Autowired
@@ -93,10 +93,10 @@ class LintAndHealthTest extends TestContainerBase {
             wiki.savePage(kbId, makeWrite(a, "concepts/a", "A", PageType.CONCEPT,
                 "[B](/concepts/b.md), [X](/concepts/x.md) i [C](/sources/c.md).\n"), runId);
             wiki.savePage(kbId, makeWrite(b, "concepts/b", "B", PageType.CONCEPT,
-                "# Faza\n\n```\n# Etapy\n```\n"), runId);
-            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/c", "Wspólny", PageType.CONCEPT, "C.\n"), runId);
-            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/d", "Wspólny", PageType.CONCEPT, "D.\n"), runId);
-            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "sources/lekcja", "Wspólny", PageType.SOURCE_SUMMARY,
+                "# Phase\n\n```\n# Stages\n```\n"), runId);
+            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/c", "Shared", PageType.CONCEPT, "C.\n"), runId);
+            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/d", "Shared", PageType.CONCEPT, "D.\n"), runId);
+            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "sources/lesson", "Shared", PageType.SOURCE_SUMMARY,
                 "S.\n"), runId);
             wiki.savePage(kbId, makeWrite(gone, "concepts/e", "E", PageType.CONCEPT, "E.\n"), runId);
         });
@@ -105,9 +105,9 @@ class LintAndHealthTest extends TestContainerBase {
         completedRun(kbId, runId -> {
             wiki.deletePage(kbId, gone, runId);
             wiki.addSupersessions(kbId, List.of(
-                new PageSupersession(fenced, b, "etapy", a, runId, Instant.now()),
-                new PageSupersession(orphaned, b, "faza", gone, runId, Instant.now()),
-                new PageSupersession(UUID.randomUUID(), b, "faza", a, runId, Instant.now())));
+                new PageSupersession(fenced, b, "stages", a, runId, Instant.now()),
+                new PageSupersession(orphaned, b, "phase", gone, runId, Instant.now()),
+                new PageSupersession(UUID.randomUUID(), b, "phase", a, runId, Instant.now())));
         });
         int runsBefore = countRuns(kbId);
 
@@ -121,7 +121,7 @@ class LintAndHealthTest extends TestContainerBase {
             .containsExactly(tuple("concepts/a", "sources/c", "concepts/c"));
         assertThat(health.orphanConcepts()).containsExactly("concepts/a", "concepts/c", "concepts/d");
         assertThat(health.duplicateConceptTitles()).containsExactly(
-            new KnowledgeBaseHealth.DuplicateTitle("Wspólny", List.of("concepts/c", "concepts/d")));
+            new KnowledgeBaseHealth.DuplicateTitle("Shared", List.of("concepts/c", "concepts/d")));
         assertThat(health.danglingSupersessions()).extracting(KnowledgeBaseHealth.DanglingSupersession::supersessionId)
             .containsExactlyInAnyOrder(fenced, orphaned);
         assertThat(health.prefilterDue()).isFalse();
@@ -141,32 +141,32 @@ class LintAndHealthTest extends TestContainerBase {
         UUID lintRun = lintService.request(kbId);
         IngestRun completed = awaitRun(kbId, lintRun, RunStatus.COMPLETED);
 
-        WikiPage mitoza = wiki.findByPath(kbId, "concepts/mitoza").orElseThrow();
-        assertThat(mitoza.markdownBody()).isEqualTo("# Faza\n\nPo mitozie następuje [mejoza](/concepts/mejoza.md).\n");
-        assertThat(MarkdownStructure.stripLinks(mitoza.markdownBody())).isEqualTo(MITOZA_BODY);
+        WikiPage mitosis = wiki.findByPath(kbId, "concepts/mitosis").orElseThrow();
+        assertThat(mitosis.markdownBody()).isEqualTo("# Phase\n\nAfter mitosis comes [meiosis](/concepts/meiosis.md).\n");
+        assertThat(MarkdownStructure.stripLinks(mitosis.markdownBody())).isEqualTo(MITOSIS_BODY);
         assertThat(completed.findings()).containsExactly(new ReviewItem("contradiction",
-            List.of("concepts/mitoza"), "Strony różnie opisują fazy."));
+            List.of("concepts/mitosis"), "The pages describe the phases differently."));
         assertThat(completed.stepVersions()).containsKeys("LinkChecker", "WikiReviewer");
 
         revertService.revert(kbId, lintRun);
 
-        assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody).contains(MITOZA_BODY);
+        assertThat(wiki.findByPath(kbId, "concepts/mitosis")).map(WikiPage::markdownBody).contains(MITOSIS_BODY);
     }
 
     @Test
     void aFullLintLinksOnlyToConceptsAndSourceSummaries() {
         UUID kbId = insertKnowledgeBase();
         seedTwoConcepts(kbId);
-        completedRun(kbId, runId -> wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/kopernik", "Kopernik",
+        completedRun(kbId, runId -> wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/copernicus", "Copernicus",
             new PageType("Person"), "Astronom.\n"), runId));
         gateway.reset();
         gateway.answer(Prompts.LINKS, Prompts.json(Map.of("insertions", List.of(
-            Map.of("pagePath", "concepts/mitoza", "phrase", "mejoza", "targetPath", "concepts/kopernik")))));
+            Map.of("pagePath", "concepts/mitosis", "phrase", "meiosis", "targetPath", "concepts/copernicus")))));
         gateway.answer(Prompts.REVIEW, Prompts.json(Map.of("items", List.of())));
 
         awaitRun(kbId, lintService.request(kbId), RunStatus.COMPLETED);
 
-        assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody).contains(MITOZA_BODY);
+        assertThat(wiki.findByPath(kbId, "concepts/mitosis")).map(WikiPage::markdownBody).contains(MITOSIS_BODY);
     }
 
     @Test
@@ -196,22 +196,22 @@ class LintAndHealthTest extends TestContainerBase {
 
     private void seedTwoConcepts(UUID kbId) {
         completedRun(kbId, runId -> {
-            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitoza", "Mitoza", PageType.CONCEPT,
-                MITOZA_BODY), runId);
-            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mejoza", "Mejoza", PageType.CONCEPT,
-                "# Gamety\n\nMejoza wytwarza gamety.\n"), runId);
+            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitosis", "Mitosis", PageType.CONCEPT,
+                MITOSIS_BODY), runId);
+            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/meiosis", "Meiosis", PageType.CONCEPT,
+                "# Gametes\n\nMeiosis makes gametes.\n"), runId);
         });
     }
 
     private void givenTheReviewAnswers() {
         gateway.reset();
         gateway.answer(Prompts.LINKS, Prompts.json(Map.of("insertions", List.of(
-            Map.of("pagePath", "concepts/mitoza", "phrase", "mejoza", "targetPath", "concepts/mejoza"),
-            Map.of("pagePath", "concepts/mejoza", "phrase", "Mejoza wytwarza", "targetPath", "concepts/mejoza")))));
+            Map.of("pagePath", "concepts/mitosis", "phrase", "meiosis", "targetPath", "concepts/meiosis"),
+            Map.of("pagePath", "concepts/meiosis", "phrase", "Meiosis makes", "targetPath", "concepts/meiosis")))));
         gateway.answer(Prompts.REVIEW, Prompts.json(Map.of("items", List.of(
-            Map.of("kind", "contradiction", "pages", List.of("concepts/mitoza", "concepts/nie-ma"),
-                "text", "Strony różnie opisują fazy."),
-            Map.of("kind", "rewrite", "pages", List.of("concepts/mitoza"), "text", "Przepisz stronę.")))));
+            Map.of("kind", "contradiction", "pages", List.of("concepts/mitosis", "concepts/missing"),
+                "text", "The pages describe the phases differently."),
+            Map.of("kind", "rewrite", "pages", List.of("concepts/mitosis"), "text", "Rewrite the page.")))));
     }
 
     /** A completed ingest run whose writes commit under its lease, the way the pipeline's commits do. */
@@ -241,7 +241,7 @@ class LintAndHealthTest extends TestContainerBase {
     }
 
     private static PageWrite makeWrite(UUID pageId, String path, String title, PageType type, String body) {
-        return new PageWrite(pageId, path, title, "Opis.", type, body);
+        return new PageWrite(pageId, path, title, "Description.", type, body);
     }
 
     private int countRuns(UUID kbId) {
@@ -261,7 +261,7 @@ class LintAndHealthTest extends TestContainerBase {
         UUID documentId = UUID.randomUUID();
         jdbc.update("INSERT INTO documents (document_id, knowledge_base_id, lesson_id, lesson_title, content_hash,"
                 + " source_filename, mime_type, upload_source, uploaded_by)"
-                + " SELECT ?, kb_id, 'lekcja', 'Lekcja', ?, 'lekcja.md', 'text/markdown', 'API', owner_id"
+                + " SELECT ?, kb_id, 'lesson', 'Lesson', ?, 'lesson.md', 'text/markdown', 'API', owner_id"
                 + " FROM knowledge_bases WHERE kb_id = ?",
             documentId, documentId.toString(), kbId);
         return documentId;

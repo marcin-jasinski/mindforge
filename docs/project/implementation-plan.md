@@ -107,7 +107,7 @@ loading via `@ConfigurationProperties`, developer environment, and CI prerequisi
   - Scaffold test directories under `src/test/java/dev/mindforge/`:
     `unit/domain/`, `unit/application/`, `unit/agent/`,
     `integration/persistence/`, `integration/graph/`, `integration/api/`.
-  - Scaffold `src/main/resources/`: `application.yml`, `application-dev.yml`, `prompts/pl/`.
+  - Scaffold `src/main/resources/`: `application.yml`, `application-dev.yml`, `prompts/en/` (first `prompts/pl/`).
   - Scaffold `src/main/resources/db/migration/` (Flyway SQL migrations — prefix `V`).
   - Scaffold `frontend/` (Angular project created in Phase 12).
 
@@ -719,10 +719,10 @@ and restore-forward, tip-only revert.
 > service around one shared `Semaphore` bean. Resolve, the draft checks and Supersede's inputs and proposal checks are
 > pure classes in `application.ingest` (`Resolver`, `DraftValidator`, `SupersessionInputs`); `LinkInsertionApplier` is in
 > `application.wiki` for Lint to share. `markWritten`, `complete` and `fail` also take `stepVersions`, recorded per service
-> as `VERSION@model` with the model its tier is configured to route to. Prompt decisions (6.1): prose is written in Polish,
-> the prompt locale, whatever the source's language, keeping original terms in parentheses; a Concept is level-1 sections
-> of one aspect each, opening with its definition; a Source Summary is recommended `# Streszczenie`, `# Najważniejsze tezy`
-> and `# Omawiane pojęcia` — conventions the prompt states as such, not rules. The guard reads the first chunk; a document
+> as `VERSION@model` with the model its tier is configured to route to. Prompt decisions (6.1): prose is written in the language
+> of its source, which the model detects first (the prompts are English; originally Polish); a Concept is level-1 sections
+> of one aspect each, opening with its definition; a Source Summary is recommended summary, key-points
+> and concepts-covered sections in the page's language — conventions the prompt states as such, not rules. The guard reads the first chunk; a document
 > with no text fails before it (`retryable = false`); an edit whose every item was dropped fails as "no applicable change".
 > Supersede is skipped when no claim landed on a revised Concept. The link check reads only drafted, changed bodies, ten
 > per call. A conversation turn's content is `ConversationTurn` (instruction, then the quoted answer after a `---` line).
@@ -748,9 +748,9 @@ commit, supersession — with the run queue, fenced commits, partial-success sem
 
 ### Tasks
 
-- [x] **6.1 — Prompt files** (`src/main/resources/prompts/pl/`)
-  - `relevance_guard.pl.md`, `claim_extractor.pl.md`, `claim_extractor_edit.pl.md`, `page_writer.pl.md`,
-    `link_checker.pl.md`, `supersession_detector.pl.md`.
+- [x] **6.1 — Prompt files** (`src/main/resources/prompts/en/`, first written in Polish under `prompts/pl/`)
+  - `relevance_guard.en.md`, `claim_extractor.en.md`, `claim_extractor_edit.en.md`, `page_writer.en.md`,
+    `link_checker.en.md`, `supersession_detector.en.md`.
   - Decide and write down here: section conventions per page type, and the prose language when a source's
     language differs from the prompt locale (handed off from the re-cut map's fog).
   - Every rule a prompt teaches is also enforced in code (see `ai_agents.md`).
@@ -1228,7 +1228,7 @@ wiki; provide page search for the SPA.
 
 - [x] **11.3 — Conversation edits** — ADR 0012, T15
   - An explicit *edit* action in chat (not a question) is persisted as a `CONVERSATION` `Document` — lesson id
-    `conversation`, lesson title `Rozmowa`, `text/plain`, filename `conversation`, content hash over the UTF-8 content —
+    `conversation`, lesson title `Conversation` (`Rozmowa` until V7), `text/plain`, filename `conversation`, content hash over the UTF-8 content —
     together with a `QUEUED` `INGEST` run, exactly like an upload. "Save that" stores the instruction followed by the
     quoted answer.
   - The run goes through Extract's edit prompt (6.3) — claims, `Delete`, `Retitle` — then Resolve; RelevanceGuard and the
@@ -1252,7 +1252,7 @@ wiki; provide page search for the SPA.
 - [x] **11.7 — Tests**
   - `QueryServiceTest` with `StubAIGateway`: hallucinated paths dropped; `TokenBudget` trimming; no grounding in responses.
   - Conversation edit creates a `CONVERSATION` document (lesson `conversation`) and a `QUEUED` run; an identical edit a
-    week later is not deduplicated; "delete Mitoza" tombstones the page; an edit naming no page fails with the chat
+    week later is not deduplicated; "delete Mitosis" tombstones the page; an edit naming no page fails with the chat
     message above; the `conversation` lesson never appears in the study scope picker.
   - `InteractionStoreAdapterTest`: `listForUser` redacts internals.
 
@@ -1269,7 +1269,7 @@ wiki; provide page search for the SPA.
 > **Changed in v3.0:** the document-centric summary/flashcards/concept-map tabs are replaced by wiki,
 > run, health, study and chat surfaces.
 > **As built:** scaffolded with the Angular 21 CLI (zoneless, `app.ts` file naming, no spec files); UI text is
-> Polish. Every knowledge-base route is a child of `/kb/:kbId`, whose shell holds the tabs and the export link and
+> English. Every knowledge-base route is a child of `/kb/:kbId`, whose shell holds the tabs and the export link and
 > provides one `ProgressService` (one `EventSource` per open knowledge base) to its pages, which read route params
 > through input binding with params inheritance. A page's route is `/kb/:kbId/pages/:directory/:name`; its "study
 > this page" link opens the study view with the page scope, since index entries carry no page id. API types are

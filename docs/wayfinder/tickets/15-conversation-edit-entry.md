@@ -15,7 +15,7 @@ conversation turn, and the pipeline has no way to carry one out.
 **1. Entering at Resolve cannot locate targets.** T04 sends a turn past Extract straight to Resolve, "because the
 instruction *is* the claim set" (`docs/wayfinder/tickets/04-ingest-execution-model.md:205`,
 `docs/project/implementation-plan.md:618`, `:936`). Resolve is code, and T09 removed lexical retrieval. "Fix the page
-about cell division" has to become `concepts/podzial-komorki` somewhere, and reading the index to do that is Extract's
+about cell division" has to become `concepts/cell-division` somewhere, and reading the index to do that is Extract's
 job.
 
 **2. No step produces a deletion.** Phase 6 builds write tasks only (6.4, 6.5). `WikiStore.deletePage`
@@ -66,10 +66,10 @@ List<EditItem> ClaimExtractor.extractEdit(instruction, quotedAnswer, renderedInd
 ### Decisions
 
 **1. Entry point: Extract, not Resolve.** T04's shortcut assumed the instruction already names pages. In practice it
-names topics. Turning "fix the page about cell division" into `concepts/podzial-komorki` means reading the index, which
+names topics. Turning "fix the page about cell division" into `concepts/cell-division` means reading the index, which
 has been Extract's job since T09.
 
-`ClaimExtractor` gains `extractEdit`, with its own prompt, `claim_extractor_edit.pl.md`. One `VERSION` covers both
+`ClaimExtractor` gains `extractEdit`, with its own prompt, `claim_extractor_edit.pl.md` (now `claim_extractor_edit.en.md`). One `VERSION` covers both
 prompts. The document method's result type cannot hold a `Delete`, so an uploaded file cannot delete a page — by type.
 
 A turn skips two steps:

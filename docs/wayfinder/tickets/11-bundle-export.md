@@ -106,12 +106,12 @@ projected `# Citations`.
 - **Body** — the stored prose, byte for byte. Links are already canonical bundle-relative paths (T05), so nothing is
   rewritten.
 - **Supersession notes** — for each live supersession of a section, a blockquote inserted directly under that heading:
-  `> Superseded by [Mejoza](/concepts/mejoza.md).` **Amends T02 decision 8**, which spoke of prefixing the heading:
+  `> Superseded by [Meiosis](/concepts/meiosis.md).` **Amends T02 decision 8**, which spoke of prefixing the heading:
   the heading text stays untouched, so its anchor (`slugify(heading)`, T06) stays stable for every link into it.
 - **`# Citations`** — numbered, projected from `page_sources` (T06):
   - on a `Concept` page, each distinct contributing lesson as `[n] [Lesson title](/sources/<lesson-id>.md)`, and each
     conversation source as `[n] Conversation, 2026-08-30`;
-  - on a `Source Summary` page, its own documents as plain text: `[n] biologia-3.pdf, uploaded 2026-09-10`. There is
+  - on a `Source Summary` page, its own documents as plain text: `[n] biology-3.pdf, uploaded 2026-09-10`. There is
     nothing to link to (decision 2), and a self-link helps nobody.
 
 **Dangling links ship as they are.** OKF §5.3 requires consumers to tolerate them as not-yet-written knowledge, and
@@ -126,10 +126,10 @@ something:
 # Update Log
 
 ## 2026-09-10
-* **Ingest**: [Biologia — lekcja 3](/sources/biologia-lekcja-3.md) — 2 created, 5 revised, 1 claim superseded.
+* **Ingest**: [Biology — lesson 3](/sources/biology-lesson-3.md) — 2 created, 5 revised, 1 claim superseded.
 * **Edit**: conversation — 1 revised.
 * **Lint**: 12 links added.
-* **Revert**: undid the ingest of 2026-09-09 ([Biologia — lekcja 2](/sources/biologia-lekcja-2.md)) — 3 pages restored.
+* **Revert**: undid the ingest of 2026-09-09 ([Biology — lesson 2](/sources/biology-lesson-2.md)) — 3 pages restored.
 ```
 
 `FAILED` runs and zero-change runs are omitted. A reverted run keeps its own line — the log is history. Counts are

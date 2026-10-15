@@ -66,8 +66,8 @@ single cap; the reason is in decision 2.
   overlap 0**. The old sizes were meant for RAG, a consumer that no longer exists. Overlap would duplicate claims, and
   heading boundaries make it unnecessary. A short document is one chunk and one call.
 - **Sequential, not parallel.** Chunk *k* receives its blocks (each marked with its `position`), the rendered index, and
-  the paths and titles planned by chunks 1…*k−1*. Because it can target those, *Podział mitotyczny* in chunk 3 lands on
-  *Mitoza* planned in chunk 1 instead of becoming a second page. Resolve accepts a planned path as a valid target (T22).
+  the paths and titles planned by chunks 1…*k−1*. Because it can target those, *Mitotic division* in chunk 3 lands on
+  *Mitosis* planned in chunk 1 instead of becoming a second page. Resolve accepts a planned path as a valid target (T22).
   Parallel chunks would each invent their own synonym. Extract is a background step, so the sequential latency is
   acceptable.
 - **Merging.** Claims from all chunks feed one Resolve, which groups them by final path (T22).

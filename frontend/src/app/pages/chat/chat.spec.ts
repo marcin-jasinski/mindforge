@@ -18,7 +18,7 @@ describe('Chat', () => {
         { provide: QueryApi, useValue: queryApi },
         { provide: RunApi, useValue: { revert, report: vi.fn() } },
         { provide: ProgressService, useValue: { reload: vi.fn() } },
-        { provide: WikiApi, useValue: { index: vi.fn(() => of({ pages: [{ path: 'concepts/mitoza', title: 'Mitoza' }] })) } },
+        { provide: WikiApi, useValue: { index: vi.fn(() => of({ pages: [{ path: 'concepts/mitosis', title: 'Mitosis' }] })) } },
       ],
     });
     const fixture = TestBed.createComponent(Chat);
@@ -32,18 +32,18 @@ describe('Chat', () => {
   it('keeps the question in the box when the answer fails, so it can be sent again', () => {
     const failure = new HttpErrorResponse({ status: 503, error: { code: 'MODEL_UNAVAILABLE' } });
     const { chat } = setup({ ask: vi.fn(() => throwError(() => failure)) });
-    chat.draft.set('Co to jest fotosynteza?');
+    chat.draft.set('What is photosynthesis?');
 
     chat.ask();
 
-    expect(chat.draft()).toBe('Co to jest fotosynteza?');
+    expect(chat.draft()).toBe('What is photosynthesis?');
     expect(chat.busy()).toBe(false);
   });
 
   it('names a cited page by its title and falls back to the path', () => {
     const { chat } = setup({});
 
-    expect(chat.citedTitle('concepts/mitoza')).toBe('Mitoza');
+    expect(chat.citedTitle('concepts/mitosis')).toBe('Mitosis');
     expect(chat.citedTitle('concepts/nieznana')).toBe('concepts/nieznana');
   });
 

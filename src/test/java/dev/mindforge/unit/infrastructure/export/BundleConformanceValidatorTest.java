@@ -14,13 +14,13 @@ import dev.mindforge.infrastructure.export.BundleConformanceValidator;
 
 class BundleConformanceValidatorTest {
 
-    private static final String PAGE = "---\ntype: Concept\ntitle: 'Mitoza: \"podział\"'\n---\n# Faza\n";
+    private static final String PAGE = "---\ntype: Concept\ntitle: 'Mitosis: \"division\"'\n---\n# Phase\n";
 
     @Test
     void shouldAcceptTheBundleOfAnEmptyKnowledgeBaseAndAWellFormedPage() {
         Map<String, String> files = makeFiles();
-        files.put("concepts/mitoza.md", PAGE);
-        files.put("index.md", "---\nokf_version: \"0.1\"\n---\n# Concepts\n\n* [Mitoza \\[x\\]](/concepts/mitoza.md) - Opis.\n\n# Sources\n");
+        files.put("concepts/mitosis.md", PAGE);
+        files.put("index.md", "---\nokf_version: \"0.1\"\n---\n# Concepts\n\n* [Mitosis \\[x\\]](/concepts/mitosis.md) - Description.\n\n# Sources\n");
         files.put("log.md", "# Update Log\n\n## 2026-09-10\n* **Ingest**: [bio](/sources/bio.md) — 1 created.\n");
 
         assertThat(BundleConformanceValidator.violations(makeFiles())).isEmpty();
@@ -30,7 +30,7 @@ class BundleConformanceValidatorTest {
     @Test
     void shouldRejectAPageWithoutParseableFrontmatterOrType() {
         Map<String, String> files = makeFiles();
-        files.put("concepts/a.md", "# Faza\n");
+        files.put("concepts/a.md", "# Phase\n");
         files.put("concepts/b.md", "---\ntitle: [unclosed\n---\n");
         files.put("concepts/c.md", "---\ntype: ''\n---\n");
 
@@ -42,7 +42,7 @@ class BundleConformanceValidatorTest {
     @Test
     void shouldRejectAPathOutsideTheGrammarOrOnAReservedName() {
         Map<String, String> files = makeFiles();
-        for (String path : List.of("concepts/index.md", "concepts/Mitoza.md", "notes/mitoza.md", "concepts/a--b.md")) {
+        for (String path : List.of("concepts/index.md", "concepts/Mitosis.md", "notes/mitosis.md", "concepts/a--b.md")) {
             files.put(path, PAGE);
         }
 
@@ -55,13 +55,13 @@ class BundleConformanceValidatorTest {
         Map<String, String> extraKey = makeFiles();
         extraKey.put("index.md", "---\nokf_version: \"0.1\"\ntitle: x\n---\n# Concepts\n");
         Map<String, String> strayLine = makeFiles();
-        strayLine.put("index.md", "# Concepts\n\nMitoza\n* [a](/concepts/a.md) - ok\n");
+        strayLine.put("index.md", "# Concepts\n\nMitosis\n* [a](/concepts/a.md) - ok\n");
         Map<String, String> entryBeforeSection = makeFiles();
         entryBeforeSection.put("index.md", "* [a](/concepts/a.md)\n# Concepts\n");
 
         assertThat(BundleConformanceValidator.violations(extraKey)).containsExactly(
             "index.md: frontmatter may hold only okf_version");
-        assertThat(BundleConformanceValidator.violations(strayLine)).containsExactly("index.md: unexpected line 'Mitoza'");
+        assertThat(BundleConformanceValidator.violations(strayLine)).containsExactly("index.md: unexpected line 'Mitosis'");
         assertThat(BundleConformanceValidator.violations(entryBeforeSection)).hasSize(1);
     }
 

@@ -1,5 +1,9 @@
 ﻿# MindForge — Claude Code Instructions
 
+## Language
+
+You will always respond to the user using ASD-STE100 Simplified Technical English (STE).
+
 ## First Step for Every Task
 
 Read `docs/INDEX.md` before starting any work. It lists all available project documentation and standards with concise descriptions of what each file covers. Use it to find the right standards for the task at hand.

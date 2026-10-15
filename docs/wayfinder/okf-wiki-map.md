@@ -221,7 +221,7 @@ destination documents.
 > are not open decisions on this route; each is handed to the phase that can settle it: the prompt layer → Phase 6.1,
 > SPA surfaces → Phase 12, cost and latency → Phase 14 once a real run exists.
 
-- **The prompt layer.** MindForge versions Markdown prompts under `prompts/pl/`. T06 settled that there is no
+- **The prompt layer.** MindForge versions Markdown prompts under `prompts/pl/` (now English, under `prompts/en/`). T06 settled that there is no
   per-`KnowledgeBase` conventions layer (the taxonomy is fixed and assigned by code) and that Polish pages are
   OKF-conformant. T04 narrowed it to four ingest prompts and removed `PROMPT_VERSION`'s home along with the
   `Agent` interface; T07 put versioning back as a `VERSION` constant per service, recorded on each run. What is

@@ -1,12 +1,12 @@
 <mat-card class="stack" appearance="outlined">
   <mat-card-header>
-    <h1 mat-card-title>{{ registering() ? 'Załóż konto' : 'Zaloguj się' }}</h1>
+    <h1 mat-card-title>{{ registering() ? 'Create an account' : 'Sign in' }}</h1>
   </mat-card-header>
   <mat-card-content>
     <form class="stack" #form="ngForm" (ngSubmit)="submit()">
       @if (registering()) {
         <mat-form-field>
-          <mat-label>Imię</mat-label>
+          <mat-label>Name</mat-label>
           <input matInput name="displayName" [(ngModel)]="displayName" required autocomplete="name" />
         </mat-form-field>
       }
@@ -15,30 +15,30 @@
         <input matInput type="email" name="email" [(ngModel)]="email" required autocomplete="email" />
       </mat-form-field>
       <mat-form-field>
-        <mat-label>Hasło</mat-label>
+        <mat-label>Password</mat-label>
         <input matInput type="password" name="password" [(ngModel)]="password" required [minlength]="registering() ? 8 : 0"
           [attr.autocomplete]="registering() ? 'new-password' : 'current-password'" />
         @if (registering()) {
-          <mat-hint>Co najmniej 8 znaków</mat-hint>
+          <mat-hint>At least 8 characters</mat-hint>
         }
       </mat-form-field>
       @if (error(); as message) {
         <p class="error" role="alert">{{ message }}</p>
       }
       <div class="row">
-        <button mat-flat-button type="submit" [disabled]="form.invalid">{{ registering() ? 'Załóż konto' : 'Zaloguj' }}</button>
+        <button mat-flat-button type="submit" [disabled]="form.invalid">{{ registering() ? 'Create account' : 'Sign in' }}</button>
         <button mat-button type="button" (click)="toggle()">
-          {{ registering() ? 'Mam już konto' : 'Nie mam konta' }}
+          {{ registering() ? 'I already have an account' : 'I have no account' }}
         </button>
       </div>
     </form>
     @if (providers().length) {
       <div class="row">
         @if (providers().includes('google')) {
-          <a mat-stroked-button href="/oauth2/authorization/google">Zaloguj przez Google</a>
+          <a mat-stroked-button href="/oauth2/authorization/google">Sign in with Google</a>
         }
         @if (providers().includes('github')) {
-          <a mat-stroked-button href="/oauth2/authorization/github">Zaloguj przez GitHub</a>
+          <a mat-stroked-button href="/oauth2/authorization/github">Sign in with GitHub</a>
         }
       </div>
     }

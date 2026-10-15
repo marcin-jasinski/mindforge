@@ -19,42 +19,42 @@ class PageRendererTest {
 
     @Test
     void shouldPutASupersessionNoteUnderItsHeadingAndNotUnderAFencedLookalike() {
-        String body = "```\n# Faza\n```\n\n# Faza\n\nProfaza trwa godzinę.\n\n# Etapy\n\nProfaza.\n";
+        String body = "```\n# Phase\n```\n\n# Phase\n\nProphase takes an hour.\n\n# Stages\n\nProphase.\n";
 
         String rendered = PageRenderer.withNotes(body, List.of(
-            new LiveSupersession(UUID.randomUUID(), PAGE, "faza", UUID.randomUUID(), "concepts/mejoza", "Mejoza [nowa]")));
+            new LiveSupersession(UUID.randomUUID(), PAGE, "phase", UUID.randomUUID(), "concepts/meiosis", "Meiosis [new]")));
 
-        assertThat(rendered).isEqualTo("```\n# Faza\n```\n\n# Faza\n\n> Superseded by [Mejoza \\[nowa\\]](/concepts/mejoza.md)."
-            + "\n\nProfaza trwa godzinę.\n\n# Etapy\n\nProfaza.\n");
+        assertThat(rendered).isEqualTo("```\n# Phase\n```\n\n# Phase\n\n> Superseded by [Meiosis \\[new\\]](/concepts/meiosis.md)."
+            + "\n\nProphase takes an hour.\n\n# Stages\n\nProphase.\n");
     }
 
     @Test
     void shouldCiteEachLessonOfAConceptOnceByItsNewestTitleAndEachConversationTurnByDate() {
         List<SourceCitation> sources = List.of(
-            makeSource("bio-1", "Lekcja 1", "2026-09-01T10:00:00Z", false),
+            makeSource("bio-1", "Lesson 1", "2026-09-01T10:00:00Z", false),
             makeSource("conversation", "Conversation", "2026-09-02T10:00:00Z", true),
-            makeSource("bio-1", "Lekcja 1 — poprawiona", "2026-09-03T10:00:00Z", false));
+            makeSource("bio-1", "Lesson 1 — corrected", "2026-09-03T10:00:00Z", false));
 
-        assertThat(PageRenderer.withCitations("Treść.\n", PageType.CONCEPT, sources)).isEqualTo("Treść.\n\n# Citations\n\n"
-            + "[1] Rozmowa, 2026-09-02\n[2] [Lekcja 1 — poprawiona](/sources/bio-1.md)\n");
+        assertThat(PageRenderer.withCitations("Content.\n", PageType.CONCEPT, sources)).isEqualTo("Content.\n\n# Citations\n\n"
+            + "[1] Conversation, 2026-09-02\n[2] [Lesson 1 — corrected](/sources/bio-1.md)\n");
     }
 
     @Test
     void shouldCiteASourceSummarysDocumentsByFilenameAndUploadDate() {
-        List<SourceCitation> sources = List.of(makeSource("bio-1", "Lekcja 1", "2026-09-10T10:00:00Z", false));
+        List<SourceCitation> sources = List.of(makeSource("bio-1", "Lesson 1", "2026-09-10T10:00:00Z", false));
 
-        assertThat(PageRenderer.withCitations("Treść.\n", PageType.SOURCE_SUMMARY, sources))
-            .isEqualTo("Treść.\n\n# Citations\n\n[1] notatki.pdf, uploaded 2026-09-10\n");
+        assertThat(PageRenderer.withCitations("Content.\n", PageType.SOURCE_SUMMARY, sources))
+            .isEqualTo("Content.\n\n# Citations\n\n[1] notes.pdf, uploaded 2026-09-10\n");
     }
 
     @Test
     void shouldAddNoCitationsSectionWithoutSources() {
-        assertThat(PageRenderer.withCitations("Treść.\n", PageType.CONCEPT, List.of())).isEqualTo("Treść.\n");
+        assertThat(PageRenderer.withCitations("Content.\n", PageType.CONCEPT, List.of())).isEqualTo("Content.\n");
     }
 
     private static SourceCitation makeSource(String lessonId, String lessonTitle, String uploadedAt,
                                              boolean conversation) {
-        return new SourceCitation(PAGE, UUID.randomUUID(), lessonId, lessonTitle, "notatki.pdf", conversation,
+        return new SourceCitation(PAGE, UUID.randomUUID(), lessonId, lessonTitle, "notes.pdf", conversation,
             Instant.parse(uploadedAt));
     }
 }

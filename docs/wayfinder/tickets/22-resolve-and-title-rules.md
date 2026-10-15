@@ -12,8 +12,8 @@ blocked_by: []
 Raised by the 2026-09-12 spec review. **Gap** — implementers would each fill these in differently.
 
 **1. Two tasks can hit one page.** T09 collapses only claims proposing the *same new path*
-(`docs/wayfinder/tickets/09-query-retrieval-neo4j.md:105`). Take a `new: Mitoza` claim (it slugifies to the existing
-`concepts/mitoza`, so it becomes a revision) and a claim that targets `concepts/mitoza` directly. They yield two tasks
+(`docs/wayfinder/tickets/09-query-retrieval-neo4j.md:105`). Take a `new: Mitosis` claim (it slugifies to the existing
+`concepts/mitosis`, so it becomes a revision) and a claim that targets `concepts/mitosis` directly. They yield two tasks
 and two parallel writes to one page. The result is either two revisions in one run — breaking "pre-run state is
 `r − 1`" (`docs/wayfinder/tickets/05-wiki-storage.md:116`) — or last write wins and a claim is lost.
 
@@ -27,7 +27,7 @@ title to derive the new page's path and title from.
 - A Source Summary's title is the code-assigned `lessonTitle` (`docs/wayfinder/tickets/06-page-taxonomy.md:146`).
 - "Two live pages must not share a title" (`tickets/06-…:147`).
 
-A lesson called "Mitoza" next to the Concept page `Mitoza` breaks the second rule in ordinary use. Nothing enforces it
+A lesson called "Mitosis" next to the Concept page `Mitosis` breaks the second rule in ordinary use. Nothing enforces it
 except a Lint finding.
 
 **5. Who owns the title is unspecified.** PageWriter returns a title (`implementation-plan.md:649`). It is not said
@@ -81,7 +81,7 @@ record PageWriteTask(String path, PageType type, String title, boolean create,
    - the Source Summary task, for a document that is not a conversation.
 
 One task per path means one draft and one revision per page per run, so T05's "pre-run state is `r − 1`" holds. The case
-in the question — `new: Mitoza` plus a claim targeting `concepts/mitoza` — lands in one task.
+in the question — `new: Mitosis` plus a claim targeting `concepts/mitosis` — lands in one task.
 
 **2. Claims target `concepts/` only.** A `sources/` target is ignored at step 1, and the claim lands on a Concept derived
 from its title. So a claim cannot reach another lesson's Source Summary. Only the pipeline writes a Source Summary, and
@@ -94,7 +94,7 @@ from, so path and title agree on the day the page is born.
 **4. No title uniqueness invariant.** The rule "two live pages must not share a title" is dropped. The **duplicate-title**
 health finding stays, for live Concepts only.
 
-- A Source Summary legitimately shares a name with a Concept: a lesson called "Mitoza" next to the page *Mitoza*.
+- A Source Summary legitimately shares a name with a Concept: a lesson called "Mitosis" next to the page *Mitosis*.
 - Two Concepts with one title are a duplicate page, which is exactly what the health view should show the learner.
 - Enforcing uniqueness at write time would fail a page task and lose its claims, to prevent a problem that only a later
   merge by conversation edit can fix.

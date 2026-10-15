@@ -28,43 +28,43 @@ class AccountServiceTest {
 
     @Test
     void shouldRegisterWithALowercasedEmailAndAHashedPassword() {
-        User user = new AccountService(users, hasher).register(" Ala\n", "Ala@Example.COM ", "sekretne-haslo");
+        User user = new AccountService(users, hasher).register(" Alice\n", "Alice@Example.COM ", "secret-password");
 
         assertThat(user).extracting(User::displayName, User::email, User::passwordHash)
-            .containsExactly("Ala", "ala@example.com", "hashed:sekretne-haslo");
+            .containsExactly("Alice", "alice@example.com", "hashed:secret-password");
     }
 
     @Test
     void shouldCountRegisteringAsTheFirstLogin() {
-        User user = new AccountService(users, hasher).register("Ala", "ala@example.com", "sekretne-haslo");
+        User user = new AccountService(users, hasher).register("Alice", "alice@example.com", "secret-password");
 
         verify(users).recordLogin(any(UUID.class), any(Instant.class));
-        assertThat(user.email()).isEqualTo("ala@example.com");
+        assertThat(user.email()).isEqualTo("alice@example.com");
     }
 
     @Test
     void shouldRefuseASecondAccountForTheSameEmail() {
-        when(users.findByEmail("ala@example.com")).thenReturn(Optional.of(TestFixtures.makeUser(null, "ala@example.com")));
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(TestFixtures.makeUser(null, "alice@example.com")));
 
         assertThatExceptionOfType(AccountException.class)
-            .isThrownBy(() -> new AccountService(users, hasher).register("Ala", "ALA@example.com", "haslo-haslo"))
+            .isThrownBy(() -> new AccountService(users, hasher).register("Alice", "ALICE@example.com", "password-password"))
             .satisfies(e -> assertThat(e.conflict()).isTrue());
         verify(users, never()).insert(any());
     }
 
     @Test
     void shouldRefuseAWrongPasswordAndAnAccountWithoutOneAlike() {
-        User withPassword = new User(UUID.randomUUID(), "Ala", "ala@example.com", "hashed:dobre", null, Instant.EPOCH,
+        User withPassword = new User(UUID.randomUUID(), "Alice", "alice@example.com", "hashed:good", null, Instant.EPOCH,
             null);
-        User providerOnly = new User(UUID.randomUUID(), "Ola", "ola@example.com", null, null, Instant.EPOCH, null);
-        when(users.findByEmail("ala@example.com")).thenReturn(Optional.of(withPassword));
-        when(users.findByEmail("ola@example.com")).thenReturn(Optional.of(providerOnly));
+        User providerOnly = new User(UUID.randomUUID(), "Olivia", "olivia@example.com", null, null, Instant.EPOCH, null);
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(withPassword));
+        when(users.findByEmail("olivia@example.com")).thenReturn(Optional.of(providerOnly));
         AccountService accounts = new AccountService(users, hasher);
 
-        assertThatExceptionOfType(AccountException.class).isThrownBy(() -> accounts.authenticate("ala@example.com", "zle"))
+        assertThatExceptionOfType(AccountException.class).isThrownBy(() -> accounts.authenticate("alice@example.com", "wrong"))
             .satisfies(e -> assertThat(e.conflict()).isFalse());
-        assertThatExceptionOfType(AccountException.class).isThrownBy(() -> accounts.authenticate("ola@example.com", ""));
-        assertThat(accounts.authenticate("ALA@example.com", "dobre")).isEqualTo(withPassword);
+        assertThatExceptionOfType(AccountException.class).isThrownBy(() -> accounts.authenticate("olivia@example.com", ""));
+        assertThat(accounts.authenticate("ALICE@example.com", "good")).isEqualTo(withPassword);
         verify(users).recordLogin(any(), any());
     }
 
@@ -72,12 +72,12 @@ class AccountServiceTest {
     void shouldCreateAProviderAccountOnFirstSignInAndReuseItAfterwards() {
         AccountService accounts = new AccountService(users, hasher);
 
-        User created = accounts.signInWithProvider("Ola@Example.com", "Ola", "https://example.org/a.png");
-        when(users.findByEmail("ola@example.com")).thenReturn(Optional.of(created));
-        User again = accounts.signInWithProvider("ola@example.com", "Ola", null);
+        User created = accounts.signInWithProvider("Olivia@Example.com", "Olivia", "https://example.org/a.png");
+        when(users.findByEmail("olivia@example.com")).thenReturn(Optional.of(created));
+        User again = accounts.signInWithProvider("olivia@example.com", "Olivia", null);
 
         assertThat(created).extracting(User::email, User::passwordHash, User::avatarUrl)
-            .containsExactly("ola@example.com", null, "https://example.org/a.png");
+            .containsExactly("olivia@example.com", null, "https://example.org/a.png");
         assertThat(again).isEqualTo(created);
         verify(users).insert(any());
     }

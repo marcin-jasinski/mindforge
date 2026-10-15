@@ -14,7 +14,7 @@ import dev.mindforge.infrastructure.ai.PromptLoader;
 /** Writes one batch of quiz questions over the pages shown, each with its reference answer and grounding excerpt. */
 public class QuizGenerator {
 
-    public static final String VERSION = "1";
+    public static final String VERSION = "2";
     public static final ModelTier TIER = ModelTier.LARGE;
 
     private final AIGateway gateway;

@@ -47,7 +47,7 @@ describe('RunReportView revert', () => {
     const busy = new HttpErrorResponse({ status: 409, error: { code: 'KNOWLEDGE_BASE_BUSY' } });
     const { fixture, progress } = setup(vi.fn(() => throwError(() => busy)));
     fixture.componentInstance.revert();
-    expect(fixture.componentInstance.message()).toContain('zajęta');
+    expect(fixture.componentInstance.message()).toContain('Another run');
     expect(progress.reload).not.toHaveBeenCalled();
   });
 });

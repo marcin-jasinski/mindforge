@@ -15,16 +15,16 @@ import { pageRoute } from '../../shared/diff';
   imports: [FormsModule, RouterLink, MatFormFieldModule, MatInputModule],
   template: `
     <mat-form-field class="search">
-      <mat-label>Szukaj stron</mat-label>
+      <mat-label>Search pages</mat-label>
       <input matInput type="search" [ngModel]="query()" (ngModelChange)="search($event)" />
     </mat-form-field>
     @if (query().trim().length >= 2) {
-      <h2>Wyniki</h2>
+      <h2>Results</h2>
       <ul>
         @for (page of results(); track page.path) {
           <li><a [routerLink]="link(page)">{{ page.title }}</a> — {{ page.description }}</li>
         } @empty {
-          <li>Brak wyników.</li>
+          <li>No results.</li>
         }
       </ul>
     }
@@ -34,7 +34,7 @@ import { pageRoute } from '../../shared/diff';
         @for (page of group.pages; track page.path) {
           <li><a [routerLink]="link(page)">{{ page.title }}</a> — {{ page.description }}</li>
         } @empty {
-          <li>Brak stron.</li>
+          <li>No pages.</li>
         }
       </ul>
     }
@@ -52,8 +52,8 @@ export class PageIndex implements OnInit {
   readonly groups = computed(() => {
     const pages = this.index()?.pages ?? [];
     return [
-      { label: 'Pojęcia', pages: pages.filter((page) => page.type === 'Concept') },
-      { label: 'Źródła', pages: pages.filter((page) => page.type === 'Source Summary') },
+      { label: 'Concepts', pages: pages.filter((page) => page.type === 'Concept') },
+      { label: 'Sources', pages: pages.filter((page) => page.type === 'Source Summary') },
     ];
   });
 

@@ -23,23 +23,23 @@ import { PageLinksDirective } from '../../shared/page-links.directive';
     @if (page(); as current) {
       <article>
         <h1>{{ current.title }}</h1>
-        <p><em>{{ current.description }}</em> · {{ typeLabel(current.type) }} · rewizja {{ current.revision }}</p>
+        <p><em>{{ current.description }}</em> · {{ typeLabel(current.type) }} · revision {{ current.revision }}</p>
         @if (current.type === 'Concept') {
-          <a mat-stroked-button [routerLink]="['../../../study']" [queryParams]="{ pageId: current.pageId }">Ucz się tej strony</a>
+          <a mat-stroked-button [routerLink]="['../../../study']" [queryParams]="{ pageId: current.pageId }">Study this page</a>
         }
         <div class="markdown" appPageLinks [innerHTML]="html()"></div>
       </article>
       <section aria-labelledby="history-heading">
-        <h2 id="history-heading">Historia</h2>
+        <h2 id="history-heading">History</h2>
         <ul class="history">
           @for (revision of revisions(); track revision.revision; let i = $index) {
             <li>
               <span>
-                Rewizja {{ revision.revision }} · {{ revision.createdAt | dateTime }}
-                <a [routerLink]="['../../../runs', revision.ingestRunId]">przebieg</a>
+                Revision {{ revision.revision }} · {{ revision.createdAt | dateTime }}
+                <a [routerLink]="['../../../runs', revision.ingestRunId]">run</a>
               </span>
               <button mat-stroked-button type="button" [attr.aria-pressed]="selected() === i" (click)="selected.set(i)">
-                Pokaż zmiany
+                Show changes
               </button>
             </li>
           }

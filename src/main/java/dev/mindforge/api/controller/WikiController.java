@@ -20,7 +20,7 @@ import dev.mindforge.api.mapper.WikiDtoMapper;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.WikiService;
 
-/** The wiki as the SPA browses it. A page path is its two segments, {@code concepts/mitoza}. */
+/** The wiki as the SPA browses it. A page path is its two segments, {@code concepts/mitosis}. */
 @RestController
 @RequestMapping("/api/v1/knowledge-bases/{kbId}")
 public class WikiController {

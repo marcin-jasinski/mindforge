@@ -16,53 +16,53 @@ import { apiErrorMessage, findingKindLabel } from '../../shared/labels';
   template: `
     @if (health(); as h) {
       <p>
-        Indeks: ≈ {{ h.indexTokens }} / {{ h.indexCeilingTokens }} tokenów
+        Index: ≈ {{ h.indexTokens }} / {{ h.indexCeilingTokens }} tokens
         @if (h.prefilterDue) {
-          <strong> — potrzebny prefiltr</strong>
+          <strong> — prefilter needed</strong>
         }
       </p>
-      <button mat-flat-button type="button" (click)="runReview()">Uruchom pełny przegląd</button>
+      <button mat-flat-button type="button" (click)="runReview()">Run a full review</button>
       @if (message(); as text) {
         <p role="status">{{ text }}</p>
       }
-      <h2>Niedziałające linki</h2>
+      <h2>Broken links</h2>
       <ul>
         @for (link of h.danglingLinks; track $index) {
           <li>{{ link.sourcePath }} → {{ link.targetPath }}</li>
-        } @empty { <li>Brak.</li> }
+        } @empty { <li>None.</li> }
       </ul>
-      <h2>Linki do złego katalogu</h2>
+      <h2>Links to the wrong directory</h2>
       <ul>
         @for (link of h.wrongDirectoryLinks; track $index) {
-          <li>{{ link.sourcePath }} → {{ link.targetPath }} (chodziło o {{ link.livePath }}?)</li>
-        } @empty { <li>Brak.</li> }
+          <li>{{ link.sourcePath }} → {{ link.targetPath }} (did you mean {{ link.livePath }}?)</li>
+        } @empty { <li>None.</li> }
       </ul>
-      <h2>Pojęcia bez linków przychodzących</h2>
+      <h2>Concepts with no incoming links</h2>
       <ul>
-        @for (path of h.orphanConcepts; track path) { <li>{{ path }}</li> } @empty { <li>Brak.</li> }
+        @for (path of h.orphanConcepts; track path) { <li>{{ path }}</li> } @empty { <li>None.</li> }
       </ul>
-      <h2>Powtórzone tytuły</h2>
+      <h2>Duplicate titles</h2>
       <ul>
         @for (dup of h.duplicateConceptTitles; track dup.title) {
           <li>{{ dup.title }}: {{ dup.paths.join(', ') }}</li>
-        } @empty { <li>Brak.</li> }
+        } @empty { <li>None.</li> }
       </ul>
-      <h2>Nieaktualne noty o poprawkach</h2>
+      <h2>Dangling supersession notes</h2>
       <ul>
         @for (row of h.danglingSupersessions; track row.supersessionId) {
-          <li>{{ row.supersededPath }}#{{ row.sectionAnchor }} ← {{ row.supersedingPath ?? '(usunięta strona)' }}</li>
-        } @empty { <li>Brak.</li> }
+          <li>{{ row.supersededPath }}#{{ row.sectionAnchor }} ← {{ row.supersedingPath ?? '(deleted page)' }}</li>
+        } @empty { <li>None.</li> }
       </ul>
-      <h2>Ostatni pełny przegląd</h2>
+      <h2>Latest full review</h2>
       @if (h.latestReview; as review) {
-        <p>Zakończony {{ review.finishedAt | dateTime }}</p>
+        <p>Finished {{ review.finishedAt | dateTime }}</p>
         <ul>
           @for (finding of review.findings; track $index) {
             <li><strong>{{ kindLabel(finding.kind) }}</strong>: {{ finding.text }} {{ finding.pages.join(', ') }}</li>
-          } @empty { <li>Bez ustaleń.</li> }
+          } @empty { <li>No findings.</li> }
         </ul>
       } @else {
-        <p>Jeszcze nie było przeglądu.</p>
+        <p>No review yet.</p>
       }
     }
   `,
@@ -84,11 +84,11 @@ export class HealthView implements OnInit {
   runReview(): void {
     this.runs.startLint(this.kbId()).subscribe({
       next: () => {
-        this.message.set('Przegląd dodany do kolejki.');
+        this.message.set('The review is queued.');
         this.progress.reload(this.kbId());
       },
       error: (response: HttpErrorResponse) =>
-        this.message.set(apiErrorMessage(response.error as ApiError | null, 'Nie udało się uruchomić przeglądu.')),
+        this.message.set(apiErrorMessage(response.error as ApiError | null, 'The review could not be started.')),
     });
   }
 }

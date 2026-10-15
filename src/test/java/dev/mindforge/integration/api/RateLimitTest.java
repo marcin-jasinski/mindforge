@@ -61,8 +61,8 @@ class RateLimitTest extends TestContainerBase {
     private String register() throws Exception {
         HttpResponse<String> response = HTTP.send(HttpRequest.newBuilder(uri("/api/v1/auth/register"))
             .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString("{\"displayName\":\"Ala\",\"email\":\"ala-" + UUID.randomUUID()
-                + "@example.com\",\"password\":\"sekretne-haslo\"}")).build(), HttpResponse.BodyHandlers.ofString());
+            .POST(HttpRequest.BodyPublishers.ofString("{\"displayName\":\"Alice\",\"email\":\"alice-" + UUID.randomUUID()
+                + "@example.com\",\"password\":\"secret-password\"}")).build(), HttpResponse.BodyHandlers.ofString());
         assertThat(response.statusCode()).isEqualTo(201);
         Matcher token = Pattern.compile("token=([^;]*)")
             .matcher(String.join(";", response.headers().allValues("Set-Cookie")));

@@ -62,7 +62,7 @@ Decided 2026-09-12 under the standing instruction to take the recommended option
    knowledge base; at most one is active."
 7. **No admin role: `listUnredacted()` is dropped.** Nothing calls it. An admin role would add security surface with no
    requirement behind it. `InteractionStore` keeps `listForUser`.
-8. **Index order: `java.text.Collator` for Polish.** Use `Locale.forLanguageTag("pl")`, the prompt locale, and break ties
+8. **Index order: `java.text.Collator` for Polish.** Use `Locale.forLanguageTag("pl")`, the prompt locale then (the prompts are English now; content is still often Polish), and break ties
    by path. That places `Ł`, `Ś` and `Ż` where a Polish reader expects them, uses the standard library, and keeps the
    output deterministic for a given JDK.
 9. **T12's counts, corrected.** In T12 and in the map's T12 line, the counts become: *22 of the 72 main files and 4 of

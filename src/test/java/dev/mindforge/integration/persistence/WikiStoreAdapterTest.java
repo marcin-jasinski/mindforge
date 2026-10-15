@@ -55,13 +55,13 @@ class WikiStoreAdapterTest extends TestContainerBase {
         UUID userId = insertUser();
         UUID kbId = insertKnowledgeBase(userId);
         UUID otherKbId = insertKnowledgeBase(userId);
-        wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitoza", "Treść.\n"), enqueueRun(kbId));
+        wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitosis", "Content.\n"), enqueueRun(kbId));
 
         assertThatExceptionOfType(DataIntegrityViolationException.class).isThrownBy(() ->
-            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitoza", "Inna.\n"), enqueueRun(kbId)));
+            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitosis", "Other.\n"), enqueueRun(kbId)));
 
-        wiki.savePage(otherKbId, makeWrite(UUID.randomUUID(), "concepts/mitoza", "Treść.\n"), enqueueRun(otherKbId));
-        assertThat(wiki.findByPath(otherKbId, "concepts/mitoza")).isPresent();
+        wiki.savePage(otherKbId, makeWrite(UUID.randomUUID(), "concepts/mitosis", "Content.\n"), enqueueRun(otherKbId));
+        assertThat(wiki.findByPath(otherKbId, "concepts/mitosis")).isPresent();
     }
 
     @Test
@@ -70,7 +70,7 @@ class WikiStoreAdapterTest extends TestContainerBase {
         UUID kbId = insertKnowledgeBase(userId);
         UUID otherKbId = insertKnowledgeBase(userId);
         UUID pageId = UUID.randomUUID();
-        wiki.savePage(kbId, makeWrite(pageId, "concepts/mitoza", "Treść.\n"), enqueueRun(kbId));
+        wiki.savePage(kbId, makeWrite(pageId, "concepts/mitosis", "Content.\n"), enqueueRun(kbId));
 
         assertThatExceptionOfType(DataIntegrityViolationException.class).isThrownBy(() -> jdbc.update(
             "INSERT INTO page_links (knowledge_base_id, source_page_id, target_path) VALUES (?, ?, 'concepts/x')",
@@ -83,21 +83,21 @@ class WikiStoreAdapterTest extends TestContainerBase {
         UUID runId = enqueueRun(kbId);
         UUID p = UUID.randomUUID();
         UUID q = UUID.randomUUID();
-        String body = "# Faza\nZob. [Q](/concepts/q.md#faza), [znów Q](/concepts/q.md#faza), [lekcja](/sources/bio-1.md)"
+        String body = "# Phase\nSee [Q](/concepts/q.md#phase), [Q again](/concepts/q.md#phase), [lesson](/sources/bio-1.md)"
             + " i [PubMed](https://pubmed.ncbi.nlm.nih.gov/1).\n```\n[X](/concepts/x.md)\n```\n";
 
         wiki.savePage(kbId, makeWrite(p, "concepts/p", body), runId);
-        wiki.savePage(kbId, makeWrite(q, "concepts/q", "# Faza\n"), runId);
+        wiki.savePage(kbId, makeWrite(q, "concepts/q", "# Phase\n"), runId);
 
         assertThat(wiki.outboundLinks(kbId, List.of(p))).containsExactlyInAnyOrder(
-            new PageLink(p, "concepts/q", "faza"), new PageLink(p, "sources/bio-1", null));
-        assertThat(wiki.inboundLinks(kbId, List.of("concepts/q"))).containsExactly(new PageLink(p, "concepts/q", "faza"));
+            new PageLink(p, "concepts/q", "phase"), new PageLink(p, "sources/bio-1", null));
+        assertThat(wiki.inboundLinks(kbId, List.of("concepts/q"))).containsExactly(new PageLink(p, "concepts/q", "phase"));
         PageGraph graph = wiki.graph(kbId);
         assertThat(graph.pages()).extracting(IndexEntry::path).containsExactlyInAnyOrder("concepts/p", "concepts/q");
         assertThat(graph.links()).containsExactlyInAnyOrder(
             new PageGraph.Edge("concepts/p", "concepts/q"), new PageGraph.Edge("concepts/p", "sources/bio-1"));
 
-        wiki.savePage(kbId, makeWrite(p, "concepts/p", "# Faza\nBez linków.\n"), enqueueRun(kbId));
+        wiki.savePage(kbId, makeWrite(p, "concepts/p", "# Phase\nNo links.\n"), enqueueRun(kbId));
 
         assertThat(wiki.outboundLinks(kbId, List.of(p))).isEmpty();
         assertThat(wiki.findById(kbId, p)).map(WikiPage::revision).contains(2);
@@ -128,13 +128,13 @@ class WikiStoreAdapterTest extends TestContainerBase {
         UUID superseded = UUID.randomUUID();
         UUID superseding = UUID.randomUUID();
         UUID supersessionId = UUID.randomUUID();
-        wiki.savePage(kbId, makeWrite(superseded, "concepts/p", "# Faza\n"), runId);
-        wiki.savePage(kbId, makeWrite(superseding, "concepts/q", "# Faza\n"), runId);
+        wiki.savePage(kbId, makeWrite(superseded, "concepts/p", "# Phase\n"), runId);
+        wiki.savePage(kbId, makeWrite(superseding, "concepts/q", "# Phase\n"), runId);
         wiki.addSupersessions(kbId, List.of(
-            new PageSupersession(supersessionId, superseded, "faza", superseding, runId, Instant.now())));
+            new PageSupersession(supersessionId, superseded, "phase", superseding, runId, Instant.now())));
 
         assertThat(wiki.liveSupersessionsOf(kbId, List.of(superseded))).containsExactly(new LiveSupersession(
-            supersessionId, superseded, "faza", superseding, "concepts/q", "Tytuł concepts/q"));
+            supersessionId, superseded, "phase", superseding, "concepts/q", "Title concepts/q"));
 
         wiki.deletePage(kbId, superseding, enqueueRun(kbId));
 
@@ -153,8 +153,8 @@ class WikiStoreAdapterTest extends TestContainerBase {
         UUID summary = UUID.randomUUID();
         wiki.savePage(kbId, makeWrite(p, "concepts/p", "P.\n"), runId);
         wiki.savePage(kbId, makeWrite(q, "concepts/q", "Q.\n"), runId);
-        wiki.savePage(kbId, new PageWrite(summary, "sources/bio-1", "Lekcja 1", "Opis.", PageType.SOURCE_SUMMARY,
-            "Streszczenie.\n"), runId);
+        wiki.savePage(kbId, new PageWrite(summary, "sources/bio-1", "Lesson 1", "Description.", PageType.SOURCE_SUMMARY,
+            "Summary.\n"), runId);
         wiki.addSources(kbId, List.of(new PageSource(p, lesson1, runId), new PageSource(q, lesson2, runId),
             new PageSource(summary, lesson1, runId)));
 
@@ -178,7 +178,7 @@ class WikiStoreAdapterTest extends TestContainerBase {
     }
 
     private static PageWrite makeWrite(UUID pageId, String path, String body) {
-        return new PageWrite(pageId, path, "Tytuł " + path, "Opis.", PageType.CONCEPT, body);
+        return new PageWrite(pageId, path, "Title " + path, "Description.", PageType.CONCEPT, body);
     }
 
     private UUID insertUser() {
@@ -198,8 +198,8 @@ class WikiStoreAdapterTest extends TestContainerBase {
         UUID documentId = UUID.randomUUID();
         jdbc.update("INSERT INTO documents (document_id, knowledge_base_id, lesson_id, lesson_title, content_hash,"
                 + " source_filename, mime_type, upload_source, uploaded_by)"
-                + " VALUES (?, ?, ?, ?, ?, 'notatki.md', 'text/markdown', 'API', ?)",
-            documentId, kbId, lessonId, "Lekcja " + lessonId, documentId.toString(), userId);
+                + " VALUES (?, ?, ?, ?, ?, 'notes.md', 'text/markdown', 'API', ?)",
+            documentId, kbId, lessonId, "Lesson " + lessonId, documentId.toString(), userId);
         return documentId;
     }
 }

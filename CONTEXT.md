@@ -21,7 +21,7 @@ One unit of the wiki: a title, a one-sentence description, a type, and prose wri
 _Avoid_: Concept document, article, artifact, note
 
 **Page Path**:
-A page's identity within its knowledge base — the bundle-relative path without `.md` (`concepts/mitoza`). Equals OKF's Concept ID; never changes after creation. Its name follows the one identifier grammar shared with lesson ids and section anchors.
+A page's identity within its knowledge base — the bundle-relative path without `.md` (`concepts/mitosis`). Equals OKF's Concept ID; never changes after creation. Its name follows the one identifier grammar shared with lesson ids and section anchors.
 _Avoid_: Slug, Concept ID, URL
 
 **Page Type**:

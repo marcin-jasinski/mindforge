@@ -10,17 +10,17 @@ class TextRulesTest {
 
     @Test
     void shouldNormaliseLineEndingsTrailingWhitespaceAndTheFinalNewline() {
-        assertThat(TextRules.normaliseBody("# Mitoza  \r\n\r\nFaza\t\r\n\n\n"))
-            .isEqualTo("# Mitoza\n\nFaza\n");
+        assertThat(TextRules.normaliseBody("# Mitosis  \r\n\r\nPhase\t\r\n\n\n"))
+            .isEqualTo("# Mitosis\n\nPhase\n");
     }
 
     @Test
     void shouldAddTheFinalNewlineWhenItIsMissing() {
-        assertThat(TextRules.normaliseBody("Faza")).isEqualTo("Faza\n");
+        assertThat(TextRules.normaliseBody("Phase")).isEqualTo("Phase\n");
     }
 
     @Test
     void shouldKeepLeadingIndentation() {
-        assertThat(TextRules.normaliseBody("```\n    kod\n```")).isEqualTo("```\n    kod\n```\n");
+        assertThat(TextRules.normaliseBody("```\n    code\n```")).isEqualTo("```\n    code\n```\n");
     }
 }

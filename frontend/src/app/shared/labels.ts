@@ -1,69 +1,69 @@
 import { ApiError } from '../core/models/api';
 
 const RUN_KINDS: Record<string, string> = {
-  INGEST: 'Przetwarzanie',
-  REVERT: 'Cofnięcie',
-  LINT: 'Przegląd',
+  INGEST: 'Ingest',
+  REVERT: 'Revert',
+  LINT: 'Review',
 };
 
 const RUN_STATUSES: Record<string, string> = {
-  QUEUED: 'w kolejce',
-  RUNNING: 'w toku',
-  WRITTEN: 'zapisany',
-  COMPLETED: 'zakończony',
-  FAILED: 'nieudany',
+  QUEUED: 'queued',
+  RUNNING: 'running',
+  WRITTEN: 'written',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
 };
 
 const PAGE_TYPES: Record<string, string> = {
-  Concept: 'Pojęcie',
-  'Source Summary': 'Podsumowanie źródła',
+  Concept: 'Concept',
+  'Source Summary': 'Source summary',
 };
 
-/** What the server says in its own words, by error code; a code the page knows is better than the server's English. */
+/** What the server says in its own words, by error code; a code the page knows reads better than the server's own message. */
 const ERROR_MESSAGES: Record<string, string> = {
-  NOT_FOUND: 'Nie znaleziono żądanego zasobu.',
-  FORBIDDEN: 'Nie masz dostępu do tego zasobu.',
-  EMAIL_TAKEN: 'Konto z tym adresem e-mail już istnieje.',
-  INVALID_CREDENTIALS: 'Nieprawidłowy e-mail lub hasło.',
-  KNOWLEDGE_BASE_BUSY: 'Baza wiedzy jest zajęta innym przebiegiem — spróbuj za chwilę.',
-  REVERT_NOT_ALLOWED: 'Tej zmiany nie można już cofnąć.',
-  RETRY_NOT_ALLOWED: 'Tego przebiegu nie można ponowić.',
-  DOCUMENT_NOT_REMOVABLE: 'Tego dokumentu nie można usunąć — ma przebieg w toku albo zapisane strony.',
-  LINT_ALREADY_QUEUED: 'Przegląd jest już w kolejce.',
-  QUIZ_FINISHED: 'Ten quiz jest już zakończony.',
-  RATE_LIMITED: 'Zwolnij — zbyt wiele zapytań. Spróbuj ponownie za chwilę.',
-  LESSON_IDENTITY: 'Nie udało się ustalić tożsamości lekcji.',
-  UNKNOWN_LESSON: 'Nie ma takiej lekcji.',
-  UPLOAD_REJECTED: 'Ten plik nie może zostać przyjęty.',
-  UPLOAD_TOO_LARGE: 'Plik jest za duży.',
-  MODEL_UNAVAILABLE: 'Model językowy jest niedostępny lub nie odpowiedział na czas. Spróbuj ponownie za chwilę.',
-  VALIDATION: 'Popraw dane w formularzu i spróbuj ponownie.',
-  REQUEST_ERROR: 'Nie udało się wykonać żądania.',
-  INTERNAL: 'Coś poszło nie tak po stronie serwera. Spróbuj ponownie.',
+  NOT_FOUND: 'The requested resource was not found.',
+  FORBIDDEN: 'You do not have access to this resource.',
+  EMAIL_TAKEN: 'An account with this e-mail address already exists.',
+  INVALID_CREDENTIALS: 'Incorrect e-mail or password.',
+  KNOWLEDGE_BASE_BUSY: 'Another run is using this knowledge base — try again in a moment.',
+  REVERT_NOT_ALLOWED: 'This change can no longer be reverted.',
+  RETRY_NOT_ALLOWED: 'This run cannot be retried.',
+  DOCUMENT_NOT_REMOVABLE: 'This document cannot be removed — it has a run in progress or written pages.',
+  LINT_ALREADY_QUEUED: 'A review is already queued.',
+  QUIZ_FINISHED: 'This quiz is already finished.',
+  RATE_LIMITED: 'Slow down — too many requests. Try again in a moment.',
+  LESSON_IDENTITY: 'The lesson identity could not be found.',
+  UNKNOWN_LESSON: 'There is no such lesson.',
+  UPLOAD_REJECTED: 'This file cannot be accepted.',
+  UPLOAD_TOO_LARGE: 'The file is too large.',
+  MODEL_UNAVAILABLE: 'The language model is unavailable or did not reply in time. Try again in a moment.',
+  VALIDATION: 'Correct the form data and try again.',
+  REQUEST_ERROR: 'The request failed.',
+  INTERNAL: 'Something went wrong on the server. Try again.',
 };
 
 const FAILURE_REASONS: [RegExp, string][] = [
-  [/^unexpected error$/, 'Nieoczekiwany błąd — szczegóły są w logu serwera.'],
-  [/^AI provider call failed/, 'Serwer modelu nie odpowiedział. Sprawdź jego konfigurację i ponów przebieg.'],
-  [/^AI gateway call exceeded/, 'Model nie odpowiedział w wyznaczonym czasie. Ponów przebieg.'],
-  [/^AI gateway circuit is open/, 'Model jest chwilowo niedostępny. Ponów przebieg za chwilę.'],
-  [/^the document has no text/, 'Dokument nie zawiera tekstu.'],
-  [/^the run's document is gone/, 'Dokument tego przebiegu został usunięty.'],
-  [/^edit named no page/, 'Nie wskazano strony do zmiany.'],
-  [/^no applicable change/, 'Brak zmiany do zastosowania.'],
-  [/^no page task succeeded/, 'Żadna strona nie została zapisana.'],
-  [/^not learning material/, 'Dokument nie wygląda na materiał do nauki.'],
+  [/^unexpected error$/, 'Unexpected error — the details are in the server log.'],
+  [/^AI provider call failed/, 'The model server did not reply. Check its configuration and retry the run.'],
+  [/^AI gateway call exceeded/, 'The model did not reply in time. Retry the run.'],
+  [/^AI gateway circuit is open/, 'The model is temporarily unavailable. Retry the run in a moment.'],
+  [/^the document has no text/, 'The document contains no text.'],
+  [/^the run's document is gone/, 'The document of this run was removed.'],
+  [/^edit named no page/, 'No page to change was named.'],
+  [/^no applicable change/, 'There is no change to apply.'],
+  [/^no page task succeeded/, 'No page was written.'],
+  [/^not learning material/, 'The document does not look like learning material.'],
 ];
 
 const FAILURE_STEPS: Record<string, string> = {
-  resolve: 'ustalanie stron',
-  linkCheck: 'sprawdzanie linków',
-  review: 'przegląd',
-  write: 'zapis strony',
-  supersede: 'poprawki sekcji',
+  resolve: 'resolve pages',
+  linkCheck: 'link check',
+  review: 'review',
+  write: 'page write',
+  supersede: 'supersede',
 };
 
-/** One skipped or failed item of a run as a sentence fragment: "sprawdzanie linków — pominięto 2". */
+/** One skipped or failed item of a run as a sentence fragment: "link check — 2 skipped". */
 export function failureLine(failure: {
   step: string;
   item?: string | null;
@@ -73,15 +73,15 @@ export function failureLine(failure: {
 }): string {
   const where = [FAILURE_STEPS[failure.step] ?? failure.step, failure.item, failure.path].filter(Boolean).join(' · ');
   const why = failure.reason ? `: ${failureReasonLabel(failure.reason)}` : '';
-  const count = failure.count ? ` — pominięto ${failure.count}` : '';
+  const count = failure.count ? ` — ${failure.count} skipped` : '';
   return where + why + count;
 }
 
 const FINDING_KINDS: Record<string, string> = {
-  contradiction: 'Sprzeczność',
-  unmarked_supersession: 'Nieoznaczona poprawka',
-  missing_page: 'Brakująca strona',
-  question: 'Pytanie do zbadania',
+  contradiction: 'Contradiction',
+  unmarked_supersession: 'Unmarked supersession',
+  missing_page: 'Missing page',
+  question: 'Open question',
 };
 
 export function findingKindLabel(kind: string): string {
@@ -106,6 +106,6 @@ export function failureReasonLabel(reason: string): string {
 }
 
 /** The text a page shows for an API error, chosen by its code. */
-export function apiErrorMessage(error: ApiError | null | undefined, fallback = 'Coś poszło nie tak.'): string {
+export function apiErrorMessage(error: ApiError | null | undefined, fallback = 'Something went wrong.'): string {
   return (error?.code && ERROR_MESSAGES[error.code]) || fallback;
 }

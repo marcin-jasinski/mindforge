@@ -11,7 +11,7 @@ class PagePathTest {
 
     @Test
     void shouldDeriveAConceptPathFromItsTitle() {
-        assertThat(PagePath.concept("Mitoza komórkowa")).isEqualTo("concepts/mitoza-komorkowa");
+        assertThat(PagePath.concept("Cell mitosis")).isEqualTo("concepts/cell-mitosis");
     }
 
     @Test
@@ -22,7 +22,7 @@ class PagePathTest {
 
     @Test
     void shouldBuildASourceSummaryPathFromAnExplicitLessonIdWithoutRewritingIt() {
-        assertThat(PagePath.sourceSummary("biologia-lekcja-3")).isEqualTo("sources/biologia-lekcja-3");
+        assertThat(PagePath.sourceSummary("biology-lesson-3")).isEqualTo("sources/biology-lesson-3");
 
         assertThatIllegalArgumentException().isThrownBy(() -> PagePath.sourceSummary("bio_3"));
         assertThatIllegalArgumentException().isThrownBy(() -> PagePath.sourceSummary("index"));
@@ -30,13 +30,13 @@ class PagePathTest {
 
     @Test
     void shouldAcceptOnlyAKnownDirectoryAndANonReservedIdentifier() {
-        assertThat(PagePath.isValid("concepts/mitoza")).isTrue();
+        assertThat(PagePath.isValid("concepts/mitosis")).isTrue();
         assertThat(PagePath.isValid("sources/bio-3")).isTrue();
 
-        assertThat(PagePath.isValid("topics/mitoza")).isFalse();
-        assertThat(PagePath.isValid("concepts/Mitoza")).isFalse();
+        assertThat(PagePath.isValid("topics/mitosis")).isFalse();
+        assertThat(PagePath.isValid("concepts/Mitosis")).isFalse();
         assertThat(PagePath.isValid("concepts/log")).isFalse();
-        assertThat(PagePath.isValid("concepts/mitoza.md")).isFalse();
-        assertThat(PagePath.isValid("/concepts/mitoza")).isFalse();
+        assertThat(PagePath.isValid("concepts/mitosis.md")).isFalse();
+        assertThat(PagePath.isValid("/concepts/mitosis")).isFalse();
     }
 }

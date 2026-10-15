@@ -15,7 +15,7 @@ import dev.mindforge.infrastructure.ai.PromptLoader;
 /** Grades an answer against the session's reference answer on SM-2's 0–5 rubric; code clamps the score (T27). */
 public class QuizEvaluator {
 
-    public static final String VERSION = "1";
+    public static final String VERSION = "2";
     public static final ModelTier TIER = ModelTier.SMALL;
 
     private final AIGateway gateway;
@@ -28,7 +28,7 @@ public class QuizEvaluator {
 
     public QuizEvaluation grade(String question, String referenceAnswer, String groundingExcerpt, String answer) {
         String prompt = prompts.render("quiz_evaluator", Map.of("question", question, "reference", referenceAnswer,
-            "grounding", groundingExcerpt == null ? "(brak)" : groundingExcerpt, "answer", answer));
+            "grounding", groundingExcerpt == null ? "(none)" : groundingExcerpt, "answer", answer));
         Output output = ModelJson.read(getClass().getSimpleName(),
             gateway.complete(TIER, prompt, DeadlineProfile.INTERACTIVE).content(), Output.class);
         if (output.score() == null) {

@@ -10,6 +10,8 @@ blocked_by: []
 
 ## Problem
 
+> The prompts have since moved to `prompts/en/` and are in English. The paths and strings below are the ones of the time.
+
 `mvn test` fails on a fresh checkout on Windows. **5 of 263 tests fail**, all of them in
 `IngestRunTest` — the flagship integration test of the Phase 6 ingest pipeline:
 
@@ -92,7 +94,7 @@ Two follow-ons in the same ticket:
 ## Acceptance criteria
 
 - [x] `.gitattributes` exists at the repository root and the tree is renormalized.
-- [x] `file src/main/resources/prompts/pl/*.md` reports no CRLF after a fresh clone on Windows.
+- [x] `file src/main/resources/prompts/pl/*.md` (now `prompts/en/`) reports no CRLF after a fresh clone on Windows.
 - [x] `mvn test` is **263/263 green** on Windows and on Linux.
 - [x] `docs/INDEX.md:69`'s claim about `.editorconfig` is true, or corrected.
 - [x] A prompt-fragment mismatch in a test fails with a message naming the mismatch.

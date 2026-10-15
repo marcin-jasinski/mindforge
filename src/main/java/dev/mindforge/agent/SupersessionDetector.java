@@ -16,7 +16,7 @@ import dev.mindforge.infrastructure.ai.PromptLoader;
 /** Proposes which shown sections a run's claims correct; code keeps only proposals it can verify. */
 public class SupersessionDetector {
 
-    public static final String VERSION = "1";
+    public static final String VERSION = "2";
     public static final ModelTier TIER = ModelTier.LARGE;
 
     private final AIGateway gateway;

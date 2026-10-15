@@ -5,20 +5,20 @@ import tools.jackson.databind.json.JsonMapper;
 /** Fragments that route a {@link StubAIGateway} answer to one prompt, and JSON for the answers. */
 public final class Prompts {
 
-    public static final String GUARD = "# Zadanie: ocena przydatności dokumentu";
-    public static final String EXTRACT = "# Zadanie: ekstrakcja twierdzeń";
-    public static final String EDIT = "# Zadanie: edycja wiki z rozmowy";
-    public static final String WRITE = "# Zadanie: napisanie strony wiki";
-    public static final String LINKS = "# Zadanie: wstawianie linków";
-    public static final String SUPERSEDE = "# Zadanie: wykrywanie zdezaktualizowanych sekcji";
-    public static final String REVIEW = "# Zadanie: przegląd wiki";
-    public static final String FLASHCARDS = "# Zadanie: tworzenie fiszek";
-    public static final String QUIZ = "# Zadanie: pytania quizowe";
-    public static final String GRADE = "# Zadanie: ocena odpowiedzi";
-    public static final String SELECT = "# Zadanie: wybór stron do odpowiedzi";
-    public static final String ANSWER = "# Zadanie: odpowiedź z wiki";
+    public static final String GUARD = "# Task: document relevance check";
+    public static final String EXTRACT = "# Task: claim extraction";
+    public static final String EDIT = "# Task: wiki edit from a conversation";
+    public static final String WRITE = "# Task: wiki page writing";
+    public static final String LINKS = "# Task: link insertion";
+    public static final String SUPERSEDE = "# Task: detection of out-of-date sections";
+    public static final String REVIEW = "# Task: wiki review";
+    public static final String FLASHCARDS = "# Task: flashcard writing";
+    public static final String QUIZ = "# Task: quiz questions";
+    public static final String GRADE = "# Task: answer grading";
+    public static final String SELECT = "# Task: page selection for an answer";
+    public static final String ANSWER = "# Task: answer from the wiki";
 
-    public static final String RELEVANT = "{\"relevant\": true, \"reason\": \"Notatki z biologii.\", \"confidence\": 0.9}";
+    public static final String RELEVANT = "{\"relevant\": true, \"reason\": \"Biology notes.\", \"confidence\": 0.9}";
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -26,7 +26,7 @@ public final class Prompts {
 
     /** Routes to the writer prompt of one page. */
     public static String writing(String path) {
-        return "- Ścieżka: " + path + "\n";
+        return "- Path: " + path + "\n";
     }
 
     public static String json(Object value) {

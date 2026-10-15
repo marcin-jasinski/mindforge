@@ -35,7 +35,7 @@ import dev.mindforge.infrastructure.event.SseProgressNotifier;
 @EnableScheduling
 public class PipelineConfig {
 
-    private static final String PROMPT_LOCALE = "pl";
+    private static final String PROMPT_LOCALE = "en";
 
     @Bean
     ProcessingSettings processingSettings(AppProperties properties) {

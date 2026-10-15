@@ -130,7 +130,7 @@ Query, the Angular SPA and Docker deployment.
 
 ## Technical Debt Backlog
 
-- [ ] **English locale prompts** — Add `prompts/en/` alongside `prompts/pl/`.
+- [x] **English prompts and UI** — `prompts/en/` replaced `prompts/pl/`; the model detects the content language and writes content in it.
 - [ ] **Integration API tests** — Expand `integration/api/` to cover all endpoint paths.
 - [ ] **Multi-tenant hardening** — Rate limiting and isolation review before opening to external users.
 

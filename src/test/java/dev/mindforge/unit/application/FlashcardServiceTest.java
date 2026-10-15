@@ -42,8 +42,8 @@ import dev.mindforge.support.StubAIGateway;
 class FlashcardServiceTest {
 
     private static final UUID KB = UUID.randomUUID();
-    private static final String CARDS = "{\"cards\": [{\"type\": \"BASIC\", \"front\": \"Co to mitoza?\","
-        + " \"back\": \"Podział komórki.\", \"section\": \"faza\"}]}";
+    private static final String CARDS = "{\"cards\": [{\"type\": \"BASIC\", \"front\": \"What is mitosis?\","
+        + " \"back\": \"Cell division.\", \"section\": \"phase\"}]}";
 
     private final WikiStore wiki = mock(WikiStore.class);
     private final FakeStudyStore study = new FakeStudyStore();
@@ -51,10 +51,10 @@ class FlashcardServiceTest {
 
     @Test
     void shouldNotRegenerateAPageWhoseChangeWasOnlyALink() {
-        WikiPage before = makePage("concepts/mitoza", "# Faza\n\nMitoza i mejoza.\n", 1);
-        WikiPage linked = withBody(before, "# Faza\n\nMitoza i [mejoza](/concepts/mejoza.md).\n");
+        WikiPage before = makePage("concepts/mitosis", "# Phase\n\nMitosis and meiosis.\n", 1);
+        WikiPage linked = withBody(before, "# Phase\n\nMitosis and [meiosis](/concepts/meiosis.md).\n");
         givenPages(linked);
-        study.cards.add(makeState(before, "stara", Instant.now().minus(1, ChronoUnit.DAYS)));
+        study.cards.add(makeState(before, "old", Instant.now().minus(1, ChronoUnit.DAYS)));
 
         makeService(10).deck(KB, new StudyScope.WholeKnowledgeBase());
 
@@ -63,38 +63,38 @@ class FlashcardServiceTest {
 
     @Test
     void shouldStripSupersededSectionsFromWhatTheGeneratorReads() {
-        WikiPage page = makePage("concepts/mitoza", "# Faza\n\nAktualne.\n\n# Stare\n\nNieaktualne twierdzenie.\n", 1);
+        WikiPage page = makePage("concepts/mitosis", "# Phase\n\nCurrent.\n\n# Old\n\nOut-of-date claim.\n", 1);
         givenPages(page);
         when(wiki.liveSupersessionsOf(KB, List.of(page.pageId()))).thenReturn(List.of(new LiveSupersession(
-            UUID.randomUUID(), page.pageId(), "stare", UUID.randomUUID(), "concepts/mejoza", "Mejoza")));
+            UUID.randomUUID(), page.pageId(), "old", UUID.randomUUID(), "concepts/meiosis", "Meiosis")));
         gateway.answer(Prompts.FLASHCARDS, CARDS);
 
         makeService(10).deck(KB, new StudyScope.WholeKnowledgeBase());
 
         assertThat(gateway.recordedCalls()).singleElement().satisfies(call ->
-            assertThat(call.prompt()).contains("Aktualne.").doesNotContain("Nieaktualne twierdzenie."));
-        assertThat(study.cards).extracting(state -> state.card().sectionAnchor()).containsExactly("faza");
+            assertThat(call.prompt()).contains("Current.").doesNotContain("Out-of-date claim."));
+        assertThat(study.cards).extracting(state -> state.card().sectionAnchor()).containsExactly("phase");
     }
 
     @Test
     void shouldSpendOneBudgetOnStalePagesWithDueCardsFirstThenPagesWithoutCards() {
-        WikiPage stale = makePage("concepts/stara", "# A\n\nNowa treść.\n", 3);
-        WikiPage newest = makePage("concepts/nowa", "# B\n\nB.\n", 2);
-        WikiPage oldest = makePage("concepts/pierwsza", "# C\n\nC.\n", 1);
+        WikiPage stale = makePage("concepts/old", "# A\n\nNew content.\n", 3);
+        WikiPage newest = makePage("concepts/new", "# B\n\nB.\n", 2);
+        WikiPage oldest = makePage("concepts/first", "# C\n\nC.\n", 1);
         givenPages(newest, stale, oldest);
-        study.cards.add(makeState(withBody(stale, "# A\n\nStara treść.\n"), "stara", Instant.now().minusSeconds(60)));
+        study.cards.add(makeState(withBody(stale, "# A\n\nOld content.\n"), "old", Instant.now().minusSeconds(60)));
         gateway.answer(Prompts.FLASHCARDS, CARDS);
 
         makeService(2).deck(KB, new StudyScope.WholeKnowledgeBase());
 
-        assertThat(gateway.recordedCalls()).extracting(call -> call.prompt().contains("## Strona: stara")
-            ? "stara" : call.prompt().contains("## Strona: pierwsza") ? "pierwsza" : "nowa")
-            .containsExactlyInAnyOrder("stara", "pierwsza");
+        assertThat(gateway.recordedCalls()).extracting(call -> call.prompt().contains("## Page: old")
+            ? "old" : call.prompt().contains("## Page: first") ? "first" : "new")
+            .containsExactlyInAnyOrder("old", "first");
     }
 
     @Test
     void shouldMakeOneGenerationCallPerPageForTwoConcurrentDeckOpens() throws Exception {
-        givenPages(makePage("concepts/mitoza", "# Faza\n\nMitoza.\n", 1));
+        givenPages(makePage("concepts/mitosis", "# Phase\n\nMitosis.\n", 1));
         CountDownLatch bothOpened = new CountDownLatch(2);
         gateway.answer(Prompts.FLASHCARDS, prompt -> CARDS);
         FlashcardService service = makeService(10);
@@ -124,7 +124,7 @@ class FlashcardServiceTest {
         ProcessingSettings settings = new ProcessingSettings(defaults.chunkSizeTokens(),
             defaults.maxClaimsPerExtractCall(), defaults.maxPageTasksPerRun(), defaults.writerSourceTokens(),
             defaults.supersessionContextTokens(), cardPagesPerSession, Map.of(), Map.of());
-        return new FlashcardService(wiki, study, new FlashcardGenerator(gateway, new PromptLoader("pl")), settings);
+        return new FlashcardService(wiki, study, new FlashcardGenerator(gateway, new PromptLoader("en")), settings);
     }
 
     private void givenPages(WikiPage... pages) {
@@ -137,7 +137,7 @@ class FlashcardServiceTest {
 
     private static WikiPage makePage(String path, String body, int day) {
         Instant created = Instant.parse("2026-09-01T00:00:00Z").plus(day, ChronoUnit.DAYS);
-        return new WikiPage(UUID.randomUUID(), KB, path, path.substring(path.indexOf('/') + 1), "Opis.",
+        return new WikiPage(UUID.randomUUID(), KB, path, path.substring(path.indexOf('/') + 1), "Description.",
             PageType.CONCEPT, body, 1, created, created);
     }
 
@@ -147,8 +147,8 @@ class FlashcardServiceTest {
     }
 
     private static CardState makeState(WikiPage page, String front, Instant due) {
-        Flashcard card = new Flashcard(Flashcard.computeCardId(KB, page.pageId(), CardType.BASIC, front, "tył"),
-            page.pageId(), null, CardType.BASIC, front, "tył", Flashcard.sourceHash(page.title(), page.markdownBody()));
+        Flashcard card = new Flashcard(Flashcard.computeCardId(KB, page.pageId(), CardType.BASIC, front, "back"),
+            page.pageId(), null, CardType.BASIC, front, "back", Flashcard.sourceHash(page.title(), page.markdownBody()));
         return new CardState(card, 2.5, 1, 1, due, null);
     }
 

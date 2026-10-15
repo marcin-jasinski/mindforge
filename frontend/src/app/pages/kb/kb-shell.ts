@@ -17,9 +17,9 @@ import { ProgressService } from '../../core/services/progress.service';
       <header class="row">
         <h1>{{ base.name }}</h1>
         <span class="spacer"></span>
-        <a mat-stroked-button [href]="wiki.exportUrl(kbId())">Eksportuj bundle</a>
+        <a mat-stroked-button [href]="wiki.exportUrl(kbId())">Export bundle</a>
       </header>
-      <nav mat-tab-nav-bar [tabPanel]="panel" aria-label="Sekcje bazy wiedzy">
+      <nav mat-tab-nav-bar [tabPanel]="panel" aria-label="Knowledge base sections">
         @for (tab of tabs; track tab.path) {
           <a mat-tab-link [routerLink]="tab.path" routerLinkActive #active="routerLinkActive"
             [routerLinkActiveOptions]="{ exact: tab.path === '.' }" [active]="active.isActive">{{ tab.label }}</a>
@@ -40,12 +40,12 @@ export class KbShell implements OnInit {
   readonly kbId = input.required<string>();
   readonly kb = signal<KnowledgeBase | null>(null);
   readonly tabs = [
-    { path: '.', label: 'Dokumenty' },
-    { path: 'pages', label: 'Strony' },
-    { path: 'graph', label: 'Graf' },
-    { path: 'health', label: 'Zdrowie' },
-    { path: 'study', label: 'Nauka' },
-    { path: 'chat', label: 'Czat' },
+    { path: '.', label: 'Documents' },
+    { path: 'pages', label: 'Pages' },
+    { path: 'graph', label: 'Graph' },
+    { path: 'health', label: 'Health' },
+    { path: 'study', label: 'Study' },
+    { path: 'chat', label: 'Chat' },
   ];
 
   ngOnInit(): void {

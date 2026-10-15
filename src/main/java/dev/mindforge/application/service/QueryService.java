@@ -42,7 +42,7 @@ public class QueryService {
     private static final int MAX_SELECTED_PAGES = 8;
     private static final int PRIOR_TURNS = 5;
     private static final TokenBudget CONTEXT = new TokenBudget(24_000, 4_000);
-    private static final String NO_PRIOR_TURNS = "(brak)";
+    private static final String NO_PRIOR_TURNS = "(none)";
     private static final int TERMS_PER_QUESTION = 6;
     private static final int HITS_PER_TERM = 20;
     private static final int MIN_TERM_LENGTH = 4;
@@ -172,7 +172,7 @@ public class QueryService {
             return NO_PRIOR_TURNS;
         }
         return turns.stream()
-            .map(turn -> "Pytanie: " + turn.question() + "\nOdpowiedź: " + turn.answer())
+            .map(turn -> "Question: " + turn.question() + "\nAnswer: " + turn.answer())
             .collect(Collectors.joining("\n\n"));
     }
 }

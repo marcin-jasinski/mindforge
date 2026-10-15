@@ -54,7 +54,7 @@ class IngestionServiceTest {
     private static final UUID KB = UUID.randomUUID();
     private static final UUID OTHER_KB = UUID.randomUUID();
     private static final UUID USER = UUID.randomUUID();
-    private static final String CONTENT = "Mitoza to podział komórki.";
+    private static final String CONTENT = "Mitosis is cell division.";
     private static final ContentHash HASH = ContentHash.compute(CONTENT.getBytes(StandardCharsets.UTF_8));
 
     /** Reads the bytes as one text block, the way a real parser would for plain text. */
@@ -84,7 +84,7 @@ class IngestionServiceTest {
         order.verify(progress).notify(eq(KB), any());
 
         assertThat(inserted.getValue()).usingRecursiveComparison().isEqualTo(new Document(
-            documentId, KB, new LessonIdentity("notatki", "notatki"), HASH, "notatki.md", "text/markdown",
+            documentId, KB, new LessonIdentity("notes", "notes"), HASH, "notes.md", "text/markdown",
             CONTENT, List.of(ContentBlock.text(CONTENT, 0)), UploadSource.API, USER, null, null));
         assertThat(enqueued.getValue()).extracting(IngestRun::kind, IngestRun::documentId, IngestRun::status)
             .containsExactly(RunKind.INGEST, documentId, RunStatus.QUEUED);
@@ -117,25 +117,25 @@ class IngestionServiceTest {
 
     @Test
     void shouldRejectAnUploadWhoseLessonAlreadyExistsNamingTheExistingLesson() {
-        when(documents.findLessonTitle(KB, "notatki")).thenReturn(Optional.of("Biologia — lekcja 3"));
+        when(documents.findLessonTitle(KB, "notes")).thenReturn(Optional.of("Biology — lesson 3"));
 
         assertThatThrownBy(() -> makeService(null).ingest(makeUpload(KB, null, false)))
             .isInstanceOfSatisfying(LessonAlreadyExistsException.class, rejection ->
-                assertThat(rejection.lesson()).isEqualTo(new LessonIdentity("notatki", "Biologia — lekcja 3")));
+                assertThat(rejection.lesson()).isEqualTo(new LessonIdentity("notes", "Biology — lesson 3")));
         verify(documents, never()).insert(any(), any());
         verifyNoInteractions(events);
     }
 
     @Test
     void shouldInsertASecondDocumentOfAnExistingLessonAsANewVersion() {
-        when(documents.findLessonTitle(KB, "notatki")).thenReturn(Optional.of("notatki"));
+        when(documents.findLessonTitle(KB, "notes")).thenReturn(Optional.of("notes"));
 
         UUID documentId = makeService(null).ingest(makeUpload(KB, null, true));
 
         ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
         verify(documents).insert(eq(KB), inserted.capture());
         assertThat(inserted.getValue().documentId()).isEqualTo(documentId);
-        assertThat(inserted.getValue().lessonIdentity().lessonId()).isEqualTo("notatki");
+        assertThat(inserted.getValue().lessonIdentity().lessonId()).isEqualTo("notes");
         verify(events).publish(any());
     }
 
@@ -143,7 +143,7 @@ class IngestionServiceTest {
     void shouldRejectANewVersionOfALessonThatDoesNotExist() {
         assertThatExceptionOfType(UnknownLessonException.class)
             .isThrownBy(() -> makeService(null).ingest(makeUpload(KB, null, true)))
-            .withMessageContaining("notatki");
+            .withMessageContaining("notes");
         verify(documents, never()).insert(any(), any());
     }
 
@@ -153,7 +153,7 @@ class IngestionServiceTest {
 
         ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
         verify(documents).insert(eq(KB), inserted.capture());
-        assertThat(inserted.getValue().lessonIdentity()).isEqualTo(new LessonIdentity("bio-3", "notatki"));
+        assertThat(inserted.getValue().lessonIdentity()).isEqualTo(new LessonIdentity("bio-3", "notes"));
     }
 
     @Test
@@ -234,7 +234,7 @@ class IngestionServiceTest {
     }
 
     private static DocumentUpload makeUpload(UUID knowledgeBaseId, String lessonId, boolean newVersion) {
-        return new DocumentUpload(knowledgeBaseId, USER, UploadSource.API, "notatki.md", "text/markdown",
+        return new DocumentUpload(knowledgeBaseId, USER, UploadSource.API, "notes.md", "text/markdown",
             CONTENT.getBytes(StandardCharsets.UTF_8), lessonId, newVersion);
     }
 }

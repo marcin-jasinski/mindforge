@@ -100,7 +100,7 @@ static WikiPage makePage(UUID knowledgeBaseId, String path) {
 }
 
 // In test:
-WikiPage page = makePage(null, "concepts/mitoza");
+WikiPage page = makePage(null, "concepts/mitosis");
 ```
 
 ### Integration Tests

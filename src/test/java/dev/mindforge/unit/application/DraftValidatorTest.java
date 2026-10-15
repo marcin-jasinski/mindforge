@@ -9,65 +9,65 @@ import dev.mindforge.domain.model.PageDraft;
 
 class DraftValidatorTest {
 
-    private static final String TITLE = "Mitoza";
+    private static final String TITLE = "Mitosis";
 
     @Test
     void shouldAcceptADraftWithSectionsAndValidLinks() {
-        assertThat(problem("# Faza\n\nPatrz [mejoza](/concepts/mejoza.md#etapy) i [źródło](https://example.org).\n",
+        assertThat(problem("# Phase\n\nSee [meiosis](/concepts/meiosis.md#stages) and [source](https://example.org).\n",
             null, false)).isNull();
     }
 
     @Test
     void shouldRejectAnInvalidPageLink() {
-        assertThat(problem("Patrz [mejoza](mejoza.md).\n", null, false)).startsWith("invalid link");
+        assertThat(problem("See [meiosis](meiosis.md).\n", null, false)).startsWith("invalid link");
     }
 
     @Test
     void shouldRejectAnImage() {
-        assertThat(problem("![schemat](https://example.org/a.png)\n", null, false)).startsWith("invalid link");
+        assertThat(problem("![diagram](https://example.org/a.png)\n", null, false)).startsWith("invalid link");
     }
 
     @Test
     void shouldRejectAReferenceDefinition() {
-        assertThat(problem("Patrz [mejoza].\n\n[mejoza]: /concepts/mejoza.md\n", null, false))
+        assertThat(problem("See [meiosis].\n\n[meiosis]: /concepts/meiosis.md\n", null, false))
             .startsWith("invalid link");
     }
 
     @Test
     void shouldRejectFrontmatter() {
-        assertThat(problem("---\ntype: Concept\n---\n# Faza\n", null, false)).isEqualTo("frontmatter");
+        assertThat(problem("---\ntype: Concept\n---\n# Phase\n", null, false)).isEqualTo("frontmatter");
     }
 
     @Test
     void shouldRejectACitationsSection() {
-        assertThat(problem("# Faza\n\nA.\n\n# Citations\n\n* bio-1\n", null, false))
+        assertThat(problem("# Phase\n\nA.\n\n# Citations\n\n* bio-1\n", null, false))
             .isEqualTo("a # Citations section");
     }
 
     @Test
     void shouldRejectALevelOneHeadingRepeatingTheTitle() {
-        assertThat(problem("# Mitoza\n\nPodział komórki.\n", null, false))
+        assertThat(problem("# Mitosis\n\nCell division.\n", null, false))
             .isEqualTo("a level-1 heading repeating the title");
     }
 
     @Test
     void shouldRejectADocumentRevisionThatDropsASection() {
-        assertThat(problem("# Faza\n\nA.\n", "# Faza\n\nA.\n\n# Etapy\n\nB.\n", true))
-            .isEqualTo("dropped sections: etapy");
+        assertThat(problem("# Phase\n\nA.\n", "# Phase\n\nA.\n\n# Stages\n\nB.\n", true))
+            .isEqualTo("dropped sections: stages");
     }
 
     @Test
     void shouldLetAConversationEditDropASectionAndAHeadingChangeItsCase() {
-        assertThat(problem("# Faza\n\nA.\n", "# Faza\n\nA.\n\n# Etapy\n\nB.\n", false)).isNull();
-        assertThat(problem("# FAZA!\n\nA.\n", "# Faza\n\nA.\n", true)).isNull();
+        assertThat(problem("# Phase\n\nA.\n", "# Phase\n\nA.\n\n# Stages\n\nB.\n", false)).isNull();
+        assertThat(problem("# PHASE!\n\nA.\n", "# Phase\n\nA.\n", true)).isNull();
     }
 
     @Test
     void shouldNotReadAHashCommentInsideAFenceAsAHeading() {
-        String body = "# Faza\n\n```\n# Mitoza\n```\n";
+        String body = "# Phase\n\n```\n# Mitosis\n```\n";
 
         assertThat(problem(body, null, false)).isNull();
-        assertThat(problem("```\n# Faza\n```\n", "# Faza\n\nA.\n", true)).isEqualTo("dropped sections: faza");
+        assertThat(problem("```\n# Phase\n```\n", "# Phase\n\nA.\n", true)).isEqualTo("dropped sections: phase");
     }
 
     @Test
@@ -79,12 +79,12 @@ class DraftValidatorTest {
 
     @Test
     void shouldNormaliseTheDescriptionToOneLineAndTheBodyToItsStoredForm() {
-        assertThat(DraftValidator.normalise(new PageDraft(" Podział\n komórki. ", "# Faza  \r\nA.\n\n\n")))
-            .isEqualTo(new PageDraft("Podział komórki.", "# Faza\nA.\n"));
+        assertThat(DraftValidator.normalise(new PageDraft(" Cell\n division. ", "# Phase  \r\nA.\n\n\n")))
+            .isEqualTo(new PageDraft("Cell division.", "# Phase\nA.\n"));
     }
 
     private static String problem(String body, String existingBody, boolean keepSections) {
-        return DraftValidator.problem(TITLE, DraftValidator.normalise(new PageDraft("Opis.", body)), existingBody,
+        return DraftValidator.problem(TITLE, DraftValidator.normalise(new PageDraft("Description.", body)), existingBody,
             keepSections).orElse(null);
     }
 }

@@ -102,7 +102,7 @@ moved on buys churn and duplicate-page risk for an LLM bill, and nobody asked fo
   (a new run on the existing document). Dedup stays one rule with no exceptions, and a retry is an action, not a
   side effect of re-uploading.
 - **Same bytes into a different `KnowledgeBase`** is a new document there.
-- **Conversation turns are exempt** (partial index): "delete *Mitoza*" said twice, a week apart, is two edits.
+- **Conversation turns are exempt** (partial index): "delete *Mitosis*" said twice, a week apart, is two edits.
 - **Security fix, found in passing**: today's `DocumentRepository.findByContentHash(ContentHash)` takes no `kbId`,
   so dedup would hand user A the id of user B's document. It becomes `findByContentHash(kbId, hash)` (T12).
 

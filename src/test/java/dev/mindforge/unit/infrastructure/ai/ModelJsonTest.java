@@ -19,7 +19,7 @@ class ModelJsonTest {
 
     @Test
     void shouldReadAnObjectWrappedInProse() {
-        assertThat(read("Oto wynik: {\"description\":\"a\",\"body\":\"b\"} Pozdrawiam."))
+        assertThat(read("Here is the result: {\"description\":\"a\",\"body\":\"b\"} Regards."))
             .isEqualTo(new Draft("a", "b"));
     }
 
@@ -30,13 +30,13 @@ class ModelJsonTest {
 
     @Test
     void shouldReadTheFirstOfTwoObjects() {
-        assertThat(read("Oto wynik: {\"description\":\"a\",\"body\":\"b\"} oraz {\"note\":\"ignore\"}"))
+        assertThat(read("Here is the result: {\"description\":\"a\",\"body\":\"b\"} and {\"note\":\"ignore\"}"))
             .isEqualTo(new Draft("a", "b"));
     }
 
     @Test
     void shouldNameTheServiceWhenThereIsNoJson() {
-        assertThatThrownBy(() -> read("brak obiektu"))
+        assertThatThrownBy(() -> read("no object"))
             .isInstanceOf(ModelOutputException.class)
             .hasMessageContaining("PageWriter");
     }

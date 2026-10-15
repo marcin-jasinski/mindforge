@@ -37,7 +37,7 @@ export class RunReportView {
 
   revert(): void {
     // ponytail: native confirm; a MatDialog when the confirmation needs to show what the revert will undo
-    if (confirm('Cofnąć ten przebieg? Zmiany, które wprowadził w wiki, zostaną wycofane.')) {
+    if (confirm('Revert this run? The changes it made to the wiki will be undone.')) {
       this.act(this.runs.revert(this.kbId(), this.runId()));
     }
   }
@@ -59,7 +59,7 @@ export class RunReportView {
       },
       error: (response: HttpErrorResponse) => {
         const error = response.error as ApiError | null;
-        this.message.set(apiErrorMessage(error, 'Nie udało się.'));
+        this.message.set(apiErrorMessage(error, 'The action failed.'));
       },
     });
   }

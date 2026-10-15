@@ -65,13 +65,14 @@ openAi.chatCompletionEntity(request);  // ❌
 
 ## Prompt Files
 
-Prompt files follow the pattern `{name}.{locale}.md`. Polish (`pl`) is the default locale. Every template must have at least a `.pl` baseline:
+Prompt files follow the pattern `{name}.{locale}.md`. English (`en`) is the only locale: every prompt, like the UI and the logs, is in English.
 
 ```
-src/main/resources/prompts/pl/claim_extractor.pl.md   ✓
-src/main/resources/prompts/en/claim_extractor.en.md   ✓ (when added)
+src/main/resources/prompts/en/claim_extractor.en.md   ✓
 src/main/resources/prompts/claim_extractor.md         ❌ (locale-neutral)
 ```
+
+Uploaded content can be in any language. A prompt that makes content tells the model to detect the language first and to write in it: claims and pages in the language of their source (a revised page keeps its own language), flashcards and quiz questions in the language of their page, Query answers and quiz feedback in the language of the question. Text that only the interface shows (the guard's `reason`, Lint findings) is in English.
 
 ## Every Rule Stated in the Prompt Is Enforced in Code
 

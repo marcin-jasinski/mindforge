@@ -47,7 +47,7 @@ import dev.mindforge.domain.port.UploadPolicy;
  */
 public class IngestionService {
 
-    private static final LessonIdentity CONVERSATION_LESSON = new LessonIdentity("conversation", "Rozmowa");
+    private static final LessonIdentity CONVERSATION_LESSON = new LessonIdentity("conversation", "Conversation");
     private static final String CONVERSATION_FILENAME = "conversation";
     private static final String CONVERSATION_MIME_TYPE = "text/plain";
 
@@ -136,7 +136,7 @@ public class IngestionService {
         return run.runId();
     }
 
-    /** "Mitoza" becomes "Mitoza (mitoza-2)", kept inside the title length the lesson identity allows. */
+    /** "Mitosis" becomes "Mitosis (mitosis-2)", kept inside the title length the lesson identity allows. */
     private static String distinctTitle(LessonIdentity lesson) {
         String suffix = " (" + lesson.lessonId() + ")";
         String title = lesson.title();

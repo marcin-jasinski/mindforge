@@ -20,17 +20,17 @@ class MarkdownParserTest {
         String markdown = """
             ---
             lesson_id: bio-3
-            title: "Mitoza komórkowa"
+            title: "Cell mitosis"
             author: 'Anna'
             ---
-            # Mitoza
+            # Mitosis
 
-            Mitoza to **podział** komórki.
+            Mitosis is cell **division**.
 
-            ## Fazy
+            ## Phases
 
-            - profaza
-            - metafaza
+            - prophase
+            - metaphase
 
             ```python
             # not a heading
@@ -41,21 +41,21 @@ class MarkdownParserTest {
         ParsedDocument parsed = parser.parse(markdown.getBytes(StandardCharsets.UTF_8));
 
         assertThat(parsed.metadata())
-            .isEqualTo(Map.of("lesson_id", "bio-3", "title", "Mitoza komórkowa", "author", "Anna"));
+            .isEqualTo(Map.of("lesson_id", "bio-3", "title", "Cell mitosis", "author", "Anna"));
         assertThat(parsed.blocks()).containsExactly(
-            ContentBlock.heading("Mitoza", 1, 0),
-            ContentBlock.text("Mitoza to **podział** komórki.", 1),
-            ContentBlock.heading("Fazy", 2, 2),
-            ContentBlock.text("- profaza\n- metafaza", 3),
+            ContentBlock.heading("Mitosis", 1, 0),
+            ContentBlock.text("Mitosis is cell **division**.", 1),
+            ContentBlock.heading("Phases", 2, 2),
+            ContentBlock.text("- prophase\n- metaphase", 3),
             ContentBlock.code("# not a heading\nprint(\"x\")", 4));
         assertThat(parsed.text()).isEqualTo(markdown);
     }
 
     @Test
     void shouldHaveNoMetadataWithoutFrontmatter() {
-        ParsedDocument parsed = parser.parse("Samo zdanie.".getBytes(StandardCharsets.UTF_8));
+        ParsedDocument parsed = parser.parse("Only a sentence.".getBytes(StandardCharsets.UTF_8));
 
         assertThat(parsed.metadata()).isEmpty();
-        assertThat(parsed.blocks()).containsExactly(ContentBlock.text("Samo zdanie.", 0));
+        assertThat(parsed.blocks()).containsExactly(ContentBlock.text("Only a sentence.", 0));
     }
 }

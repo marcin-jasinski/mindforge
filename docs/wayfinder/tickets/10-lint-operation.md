@@ -46,7 +46,7 @@ Supersession is **not** Lint's — T04 made it its own ingest step, scoped by re
 whose `section_anchor` no longer matches a heading, is the same shape of finding.
 
 **Inherited from T06.** Paths never change and nothing can rename, so Lint cannot fix a link by moving a page. A
-link to the wrong directory (`/sources/mitoza.md` when the page is `concepts/mitoza`) is dangling and must not
+link to the wrong directory (`/sources/mitosis.md` when the page is `concepts/mitosis`) is dangling and must not
 be silently "corrected" by guessing (demo ADR 0021). Titles duplicated across live pages are a new structural
 finding. The linkable index Lint would hand a model is the projected root index.
 
@@ -174,7 +174,7 @@ health view's shape belongs to the SPA fog.
 
 **6. Suggestions stay in Lint — as study prompts, never as generated pages.** The full Lint's suggestions are:
 
-- "*Cell Division* mentions *mejoza*, but there is no page on it";
+- "*Cell Division* mentions *meiosis*, but there is no page on it";
 - "these three pages disagree about X";
 - "questions worth investigating".
 

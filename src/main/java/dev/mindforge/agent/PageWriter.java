@@ -17,12 +17,12 @@ import dev.mindforge.infrastructure.ai.PromptLoader;
 /** Writes one page's description and body from its task. It returns no title; the caller validates the draft. */
 public class PageWriter {
 
-    public static final String VERSION = "1";
+    public static final String VERSION = "2";
     public static final ModelTier TIER = ModelTier.LARGE;
 
-    private static final String NONE = "(brak)";
+    private static final String NONE = "(none)";
     /** What the prompt shows as the existing body of a create; the ingest pipeline reuses it as a planned description. */
-    public static final String NEW_PAGE = "(nowa strona)";
+    public static final String NEW_PAGE = "(new page)";
 
     private final AIGateway gateway;
     private final PromptLoader prompts;
@@ -42,8 +42,8 @@ public class PageWriter {
             .map(claim -> "* " + claim.text())
             .collect(Collectors.joining("\n"));
         String supersededList = superseded.isEmpty() ? NONE : superseded.stream()
-            .map(section -> "* „" + section.heading() + "” (#" + section.anchor() + ") — poprawione przez /"
-                + section.supersedingPath() + ".md („" + section.supersedingTitle() + "”)")
+            .map(section -> "* \"" + section.heading() + "\" (#" + section.anchor() + ") — superseded by /"
+                + section.supersedingPath() + ".md (\"" + section.supersedingTitle() + "\")")
             .collect(Collectors.joining("\n"));
         String prompt = prompts.render("page_writer", Map.of(
             "type", task.type().value(),
@@ -54,9 +54,9 @@ public class PageWriter {
             "existingBody", existingBody == null ? NEW_PAGE : existingBody,
             "superseded", supersededList,
             "sectionRule", keepSections
-                ? "Zachowaj każdą istniejącą sekcję poziomu 1 (także poprawione): jej nagłówek może zmienić tylko"
-                    + " wielkość liter, znaki diakrytyczne lub interpunkcję. Możesz dodawać nowe sekcje."
-                : "Możesz zmienić układ sekcji.",
+                ? "Keep every existing level-1 section (also the superseded ones): only the letter case, diacritics"
+                    + " or punctuation of its heading can change. You can add new sections."
+                : "You can change the section layout.",
             "index", linkableIndex));
         Output output = ModelJson.read(getClass().getSimpleName(),
             gateway.complete(TIER, prompt, DeadlineProfile.BACKGROUND).content(), Output.class);

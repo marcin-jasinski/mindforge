@@ -85,7 +85,7 @@ class RevertAndLeaseTest extends TestContainerBase {
         UUID turn = insertDocument(kbId, userId, "conversation", "CONVERSATION");
         UUID pageId = UUID.randomUUID();
         completedRun(kbId, lesson, 0, runId -> {
-            wiki.savePage(kbId, makeWrite(pageId, "concepts/mitoza", "# Faza\n"), runId);
+            wiki.savePage(kbId, makeWrite(pageId, "concepts/mitosis", "# Phase\n"), runId);
             wiki.addSources(kbId, List.of(new PageSource(pageId, lesson, runId)));
         });
         UUID edit = completedRun(kbId, turn, 0, runId -> wiki.deletePage(kbId, pageId, runId));
@@ -95,7 +95,7 @@ class RevertAndLeaseTest extends TestContainerBase {
 
         assertThat(wiki.findById(kbId, pageId)).get()
             .extracting(WikiPage::path, WikiPage::markdownBody, WikiPage::revision)
-            .containsExactly("concepts/mitoza", "# Faza\n", 3);
+            .containsExactly("concepts/mitosis", "# Phase\n", 3);
         assertThat(wiki.pageIdsForLesson(kbId, "bio-1")).containsExactly(pageId);
         assertThat(wiki.revisionsByRun(kbId, revert)).extracting(PageRevision::revision).containsExactly(3);
         assertThat(LogRenderer.render(runReports.logEntries(kbId)))
@@ -112,30 +112,30 @@ class RevertAndLeaseTest extends TestContainerBase {
         UUID created = UUID.randomUUID();
         UUID revisedLater = UUID.randomUUID();
         UUID ingest = completedRun(kbId, lesson1, 2, runId -> {
-            wiki.savePage(kbId, makeWrite(created, "concepts/mitoza", "# Faza\n"), runId);
-            wiki.savePage(kbId, makeWrite(revisedLater, "concepts/mejoza", "# Faza\n"), runId);
+            wiki.savePage(kbId, makeWrite(created, "concepts/mitosis", "# Phase\n"), runId);
+            wiki.savePage(kbId, makeWrite(revisedLater, "concepts/meiosis", "# Phase\n"), runId);
             wiki.addSources(kbId, List.of(new PageSource(created, lesson1, runId),
                 new PageSource(revisedLater, lesson1, runId)));
             wiki.addSupersessions(kbId, List.of(
-                new PageSupersession(UUID.randomUUID(), revisedLater, "faza", created, runId, Instant.now()),
-                new PageSupersession(UUID.randomUUID(), created, "faza", revisedLater, runId, Instant.now())));
+                new PageSupersession(UUID.randomUUID(), revisedLater, "phase", created, runId, Instant.now()),
+                new PageSupersession(UUID.randomUUID(), created, "phase", revisedLater, runId, Instant.now())));
         });
         completedRun(kbId, lesson2, 0, runId -> {
-            wiki.savePage(kbId, makeWrite(revisedLater, "concepts/mejoza", "# Faza\nNowsze.\n"), runId);
+            wiki.savePage(kbId, makeWrite(revisedLater, "concepts/meiosis", "# Phase\nNewer.\n"), runId);
             wiki.addSources(kbId, List.of(new PageSource(revisedLater, lesson2, runId)));
         });
 
         revertService.revert(kbId, ingest);
 
         assertThat(wiki.findById(kbId, created)).isEmpty();
-        assertThat(wiki.findById(kbId, revisedLater)).map(WikiPage::markdownBody).contains("# Faza\nNowsze.\n");
+        assertThat(wiki.findById(kbId, revisedLater)).map(WikiPage::markdownBody).contains("# Phase\nNewer.\n");
         assertThat(wiki.pageIdsForLesson(kbId, "bio-1")).containsExactly(revisedLater);
         String day = dayOf(kbId, ingest);
         assertThat(LogRenderer.render(runReports.logEntries(kbId)))
             .contains("* **Revert**: undid the ingest of " + day
-                + " ([Lekcja bio-1](/sources/bio-1.md)) — 1 page removed, 1 supersession removed.")
-            .contains("* **Ingest**: [Lekcja bio-2](/sources/bio-2.md) — 1 revised.")
-            .contains("* **Ingest**: [Lekcja bio-1](/sources/bio-1.md) — 2 created, 2 claims superseded.");
+                + " ([Lesson bio-1](/sources/bio-1.md)) — 1 page removed, 1 supersession removed.")
+            .contains("* **Ingest**: [Lesson bio-2](/sources/bio-2.md) — 1 revised.")
+            .contains("* **Ingest**: [Lesson bio-1](/sources/bio-1.md) — 2 created, 2 claims superseded.");
     }
 
     @Test
@@ -144,7 +144,7 @@ class RevertAndLeaseTest extends TestContainerBase {
         UUID kbId = insertKnowledgeBase(userId);
         UUID lesson = insertDocument(kbId, userId, "bio-1", "API");
         UUID ingest = completedRun(kbId, lesson, 0, runId ->
-            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitoza", "Treść.\n"), runId));
+            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitosis", "Content.\n"), runId));
         UUID revert = revertService.revert(kbId, ingest);
 
         assertThatExceptionOfType(RevertNotAllowedException.class)
@@ -161,7 +161,7 @@ class RevertAndLeaseTest extends TestContainerBase {
         UUID lesson = insertDocument(kbId, userId, "bio-1", "API");
         UUID pageId = UUID.randomUUID();
         UUID ingest = completedRun(kbId, lesson, 0, runId ->
-            wiki.savePage(kbId, makeWrite(pageId, "concepts/mitoza", "Treść.\n"), runId));
+            wiki.savePage(kbId, makeWrite(pageId, "concepts/mitosis", "Content.\n"), runId));
         IngestRun active = runs.enqueue(kbId, IngestRun.queued(kbId, RunKind.INGEST, lesson, null));
         assertThat(runs.claim(kbId, active.runId())).isTrue();
 
@@ -216,12 +216,12 @@ class RevertAndLeaseTest extends TestContainerBase {
 
         assertThatExceptionOfType(RunFencedException.class).isThrownBy(() -> transactions.executeWithoutResult(status -> {
             runs.markWritten(kbId, run.runId(), List.of(), Map.of());
-            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitoza", "Treść.\n"), run.runId());
+            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitosis", "Content.\n"), run.runId());
         }));
         assertThatExceptionOfType(RunFencedException.class)
             .isThrownBy(() -> runs.markWritten(kbId, queued.runId(), List.of(), Map.of()));
 
-        assertThat(wiki.findByPath(kbId, "concepts/mitoza")).isEmpty();
+        assertThat(wiki.findByPath(kbId, "concepts/mitosis")).isEmpty();
         assertThat(runs.findById(kbId, run.runId())).map(IngestRun::status).contains(RunStatus.RUNNING);
     }
 
@@ -264,12 +264,12 @@ class RevertAndLeaseTest extends TestContainerBase {
         UUID q = UUID.randomUUID();
         UUID removedSupersession = UUID.randomUUID();
         completedRun(kbId, lesson, 2, runId -> {
-            wiki.savePage(kbId, makeWrite(p, "concepts/p", "# Faza\n[Q](/concepts/q.md)\n"), runId);
-            wiki.savePage(kbId, makeWrite(q, "concepts/q", "# Faza\n"), runId);
+            wiki.savePage(kbId, makeWrite(p, "concepts/p", "# Phase\n[Q](/concepts/q.md)\n"), runId);
+            wiki.savePage(kbId, makeWrite(q, "concepts/q", "# Phase\n"), runId);
             wiki.addSources(kbId, List.of(new PageSource(p, lesson, runId), new PageSource(q, lesson, runId)));
             wiki.addSupersessions(kbId, List.of(
-                new PageSupersession(UUID.randomUUID(), q, "faza", p, runId, Instant.now()),
-                new PageSupersession(removedSupersession, p, "faza", q, runId, Instant.now())));
+                new PageSupersession(UUID.randomUUID(), q, "phase", p, runId, Instant.now()),
+                new PageSupersession(removedSupersession, p, "phase", q, runId, Instant.now())));
         });
         revertService.removeSupersession(kbId, removedSupersession);
         runs.enqueue(kbId, IngestRun.queued(kbId, RunKind.LINT, null, null));
@@ -310,7 +310,7 @@ class RevertAndLeaseTest extends TestContainerBase {
     }
 
     private static PageWrite makeWrite(UUID pageId, String path, String body) {
-        return new PageWrite(pageId, path, "Tytuł " + path, "Opis.", PageType.CONCEPT, body);
+        return new PageWrite(pageId, path, "Title " + path, "Description.", PageType.CONCEPT, body);
     }
 
     private UUID insertUser() {
@@ -330,8 +330,8 @@ class RevertAndLeaseTest extends TestContainerBase {
         UUID documentId = UUID.randomUUID();
         jdbc.update("INSERT INTO documents (document_id, knowledge_base_id, lesson_id, lesson_title, content_hash,"
                 + " source_filename, mime_type, upload_source, uploaded_by)"
-                + " VALUES (?, ?, ?, ?, ?, 'notatki.md', 'text/markdown', ?, ?)",
-            documentId, kbId, lessonId, "Lekcja " + lessonId, documentId.toString(), uploadSource, userId);
+                + " VALUES (?, ?, ?, ?, ?, 'notes.md', 'text/markdown', ?, ?)",
+            documentId, kbId, lessonId, "Lesson " + lessonId, documentId.toString(), uploadSource, userId);
         return documentId;
     }
 }

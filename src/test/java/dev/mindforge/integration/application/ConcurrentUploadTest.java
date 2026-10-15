@@ -57,8 +57,8 @@ class ConcurrentUploadTest extends TestContainerBase {
         UUID kbId = saveKnowledgeBase(userId);
 
         List<Object> outcomes = uploadConcurrently(
-            makeUpload(kbId, userId, "# Mitoza\n\nPierwsza wersja notatek."),
-            makeUpload(kbId, userId, "# Mitoza\n\nZupełnie inna wersja notatek."));
+            makeUpload(kbId, userId, "# Mitosis\n\nFirst version of the notes."),
+            makeUpload(kbId, userId, "# Mitosis\n\nA fully different version of the notes."));
 
         assertThat(outcomes).filteredOn(UUID.class::isInstance).hasSize(1);
         assertThat(outcomes).filteredOn(LessonAlreadyExistsException.class::isInstance).hasSize(1);
@@ -69,7 +69,7 @@ class ConcurrentUploadTest extends TestContainerBase {
     void twoConcurrentIdenticalUploads_bothReturnTheOneInsertedDocument() throws Exception {
         UUID userId = saveUser();
         UUID kbId = saveKnowledgeBase(userId);
-        DocumentUpload upload = makeUpload(kbId, userId, "# Mitoza\n\nTe same notatki.");
+        DocumentUpload upload = makeUpload(kbId, userId, "# Mitosis\n\nThe same notes.");
 
         List<Object> outcomes = uploadConcurrently(upload, upload);
 
@@ -108,7 +108,7 @@ class ConcurrentUploadTest extends TestContainerBase {
     }
 
     private static DocumentUpload makeUpload(UUID kbId, UUID userId, String markdown) {
-        return new DocumentUpload(kbId, userId, UploadSource.API, "notatki.md", MarkdownParser.MIME_TYPE,
+        return new DocumentUpload(kbId, userId, UploadSource.API, "notes.md", MarkdownParser.MIME_TYPE,
             markdown.getBytes(StandardCharsets.UTF_8), null, false);
     }
 

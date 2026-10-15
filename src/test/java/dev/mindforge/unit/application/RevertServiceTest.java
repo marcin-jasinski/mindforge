@@ -57,13 +57,13 @@ class RevertServiceTest {
             makeRevision(tipped, 3, RUN, "po"), makeRevision(touchedLater, 2, RUN, "po")));
         when(wiki.tipRevisions(eq(KB), any())).thenReturn(Map.of(
             tipped, makeRevision(tipped, 3, RUN, "po"), touchedLater, makeRevision(touchedLater, 3, LATER_RUN, "x")));
-        when(wiki.findRevision(KB, tipped, 2)).thenReturn(Optional.of(makeRevision(tipped, 2, EARLIER_RUN, "przed")));
+        when(wiki.findRevision(KB, tipped, 2)).thenReturn(Optional.of(makeRevision(tipped, 2, EARLIER_RUN, "before")));
         when(wiki.deleteSupersessionsBySuperseding(KB, RUN, List.of(tipped))).thenReturn(1);
 
         UUID revertRunId = makeService().revert(KB, RUN);
 
-        verify(wiki).savePage(KB, new PageWrite(tipped, "concepts/" + tipped, "Tytuł przed", "Opis przed",
-            PageType.CONCEPT, "przed"), revertRunId);
+        verify(wiki).savePage(KB, new PageWrite(tipped, "concepts/" + tipped, "Title before", "Description before",
+            PageType.CONCEPT, "before"), revertRunId);
         verify(wiki).savePage(any(), any(), any());
         verify(wiki).deleteSources(KB, RUN, List.of(tipped));
         verify(runs).complete(KB, revertRunId, 1, false, List.of(), Map.of());
@@ -73,7 +73,7 @@ class RevertServiceTest {
     void shouldTombstoneAPageTheRunCreated() {
         UUID created = UUID.randomUUID();
         givenRun(RunKind.INGEST);
-        givenOnlyRevision(makeRevision(created, 1, RUN, "nowa"));
+        givenOnlyRevision(makeRevision(created, 1, RUN, "new"));
 
         UUID revertRunId = makeService().revert(KB, RUN);
 
@@ -83,7 +83,7 @@ class RevertServiceTest {
     @Test
     void shouldReinsertAPageTheRunDeletedWhileItsPathIsFree() {
         UUID deleted = UUID.randomUUID();
-        PageRevision before = makeRevision(deleted, 1, EARLIER_RUN, "treść");
+        PageRevision before = makeRevision(deleted, 1, EARLIER_RUN, "content");
         givenRun(RunKind.INGEST);
         givenOnlyRevision(makeRevision(deleted, 2, RUN, null));
         when(wiki.findRevision(KB, deleted, 1)).thenReturn(Optional.of(before));
@@ -109,7 +109,7 @@ class RevertServiceTest {
     @Test
     void shouldOfferRevertOnlyForACompletedIngestThatStillTipsAPage() {
         givenRun(RunKind.INGEST);
-        givenOnlyRevision(makeRevision(UUID.randomUUID(), 1, RUN, "nowa"));
+        givenOnlyRevision(makeRevision(UUID.randomUUID(), 1, RUN, "new"));
         assertThat(makeService().isOffered(KB, RUN)).isTrue();
 
         givenRun(RunKind.REVERT);
@@ -163,7 +163,7 @@ class RevertServiceTest {
     private UUID givenSupersession() {
         UUID supersessionId = UUID.randomUUID();
         when(wiki.findSupersession(KB, supersessionId)).thenReturn(Optional.of(new PageSupersession(
-            supersessionId, UUID.randomUUID(), "faza", UUID.randomUUID(), EARLIER_RUN, Instant.EPOCH)));
+            supersessionId, UUID.randomUUID(), "phase", UUID.randomUUID(), EARLIER_RUN, Instant.EPOCH)));
         return supersessionId;
     }
 
@@ -193,8 +193,8 @@ class RevertServiceTest {
     }
 
     private static PageRevision makeRevision(UUID pageId, int revision, UUID runId, String body) {
-        String label = body == null ? "usunięta" : body;
-        return new PageRevision(pageId, revision, runId, "concepts/" + pageId, "Tytuł " + label, "Opis " + label,
+        String label = body == null ? "deleted" : body;
+        return new PageRevision(pageId, revision, runId, "concepts/" + pageId, "Title " + label, "Description " + label,
             PageType.CONCEPT, body, Instant.EPOCH);
     }
 }

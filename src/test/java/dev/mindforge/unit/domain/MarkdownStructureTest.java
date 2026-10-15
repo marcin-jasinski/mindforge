@@ -20,53 +20,53 @@ class MarkdownStructureTest {
 
     @Test
     void shouldNotTreatACommentInsideAFenceAsAHeading() {
-        String body = "# Instalacja\n\n```bash\n# zainstaluj pakiet\napt install x\n```\n\n~~~\n# też nie\n~~~\n";
+        String body = "# Installation\n\n```bash\n# install the package\napt install x\n```\n\n~~~\n# not this either\n~~~\n";
 
-        assertThat(MarkdownStructure.sections(body)).extracting(Section::anchor).containsExactly("instalacja");
+        assertThat(MarkdownStructure.sections(body)).extracting(Section::anchor).containsExactly("installation");
     }
 
     @Test
     void shouldCloseAFenceOnlyWithAtLeastAsManyOfTheSameCharacter() {
-        String body = "````\n```\n# wciąż kod\n~~~~\n````\n# Po kodzie\n";
+        String body = "````\n```\n# still code\n~~~~\n````\n# After the code\n";
 
-        assertThat(MarkdownStructure.sections(body)).extracting(Section::heading).containsExactly("Po kodzie");
+        assertThat(MarkdownStructure.sections(body)).extracting(Section::heading).containsExactly("After the code");
     }
 
     @Test
     void shouldRunAnUnclosedFenceToTheEndOfTheBody() {
-        assertThat(MarkdownStructure.sections("# Faza\n```\n# kod\n")).extracting(Section::heading)
-            .containsExactly("Faza");
+        assertThat(MarkdownStructure.sections("# Phase\n```\n# code\n")).extracting(Section::heading)
+            .containsExactly("Phase");
     }
 
     @Test
     void shouldTreatOnlyLevelOneHeadingsAtColumnZeroAsSections() {
-        String body = "# Mitoza\n\n## Profaza\n\n #wcięty\n#bez-spacji\n\n# Mejoza\n";
+        String body = "# Mitosis\n\n## Prophase\n\n #indented\n#no-space\n\n# Meiosis\n";
 
-        assertThat(MarkdownStructure.sections(body)).extracting(Section::heading).containsExactly("Mitoza", "Mejoza");
+        assertThat(MarkdownStructure.sections(body)).extracting(Section::heading).containsExactly("Mitosis", "Meiosis");
     }
 
     @Test
     void shouldRangeASectionFromItsHeadingToTheNextLevelOneHeading() {
-        String body = "Wstęp\n# Mitoza\n## Profaza\ntekst\n# Mejoza\nkoniec\n";
+        String body = "Introduction\n# Mitosis\n## Prophase\ntext\n# Meiosis\nend\n";
 
         assertThat(MarkdownStructure.sections(body)).containsExactly(
-            new Section("Mitoza", "mitoza", 6, 32),
-            new Section("Mejoza", "mejoza", 32, body.length()));
+            new Section("Mitosis", "mitosis", 13, 40),
+            new Section("Meiosis", "meiosis", 40, body.length()));
     }
 
     @Test
     void shouldAnchorByTheSlugOfTheLinkStrippedHeadingWithoutClosingHashes() {
-        String body = "# Faza [anafazy](/concepts/anafaza.md) ##\n";
+        String body = "# Phase [anaphase](/concepts/anaphase.md) ##\n";
 
         assertThat(MarkdownStructure.sections(body)).containsExactly(
-            new Section("Faza [anafazy](/concepts/anafaza.md)", "faza-anafazy", 0, body.length()));
+            new Section("Phase [anaphase](/concepts/anaphase.md)", "phase-anaphase", 0, body.length()));
     }
 
     @Test
     void shouldFindTheFirstSectionWhenAnchorsRepeat() {
-        String body = "# Faza\npierwsza\n# faza!\ndruga\n";
+        String body = "# Phase\nfirst\n# phase!\nsecond\n";
 
-        assertThat(MarkdownStructure.section(body, "faza")).map(Section::start).contains(0);
+        assertThat(MarkdownStructure.section(body, "phase")).map(Section::start).contains(0);
     }
 
     // ---------------------------------------------------------------------------
@@ -75,32 +75,32 @@ class MarkdownStructureTest {
 
     @Test
     void shouldParseAnInternalLinkIntoItsPathAndFragment() {
-        String body = "Zob. [anafazę](/concepts/anafaza.md#przebieg) i [lekcję](/sources/bio-3.md).\n";
+        String body = "See [anaphase](/concepts/anaphase.md#course) and [lesson](/sources/bio-3.md).\n";
 
         assertThat(MarkdownStructure.links(body))
             .extracting(Link::kind, Link::text, Link::targetPath, Link::fragment)
             .containsExactly(
-                tuple(LinkKind.INTERNAL, "anafazę", "concepts/anafaza", "przebieg"),
-                tuple(LinkKind.INTERNAL, "lekcję", "sources/bio-3", null));
+                tuple(LinkKind.INTERNAL, "anaphase", "concepts/anaphase", "course"),
+                tuple(LinkKind.INTERNAL, "lesson", "sources/bio-3", null));
     }
 
     @Test
     void shouldClassifyHttpLinksAndAutolinksAsExternal() {
         String body = "[PubMed](https://pubmed.ncbi.nlm.nih.gov/1) <http://example.com/a> "
-            + "[Wiki](https://pl.wikipedia.org/wiki/Mitoza_(biologia))\n";
+            + "[Wiki](https://en.wikipedia.org/wiki/Mitosis)\n";
 
         assertThat(MarkdownStructure.links(body))
             .extracting(Link::kind, Link::destination)
             .containsExactly(
                 tuple(LinkKind.EXTERNAL, "https://pubmed.ncbi.nlm.nih.gov/1"),
                 tuple(LinkKind.EXTERNAL, "http://example.com/a"),
-                tuple(LinkKind.EXTERNAL, "https://pl.wikipedia.org/wiki/Mitoza_(biologia)"));
+                tuple(LinkKind.EXTERNAL, "https://en.wikipedia.org/wiki/Mitosis"));
     }
 
     @Test
     void shouldClassifyEveryOtherDestinationAsInvalidWithoutNormalisingIt() {
-        List<String> destinations = List.of("./mitoza.md", "mitoza.md", "/concepts/mitoza", "/concepts/Mitoza.md",
-            "/concepts/mito%C5%BCa.md", "/topics/mitoza.md", "/concepts/index.md", "mailto:a@b.pl", "#faza");
+        List<String> destinations = List.of("./mitosis.md", "mitosis.md", "/concepts/mitosis", "/concepts/Mitosis.md",
+            "/concepts/mito%C5%BCa.md", "/topics/mitosis.md", "/concepts/index.md", "mailto:a@b.pl", "#phase");
 
         for (String destination : destinations) {
             assertThat(MarkdownStructure.links("[x](" + destination + ")\n"))
@@ -112,11 +112,11 @@ class MarkdownStructureTest {
 
     @Test
     void shouldClassifyALinkWhoseTextHoldsBracketsOrALineBreak() {
-        String body = "[Mitoza [faza]](/concepts/mitoza.md) i [dwie\nlinie](mejoza.md)\n";
+        String body = "[Mitosis [phase]](/concepts/mitosis.md) and [two\nlines](meiosis.md)\n";
 
         assertThat(MarkdownStructure.links(body))
             .extracting(Link::kind, Link::text)
-            .containsExactly(tuple(LinkKind.INTERNAL, "Mitoza [faza]"), tuple(LinkKind.INVALID, "dwie\nlinie"));
+            .containsExactly(tuple(LinkKind.INTERNAL, "Mitosis [phase]"), tuple(LinkKind.INVALID, "two\nlines"));
     }
 
     @Test
@@ -133,7 +133,7 @@ class MarkdownStructureTest {
 
     @Test
     void shouldTreatImagesAndReferenceDefinitionsAsInvalid() {
-        String body = "![schemat](/concepts/mitoza.md)\n\n[mitoza]: /concepts/mitoza.md\n";
+        String body = "![diagram](/concepts/mitosis.md)\n\n[mitosis]: /concepts/mitosis.md\n";
 
         assertThat(MarkdownStructure.links(body)).extracting(Link::kind)
             .containsExactly(LinkKind.INVALID, LinkKind.INVALID);
@@ -148,10 +148,10 @@ class MarkdownStructureTest {
 
     @Test
     void shouldStripLinksToTheirTextKeepingImagesAutolinksAndCode() {
-        String text = "Faza [anafazy](/concepts/anafaza.md), ![img](x.png), <https://a.pl> i `[k](y)`";
+        String text = "Phase [anaphase](/concepts/anaphase.md), ![img](x.png), <https://a.pl> and `[k](y)`";
 
         assertThat(MarkdownStructure.stripLinks(text))
-            .isEqualTo("Faza anafazy, ![img](x.png), <https://a.pl> i `[k](y)`");
+            .isEqualTo("Phase anaphase, ![img](x.png), <https://a.pl> and `[k](y)`");
     }
 
     // ---------------------------------------------------------------------------
@@ -160,11 +160,11 @@ class MarkdownStructureTest {
 
     @Test
     void shouldExcludeHeadingsTagsCodeSpansAutolinksLinksAndFencesFromInsertion() {
-        String body = "# Mitoza\nPodział <b>jądra</b> i `kod` oraz <https://a.pl> [link](/concepts/a.md).\n"
-            + "```\nmitoza\n```\n## Profaza\nKoniec\n";
+        String body = "# Mitosis\nDivision of the <b>nucleus</b> and `code` and <https://a.pl> [link](/concepts/a.md).\n"
+            + "```\nmitosis\n```\n## Prophase\nEnd\n";
 
         assertThat(MarkdownStructure.eligibleSpans(body))
             .extracting(span -> body.substring(span.start(), span.end()))
-            .containsExactly("\nPodział ", "jądra", " i ", " oraz ", " ", ".\n", "\nKoniec\n");
+            .containsExactly("\nDivision of the ", "nucleus", " and ", " and ", " ", ".\n", "\nEnd\n");
     }
 }

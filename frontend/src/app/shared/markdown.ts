@@ -14,12 +14,6 @@ export function renderMarkdown(markdown: string, kbId: string): string {
   const renderer = new Renderer();
   renderer.html = ({ text }: Tokens.HTML | Tokens.Tag) => escapeHtml(text);
   renderer.image = ({ text }: Tokens.Image) => escapeHtml(text);
-  // the projected "# Citations" section is an export-format heading; the reader sees it in the interface's language
-  renderer.heading = function (this: Renderer, token: Tokens.Heading) {
-    const text = token.depth === 1 && token.text === 'Citations' ? 'Źródła' : this.parser.parseInline(token.tokens);
-    return `<h${token.depth}>${text}</h${token.depth}>
-`;
-  };
   renderer.link = function (this: Renderer, token: Tokens.Link) {
     const text = this.parser.parseInline(token.tokens);
     const page = /^\/(concepts|sources)\/([a-z0-9-]+)\.md(?:#[a-z0-9-]+)?$/.exec(token.href);

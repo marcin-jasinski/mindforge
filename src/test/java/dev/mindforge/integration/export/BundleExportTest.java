@@ -47,7 +47,7 @@ import dev.mindforge.support.TestContainerBase;
 })
 class BundleExportTest extends TestContainerBase {
 
-    private static final String TITLE = "Mitoza: \"podział\" [komórki]";
+    private static final String TITLE = "Mitosis: \"division\" [cell]";
 
     @Autowired
     private BundleExporter exporter;
@@ -70,42 +70,42 @@ class BundleExportTest extends TestContainerBase {
     @Test
     void anExportOfEveryKindOfRowIsConformantEscapedAndCarriesNoRunInternals() {
         UUID kbId = insertKnowledgeBase();
-        UUID lesson = insertDocument(kbId, "bio-1", "Lekcja\npierwsza", "API");
+        UUID lesson = insertDocument(kbId, "bio-1", "First\nlesson", "API");
         UUID turn = insertDocument(kbId, "conversation", "Conversation", "CONVERSATION");
-        UUID mitoza = UUID.randomUUID();
-        UUID mejoza = UUID.randomUUID();
+        UUID mitosis = UUID.randomUUID();
+        UUID meiosis = UUID.randomUUID();
         UUID summary = UUID.randomUUID();
         UUID ingest = completedRun(kbId, lesson, runId -> {
-            wiki.savePage(kbId, new PageWrite(mitoza, "concepts/mitoza", TITLE, "Opis z \"cudzysłowem\": tak.",
-                PageType.CONCEPT, "# Faza\n\nProfaza.\n"), runId);
-            wiki.savePage(kbId, new PageWrite(mejoza, "concepts/mejoza", "Mejoza", "Opis.", PageType.CONCEPT,
-                "# Gamety\n\nGamety.\n"), runId);
-            wiki.savePage(kbId, new PageWrite(summary, "sources/bio-1", "Lekcja pierwsza", "Streszczenie.",
-                PageType.SOURCE_SUMMARY, "# Streszczenie\n\nTreść.\n"), runId);
-            wiki.addSources(kbId, List.of(new PageSource(mitoza, lesson, runId), new PageSource(summary, lesson, runId)));
+            wiki.savePage(kbId, new PageWrite(mitosis, "concepts/mitosis", TITLE, "Description with \"quotes\": yes.",
+                PageType.CONCEPT, "# Phase\n\nProphase.\n"), runId);
+            wiki.savePage(kbId, new PageWrite(meiosis, "concepts/meiosis", "Meiosis", "Description.", PageType.CONCEPT,
+                "# Gametes\n\nGametes.\n"), runId);
+            wiki.savePage(kbId, new PageWrite(summary, "sources/bio-1", "First lesson", "Summary.",
+                PageType.SOURCE_SUMMARY, "# Summary\n\nContent.\n"), runId);
+            wiki.addSources(kbId, List.of(new PageSource(mitosis, lesson, runId), new PageSource(summary, lesson, runId)));
             wiki.addSupersessions(kbId, List.of(
-                new PageSupersession(UUID.randomUUID(), mitoza, "faza", mejoza, runId, Instant.now())));
+                new PageSupersession(UUID.randomUUID(), mitosis, "phase", meiosis, runId, Instant.now())));
         });
-        completedRun(kbId, turn, runId -> wiki.addSources(kbId, List.of(new PageSource(mejoza, turn, runId))));
+        completedRun(kbId, turn, runId -> wiki.addSources(kbId, List.of(new PageSource(meiosis, turn, runId))));
         jdbc.update("UPDATE ingest_runs SET failures = '[{\"reason\":\"SEKRET-FAILURE\"}]'::jsonb,"
             + " findings = '[{\"text\":\"SEKRET-FINDING\"}]'::jsonb, step_versions = '{\"PageWriter\":\"SEKRET\"}'::jsonb,"
             + " cost = 12.5 WHERE run_id = ?", ingest);
 
-        Map<String, String> files = ExportedBundle.files(exporter, kbId, "Biologia: podstawy");
+        Map<String, String> files = ExportedBundle.files(exporter, kbId, "Biology: basics");
 
-        assertThat(BundleExporter.root("Biologia: podstawy")).isEqualTo("biologia-podstawy-okf");
-        assertThat(files).containsOnlyKeys("index.md", "log.md", "concepts/mejoza.md", "concepts/mitoza.md",
+        assertThat(BundleExporter.root("Biology: basics")).isEqualTo("biology-basics-okf");
+        assertThat(files).containsOnlyKeys("index.md", "log.md", "concepts/meiosis.md", "concepts/mitosis.md",
             "sources/bio-1.md");
         assertThat(BundleConformanceValidator.violations(files)).isEmpty();
-        Map<String, Object> frontmatter = new Yaml().load(files.get("concepts/mitoza.md").split("---\n")[1]);
+        Map<String, Object> frontmatter = new Yaml().load(files.get("concepts/mitosis.md").split("---\n")[1]);
         assertThat(frontmatter).containsEntry("type", "Concept").containsEntry("title", TITLE)
-            .containsEntry("description", "Opis z \"cudzysłowem\": tak.").containsKey("timestamp");
-        assertThat(files.get("index.md")).contains("* [Mitoza: \"podział\" \\[komórki\\]](/concepts/mitoza.md)");
-        assertThat(files.get("concepts/mitoza.md"))
-            .contains("# Faza\n\n> Superseded by [Mejoza](/concepts/mejoza.md).\n")
-            .endsWith("# Citations\n\n[1] [Lekcja pierwsza](/sources/bio-1.md)\n");
-        assertThat(files.get("concepts/mejoza.md")).containsPattern("\\[1\\] Rozmowa, \\d{4}-\\d{2}-\\d{2}");
-        assertThat(files.get("sources/bio-1.md")).contains("[1] notatki.md, uploaded ");
+            .containsEntry("description", "Description with \"quotes\": yes.").containsKey("timestamp");
+        assertThat(files.get("index.md")).contains("* [Mitosis: \"division\" \\[cell\\]](/concepts/mitosis.md)");
+        assertThat(files.get("concepts/mitosis.md"))
+            .contains("# Phase\n\n> Superseded by [Meiosis](/concepts/meiosis.md).\n")
+            .endsWith("# Citations\n\n[1] [First lesson](/sources/bio-1.md)\n");
+        assertThat(files.get("concepts/meiosis.md")).containsPattern("\\[1\\] Conversation, \\d{4}-\\d{2}-\\d{2}");
+        assertThat(files.get("sources/bio-1.md")).contains("[1] notes.md, uploaded ");
         assertThat(files.get("log.md")).contains("**Ingest**");
         assertThat(files.values()).noneMatch(content -> content.contains("SEKRET") || content.contains("12.5"));
     }
@@ -122,7 +122,7 @@ class BundleExportTest extends TestContainerBase {
     @Test
     void anIngestCommittedDuringAnExportDoesNotTearTheBundle() throws Exception {
         UUID kbId = insertKnowledgeBase();
-        UUID lesson = insertDocument(kbId, "bio-1", "Lekcja", "API");
+        UUID lesson = insertDocument(kbId, "bio-1", "Lesson", "API");
         TransactionTemplate snapshot = new TransactionTemplate(transactionManager);
         snapshot.setReadOnly(true);
         snapshot.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
@@ -131,28 +131,28 @@ class BundleExportTest extends TestContainerBase {
             jdbc.queryForObject("SELECT COUNT(*) FROM wiki_pages WHERE knowledge_base_id = ?", Integer.class, kbId);
             try (ExecutorService other = Executors.newSingleThreadExecutor()) {
                 other.submit(() -> completedRun(kbId, lesson, runId -> wiki.savePage(kbId, new PageWrite(UUID.randomUUID(),
-                    "concepts/mitoza", "Mitoza", "Opis.", PageType.CONCEPT, "Treść.\n"), runId))).get();
+                    "concepts/mitosis", "Mitosis", "Description.", PageType.CONCEPT, "Content.\n"), runId))).get();
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
-            return ExportedBundle.files(exporter, kbId, "Biologia");
+            return ExportedBundle.files(exporter, kbId, "Biology");
         });
 
         assertThat(files).containsOnlyKeys("index.md", "log.md");
-        assertThat(files.get("index.md")).doesNotContain("mitoza");
+        assertThat(files.get("index.md")).doesNotContain("mitosis");
         assertThat(files.get("log.md")).doesNotContain("Ingest");
-        assertThat(ExportedBundle.files(exporter, kbId, "Biologia")).containsKey("concepts/mitoza.md");
+        assertThat(ExportedBundle.files(exporter, kbId, "Biology")).containsKey("concepts/mitosis.md");
     }
 
     @Test
     void aNonConformantBundleIsRejectedBeforeAByteIsWritten() {
         UUID kbId = insertKnowledgeBase();
-        UUID lesson = insertDocument(kbId, "bio-1", "Lekcja", "API");
+        UUID lesson = insertDocument(kbId, "bio-1", "Lesson", "API");
         completedRun(kbId, lesson, runId -> wiki.savePage(kbId, new PageWrite(UUID.randomUUID(), "concepts/log",
-            "Log", "Opis.", PageType.CONCEPT, "Treść."), runId));
+            "Log", "Description.", PageType.CONCEPT, "Content."), runId));
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        assertThatThrownBy(() -> exporter.export(kbId, "Biologia", out))
+        assertThatThrownBy(() -> exporter.export(kbId, "Biology", out))
             .isInstanceOf(BundleNotConformantException.class);
         assertThat(out.size()).isZero();
     }
@@ -186,7 +186,7 @@ class BundleExportTest extends TestContainerBase {
         UUID documentId = UUID.randomUUID();
         jdbc.update("INSERT INTO documents (document_id, knowledge_base_id, lesson_id, lesson_title, content_hash,"
                 + " source_filename, mime_type, upload_source, uploaded_by)"
-                + " SELECT ?, kb_id, ?, ?, ?, 'notatki.md', 'text/markdown', ?, owner_id FROM knowledge_bases"
+                + " SELECT ?, kb_id, ?, ?, ?, 'notes.md', 'text/markdown', ?, owner_id FROM knowledge_bases"
                 + " WHERE kb_id = ?",
             documentId, lessonId, lessonTitle, documentId.toString(), uploadSource, kbId);
         return documentId;

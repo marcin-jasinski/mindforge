@@ -20,20 +20,20 @@ import dev.mindforge.domain.model.WikiPage;
 class SupersessionInputsTest {
 
     private static final List<CandidateSection> SHOWN = List.of(
-        new CandidateSection("concepts/mitoza", "faza", "Faza", "Profaza trwa godzinę."));
+        new CandidateSection("concepts/mitosis", "phase", "Phase", "Prophase takes an hour."));
 
     @Test
     void shouldKeepOnlyProposalsOnShownSectionsBySupersedingConceptsThisRunRevised() {
         List<SupersessionProposal> proposals = List.of(
-            new SupersessionProposal("concepts/gamety", "faza", "concepts/mejoza"),
-            new SupersessionProposal("sources/bio-1", "streszczenie", "concepts/mejoza"),
-            new SupersessionProposal("concepts/mitoza", "faza", "concepts/mitoza"),
-            new SupersessionProposal("concepts/mitoza", "faza", "concepts/nie-pisana"),
-            new SupersessionProposal("concepts/mitoza", "faza", "concepts/mejoza"),
-            new SupersessionProposal("concepts/mitoza", "faza", "concepts/mejoza"));
+            new SupersessionProposal("concepts/gametes", "phase", "concepts/meiosis"),
+            new SupersessionProposal("sources/bio-1", "summary", "concepts/meiosis"),
+            new SupersessionProposal("concepts/mitosis", "phase", "concepts/mitosis"),
+            new SupersessionProposal("concepts/mitosis", "phase", "concepts/unwritten"),
+            new SupersessionProposal("concepts/mitosis", "phase", "concepts/meiosis"),
+            new SupersessionProposal("concepts/mitosis", "phase", "concepts/meiosis"));
 
-        assertThat(SupersessionInputs.verify(proposals, SHOWN, Set.of("concepts/mitoza", "concepts/mejoza")))
-            .containsExactly(new SupersessionProposal("concepts/mitoza", "faza", "concepts/mejoza"));
+        assertThat(SupersessionInputs.verify(proposals, SHOWN, Set.of("concepts/mitosis", "concepts/meiosis")))
+            .containsExactly(new SupersessionProposal("concepts/mitosis", "phase", "concepts/meiosis"));
     }
 
     @Test
@@ -51,7 +51,7 @@ class SupersessionInputsTest {
     }
 
     private static WikiPage makePage(String path, String body) {
-        return new WikiPage(UUID.randomUUID(), UUID.randomUUID(), path, "Tytuł", "Opis.", PageType.CONCEPT, body, 1,
+        return new WikiPage(UUID.randomUUID(), UUID.randomUUID(), path, "Title", "Description.", PageType.CONCEPT, body, 1,
             Instant.EPOCH, Instant.EPOCH);
     }
 }

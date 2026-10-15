@@ -49,8 +49,8 @@ class ApiFlowTest extends TestContainerBase {
     private static final Pattern FORBIDDEN_FIELDS = Pattern.compile(
         "\"(cost|stepVersions|step_versions|passwordHash|referenceAnswer|groundingContext|rawPrompt|rawCompletion|token|groundingExcerpt)\"");
     private static final Pattern SESSION_COOKIE = Pattern.compile("token=([^;]*)");
-    private static final String NOTES = "# Mitoza\n\nMitoza to podział komórki.\n";
-    private static final String BODY = "# Przebieg\n\nMitoza dzieli komórkę na dwie.\n";
+    private static final String NOTES = "# Mitosis\n\nMitosis is cell division.\n";
+    private static final String BODY = "# Course\n\nMitosis splits a cell in two.\n";
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
@@ -67,10 +67,10 @@ class ApiFlowTest extends TestContainerBase {
     @Test
     void registerSetsAnHttpOnlyCookieThatSignsInUntilLogout() {
         Client client = new Client();
-        String email = "ala-" + UUID.randomUUID() + "@example.com";
+        String email = "alice-" + UUID.randomUUID() + "@example.com";
 
         Response registered = client.post("/api/v1/auth/register",
-            Map.of("displayName", "Ala", "email", email, "password", "sekretne-haslo"));
+            Map.of("displayName", "Alice", "email", email, "password", "secret-password"));
 
         assertThat(registered.status()).isEqualTo(201);
         assertThat(registered.setCookie()).contains("token=").contains("HttpOnly").contains("SameSite=Lax");
@@ -80,9 +80,9 @@ class ApiFlowTest extends TestContainerBase {
         assertThat(client.get("/api/v1/auth/me").status()).isEqualTo(401);
 
         Client other = new Client();
-        assertThat(other.post("/api/v1/auth/login", Map.of("email", email, "password", "zle-haslo")).status())
+        assertThat(other.post("/api/v1/auth/login", Map.of("email", email, "password", "wrong-password")).status())
             .isEqualTo(401);
-        assertThat(other.post("/api/v1/auth/login", Map.of("email", email.toUpperCase(), "password", "sekretne-haslo"))
+        assertThat(other.post("/api/v1/auth/login", Map.of("email", email.toUpperCase(), "password", "secret-password"))
             .status()).isEqualTo(200);
         assertThat(other.get("/api/v1/auth/me").status()).isEqualTo(200);
     }
@@ -97,7 +97,7 @@ class ApiFlowTest extends TestContainerBase {
         String kb = createKnowledgeBase(client);
         givenAnswers();
 
-        Response upload = client.upload(kb, "biologia.md", NOTES, false);
+        Response upload = client.upload(kb, "biology.md", NOTES, false);
 
         assertThat(upload.status()).isEqualTo(202);
         String documentId = upload.json().get("documentId").asString();
@@ -105,10 +105,10 @@ class ApiFlowTest extends TestContainerBase {
 
         Response index = client.get(kb + "/index");
         assertThat(index.json().get("pages").findValuesAsString("path"))
-            .containsExactlyInAnyOrder("concepts/mitoza", "sources/biologia");
-        Response page = client.get(kb + "/pages/concepts/mitoza");
+            .containsExactlyInAnyOrder("concepts/mitosis", "sources/biology");
+        Response page = client.get(kb + "/pages/concepts/mitosis");
         assertThat(page.json().get("markdown").asString())
-            .startsWith(BODY).contains("# Citations\n\n[1] [biologia](/sources/biologia.md)");
+            .startsWith(BODY).contains("# Citations\n\n[1] [biology](/sources/biology.md)");
         Response runs = client.get(kb + "/runs");
         String runId = runs.json().get(0).get("runId").asString();
         Response report = client.get(kb + "/runs/" + runId);
@@ -117,7 +117,7 @@ class ApiFlowTest extends TestContainerBase {
 
         List<Response> responses = List.of(upload, index, page, runs, report, client.get(kb),
             client.get(kb + "/documents"), client.get(kb + "/documents/" + documentId), client.get(kb + "/graph"),
-            client.get(kb + "/health"), client.get(kb + "/pages/concepts/mitoza/revisions"), client.get("/api/v1/auth/me"));
+            client.get(kb + "/health"), client.get(kb + "/pages/concepts/mitosis/revisions"), client.get("/api/v1/auth/me"));
         responses.forEach(response -> assertThat(response.status()).as(response.body()).isLessThan(300));
         responses.forEach(ApiFlowTest::assertNoSensitiveFields);
 
@@ -133,7 +133,7 @@ class ApiFlowTest extends TestContainerBase {
         Client client = signedUp();
         String kb = createKnowledgeBase(client);
         givenAnswers();
-        awaitRun(client, kb, client.upload(kb, "biologia.md", NOTES, false).json().get("documentId").asString(),
+        awaitRun(client, kb, client.upload(kb, "biology.md", NOTES, false).json().get("documentId").asString(),
             "COMPLETED");
 
         HttpResponse<byte[]> export = client.download(kb + "/export");
@@ -141,15 +141,15 @@ class ApiFlowTest extends TestContainerBase {
         assertThat(export.statusCode()).isEqualTo(200);
         assertThat(export.headers().firstValue("Content-Type")).contains("application/zip");
         assertThat(export.headers().firstValue("Content-Disposition"))
-            .contains("attachment; filename=\"biologia-okf.zip\"");
+            .contains("attachment; filename=\"biology-okf.zip\"");
         List<String> entries = new ArrayList<>();
         try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(export.body()))) {
             for (ZipEntry entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
                 entries.add(entry.getName());
             }
         }
-        assertThat(entries).containsExactly("biologia-okf/index.md", "biologia-okf/log.md",
-            "biologia-okf/concepts/mitoza.md", "biologia-okf/sources/biologia.md");
+        assertThat(entries).containsExactly("biology-okf/index.md", "biology-okf/log.md",
+            "biology-okf/concepts/mitosis.md", "biology-okf/sources/biology.md");
         assertThat(signedUp().download(kb + "/export").statusCode()).isEqualTo(403);
     }
 
@@ -158,13 +158,13 @@ class ApiFlowTest extends TestContainerBase {
         Client client = signedUp();
         String kb = createKnowledgeBase(client);
         givenAnswers();
-        gateway.answer(Prompts.FLASHCARDS, "{\"cards\": [{\"type\": \"BASIC\", \"front\": \"Co to mitoza?\","
-            + " \"back\": \"Podział komórki.\", \"section\": \"przebieg\"}]}");
-        gateway.answer(Prompts.QUIZ, Prompts.json(Map.of("questions", List.of(Map.of("pagePath", "concepts/mitoza",
-            "question", "Czym jest mitoza?", "referenceAnswer", "SEKRETNA-ODPOWIEDZ",
-            "groundingExcerpt", "Mitoza dzieli komórkę na dwie.")))));
+        gateway.answer(Prompts.FLASHCARDS, "{\"cards\": [{\"type\": \"BASIC\", \"front\": \"What is mitosis?\","
+            + " \"back\": \"Cell division.\", \"section\": \"course\"}]}");
+        gateway.answer(Prompts.QUIZ, Prompts.json(Map.of("questions", List.of(Map.of("pagePath", "concepts/mitosis",
+            "question", "What does mitosis mean?", "referenceAnswer", "SECRET-REFERENCE-ANSWER",
+            "groundingExcerpt", "Mitosis splits a cell in two.")))));
         gateway.answer(Prompts.GRADE, "{\"score\": 4, \"feedback\": \"Prawie dobrze.\"}");
-        String documentId = client.upload(kb, "biologia.md", NOTES, false).json().get("documentId").asString();
+        String documentId = client.upload(kb, "biology.md", NOTES, false).json().get("documentId").asString();
         awaitRun(client, kb, documentId, "COMPLETED");
 
         assertThat(client.get(kb + "/flashcards").json()).as("listing a deck generates nothing").isEmpty();
@@ -180,17 +180,17 @@ class ApiFlowTest extends TestContainerBase {
         assertThat(started.status()).as("the questions are written after the response").isEqualTo(202);
         String session = kb + "/quiz-sessions/" + started.json().get("sessionId").asString();
         Response next = nextQuestion(client, session);
-        assertThat(next.json().get("question").asString()).isEqualTo("Czym jest mitoza?");
-        Response graded = client.post(session + "/answers", Map.of("answer", "Podział."));
+        assertThat(next.json().get("question").asString()).isEqualTo("What does mitosis mean?");
+        Response graded = client.post(session + "/answers", Map.of("answer", "Division."));
         assertThat(graded.json().get("score").asInt()).isEqualTo(4);
         assertThat(graded.json().get("finished").asBoolean()).isTrue();
         assertThat(client.get(session + "/next").status()).isEqualTo(204);
-        assertThat(client.post(session + "/answers", Map.of("answer", "Znowu.")).json().get("code").asString())
+        assertThat(client.post(session + "/answers", Map.of("answer", "Again.")).json().get("code").asString())
             .isEqualTo("QUIZ_FINISHED");
 
         for (Response response : List.of(deck, reviewed, started, next, graded)) {
             assertNoSensitiveFields(response);
-            assertThat(response.body()).doesNotContain("SEKRETNA-ODPOWIEDZ");
+            assertThat(response.body()).doesNotContain("SECRET-REFERENCE-ANSWER");
         }
         Client other = signedUp();
         assertThat(other.get(kb + "/flashcards").status()).isEqualTo(403);
@@ -206,26 +206,26 @@ class ApiFlowTest extends TestContainerBase {
         Client client = signedUp();
         String kb = createKnowledgeBase(client);
         givenAnswers();
-        gateway.answer(Prompts.SELECT, "{\"paths\": [\"concepts/mitoza\", \"concepts/nie-ma\"]}");
-        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Mitoza dzieli komórkę.\", \"citations\": [\"concepts/mitoza\"]}");
-        gateway.answer(Prompts.EDIT, "{\"items\": [{\"kind\": \"retitle\", \"path\": \"concepts/mitoza\","
-            + " \"title\": \"Mitoza komórkowa\"}]}");
-        awaitRun(client, kb, client.upload(kb, "biologia.md", NOTES, false).json().get("documentId").asString(),
+        gateway.answer(Prompts.SELECT, "{\"paths\": [\"concepts/mitosis\", \"concepts/missing\"]}");
+        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Mitosis splits a cell.\", \"citations\": [\"concepts/mitosis\"]}");
+        gateway.answer(Prompts.EDIT, "{\"items\": [{\"kind\": \"retitle\", \"path\": \"concepts/mitosis\","
+            + " \"title\": \"Cell mitosis\"}]}");
+        awaitRun(client, kb, client.upload(kb, "biology.md", NOTES, false).json().get("documentId").asString(),
             "COMPLETED");
 
         Response session = client.post(kb + "/query-sessions", Map.of());
         assertThat(session.status()).isEqualTo(201);
         String chat = kb + "/query-sessions/" + session.json().get("interactionId").asString();
-        Response answer = client.post(chat + "/messages", Map.of("question", "Co to mitoza?"));
-        assertThat(answer.json().get("answer").asString()).isEqualTo("Mitoza dzieli komórkę.");
-        assertThat(answer.body()).contains("\"citedPaths\":[\"concepts/mitoza\"]").doesNotContain("usedPagePaths");
+        Response answer = client.post(chat + "/messages", Map.of("question", "What is mitosis?"));
+        assertThat(answer.json().get("answer").asString()).isEqualTo("Mitosis splits a cell.");
+        assertThat(answer.body()).contains("\"citedPaths\":[\"concepts/mitosis\"]").doesNotContain("usedPagePaths");
         Response history = client.get(kb + "/query-sessions");
         assertThat(history.json()).hasSize(1);
-        assertThat(history.body()).doesNotContain("usedPagePaths").doesNotContain("concepts/mitoza");
+        assertThat(history.body()).doesNotContain("usedPagePaths").doesNotContain("concepts/mitosis");
         Response search = client.get(kb + "/pages/search?q=mito");
-        assertThat(search.json().findValuesAsString("path")).containsExactly("concepts/mitoza");
+        assertThat(search.json().findValuesAsString("path")).containsExactly("concepts/mitosis");
 
-        Response edit = client.post(chat + "/edits", Map.of("instruction", "Nazwij mitozę pełniej."));
+        Response edit = client.post(chat + "/edits", Map.of("instruction", "Give mitosis a fuller name."));
         assertThat(edit.status()).isEqualTo(202);
         String runId = edit.json().get("runId").asString();
         long deadline = System.nanoTime() + TIMEOUT.toNanos();
@@ -233,13 +233,13 @@ class ApiFlowTest extends TestContainerBase {
             assertThat(System.nanoTime()).as("edit run did not complete").isLessThan(deadline);
             await(Duration.ofMillis(100));
         }
-        assertThat(client.get(kb + "/pages/concepts/mitoza").json().get("title").asString()).isEqualTo("Mitoza komórkowa");
+        assertThat(client.get(kb + "/pages/concepts/mitosis").json().get("title").asString()).isEqualTo("Cell mitosis");
 
         for (Response response : List.of(session, answer, history, search, edit)) {
             assertNoSensitiveFields(response);
         }
         Client other = signedUp();
-        assertThat(other.post(chat + "/messages", Map.of("question", "Cudze?")).status()).isEqualTo(403);
+        assertThat(other.post(chat + "/messages", Map.of("question", "Someone else's?")).status()).isEqualTo(403);
         assertThat(client.get(kb + "/flashcards?lessonId=conversation").status()).isEqualTo(404);
     }
 
@@ -249,11 +249,11 @@ class ApiFlowTest extends TestContainerBase {
         String kb = createKnowledgeBase(client);
         gateway.reset();
         gateway.answer(Prompts.SELECT, "{\"paths\": []}");
-        gateway.answer(Prompts.ANSWER, "to nie jest JSON");
+        gateway.answer(Prompts.ANSWER, "this is not JSON");
         String chat = kb + "/query-sessions/"
             + client.post(kb + "/query-sessions", Map.of()).json().get("interactionId").asString();
 
-        Response answer = client.post(chat + "/messages", Map.of("question", "Co to mitoza?"));
+        Response answer = client.post(chat + "/messages", Map.of("question", "What is mitosis?"));
         gateway.reset(); // stubs are first-match and shared across tests
 
         assertThat(answer.status()).isEqualTo(503);
@@ -324,15 +324,15 @@ class ApiFlowTest extends TestContainerBase {
         Client client = signedUp();
         String kb = createKnowledgeBase(client);
         givenAnswers();
-        assertThat(client.upload(kb, "biologia.md", NOTES, false).status()).isEqualTo(202);
+        assertThat(client.upload(kb, "biology.md", NOTES, false).status()).isEqualTo(202);
 
-        Response collision = client.upload(kb, "biologia.md", NOTES + "\nPowtórka.\n", false);
+        Response collision = client.upload(kb, "biology.md", NOTES + "\nRevision.\n", false);
 
         assertThat(collision.status()).isEqualTo(409);
         assertThat(collision.json().get("code").asString()).isEqualTo("LESSON_EXISTS");
-        assertThat(collision.json().get("lessonId").asString()).isEqualTo("biologia");
-        assertThat(collision.json().get("lessonTitle").asString()).isEqualTo("biologia");
-        assertThat(client.upload(kb, "biologia.md", NOTES + "\nPowtórka.\n", true).status()).isEqualTo(202);
+        assertThat(collision.json().get("lessonId").asString()).isEqualTo("biology");
+        assertThat(collision.json().get("lessonTitle").asString()).isEqualTo("biology");
+        assertThat(client.upload(kb, "biology.md", NOTES + "\nRevision.\n", true).status()).isEqualTo(202);
     }
 
     // ---------------------------------------------------------------------------
@@ -344,24 +344,24 @@ class ApiFlowTest extends TestContainerBase {
         Client client = signedUp();
         String kb = createKnowledgeBase(client);
         gateway.reset();
-        gateway.answer("Paragon sklepowy", "{\"relevant\": false, \"reason\": \"To paragon.\", \"confidence\": 0.9}");
+        gateway.answer("Shop receipt", "{\"relevant\": false, \"reason\": \"It is a receipt.\", \"confidence\": 0.9}");
         givenAnswers();
-        String receipt = client.upload(kb, "paragon.md", "Paragon sklepowy.\n", false).json().get("documentId").asString();
+        String receipt = client.upload(kb, "receipt.md", "Shop receipt.\n", false).json().get("documentId").asString();
         awaitRun(client, kb, receipt, "FAILED");
 
         CountDownLatch extracting = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         gateway.reset();
-        gateway.answer("] Pierwsza lekcja", prompt -> {
+        gateway.answer("] First lesson", prompt -> {
             extracting.countDown();
             await(release);
             return extraction();
         });
         givenAnswers();
-        String first = client.upload(kb, "lekcja-1.md", "Pierwsza lekcja o komórkach.\n", false).json()
+        String first = client.upload(kb, "lesson-1.md", "First lesson about cells.\n", false).json()
             .get("documentId").asString();
         assertThat(extracting.await(TIMEOUT.toSeconds(), TimeUnit.SECONDS)).isTrue();
-        String queued = client.upload(kb, "lekcja-2.md", "Druga lekcja o komórkach.\n", false).json()
+        String queued = client.upload(kb, "lesson-2.md", "Second lesson about cells.\n", false).json()
             .get("documentId").asString();
         Response retry = client.post(kb + "/documents/" + receipt + "/runs", Map.of());
 
@@ -393,12 +393,12 @@ class ApiFlowTest extends TestContainerBase {
         String kb = createKnowledgeBase(owner);
         Client other = signedUp();
 
-        for (String path : List.of(kb, kb + "/index", kb + "/pages/concepts/mitoza", kb + "/runs", kb + "/progress",
+        for (String path : List.of(kb, kb + "/index", kb + "/pages/concepts/mitosis", kb + "/runs", kb + "/progress",
             kb + "/health", kb + "/documents", kb + "/graph")) {
             assertThat(other.get(path).status()).as(path).isEqualTo(403);
         }
         assertThat(other.delete(kb).status()).isEqualTo(403);
-        assertThat(other.upload(kb, "biologia.md", NOTES, false).status()).isEqualTo(403);
+        assertThat(other.upload(kb, "biology.md", NOTES, false).status()).isEqualTo(403);
         assertThat(other.post(kb + "/lint-runs", Map.of()).status()).isEqualTo(403);
         assertThat(new Client().get(kb + "/index").status()).isEqualTo(401);
     }
@@ -410,31 +410,31 @@ class ApiFlowTest extends TestContainerBase {
     private void givenAnswers() {
         gateway.answer(Prompts.GUARD, Prompts.RELEVANT);
         gateway.answer(Prompts.EXTRACT, extraction());
-        gateway.answer(Prompts.WRITE, Prompts.json(Map.of("description", "Podział komórki.", "body", BODY)));
+        gateway.answer(Prompts.WRITE, Prompts.json(Map.of("description", "Cell division.", "body", BODY)));
         gateway.answer(Prompts.LINKS, "{\"insertions\": []}");
         gateway.answer(Prompts.SUPERSEDE, "{\"proposals\": []}");
     }
 
     private static String extraction() {
         Map<String, Object> claim = new LinkedHashMap<>();
-        claim.put("text", "Mitoza to podział komórki.");
-        claim.put("title", "Mitoza");
+        claim.put("text", "Mitosis is cell division.");
+        claim.put("title", "Mitosis");
         claim.put("targetPath", null);
         claim.put("firstBlock", 0);
         claim.put("lastBlock", 1);
-        return Prompts.json(Map.of("claims", List.of(claim), "chunkDigest", "Mitoza."));
+        return Prompts.json(Map.of("claims", List.of(claim), "chunkDigest", "Mitosis."));
     }
 
     private Client signedUp() {
         Client client = new Client();
-        Response registered = client.post("/api/v1/auth/register", Map.of("displayName", "Uczeń",
-            "email", "uczen-" + UUID.randomUUID() + "@example.com", "password", "sekretne-haslo"));
+        Response registered = client.post("/api/v1/auth/register", Map.of("displayName", "Student",
+            "email", "student-" + UUID.randomUUID() + "@example.com", "password", "secret-password"));
         assertThat(registered.status()).isEqualTo(201);
         return client;
     }
 
     private static String createKnowledgeBase(Client client) {
-        Response created = client.post("/api/v1/knowledge-bases", Map.of("name", "Biologia", "description", "Notatki"));
+        Response created = client.post("/api/v1/knowledge-bases", Map.of("name", "Biology", "description", "Notes"));
         assertThat(created.status()).isEqualTo(201);
         return "/api/v1/knowledge-bases/" + created.json().get("kbId").asString();
     }

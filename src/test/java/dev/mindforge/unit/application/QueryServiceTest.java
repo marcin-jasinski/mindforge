@@ -49,42 +49,42 @@ class QueryServiceTest {
 
     @Test
     void shouldDropHallucinatedPathsAddLinkedNeighboursAndCiteOnlyPagesItWasGiven() {
-        WikiPage mitoza = makePage("concepts/mitoza", "Mitoza dzieli komórkę.");
-        WikiPage mejoza = makePage("concepts/mejoza", "Mejoza wytwarza gamety.");
+        WikiPage mitosis = makePage("concepts/mitosis", "Mitosis splits a cell.");
+        WikiPage meiosis = makePage("concepts/meiosis", "Meiosis makes gametes.");
         givenSession();
-        when(wiki.findByPaths(KB, List.of("concepts/mitoza", "concepts/zmyslona"))).thenReturn(List.of(mitoza));
-        when(wiki.outboundLinks(KB, List.of(mitoza.pageId())))
-            .thenReturn(List.of(new PageLink(mitoza.pageId(), "concepts/mejoza", null)));
-        when(wiki.findByPaths(KB, List.of("concepts/mejoza"))).thenReturn(List.of(mejoza));
-        gateway.answer(Prompts.SELECT, "{\"paths\": [\"concepts/mitoza\", \"concepts/zmyslona\"]}");
-        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Mitoza dzieli komórkę.\","
-            + " \"citations\": [\"concepts/mitoza\", \"concepts/zmyslona\"]}");
+        when(wiki.findByPaths(KB, List.of("concepts/mitosis", "concepts/made-up"))).thenReturn(List.of(mitosis));
+        when(wiki.outboundLinks(KB, List.of(mitosis.pageId())))
+            .thenReturn(List.of(new PageLink(mitosis.pageId(), "concepts/meiosis", null)));
+        when(wiki.findByPaths(KB, List.of("concepts/meiosis"))).thenReturn(List.of(meiosis));
+        gateway.answer(Prompts.SELECT, "{\"paths\": [\"concepts/mitosis\", \"concepts/made-up\"]}");
+        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Mitosis splits a cell.\","
+            + " \"citations\": [\"concepts/mitosis\", \"concepts/made-up\"]}");
 
-        QueryService.Answer answer = makeService().ask(KB, USER, SESSION, "Co to mitoza?");
+        QueryService.Answer answer = makeService().ask(KB, USER, SESSION, "What is mitosis?");
 
-        assertThat(answer.citedPaths()).containsExactly("concepts/mitoza");
-        assertThat(gateway.recordedCalls().getLast().prompt()).contains("Mitoza dzieli komórkę.")
-            .contains("Mejoza wytwarza gamety.");
+        assertThat(answer.citedPaths()).containsExactly("concepts/mitosis");
+        assertThat(gateway.recordedCalls().getLast().prompt()).contains("Mitosis splits a cell.")
+            .contains("Meiosis makes gametes.");
         ArgumentCaptor<InteractionTurn> turn = ArgumentCaptor.forClass(InteractionTurn.class);
         verify(interactions).addTurn(eq(KB), eq(SESSION), turn.capture());
-        assertThat(turn.getValue().usedPagePaths()).containsExactly("concepts/mitoza", "concepts/mejoza");
+        assertThat(turn.getValue().usedPagePaths()).containsExactly("concepts/mitosis", "concepts/meiosis");
     }
 
     @Test
     void shouldStopAddingContextAtTheFirstPageThatDoesNotFitTheBudget() {
-        WikiPage small = makePage("concepts/mitoza", "Mała strona.");
-        WikiPage huge = makePage("concepts/wielka", "x".repeat(90_000));
-        WikiPage after = makePage("concepts/mejoza", "Strona po wielkiej.");
+        WikiPage small = makePage("concepts/mitosis", "A small page.");
+        WikiPage huge = makePage("concepts/big", "x".repeat(90_000));
+        WikiPage after = makePage("concepts/meiosis", "The page after the big one.");
         givenSession();
         when(wiki.findByPaths(eq(KB), any())).thenReturn(List.of(small, huge, after));
         when(wiki.outboundLinks(eq(KB), any())).thenReturn(List.of());
-        gateway.answer(Prompts.SELECT, "{\"paths\": [\"concepts/mitoza\", \"concepts/wielka\", \"concepts/mejoza\"]}");
-        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Odpowiedź.\", \"citations\": []}");
+        gateway.answer(Prompts.SELECT, "{\"paths\": [\"concepts/mitosis\", \"concepts/big\", \"concepts/meiosis\"]}");
+        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Answer.\", \"citations\": []}");
 
-        makeService().ask(KB, USER, SESSION, "Pytanie?");
+        makeService().ask(KB, USER, SESSION, "Question?");
 
-        assertThat(gateway.recordedCalls().getLast().prompt()).contains("Mała strona.").doesNotContain("xxxxxxxxxx")
-            .doesNotContain("Strona po wielkiej.");
+        assertThat(gateway.recordedCalls().getLast().prompt()).contains("A small page.").doesNotContain("xxxxxxxxxx")
+            .doesNotContain("The page after the big one.");
     }
 
     @Test
@@ -92,22 +92,22 @@ class QueryServiceTest {
         givenSession();
 
         assertThatExceptionOfType(NotOwnerException.class)
-            .isThrownBy(() -> makeService().ask(KB, UUID.randomUUID(), SESSION, "Pytanie?"));
+            .isThrownBy(() -> makeService().ask(KB, UUID.randomUUID(), SESSION, "Question?"));
     }
 
     @Test
     void shouldRouteOverTheLexicalShortlistWhenTheIndexIsPastTheCeiling() {
         givenSession();
         givenAnOversizedIndex();
-        IndexEntry hit = makeEntry("concepts/mitoza", "Mitoza", "Podział komórki.");
+        IndexEntry hit = makeEntry("concepts/mitosis", "Mitosis", "Cell division.");
         when(search.search(eq(KB), any(), eq(20))).thenReturn(List.of(hit));
         gateway.answer(Prompts.SELECT, "{\"paths\": []}");
-        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Odpowiedź.\", \"citations\": []}");
+        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Answer.\", \"citations\": []}");
 
-        makeService().ask(KB, USER, SESSION, "Czym jest mitoza?");
+        makeService().ask(KB, USER, SESSION, "What does mitosis mean?");
 
         String select = gateway.recordedCalls().getFirst().prompt();
-        assertThat(select).contains("concepts/mitoza").doesNotContain("concepts/inne-500");
+        assertThat(select).contains("concepts/mitosis").doesNotContain("concepts/other-500");
     }
 
     @Test
@@ -116,9 +116,9 @@ class QueryServiceTest {
         givenAnOversizedIndex();
         when(search.search(eq(KB), any(), eq(20))).thenReturn(List.of());
         gateway.answer(Prompts.SELECT, "{\"paths\": []}");
-        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Odpowiedź.\", \"citations\": []}");
+        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Answer.\", \"citations\": []}");
 
-        makeService().ask(KB, USER, SESSION, "Czym jest mitoza?");
+        makeService().ask(KB, USER, SESSION, "What does mitosis mean?");
 
         // the whole index is ~45K tokens; the prompt carries at most the ceiling plus the prompt template
         assertThat(TokenEstimate.of(gateway.recordedCalls().getFirst().prompt()))
@@ -128,13 +128,13 @@ class QueryServiceTest {
     private void givenAnOversizedIndex() {
         List<IndexEntry> entries = new ArrayList<>();
         for (int i = 0; i < 1_000; i++) {
-            entries.add(makeEntry("concepts/inne-" + i, "Inne pojęcie " + i, "Opis. ".repeat(20)));
+            entries.add(makeEntry("concepts/other-" + i, "Other concept " + i, "Description. ".repeat(20)));
         }
         when(wiki.listIndex(KB)).thenReturn(entries);
     }
 
     private QueryService makeService() {
-        PromptLoader prompts = new PromptLoader("pl");
+        PromptLoader prompts = new PromptLoader("en");
         return new QueryService(wiki, interactions, new PageSelector(gateway, prompts), new AnswerWriter(gateway, prompts),
             search);
     }
@@ -152,7 +152,7 @@ class QueryServiceTest {
     }
 
     private static WikiPage makePage(String path, String body) {
-        return new WikiPage(UUID.randomUUID(), KB, path, path, "Opis.", PageType.CONCEPT, body + "\n", 1, Instant.EPOCH,
+        return new WikiPage(UUID.randomUUID(), KB, path, path, "Description.", PageType.CONCEPT, body + "\n", 1, Instant.EPOCH,
             Instant.EPOCH);
     }
 }

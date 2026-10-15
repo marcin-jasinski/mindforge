@@ -22,40 +22,40 @@ import dev.mindforge.domain.model.RunFailure;
 class ResolverTest {
 
     private static final int CAP = 100;
-    private static final IndexEntry MITOZA = makeEntry("concepts/mitoza", "Mitoza", PageType.CONCEPT);
-    private static final IndexEntry LESSON = makeEntry("sources/bio-1", "Lekcja 1", PageType.SOURCE_SUMMARY);
+    private static final IndexEntry MITOSIS = makeEntry("concepts/mitosis", "Mitosis", PageType.CONCEPT);
+    private static final IndexEntry LESSON = makeEntry("sources/bio-1", "Lesson 1", PageType.SOURCE_SUMMARY);
 
     @Test
     void shouldCreateAPageFromTheClaimsTitleWhenItsTargetIsHallucinatedOrASourceSummary() {
         Resolver resolver = new Resolver(List.of(LESSON), false);
 
-        resolver.addClaims(List.of(makeClaim("Mejoza", "concepts/nie-ma-takiej"), makeClaim("Gamety", "sources/bio-1")));
+        resolver.addClaims(List.of(makeClaim("Meiosis", "concepts/no-such-page"), makeClaim("Gametes", "sources/bio-1")));
 
         assertThat(resolver.finish(List.of(), null, null, CAP).tasks())
             .extracting(PageWriteTask::path, PageWriteTask::title, PageWriteTask::create)
-            .containsExactly(tuple("concepts/mejoza", "Mejoza", true), tuple("concepts/gamety", "Gamety", true));
+            .containsExactly(tuple("concepts/meiosis", "Meiosis", true), tuple("concepts/gametes", "Gametes", true));
     }
 
     @Test
     void shouldGroupTwoClaimsReachingOnePathIntoOneRevisionKeepingTheLiveTitle() {
-        Resolver resolver = new Resolver(List.of(MITOZA), false);
+        Resolver resolver = new Resolver(List.of(MITOSIS), false);
 
-        resolver.addClaims(List.of(makeClaim("Podział komórki", "concepts/mitoza"), makeClaim("Mitoza", null)));
+        resolver.addClaims(List.of(makeClaim("Cell division", "concepts/mitosis"), makeClaim("Mitosis", null)));
 
         assertThat(resolver.finish(List.of(), null, null, CAP).tasks()).singleElement().satisfies(task -> {
             assertThat(task).extracting(PageWriteTask::path, PageWriteTask::title, PageWriteTask::create)
-                .containsExactly("concepts/mitoza", "Mitoza", false);
-            assertThat(task.claims()).extracting(Claim::targetPath).containsOnly("concepts/mitoza").hasSize(2);
+                .containsExactly("concepts/mitosis", "Mitosis", false);
+            assertThat(task.claims()).extracting(Claim::targetPath).containsOnly("concepts/mitosis").hasSize(2);
         });
     }
 
     @Test
     void shouldLetALaterChunkTargetAPageAnEarlierChunkPlanned() {
         Resolver resolver = new Resolver(List.of(), false);
-        resolver.addClaims(List.of(makeClaim("Mitoza", null)));
-        assertThat(resolver.planned()).containsExactly(new PlannedPage("concepts/mitoza", "Mitoza"));
+        resolver.addClaims(List.of(makeClaim("Mitosis", null)));
+        assertThat(resolver.planned()).containsExactly(new PlannedPage("concepts/mitosis", "Mitosis"));
 
-        resolver.addClaims(List.of(makeClaim("Podział mitotyczny", "concepts/mitoza")));
+        resolver.addClaims(List.of(makeClaim("Mitotic division", "concepts/mitosis")));
 
         assertThat(resolver.finish(List.of(), null, null, CAP).tasks()).singleElement()
             .satisfies(task -> assertThat(task.claims()).hasSize(2));
@@ -65,10 +65,10 @@ class ResolverTest {
     void shouldNotLetAClaimTargetAPathPlannedInTheSameChunk() {
         Resolver resolver = new Resolver(List.of(), false);
 
-        resolver.addClaims(List.of(makeClaim("Mitoza", null), makeClaim("Podział", "concepts/mitoza")));
+        resolver.addClaims(List.of(makeClaim("Mitosis", null), makeClaim("Division", "concepts/mitosis")));
 
         assertThat(resolver.finish(List.of(), null, null, CAP).tasks()).extracting(PageWriteTask::path)
-            .containsExactly("concepts/mitoza", "concepts/podzial");
+            .containsExactly("concepts/mitosis", "concepts/division");
     }
 
     @Test
@@ -77,7 +77,7 @@ class ResolverTest {
         resolver.addClaims(List.of(makeClaim("A", null), makeClaim("B", null), makeClaim("C", null)));
 
         assertThatExceptionOfType(IngestRunFailedException.class)
-            .isThrownBy(() -> resolver.finish(List.of(), "sources/bio-1", "Lekcja", 2))
+            .isThrownBy(() -> resolver.finish(List.of(), "sources/bio-1", "Lesson", 2))
             .withMessage("would write 3 pages (limit 2) — split the document")
             .satisfies(failure -> assertThat(failure.retryable()).isFalse());
     }
@@ -86,9 +86,9 @@ class ResolverTest {
     void shouldAddTheSourceSummaryTaskWithTheLessonTitle() {
         Resolver resolver = new Resolver(List.of(LESSON), false);
 
-        assertThat(resolver.finish(List.of(), "sources/bio-1", "Lekcja 1 — nowa wersja", CAP).tasks())
+        assertThat(resolver.finish(List.of(), "sources/bio-1", "Lesson 1 — new version", CAP).tasks())
             .extracting(PageWriteTask::path, PageWriteTask::type, PageWriteTask::title, PageWriteTask::create)
-            .containsExactly(tuple("sources/bio-1", PageType.SOURCE_SUMMARY, "Lekcja 1 — nowa wersja", false));
+            .containsExactly(tuple("sources/bio-1", PageType.SOURCE_SUMMARY, "Lesson 1 — new version", false));
     }
 
     @Test
@@ -104,22 +104,22 @@ class ResolverTest {
 
     @Test
     void shouldDeleteALiveConceptAndDropADeleteOfASourceSummaryOrAMissingPage() {
-        Resolver resolver = new Resolver(List.of(MITOZA, LESSON), false);
+        Resolver resolver = new Resolver(List.of(MITOSIS, LESSON), false);
 
-        Resolver.Plan plan = resolver.finish(List.of(new EditItem.Delete("concepts/mitoza"),
-            new EditItem.Delete("sources/bio-1"), new EditItem.Delete("concepts/nie-ma")), null, null, CAP);
+        Resolver.Plan plan = resolver.finish(List.of(new EditItem.Delete("concepts/mitosis"),
+            new EditItem.Delete("sources/bio-1"), new EditItem.Delete("concepts/missing")), null, null, CAP);
 
-        assertThat(plan.deletions()).containsExactly("concepts/mitoza");
+        assertThat(plan.deletions()).containsExactly("concepts/mitosis");
         assertThat(plan.failures()).extracting(RunFailure::path)
-            .containsExactly("sources/bio-1", "concepts/nie-ma");
+            .containsExactly("sources/bio-1", "concepts/missing");
     }
 
     @Test
     void shouldDropBothWhenOneEditDeletesAndWritesAPath() {
-        Resolver resolver = new Resolver(List.of(MITOZA), false);
-        resolver.addClaims(List.of(makeClaim("Mitoza", "concepts/mitoza")));
+        Resolver resolver = new Resolver(List.of(MITOSIS), false);
+        resolver.addClaims(List.of(makeClaim("Mitosis", "concepts/mitosis")));
 
-        Resolver.Plan plan = resolver.finish(List.of(new EditItem.Delete("concepts/mitoza")), null, null, CAP);
+        Resolver.Plan plan = resolver.finish(List.of(new EditItem.Delete("concepts/mitosis")), null, null, CAP);
 
         assertThat(plan.tasks()).isEmpty();
         assertThat(plan.deletions()).isEmpty();
@@ -128,28 +128,28 @@ class ResolverTest {
 
     @Test
     void shouldRetitleALiveConceptWithoutATaskAndRetitleATaskOfTheSamePath() {
-        IndexEntry mejoza = makeEntry("concepts/mejoza", "Mejoza", PageType.CONCEPT);
-        Resolver resolver = new Resolver(List.of(MITOZA, mejoza), false);
-        resolver.addClaims(List.of(makeClaim("Mejoza", "concepts/mejoza")));
+        IndexEntry meiosis = makeEntry("concepts/meiosis", "Meiosis", PageType.CONCEPT);
+        Resolver resolver = new Resolver(List.of(MITOSIS, meiosis), false);
+        resolver.addClaims(List.of(makeClaim("Meiosis", "concepts/meiosis")));
 
-        Resolver.Plan plan = resolver.finish(List.of(new EditItem.Retitle("concepts/mitoza", "Mitoza komórkowa"),
-            new EditItem.Retitle("concepts/mejoza", "Mejoza redukcyjna"),
-            new EditItem.Retitle("sources/bio-1", "Nie wolno")), null, null, CAP);
+        Resolver.Plan plan = resolver.finish(List.of(new EditItem.Retitle("concepts/mitosis", "Cell mitosis"),
+            new EditItem.Retitle("concepts/meiosis", "Reductive meiosis"),
+            new EditItem.Retitle("sources/bio-1", "Not allowed")), null, null, CAP);
 
-        assertThat(plan.retitles()).isEqualTo(Map.of("concepts/mitoza", "Mitoza komórkowa"));
-        assertThat(plan.tasks()).extracting(PageWriteTask::title).containsExactly("Mejoza redukcyjna");
+        assertThat(plan.retitles()).isEqualTo(Map.of("concepts/mitosis", "Cell mitosis"));
+        assertThat(plan.tasks()).extracting(PageWriteTask::title).containsExactly("Reductive meiosis");
         assertThat(plan.failures()).extracting(RunFailure::path).containsExactly("sources/bio-1");
     }
 
     @Test
     void shouldDropTheClaimsOfAnArticleThatReachALivePage() {
-        Resolver resolver = new Resolver(List.of(MITOZA), true);
+        Resolver resolver = new Resolver(List.of(MITOSIS), true);
 
-        resolver.addClaims(List.of(makeClaim("Mitoza", null), makeClaim("Mejoza", null)));
+        resolver.addClaims(List.of(makeClaim("Mitosis", null), makeClaim("Meiosis", null)));
 
         Resolver.Plan plan = resolver.finish(List.of(), null, null, CAP);
-        assertThat(plan.tasks()).extracting(PageWriteTask::path).containsExactly("concepts/mejoza");
-        assertThat(plan.failures()).extracting(RunFailure::path).containsExactly("concepts/mitoza");
+        assertThat(plan.tasks()).extracting(PageWriteTask::path).containsExactly("concepts/meiosis");
+        assertThat(plan.failures()).extracting(RunFailure::path).containsExactly("concepts/mitosis");
     }
 
     // ---------------------------------------------------------------------------
@@ -157,10 +157,10 @@ class ResolverTest {
     // ---------------------------------------------------------------------------
 
     private static Claim makeClaim(String title, String targetPath) {
-        return new Claim("Twierdzenie o " + title + ".", title, targetPath, 0, 0);
+        return new Claim("Claim about " + title + ".", title, targetPath, 0, 0);
     }
 
     private static IndexEntry makeEntry(String path, String title, PageType type) {
-        return new IndexEntry(path, title, "Opis.", type);
+        return new IndexEntry(path, title, "Description.", type);
     }
 }

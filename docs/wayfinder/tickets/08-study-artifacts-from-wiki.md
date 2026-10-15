@@ -145,7 +145,7 @@ join for a case that does not exist. **Ceiling:** shared knowledge bases need `(
 
 Every card rating and every graded quiz answer appends a `study_events` row `(page_id, kind, score)`. A page's
 weakness is the mean of its last few scores. The whole-knowledge-base session targets the weakest pages first, then
-their 1-hop link neighbours — a question on *Meiosis* when *Mitoza* is weak. That is two SQL queries over tables
+their 1-hop link neighbours — a question on *Meiosis* when *Mitosis* is weak. That is two SQL queries over tables
 that already exist. `RetrievalPort.findWeakConcepts()` and Phase 10's "Graph RAG question targeting" go: the graph
 Phase 10 wanted is `page_links`, and it lives in Postgres (T05). Whether Neo4j exists for anything else is T09's.
 

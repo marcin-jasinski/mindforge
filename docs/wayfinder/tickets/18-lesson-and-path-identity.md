@@ -18,7 +18,7 @@ make export fail forever.
 - T07 then dropped that constraint (`docs/wayfinder/tickets/07-idempotency-and-failure.md:111`).
 - The lesson id falls back to the filename stem (`src/main/java/dev/mindforge/domain/model/LessonIdentity.java:61`).
 
-So two unrelated `notatki.pdf` uploads share a lesson. The second silently rewrites the first's Source Summary, and
+So two unrelated `notes.pdf` uploads share a lesson. The second silently rewrites the first's Source Summary, and
 every citation to the first document lands on the second's digest. Before the re-cut, the constraint rejected this.
 
 **2. The validator rejects lesson ids that identity accepts.** The export validator requires
@@ -39,7 +39,7 @@ Decide:
 
 - **Version vs. collision.** *Recommended:* an upload whose lesson id already exists is a version only through an
   explicit "new version of lesson X" action; otherwise it is rejected with 409, asking for a distinct lesson id.
-  *Alternative:* auto-suffix the id (`notatki-2`) and make versioning always explicit.
+  *Alternative:* auto-suffix the id (`notes-2`) and make versioning always explicit.
 - **One identifier grammar.** *Recommended:* `[a-z0-9]+(-[a-z0-9]+)*`, at most 80 characters, not `index`, `log` or
   `default`. Enforce it in `LessonIdentity` and `PagePath`, and use it in the validator. An explicit `lesson_id` must
   match it — no silent rewrite.
@@ -69,7 +69,7 @@ The resolved lesson id is the override if given, else `LessonIdentity.resolve`:
 | no document of that lesson in the knowledge base | new lesson | 422 — nothing to version |
 | a document of that lesson exists | **409 `LESSON_EXISTS`**; the body carries the lesson's id and title | new version of that lesson |
 
-The SPA answers a 409 with a dialog offering two choices: *new version of "Biologia — lekcja 3"*, or *a new lesson* with
+The SPA answers a 409 with a dialog offering two choices: *new version of "Biology — lesson 3"*, or *a new lesson* with
 an editable id.
 
 The check and the insert both run inside the upload transaction, after
@@ -77,7 +77,7 @@ The check and the insert both run inside the upload transaction, after
 lesson. An identical upload still returns the existing id first (T07 decision 1). The lesson check applies only when a
 row would be inserted.
 
-*Why not auto-suffix:* `notatki-2` makes the collision silent in the other direction — a real second version becomes a
+*Why not auto-suffix:* `notes-2` makes the collision silent in the other direction — a real second version becomes a
 separate lesson unless the user notices. Asking once costs one click and gets both cases right.
 
 Exceptions:
@@ -127,7 +127,7 @@ Examples:
 
 Polish never drops a letter, so Polish paths never carry a hash.
 
-**Remaining clashes are accepted as the same page.** `Mitoza`, `mitoza` and `Mitoza!` share a path, and T06's homonym
+**Remaining clashes are accepted as the same page.** `Mitosis`, `mitosis` and `Mitosis!` share a path, and T06's homonym
 rule already says an exact path is the same page.
 
 Ceiling: a knowledge base in a non-Latin script gets hash-named paths. Add a full transliterator (ICU4J `Any-Latin`)

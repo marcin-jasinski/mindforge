@@ -73,7 +73,7 @@ bundle/
 record WikiPage(UUID pageId, UUID knowledgeBaseId, String path, String title, String description,
                 PageType type, String markdownBody, int revision, Instant createdAt, Instant updatedAt) {}
 record PageLink(UUID pageId, String targetPath, String fragment) {}
-// path: "concepts/mitoza" — T02/T05's `slug` is renamed; column `path`, `page_links.target_path`
+// path: "concepts/mitosis" — T02/T05's `slug` is renamed; column `path`, `page_links.target_path`
 // PageRevision additionally snapshots `description`
 ```
 
@@ -109,7 +109,7 @@ Rejected: `Topic`, `Comparison`, `Question`, `Entity`. Each is a second place a 
 duplicate-page generator for Resolve, and none has a producer yet.
 
 **2. The path is the page's identity and equals the OKF Concept ID.** `WikiPage.path` is the bundle-relative
-path without `.md` — `concepts/mitoza`, `sources/biologia-lekcja-3`. It replaces T02/T05's `slug`, renamed
+path without `.md` — `concepts/mitosis`, `sources/biology-lesson-3`. It replaces T02/T05's `slug`, renamed
 because "slug" conventionally means one segment, and because "Concept ID" collides with the `Concept` type in
 MindForge's own language. `UNIQUE (knowledge_base_id, path)` is T05's constraint unchanged in meaning.
 
@@ -117,7 +117,7 @@ MindForge's own language. `UNIQUE (knowledge_base_id, path)` is T05's constraint
   `Source Summary` → `sources/`). So a concept and a source summary with the same name never collide.
 - **Type is immutable after creation.** With the directory inside the path, T05's stale-path worry cannot
   arise: nothing ever moves a page between directories.
-- **Body links use the full path**, `[Mitoza](/concepts/mitoza.md#faza-anafazy)`, parsed into `target_path` and
+- **Body links use the full path**, `[Mitosis](/concepts/mitosis.md#anaphase)`, parsed into `target_path` and
   `fragment`. The Write step already receives the linkable index (T04), so the model copies exact paths. A
   link with the wrong directory is a dangling link — reported by T10, never "corrected" by guessing, which is
   the dead-link-laundering failure of demo ADR 0021.
@@ -135,7 +135,7 @@ MindForge's own language. `UNIQUE (knowledge_base_id, path)` is T05's constraint
   (T05) — but the path stays where creation put it. T02's accepted cost, "a rename is an N-body rewrite", is
   therefore never paid, because a rename is never performed. A page whose title drifted far from its path is
   cosmetic; a page whose path moved is N broken bodies.
-- **An exact path match is the same page.** If Resolve would create `concepts/komorka` and that path exists,
+- **An exact path match is the same page.** If Resolve would create `concepts/cell` and that path exists,
   it revises instead. Homonyms inside one knowledge base (a *cell* in biology and in a spreadsheet) merge into
   one page whose prose disambiguates — accepted; one KB is one subject far more often than not. Synonyms that
   slugify differently are Resolve's retrieval problem (T09), not a slug rule.
@@ -144,7 +144,7 @@ MindForge's own language. `UNIQUE (knowledge_base_id, path)` is T05's constraint
 in English.**
 
 - `title` names **the thing, not the document** (demo `AGENTS.md`'s hardest-won rule); a Source Summary's title
-  is the document's `lessonTitle`. Two live pages must not share a title — a Source Summary about *Mitoza*
+  is the document's `lessonTitle`. Two live pages must not share a title — a Source Summary about *Mitosis*
   is titled for its document.
 - **New field: `description`** — one sentence, a typed output of the Write step alongside the body, snapshotted
   in `PageRevision`. It is what makes the rendered index usable as the retrieval surface Resolve and Query read
@@ -171,11 +171,11 @@ okf_version: "0.1"
 ---
 # Concepts
 
-* [Mitoza](/concepts/mitoza.md) - Podział jądra komórkowego dający dwie identyczne komórki potomne.
+* [Mitosis](/concepts/mitosis.md) - Division of the cell nucleus that gives two identical daughter cells.
 
 # Sources
 
-* [Biologia — lekcja 3](/sources/biologia-lekcja-3.md) - …
+* [Biology — lesson 3](/sources/biology-lesson-3.md) - …
 ```
 
 One section per type, entries sorted by title, each `* [title](/path.md) - description` per OKF §6. The root
@@ -191,7 +191,7 @@ run that changed something:
 # Update Log
 
 ## 2026-09-10
-* **Ingest**: [Biologia — lekcja 3](/sources/biologia-lekcja-3.md) — 2 created, 5 revised, 1 claim superseded.
+* **Ingest**: [Biology — lesson 3](/sources/biology-lesson-3.md) — 2 created, 5 revised, 1 claim superseded.
 * **Edit**: conversation — 1 revised.
 * **Revert**: ingest of 2026-09-09 — 3 pages restored.
 ```
@@ -206,8 +206,8 @@ beyond these three leading words is T11's to polish, and depends on T07's run re
 ```yaml
 ---
 type: Concept
-title: Mitoza
-description: Podział jądra komórkowego dający dwie identyczne komórki potomne.
+title: Mitosis
+description: Division of the cell nucleus that gives two identical daughter cells.
 timestamp: 2026-09-10T14:30:00Z
 ---
 ```

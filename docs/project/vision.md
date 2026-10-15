@@ -67,7 +67,6 @@ cross-links, and keeps the wiki consistent as sources accumulate.
 
 ### Long-term
 
-- English locale prompts alongside Polish
 - Mobile-friendly responsive frontend improvements
 - Multi-instance deployment (lease expiry; distributed session store)
 - FSRS scheduling to replace SM-2

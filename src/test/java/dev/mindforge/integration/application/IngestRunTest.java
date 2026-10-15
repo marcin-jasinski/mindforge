@@ -67,13 +67,13 @@ import dev.mindforge.support.TestContainerBase;
 class IngestRunTest extends TestContainerBase {
 
     /** Blocks 0–3: heading, text, heading, text. */
-    private static final String NOTES = "# Mitoza\n\nMitoza to podział komórki.\n\n# Mejoza\n\nMejoza wytwarza gamety.\n";
-    private static final String MITOZA_BODY = "# Przebieg\n\nMitoza poprzedza mejoza.\n";
-    private static final String MEJOZA_BODY = "# Gamety\n\nMejoza wytwarza gamety.\n";
-    private static final String SUMMARY_BODY = "# Streszczenie\n\nMitoza i mejoza.\n";
+    private static final String NOTES = "# Mitosis\n\nMitosis is cell division.\n\n# Meiosis\n\nMeiosis makes gametes.\n";
+    private static final String MITOSIS_BODY = "# Course\n\nMitosis precedes meiosis.\n";
+    private static final String MEIOSIS_BODY = "# Gametes\n\nMeiosis makes gametes.\n";
+    private static final String SUMMARY_BODY = "# Summary\n\nMitosis and meiosis.\n";
     private static final String NO_LINKS = "{\"insertions\": []}";
-    private static final String LINK_TO_MEJOZA = Prompts.json(Map.of("insertions", List.of(Map.of(
-        "pagePath", "concepts/mitoza", "phrase", "mejoza", "targetPath", "concepts/mejoza"))));
+    private static final String LINK_TO_MEIOSIS = Prompts.json(Map.of("insertions", List.of(Map.of(
+        "pagePath", "concepts/mitosis", "phrase", "meiosis", "targetPath", "concepts/meiosis"))));
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
     @Autowired
@@ -113,15 +113,15 @@ class IngestRunTest extends TestContainerBase {
     @Test
     void aDocumentIngestsIntoLinkedPagesEndToEndAndARevertRemovesThem() {
         UUID kbId = insertKnowledgeBase();
-        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, LINK_TO_MEJOZA);
+        givenTheNotesAnswers(MITOSIS_BODY, MEIOSIS_BODY, LINK_TO_MEIOSIS);
 
-        IngestRun run = awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
+        IngestRun run = awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.COMPLETED);
 
         assertThat(wiki.listIndex(kbId)).extracting(IndexEntry::path)
-            .containsExactlyInAnyOrder("concepts/mitoza", "concepts/mejoza", "sources/biologia");
-        assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody)
-            .contains("# Przebieg\n\nMitoza poprzedza [mejoza](/concepts/mejoza.md).\n");
-        assertThat(wiki.pageIdsForLesson(kbId, "biologia")).hasSize(2);
+            .containsExactlyInAnyOrder("concepts/mitosis", "concepts/meiosis", "sources/biology");
+        assertThat(wiki.findByPath(kbId, "concepts/mitosis")).map(WikiPage::markdownBody)
+            .contains("# Course\n\nMitosis precedes [meiosis](/concepts/meiosis.md).\n");
+        assertThat(wiki.pageIdsForLesson(kbId, "biology")).hasSize(2);
         assertThat(run.stepVersions()).containsOnlyKeys("RelevanceGuard", "ClaimExtractor", "PageWriter",
             "LinkChecker", "SupersessionDetector");
         assertThat(run.stepVersions().get("RelevanceGuard")).startsWith(RelevanceGuard.VERSION + "@");
@@ -130,7 +130,7 @@ class IngestRunTest extends TestContainerBase {
         assertThat(run.stepVersions().get("LinkChecker")).startsWith(LinkChecker.VERSION + "@");
         assertThat(run.stepVersions().get("SupersessionDetector")).startsWith(SupersessionDetector.VERSION + "@");
         assertThat(LogRenderer.render(runReports.logEntries(kbId)))
-            .contains("* **Ingest**: [biologia](/sources/biologia.md) — 3 created.");
+            .contains("* **Ingest**: [biology](/sources/biology.md) — 3 created.");
 
         revertService.revert(kbId, run.runId());
 
@@ -145,7 +145,7 @@ class IngestRunTest extends TestContainerBase {
             throw new IllegalStateException("connection to db-internal:5432 refused");
         });
 
-        IngestRun run = awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.FAILED);
+        IngestRun run = awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.FAILED);
 
         assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
             .containsExactly("unexpected error", true);
@@ -154,15 +154,15 @@ class IngestRunTest extends TestContainerBase {
     @Test
     void aSecondLessonWithATakenTitleCarriesItsIdSoCitationsDoNotReadAlike() {
         UUID kbId = insertKnowledgeBase();
-        UUID first = upload(kbId, "mitoza.md", NOTES, false);
-        UUID second = ingestion.ingest(new DocumentUpload(kbId, ownerOf(kbId), UploadSource.API, "mitoza.md",
-            MarkdownParser.MIME_TYPE, (NOTES + "\nDruga wersja.\n").getBytes(StandardCharsets.UTF_8), "mitoza-2",
+        UUID first = upload(kbId, "mitosis.md", NOTES, false);
+        UUID second = ingestion.ingest(new DocumentUpload(kbId, ownerOf(kbId), UploadSource.API, "mitosis.md",
+            MarkdownParser.MIME_TYPE, (NOTES + "\nSecond version.\n").getBytes(StandardCharsets.UTF_8), "mitosis-2",
             false));
 
-        assertThat(documents.findById(kbId, first)).get().extracting(d -> d.lessonIdentity().title()).isEqualTo("mitoza");
+        assertThat(documents.findById(kbId, first)).get().extracting(d -> d.lessonIdentity().title()).isEqualTo("mitosis");
         assertThat(documents.findById(kbId, second)).get().extracting(d -> d.lessonIdentity().title())
-            .isEqualTo("mitoza (mitoza-2)");
-        assertThat(documents.findById(kbId, second)).get().extracting(d -> d.lessonIdentity().lessonId()).isEqualTo("mitoza-2");
+            .isEqualTo("mitosis (mitosis-2)");
+        assertThat(documents.findById(kbId, second)).get().extracting(d -> d.lessonIdentity().lessonId()).isEqualTo("mitosis-2");
     }
 
     @Test
@@ -172,14 +172,14 @@ class IngestRunTest extends TestContainerBase {
         gateway.answer(Prompts.GUARD, prompt -> {
             throw new IllegalStateException("provider down");
         });
-        UUID documentId = upload(kbId, "biologia.md", NOTES, false);
+        UUID documentId = upload(kbId, "biology.md", NOTES, false);
         awaitRun(kbId, documentId, RunStatus.FAILED);
 
         ingestion.remove(kbId, documentId);
 
         assertThat(documents.findById(kbId, documentId)).isEmpty();
         assertThat(runs.latestForDocument(kbId, documentId)).isEmpty();
-        assertThat(upload(kbId, "biologia.md", NOTES, false)).isNotEqualTo(documentId);
+        assertThat(upload(kbId, "biology.md", NOTES, false)).isNotEqualTo(documentId);
     }
 
     @Test
@@ -189,12 +189,12 @@ class IngestRunTest extends TestContainerBase {
         gateway.answer(Prompts.GUARD, prompt -> {
             throw new IllegalStateException("provider down");
         });
-        UUID documentId = upload(kbId, "biologia.md", NOTES, false);
+        UUID documentId = upload(kbId, "biology.md", NOTES, false);
         awaitRun(kbId, documentId, RunStatus.FAILED);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM ingest_runs WHERE document_id = ?", Integer.class,
             documentId)).isEqualTo(1);
 
-        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, LINK_TO_MEJOZA);
+        givenTheNotesAnswers(MITOSIS_BODY, MEIOSIS_BODY, LINK_TO_MEIOSIS);
         ingestion.retry(kbId, documentId);
         awaitRun(kbId, documentId, RunStatus.COMPLETED);
 
@@ -205,8 +205,8 @@ class IngestRunTest extends TestContainerBase {
     @Test
     void aDocumentThatWrotePagesCannotBeRemoved() {
         UUID kbId = insertKnowledgeBase();
-        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, LINK_TO_MEJOZA);
-        UUID documentId = upload(kbId, "biologia.md", NOTES, false);
+        givenTheNotesAnswers(MITOSIS_BODY, MEIOSIS_BODY, LINK_TO_MEIOSIS);
+        UUID documentId = upload(kbId, "biology.md", NOTES, false);
         awaitRun(kbId, documentId, RunStatus.COMPLETED);
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> ingestion.remove(kbId, documentId))
@@ -217,21 +217,21 @@ class IngestRunTest extends TestContainerBase {
     @Test
     void partialSuccessLandsAndRecordsTheFailedPageAndTheLinkToIt() {
         UUID kbId = insertKnowledgeBase();
-        givenTheNotesAnswers(MITOZA_BODY, "![schemat](https://example.org/a.png)\n", LINK_TO_MEJOZA);
+        givenTheNotesAnswers(MITOSIS_BODY, "![diagram](https://example.org/a.png)\n", LINK_TO_MEIOSIS);
 
-        IngestRun run = awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
+        IngestRun run = awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.COMPLETED);
 
         assertThat(wiki.listIndex(kbId)).extracting(IndexEntry::path)
-            .containsExactlyInAnyOrder("concepts/mitoza", "sources/biologia");
-        assertThat(wiki.findByPath(kbId, "concepts/mitoza")).map(WikiPage::markdownBody).contains(MITOZA_BODY);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::path).containsExactly("write", "concepts/mejoza"));
+            .containsExactlyInAnyOrder("concepts/mitosis", "sources/biology");
+        assertThat(wiki.findByPath(kbId, "concepts/mitosis")).map(WikiPage::markdownBody).contains(MITOSIS_BODY);
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::path).containsExactly("write", "concepts/meiosis"));
         assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::dropped).containsExactly("linkCheck", 1));
     }
 
     @Test
     void aRowWrittenBeforeFailuresWereTypedStillReadsBack() {
         UUID kbId = insertKnowledgeBase();
-        IngestRun run = awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
+        IngestRun run = awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.COMPLETED);
         jdbc.update("UPDATE ingest_runs SET failures = '[{\"step\":\"write\",\"path\":\"concepts/a\",\"reason\":\"x\"},"
             + "{\"step\":\"supersede\",\"omittedPages\":3}]'::jsonb WHERE run_id = ?", run.runId());
 
@@ -242,10 +242,10 @@ class IngestRunTest extends TestContainerBase {
     @Test
     void aNewVersionWhoseDraftsAreAllUnchangedCompletesWithNoRevisionsAndNoLogLine() {
         UUID kbId = insertKnowledgeBase();
-        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, NO_LINKS);
-        awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
+        givenTheNotesAnswers(MITOSIS_BODY, MEIOSIS_BODY, NO_LINKS);
+        awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.COMPLETED);
 
-        IngestRun second = awaitRun(kbId, upload(kbId, "biologia.md", NOTES + "\nPowtórka.\n", true),
+        IngestRun second = awaitRun(kbId, upload(kbId, "biology.md", NOTES + "\nRevision.\n", true),
             RunStatus.COMPLETED);
 
         assertThat(wiki.revisionsByRun(kbId, second.runId())).isEmpty();
@@ -258,10 +258,10 @@ class IngestRunTest extends TestContainerBase {
         gateway.reset();
         gateway.answer(Prompts.GUARD, Prompts.RELEVANT);
         gateway.answer(Prompts.EXTRACT, Prompts.json(Map.of("claims",
-            IntStream.range(0, 41).mapToObj(i -> claim("Twierdzenie " + i + ".", "Pojęcie " + i, 1, 1))
+            IntStream.range(0, 41).mapToObj(i -> claim("Claim " + i + ".", "Concept " + i, 1, 1))
                 .toList())));
 
-        IngestRun run = awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.FAILED);
+        IngestRun run = awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.FAILED);
 
         assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
             .containsExactly("Extract returned 41 claims (limit 40)", true);
@@ -272,42 +272,42 @@ class IngestRunTest extends TestContainerBase {
     void aDocumentTheGuardRejectsFailsTheRunAsNotRetryable() {
         UUID kbId = insertKnowledgeBase();
         gateway.reset();
-        gateway.answer(Prompts.GUARD, "{\"relevant\": false, \"reason\": \"To paragon.\", \"confidence\": 0.8}");
+        gateway.answer(Prompts.GUARD, "{\"relevant\": false, \"reason\": \"It is a receipt.\", \"confidence\": 0.8}");
 
-        IngestRun run = awaitRun(kbId, upload(kbId, "paragon.md", "Chleb 4,50 zł\n", false), RunStatus.FAILED);
+        IngestRun run = awaitRun(kbId, upload(kbId, "receipt.md", "Bread 4.50 USD\n", false), RunStatus.FAILED);
 
         assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
-            .containsExactly("not learning material: To paragon.", false);
+            .containsExactly("not learning material: It is a receipt.", false);
     }
 
     @Test
     void aSupersessionIsKeptOnlyOnAShownSectionOfAPageOneLinkAway() {
         UUID kbId = insertKnowledgeBase();
-        givenTheNotesAnswers("# Faza\n\nProfaza trwa godzinę. Zobacz [mejoza](/concepts/mejoza.md).\n", MEJOZA_BODY,
+        givenTheNotesAnswers("# Phase\n\nProphase takes an hour. See [meiosis](/concepts/meiosis.md).\n", MEIOSIS_BODY,
             NO_LINKS);
-        awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
+        awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.COMPLETED);
 
         gateway.reset();
         gateway.answer(Prompts.GUARD, Prompts.RELEVANT);
-        gateway.answer(Prompts.EXTRACT, extraction(claim("Profaza trwa dwie godziny.", "Mejoza", "concepts/mejoza", 1, 1)));
-        gateway.answer(Prompts.writing("concepts/mejoza"),
-            draft("Podział redukcyjny.", MEJOZA_BODY + "\n# Profaza\n\nProfaza trwa dwie godziny.\n"));
-        gateway.answer(Prompts.writing("sources/genetyka"), draft("Lekcja genetyki.", SUMMARY_BODY));
+        gateway.answer(Prompts.EXTRACT, extraction(claim("Prophase takes two hours.", "Meiosis", "concepts/meiosis", 1, 1)));
+        gateway.answer(Prompts.writing("concepts/meiosis"),
+            draft("Reductive division.", MEIOSIS_BODY + "\n# Prophase\n\nProphase takes two hours.\n"));
+        gateway.answer(Prompts.writing("sources/genetics"), draft("Genetics lesson.", SUMMARY_BODY));
         gateway.answer(Prompts.LINKS, "{\"insertions\": []}");
         gateway.answer(Prompts.SUPERSEDE, Prompts.json(Map.of("proposals", List.of(
-            Map.of("supersededPath", "concepts/mitoza", "sectionAnchor", "faza", "supersedingPath", "concepts/mejoza"),
-            Map.of("supersededPath", "sources/biologia", "sectionAnchor", "streszczenie",
-                "supersedingPath", "concepts/mejoza")))));
+            Map.of("supersededPath", "concepts/mitosis", "sectionAnchor", "phase", "supersedingPath", "concepts/meiosis"),
+            Map.of("supersededPath", "sources/biology", "sectionAnchor", "summary",
+                "supersedingPath", "concepts/meiosis")))));
 
-        IngestRun run = awaitRun(kbId, upload(kbId, "genetyka.md", "# Profaza\n\nProfaza trwa dwie godziny.\n", false),
+        IngestRun run = awaitRun(kbId, upload(kbId, "genetics.md", "# Prophase\n\nProphase takes two hours.\n", false),
             RunStatus.COMPLETED);
 
         assertThat(run.supersessionCount()).isEqualTo(1);
         assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::dropped).containsExactly("supersede", 1));
-        UUID mitoza = wiki.findByPath(kbId, "concepts/mitoza").orElseThrow().pageId();
-        assertThat(wiki.liveSupersessionsOf(kbId, List.of(mitoza)))
+        UUID mitosis = wiki.findByPath(kbId, "concepts/mitosis").orElseThrow().pageId();
+        assertThat(wiki.liveSupersessionsOf(kbId, List.of(mitosis)))
             .extracting(LiveSupersession::sectionAnchor, LiveSupersession::supersedingPath)
-            .containsExactly(tuple("faza", "concepts/mejoza"));
+            .containsExactly(tuple("phase", "concepts/meiosis"));
     }
 
     // ---------------------------------------------------------------------------
@@ -317,21 +317,21 @@ class IngestRunTest extends TestContainerBase {
     @Test
     void aConversationEditDeletesAndRetitlesLiveConceptsAndDropsWhatItMayNotChange() {
         UUID kbId = insertKnowledgeBase();
-        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, NO_LINKS);
-        awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
+        givenTheNotesAnswers(MITOSIS_BODY, MEIOSIS_BODY, NO_LINKS);
+        awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.COMPLETED);
         gateway.reset();
         gateway.answer(Prompts.EDIT, Prompts.json(Map.of("items", List.of(
-            Map.of("kind", "delete", "path", "concepts/mejoza"),
-            Map.of("kind", "delete", "path", "sources/biologia"),
-            Map.of("kind", "retitle", "path", "concepts/mitoza", "title", "Mitoza komórkowa")))));
+            Map.of("kind", "delete", "path", "concepts/meiosis"),
+            Map.of("kind", "delete", "path", "sources/biology"),
+            Map.of("kind", "retitle", "path", "concepts/mitosis", "title", "Cell mitosis")))));
 
-        IngestRun run = awaitRun(kbId, edit(kbId, "Usuń mejozę i nazwij mitozę pełniej."), RunStatus.COMPLETED);
+        IngestRun run = awaitRun(kbId, edit(kbId, "Delete meiosis and give mitosis a fuller name."), RunStatus.COMPLETED);
 
-        assertThat(wiki.findByPath(kbId, "concepts/mejoza")).isEmpty();
-        assertThat(wiki.findByPath(kbId, "sources/biologia")).isPresent();
-        assertThat(wiki.findByPath(kbId, "concepts/mitoza")).get()
-            .extracting(WikiPage::title, WikiPage::markdownBody).containsExactly("Mitoza komórkowa", MITOZA_BODY);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::item, RunFailure::path).containsExactly("delete", "sources/biologia"));
+        assertThat(wiki.findByPath(kbId, "concepts/meiosis")).isEmpty();
+        assertThat(wiki.findByPath(kbId, "sources/biology")).isPresent();
+        assertThat(wiki.findByPath(kbId, "concepts/mitosis")).get()
+            .extracting(WikiPage::title, WikiPage::markdownBody).containsExactly("Cell mitosis", MITOSIS_BODY);
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::item, RunFailure::path).containsExactly("delete", "sources/biology"));
         assertThat(LogRenderer.render(runReports.logEntries(kbId)))
             .contains("* **Edit**: conversation — 1 revised, 1 deleted.");
     }
@@ -342,7 +342,7 @@ class IngestRunTest extends TestContainerBase {
         gateway.reset();
         gateway.answer(Prompts.EDIT, "{\"items\": []}");
 
-        IngestRun run = awaitRun(kbId, edit(kbId, "Popraw to."), RunStatus.FAILED);
+        IngestRun run = awaitRun(kbId, edit(kbId, "Fix this."), RunStatus.FAILED);
 
         assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
             .containsExactly("edit named no page", false);
@@ -351,14 +351,14 @@ class IngestRunTest extends TestContainerBase {
     @Test
     void aConversationEditThatOnlyRetitlesToTheCurrentTitleFailsAsNotRetryable() {
         UUID kbId = insertKnowledgeBase();
-        givenTheNotesAnswers(MITOZA_BODY, MEJOZA_BODY, NO_LINKS);
-        awaitRun(kbId, upload(kbId, "biologia.md", NOTES, false), RunStatus.COMPLETED);
-        String title = wiki.findByPath(kbId, "concepts/mitoza").orElseThrow().title();
+        givenTheNotesAnswers(MITOSIS_BODY, MEIOSIS_BODY, NO_LINKS);
+        awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.COMPLETED);
+        String title = wiki.findByPath(kbId, "concepts/mitosis").orElseThrow().title();
         gateway.reset();
         gateway.answer(Prompts.EDIT, Prompts.json(Map.of("items", List.of(
-            Map.of("kind", "retitle", "path", "concepts/mitoza", "title", title)))));
+            Map.of("kind", "retitle", "path", "concepts/mitosis", "title", title)))));
 
-        IngestRun run = awaitRun(kbId, edit(kbId, "Nazwij mitozę tak samo."), RunStatus.FAILED);
+        IngestRun run = awaitRun(kbId, edit(kbId, "Keep the mitosis name."), RunStatus.FAILED);
 
         assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
             .containsExactly("no applicable change", false);
@@ -376,19 +376,19 @@ class IngestRunTest extends TestContainerBase {
         CountDownLatch release = new CountDownLatch(1);
         gateway.reset();
         gateway.answer(Prompts.GUARD, Prompts.RELEVANT);
-        gateway.answer("] Pierwsza lekcja", prompt -> {
+        gateway.answer("] First lesson", prompt -> {
             extracting.countDown();
             await(release);
             return extraction();
         });
         gateway.answer(Prompts.EXTRACT, extraction());
-        gateway.answer(Prompts.WRITE, draft("Lekcja.", SUMMARY_BODY));
+        gateway.answer(Prompts.WRITE, draft("Lesson.", SUMMARY_BODY));
         gateway.answer(Prompts.LINKS, "{\"insertions\": []}");
 
-        UUID first = upload(kbA, "lekcja-1.md", "Pierwsza lekcja o komórkach.\n", false);
+        UUID first = upload(kbA, "lesson-1.md", "First lesson about cells.\n", false);
         assertThat(extracting.await(TIMEOUT.toSeconds(), TimeUnit.SECONDS)).isTrue();
-        UUID second = upload(kbA, "lekcja-2.md", "Druga lekcja o komórkach.\n", false);
-        UUID elsewhere = upload(kbB, "lekcja-1.md", "Lekcja w innej bazie.\n", false);
+        UUID second = upload(kbA, "lesson-2.md", "Second lesson about cells.\n", false);
+        UUID elsewhere = upload(kbB, "lesson-1.md", "Lesson in a different knowledge base.\n", false);
 
         awaitRun(kbB, elsewhere, RunStatus.COMPLETED);
         assertThat(runs.latestForDocument(kbA, second)).map(IngestRun::status).contains(RunStatus.QUEUED);
@@ -411,10 +411,10 @@ class IngestRunTest extends TestContainerBase {
                 + " WHERE knowledge_base_id = ? AND status = 'RUNNING'", kbId);
             jdbc.update("UPDATE knowledge_bases SET active_run_id = NULL WHERE kb_id = ?", kbId);
             committing.countDown();
-            return draft("Lekcja.", SUMMARY_BODY);
+            return draft("Lesson.", SUMMARY_BODY);
         });
 
-        UUID documentId = upload(kbId, "biologia.md", NOTES, false);
+        UUID documentId = upload(kbId, "biology.md", NOTES, false);
 
         assertThat(committing.await(TIMEOUT.toSeconds(), TimeUnit.SECONDS)).isTrue();
         long until = System.nanoTime() + Duration.ofSeconds(2).toNanos();
@@ -431,21 +431,21 @@ class IngestRunTest extends TestContainerBase {
     // ---------------------------------------------------------------------------
 
     /** The guard, an extraction of two claims from {@link #NOTES}, and the three drafts and links; no supersessions. */
-    private void givenTheNotesAnswers(String mitozaBody, String mejozaBody, String links) {
+    private void givenTheNotesAnswers(String mitosisBody, String meiosisBody, String links) {
         gateway.reset();
         gateway.answer(Prompts.GUARD, Prompts.RELEVANT);
         gateway.answer(Prompts.EXTRACT, extraction(
-            claim("Mitoza to podział komórki.", "Mitoza", 0, 1),
-            claim("Mejoza wytwarza gamety.", "Mejoza", 2, 3)));
-        gateway.answer(Prompts.writing("concepts/mitoza"), draft("Podział komórki.", mitozaBody));
-        gateway.answer(Prompts.writing("concepts/mejoza"), draft("Podział redukcyjny.", mejozaBody));
-        gateway.answer(Prompts.writing("sources/biologia"), draft("Notatki z biologii.", SUMMARY_BODY));
+            claim("Mitosis is cell division.", "Mitosis", 0, 1),
+            claim("Meiosis makes gametes.", "Meiosis", 2, 3)));
+        gateway.answer(Prompts.writing("concepts/mitosis"), draft("Cell division.", mitosisBody));
+        gateway.answer(Prompts.writing("concepts/meiosis"), draft("Reductive division.", meiosisBody));
+        gateway.answer(Prompts.writing("sources/biology"), draft("Biology notes.", SUMMARY_BODY));
         gateway.answer(Prompts.LINKS, links);
         gateway.answer(Prompts.SUPERSEDE, "{\"proposals\": []}");
     }
 
     private static String extraction(Map<?, ?>... claims) {
-        return Prompts.json(Map.of("claims", List.of(claims), "chunkDigest", "Mitoza i mejoza."));
+        return Prompts.json(Map.of("claims", List.of(claims), "chunkDigest", "Mitosis and meiosis."));
     }
 
     private static Map<String, Object> claim(String text, String title, int firstBlock, int lastBlock) {

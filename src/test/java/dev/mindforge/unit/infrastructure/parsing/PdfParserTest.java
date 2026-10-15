@@ -25,13 +25,13 @@ class PdfParserTest {
 
     @Test
     void shouldReadEachNonBlankPageAsATextBlockAndTheTitleAsMetadata() throws IOException {
-        ParsedDocument parsed = parser.parse(makePdf("Biologia — lekcja 3", "Cell division", "", "Mitosis phases"));
+        ParsedDocument parsed = parser.parse(makePdf("Biology — lesson 3", "Cell division", "", "Mitosis phases"));
 
         assertThat(parsed.blocks()).containsExactly(
             ContentBlock.text("Cell division", 0),
             ContentBlock.text("Mitosis phases", 1));
         assertThat(parsed.text()).isEqualTo("Cell division\n\nMitosis phases");
-        assertThat(parsed.metadata()).isEqualTo(Map.of("Title", "Biologia — lekcja 3"));
+        assertThat(parsed.metadata()).isEqualTo(Map.of("Title", "Biology — lesson 3"));
     }
 
     @Test

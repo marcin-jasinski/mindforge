@@ -1,29 +1,29 @@
 <section class="stack" aria-labelledby="upload-heading">
-  <h2 id="upload-heading">Prześlij dokument</h2>
+  <h2 id="upload-heading">Upload a document</h2>
   <label class="dropzone" [class.over]="dragging()" (dragover)="$event.preventDefault(); dragging.set(true)"
     (dragleave)="dragging.set(false)" (drop)="drop($event)">
-    <span>{{ file()?.name ?? 'Upuść plik (Markdown, PDF, DOCX, TXT) albo wybierz go' }}</span>
+    <span>{{ file()?.name ?? 'Drop a file (Markdown, PDF, DOCX, TXT) or choose one' }}</span>
     <input type="file" accept=".md,.markdown,.pdf,.docx,.txt" (change)="choose($event)" />
   </label>
   <div class="row">
-    <button mat-flat-button type="button" [disabled]="!file()" (click)="upload()">Prześlij</button>
+    <button mat-flat-button type="button" [disabled]="!file()" (click)="upload()">Upload</button>
   </div>
   @if (uploadError(); as message) {
     <p class="error" role="alert">{{ message }}</p>
   }
   @if (collision(); as lesson) {
     <div class="stack" role="alertdialog" aria-labelledby="collision-heading">
-      <p id="collision-heading">Lekcja „{{ lesson.lessonTitle }}” już istnieje. Co to za plik?</p>
+      <p id="collision-heading">The lesson “{{ lesson.lessonTitle }}” already exists. What is this file?</p>
       <div class="row">
         <button mat-flat-button type="button" (click)="upload({ lessonId: lesson.lessonId, newVersion: true })">
-          Nowa wersja „{{ lesson.lessonTitle }}”
+          New version of “{{ lesson.lessonTitle }}”
         </button>
         <mat-form-field>
-          <mat-label>Identyfikator nowej lekcji</mat-label>
+          <mat-label>New lesson identifier</mat-label>
           <input matInput [(ngModel)]="newLessonId" pattern="[a-z0-9]+(-[a-z0-9]+)*" />
         </mat-form-field>
         <button mat-stroked-button type="button" [disabled]="!newLessonId()" (click)="upload({ lessonId: newLessonId() })">
-          Nowa lekcja
+          New lesson
         </button>
       </div>
     </div>
@@ -31,7 +31,7 @@
 </section>
 
 <section aria-labelledby="runs-heading">
-  <h2 id="runs-heading">Ostatnie przebiegi</h2>
+  <h2 id="runs-heading">Recent runs</h2>
   <mat-list>
     @for (run of progress.runs(); track run.runId) {
       <mat-list-item>
@@ -43,37 +43,37 @@
           }
         </span>
         <span matListItemLine>
-          {{ run.created }} utworzone · {{ run.revised }} zmienione · {{ run.deleted }} usunięte
+          {{ run.created }} created · {{ run.revised }} revised · {{ run.deleted }} deleted
           @if (run.failureReason) {
             <span class="error"> · {{ reasonLabel(run.failureReason) }}</span>
           }
         </span>
         @if (percent(run.runId); as value) {
-          <mat-progress-bar mode="determinate" [value]="value" [attr.aria-label]="'Zapisane strony: ' + value + '%'" />
+          <mat-progress-bar mode="determinate" [value]="value" [attr.aria-label]="'Pages written: ' + value + '%'" />
         }
         @if (canRetry(run)) {
-          <button mat-button type="button" matListItemMeta (click)="retry(run)">Ponów</button>
+          <button mat-button type="button" matListItemMeta (click)="retry(run)">Retry</button>
         }
       </mat-list-item>
     } @empty {
-      <p>Brak przebiegów.</p>
+      <p>No runs yet.</p>
     }
   </mat-list>
 </section>
 
 <section aria-labelledby="documents-heading">
-  <h2 id="documents-heading">Dokumenty</h2>
+  <h2 id="documents-heading">Documents</h2>
   <mat-list>
     @for (doc of documents(); track doc.documentId) {
       <mat-list-item>
         <span matListItemTitle>{{ doc.lessonTitle }} <small>({{ doc.sourceFilename }})</small></span>
-        <span matListItemLine>{{ doc.latestRun ? statusLabel(doc.latestRun.status) : 'bez przebiegu' }}</span>
+        <span matListItemLine>{{ doc.latestRun ? statusLabel(doc.latestRun.status) : 'no run' }}</span>
         @if (doc.latestRun?.status === 'FAILED') {
-          <button mat-button type="button" matListItemMeta (click)="remove(doc)">Usuń</button>
+          <button mat-button type="button" matListItemMeta (click)="remove(doc)">Remove</button>
         }
       </mat-list-item>
     } @empty {
-      <p>Nie przesłano jeszcze żadnego dokumentu.</p>
+      <p>No documents uploaded yet.</p>
     }
   </mat-list>
 </section>

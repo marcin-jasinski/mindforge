@@ -50,7 +50,7 @@ writer.
 
 ### 4. A duplicated literal
 
-`"(nowa strona)"` appears at `IngestPipeline.java:91` and `PageWriter.java:51`. It is the
+`"(new page)"` appears at `IngestPipeline.java:91` and `PageWriter.java:51`. It is the
 placeholder a page writer sees for a create. If one changes and the other does not, the pipeline
 and the prompt disagree about what a new page looks like. Promote it to one constant — most
 naturally on `PageWriter`, since it is the prompt's vocabulary.
@@ -70,7 +70,7 @@ notice.
 3. Extract the lifecycle wrapper — something like
    `runs.drive(kbId, run, state -> { ... })` owning start/catch/fail — and call it from both
    `IngestPipeline` and `LintService`.
-4. Move `"(nowa strona)"` to a single constant.
+4. Move `"(new page)"` to a single constant.
 
 Keep this genuinely small. If step 3 turns into a framework, stop and do only steps 1, 2 and 4;
 the duplication of a 20-line try/catch is cheaper than an abstraction nobody can follow.
@@ -88,7 +88,7 @@ choice rather than an oversight, and revisit only if a future phase adds a step.
 - [x] One shared `RunState`, used by both services.
 - [x] One code path writes `step_versions`.
 - [x] `LintService.review`/`fail` no longer take the three-parameter clump.
-- [x] `"(nowa strona)"` exists once.
+- [x] `"(new page)"` exists once.
 - [ ] No new abstraction beyond the above; the diff is a net deletion.
 
 ## Resolution
@@ -100,7 +100,7 @@ Steps 1, 2 and 4 done; step 3 deliberately skipped, as the ticket allows.
   the `run, failures, versions` triple.
 - `RunState.version(...)` is the single writer of `step_versions` keys; the inline `versions.put(getSimpleName...)` in
   Lint is gone.
-- `"(nowa strona)"` is `PageWriter.NEW_PAGE`, used by the prompt and by `IngestPipeline.linkableIndex`.
+- `"(new page)"` is `PageWriter.NEW_PAGE`, used by the prompt and by `IngestPipeline.linkableIndex`.
 - Lifecycle wrapper (step 3) not extracted: the two bodies differ (ingest has retryable failures, a typed
   `IngestRunFailedException` and a second commit after the try), so a shared `drive(...)` would need flags and
   callbacks, which is the framework the ticket warns against. The 20-line try/catch stays in both services.

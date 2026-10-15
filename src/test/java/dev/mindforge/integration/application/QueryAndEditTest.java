@@ -84,17 +84,17 @@ class QueryAndEditTest extends TestContainerBase {
         UUID other = insertUser();
         Interaction mine = interactions.createInteraction(kbId, new Interaction(UUID.randomUUID(), kbId, owner, Instant.now()));
         Interaction theirs = interactions.createInteraction(kbId, new Interaction(UUID.randomUUID(), kbId, other, Instant.now()));
-        interactions.addTurn(kbId, mine.interactionId(), new InteractionTurn(UUID.randomUUID(), "Pierwsze?", "Tak.",
-            List.of("concepts/mitoza"), Instant.now().minusSeconds(5)));
-        interactions.addTurn(kbId, mine.interactionId(), new InteractionTurn(UUID.randomUUID(), "Drugie?", "Nie.",
+        interactions.addTurn(kbId, mine.interactionId(), new InteractionTurn(UUID.randomUUID(), "First?", "Yes.",
+            List.of("concepts/mitosis"), Instant.now().minusSeconds(5)));
+        interactions.addTurn(kbId, mine.interactionId(), new InteractionTurn(UUID.randomUUID(), "Second?", "No.",
             List.of(), Instant.now()));
-        interactions.addTurn(kbId, theirs.interactionId(), new InteractionTurn(UUID.randomUUID(), "Cudze?", "Tak.",
+        interactions.addTurn(kbId, theirs.interactionId(), new InteractionTurn(UUID.randomUUID(), "Someone else's?", "Yes.",
             List.of(), Instant.now()));
 
         assertThat(interactions.listForUser(kbId, owner))
-            .containsExactly(new TurnSummary("Drugie?", "Nie."), new TurnSummary("Pierwsze?", "Tak."));
+            .containsExactly(new TurnSummary("Second?", "No."), new TurnSummary("First?", "Yes."));
         assertThat(interactions.recentTurns(kbId, mine.interactionId(), 5).getFirst().usedPagePaths())
-            .containsExactly("concepts/mitoza");
+            .containsExactly("concepts/mitosis");
     }
 
     @Test
@@ -117,32 +117,32 @@ class QueryAndEditTest extends TestContainerBase {
         UUID kbId = insertKnowledgeBase();
         UUID otherKb = insertKnowledgeBase();
         completedRun(kbId, runId -> {
-            wiki.savePage(kbId, makeWrite("concepts/mitoza", "Mitoza", "Dzielenie jąder.", "Treść."), runId);
-            wiki.savePage(kbId, makeWrite("concepts/mejoza", "Mejoza", "Podział redukcyjny 100%.", "Gamety."), runId);
-            wiki.savePage(kbId, makeWrite("concepts/dna", "DNA", "Kwas.", "Zawiera chromosomy i geny."), runId);
+            wiki.savePage(kbId, makeWrite("concepts/mitosis", "Mitosis", "Nuclear division.", "Content."), runId);
+            wiki.savePage(kbId, makeWrite("concepts/meiosis", "Meiosis", "Reductive division 100%.", "Gametes."), runId);
+            wiki.savePage(kbId, makeWrite("concepts/dna", "DNA", "Acid.", "Contains chromosomes and genes."), runId);
         });
-        completedRun(otherKb, runId -> wiki.savePage(otherKb, makeWrite("concepts/mitoza", "Mitoza", "Obca.", "X."), runId));
+        completedRun(otherKb, runId -> wiki.savePage(otherKb, makeWrite("concepts/mitosis", "Mitosis", "Foreign.", "X."), runId));
 
-        assertThat(search.search(kbId, "mito")).extracting(IndexEntry::path).containsExactly("concepts/mitoza");
-        assertThat(search.search(kbId, "redukcyjny")).extracting(IndexEntry::path).containsExactly("concepts/mejoza");
-        assertThat(search.search(kbId, "chromosomy")).extracting(IndexEntry::path).containsExactly("concepts/dna");
-        assertThat(search.search(kbId, "100%")).extracting(IndexEntry::path).containsExactly("concepts/mejoza");
+        assertThat(search.search(kbId, "mito")).extracting(IndexEntry::path).containsExactly("concepts/mitosis");
+        assertThat(search.search(kbId, "reductive")).extracting(IndexEntry::path).containsExactly("concepts/meiosis");
+        assertThat(search.search(kbId, "chromosomes")).extracting(IndexEntry::path).containsExactly("concepts/dna");
+        assertThat(search.search(kbId, "100%")).extracting(IndexEntry::path).containsExactly("concepts/meiosis");
         assertThat(search.search(kbId, "m")).isEmpty();
     }
 
     @Test
     void aConversationEditIsAnUndeduplicatedDocumentWhoseRunChangesTheWiki() {
         UUID kbId = insertKnowledgeBase();
-        completedRun(kbId, runId -> wiki.savePage(kbId, makeWrite("concepts/mitoza", "Mitoza", "Opis.", "# Faza\n\nA.\n"),
+        completedRun(kbId, runId -> wiki.savePage(kbId, makeWrite("concepts/mitosis", "Mitosis", "Description.", "# Phase\n\nA.\n"),
             runId));
         gateway.reset();
-        gateway.answer(Prompts.EDIT, "{\"items\": [{\"kind\": \"delete\", \"path\": \"concepts/mitoza\"}]}");
+        gateway.answer(Prompts.EDIT, "{\"items\": [{\"kind\": \"delete\", \"path\": \"concepts/mitosis\"}]}");
 
-        IngestRun first = awaitRun(kbId, ingestion.submitEdit(kbId, ownerOf(kbId), "Usuń mitozę.", null));
-        IngestRun second = awaitRun(kbId, ingestion.submitEdit(kbId, ownerOf(kbId), "Usuń mitozę.", null));
+        IngestRun first = awaitRun(kbId, ingestion.submitEdit(kbId, ownerOf(kbId), "Delete mitosis.", null));
+        IngestRun second = awaitRun(kbId, ingestion.submitEdit(kbId, ownerOf(kbId), "Delete mitosis.", null));
 
         assertThat(first.status()).isEqualTo(RunStatus.COMPLETED);
-        assertThat(wiki.findByPath(kbId, "concepts/mitoza")).isEmpty();
+        assertThat(wiki.findByPath(kbId, "concepts/mitosis")).isEmpty();
         assertThat(second).extracting(IngestRun::status, IngestRun::failureReason, IngestRun::retryable)
             .containsExactly(RunStatus.FAILED, "no applicable change", false);
         assertThat(jdbc.queryForList("SELECT lesson_id, upload_source, content_hash FROM documents"
@@ -152,7 +152,7 @@ class QueryAndEditTest extends TestContainerBase {
 
         gateway.reset();
         gateway.answer(Prompts.EDIT, "{\"items\": []}");
-        assertThat(awaitRun(kbId, ingestion.submitEdit(kbId, ownerOf(kbId), "Popraw to.", null)))
+        assertThat(awaitRun(kbId, ingestion.submitEdit(kbId, ownerOf(kbId), "Fix this.", null)))
             .extracting(IngestRun::failureReason, IngestRun::retryable).containsExactly("edit named no page", false);
         assertThatExceptionOfType(NotFoundException.class)
             .isThrownBy(() -> flashcards.deck(kbId, new StudyScope.Lesson("conversation")));
@@ -187,8 +187,8 @@ class QueryAndEditTest extends TestContainerBase {
     private void completedRun(UUID kbId, Consumer<UUID> writes) {
         UUID documentId = UUID.randomUUID();
         jdbc.update("INSERT INTO documents (document_id, knowledge_base_id, lesson_id, lesson_title, content_hash,"
-            + " source_filename, mime_type, upload_source, uploaded_by) SELECT ?, kb_id, 'lekcja', 'Lekcja', ?,"
-            + " 'lekcja.md', 'text/markdown', 'API', owner_id FROM knowledge_bases WHERE kb_id = ?",
+            + " source_filename, mime_type, upload_source, uploaded_by) SELECT ?, kb_id, 'lesson', 'Lesson', ?,"
+            + " 'lesson.md', 'text/markdown', 'API', owner_id FROM knowledge_bases WHERE kb_id = ?",
             documentId, documentId.toString(), kbId);
         UUID runId = runs.enqueue(kbId, IngestRun.queued(kbId, RunKind.INGEST, documentId, null)).runId();
         assertThat(runs.claim(kbId, runId)).isTrue();

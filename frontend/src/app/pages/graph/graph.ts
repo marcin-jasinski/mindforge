@@ -10,13 +10,13 @@ const SMALL_GRAPH = 12;
   selector: 'app-graph',
   standalone: true,
   template: `
-    <p>Pojęcia i źródła połączone linkami. Przerywana obwódka to strona, której jeszcze nie ma.</p>
-    <ul class="legend" aria-label="Legenda">
-      <li><span class="swatch concept"></span> Pojęcie</li>
-      <li><span class="swatch source"></span> Podsumowanie źródła</li>
-      <li><span class="swatch dangling"></span> Brakująca strona</li>
+    <p>Concepts and sources connected by links. A dashed outline is a page that does not exist yet.</p>
+    <ul class="legend" aria-label="Legend">
+      <li><span class="swatch concept"></span> Concept</li>
+      <li><span class="swatch source"></span> Source summary</li>
+      <li><span class="swatch dangling"></span> Missing page</li>
     </ul>
-    <div #canvas class="canvas" role="img" aria-label="Graf stron i linków między nimi"></div>
+    <div #canvas class="canvas" role="img" aria-label="Graph of the pages and the links between them"></div>
   `,
   styles: `
     .canvas { height: 70vh; border: 1px solid var(--mat-sys-outline-variant); border-radius: 0.5rem; }

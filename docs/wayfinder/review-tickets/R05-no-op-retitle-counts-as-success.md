@@ -39,7 +39,7 @@ if (succeeded == 0) {
 ## Failure scenario
 
 A conversation edit whose only instruction is a retitle to the page's current title — e.g. the
-user says "rename Mitoza to Mitoza", or more realistically the model proposes a retitle that
+user says "rename Mitosis to Mitosis", or more realistically the model proposes a retitle that
 normalises to the existing title. Then:
 
 - `plan.retitles()` has one entry, `drafted` is empty, `plan.deletions()` is empty.

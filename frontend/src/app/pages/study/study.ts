@@ -39,12 +39,12 @@ export class Study implements OnInit {
   readonly finished = signal(false);
   /** SM-2 grades: 0-2 forget the card, 3-5 remember it with growing ease. */
   readonly ratings = [
-    { value: 0, label: 'Zupełnie nie pamiętam' },
-    { value: 1, label: 'Pamiętam mgliście' },
-    { value: 2, label: 'Prawie pamiętam' },
-    { value: 3, label: 'Pamiętam z trudem' },
-    { value: 4, label: 'Pamiętam' },
-    { value: 5, label: 'Pamiętam bez wysiłku' },
+    { value: 0, label: 'No memory at all' },
+    { value: 1, label: 'Vague memory' },
+    { value: 2, label: 'Almost remembered' },
+    { value: 3, label: 'Remembered with difficulty' },
+    { value: 4, label: 'Remembered' },
+    { value: 5, label: 'Remembered with no effort' },
   ];
   /** Cards and quiz questions are cut by a model on demand and can take minutes on a slow one. */
   readonly loadingDeck = signal(false);
@@ -150,7 +150,7 @@ export class Study implements OnInit {
     settle();
     const error = response.error as ApiError | null;
     this.error.set(error?.code === 'NOT_FOUND'
-      ? 'Brak stron do nauki w tym zakresie — najpierw prześlij dokument i poczekaj na koniec przetwarzania.'
+      ? 'There are no pages to study in this scope — upload a document first and wait until the ingest ends.'
       : apiErrorMessage(error));
   }
 

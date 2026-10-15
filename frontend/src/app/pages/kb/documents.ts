@@ -97,7 +97,7 @@ export class Documents implements OnInit {
           this.collision.set({ lessonId: error.lessonId ?? '', lessonTitle: error.lessonTitle ?? '' });
           this.newLessonId.set(`${error.lessonId}-2`);
         } else {
-          this.uploadError.set(apiErrorMessage(error, 'Nie udało się przesłać pliku.'));
+          this.uploadError.set(apiErrorMessage(error, 'The file could not be uploaded.'));
         }
       },
     });
@@ -105,7 +105,7 @@ export class Documents implements OnInit {
 
   remove(doc: DocumentView): void {
     // ponytail: native confirm, as for a revert; a MatDialog when it needs to say what else goes with the document
-    if (confirm(`Usunąć dokument „${doc.lessonTitle}”? Plik będzie można przesłać ponownie.`)) {
+    if (confirm(`Remove the document “${doc.lessonTitle}”? You can upload the file again.`)) {
       this.wiki.removeDocument(this.kbId(), doc.documentId).subscribe(() => {
         this.loadDocuments();
         this.progress.reload(this.kbId());
@@ -122,9 +122,9 @@ export class Documents implements OnInit {
   protected readonly statusLabel = runStatusLabel;
   protected readonly reasonLabel = failureReasonLabel;
 
-  /** "Przetwarzanie · photosynthesis"; a revert has no subject, so no dangling separator. */
+  /** "Ingest · photosynthesis"; a revert has no subject, so no dangling separator. */
   runTitle(run: RunSummary): string {
-    const subject = run.conversation ? 'rozmowa' : run.lessonTitle;
+    const subject = run.conversation ? 'conversation' : run.lessonTitle;
     return subject ? `${runKindLabel(run.kind)} · ${subject}` : runKindLabel(run.kind);
   }
 

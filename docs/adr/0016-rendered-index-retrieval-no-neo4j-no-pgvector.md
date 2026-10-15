@@ -6,8 +6,8 @@ Extract uses it to propose a target page per claim; Query uses it to select page
 answering. The cross-link graph is `page_links` in PostgreSQL. This supersedes
 [ADR 0005](0005-pgvector-no-dedicated-vector-db.md) and [ADR 0006](0006-neo4j-derived-projection.md).
 
-Lexical-first retrieval fails MindForge specifically. It is Polish by default, and PostgreSQL
-ships no Polish stemming dictionary; no lexical tier equates a synonym with a page title. In a
+Lexical-first retrieval fails MindForge specifically. Its content can be in any language, often
+Polish, and PostgreSQL ships no Polish stemming dictionary; no lexical tier equates a synonym with a page title. In a
 wiki that compounds, every retrieval miss is a **duplicate page**. A model reading titles and
 descriptions handles inflection and synonyms, at ~30 tokens per page.
 

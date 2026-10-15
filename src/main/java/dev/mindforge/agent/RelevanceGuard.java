@@ -14,7 +14,7 @@ import dev.mindforge.infrastructure.ai.PromptLoader;
 /** Decides whether an uploaded document is learning material at all, before anything is extracted from it. */
 public class RelevanceGuard {
 
-    public static final String VERSION = "1";
+    public static final String VERSION = "2";
     public static final ModelTier TIER = ModelTier.SMALL;
 
     private final AIGateway gateway;

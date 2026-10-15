@@ -1,15 +1,15 @@
 <section class="stack" aria-labelledby="scope-heading">
-  <h2 id="scope-heading">Zakres nauki</h2>
+  <h2 id="scope-heading">Study scope</h2>
   <mat-radio-group class="row" [(ngModel)]="scope" aria-labelledby="scope-heading">
-    <mat-radio-button value="whole">Cała baza wiedzy</mat-radio-button>
-    <mat-radio-button value="lesson">Lekcja</mat-radio-button>
+    <mat-radio-button value="whole">Whole knowledge base</mat-radio-button>
+    <mat-radio-button value="lesson">Lesson</mat-radio-button>
     @if (pageId()) {
-      <mat-radio-button value="page">Ta strona i strony, do których linkuje</mat-radio-button>
+      <mat-radio-button value="page">This page and the pages it links to</mat-radio-button>
     }
   </mat-radio-group>
   @if (scope() === 'lesson') {
     <mat-form-field>
-      <mat-label>Lekcja</mat-label>
+      <mat-label>Lesson</mat-label>
       <mat-select [(ngModel)]="lessonId">
         @for (lesson of lessons(); track lesson.id) {
           <mat-option [value]="lesson.id">{{ lesson.title }}</mat-option>
@@ -18,14 +18,14 @@
     </mat-form-field>
   }
   <div class="row">
-    <button mat-flat-button type="button" [disabled]="loadingDeck()" (click)="openDeck()">Otwórz fiszki</button>
-    <button mat-stroked-button type="button" [disabled]="startingQuiz()" (click)="startQuiz()">Rozpocznij quiz</button>
+    <button mat-flat-button type="button" [disabled]="loadingDeck()" (click)="openDeck()">Open flashcards</button>
+    <button mat-stroked-button type="button" [disabled]="startingQuiz()" (click)="startQuiz()">Start quiz</button>
   </div>
   @if (loadingDeck()) {
-    <p role="status">Dopisuję brakujące fiszki — te, które już są, możesz przeglądać od razu…</p>
+    <p role="status">Adding the missing flashcards — you can review the existing ones now…</p>
   }
   @if (startingQuiz()) {
-    <p role="status">Układam pytania do quizu — to chwilę potrwa…</p>
+    <p role="status">Writing the quiz questions — this can take a moment…</p>
   }
   @if (error(); as message) {
     <p class="error" role="alert">{{ message }}</p>
@@ -34,23 +34,23 @@
 
 @if (cards().length) {
   <section class="stack" aria-labelledby="cards-heading">
-    <h2 id="cards-heading">Fiszki ({{ cardIndex() + 1 }} / {{ cards().length }})</h2>
+    <h2 id="cards-heading">Flashcards ({{ cardIndex() + 1 }} / {{ cards().length }})</h2>
     @if (card(); as current) {
       <p class="front">{{ current.front }}</p>
       @if (showBack()) {
         <p class="back">{{ current.back }}</p>
-        <div class="row" role="group" aria-label="Jak dobrze pamiętasz?">
+        <div class="row" role="group" aria-label="How well do you remember?">
           @for (rating of ratings; track rating.value) {
             <button mat-stroked-button type="button" [attr.aria-label]="rating.value + ' — ' + rating.label"
               [title]="rating.label" (click)="rate(rating.value)">{{ rating.value }}</button>
           }
         </div>
-        <small>0 — zupełnie nie pamiętam · 5 — pamiętam bez wysiłku</small>
+        <small>0 — no memory at all · 5 — remembered with no effort</small>
       } @else {
-        <button mat-flat-button type="button" (click)="showBack.set(true)">Pokaż odpowiedź</button>
+        <button mat-flat-button type="button" (click)="showBack.set(true)">Show answer</button>
       }
     } @else {
-      <p>To wszystkie fiszki na dziś.</p>
+      <p>These are all the flashcards for today.</p>
     }
   </section>
 }
@@ -59,23 +59,23 @@
   <section class="stack" aria-labelledby="quiz-heading">
     <h2 id="quiz-heading">Quiz</h2>
     @if (question(); as q) {
-      <p>Pytanie {{ q.index }} z {{ q.total }}: {{ q.question }}</p>
+      <p>Question {{ q.index }} of {{ q.total }}: {{ q.question }}</p>
       @if (evaluation(); as graded) {
-        <p role="status">Ocena {{ graded.score }} / 5 — {{ graded.feedback }}</p>
-        <button mat-flat-button type="button" (click)="next()">Dalej</button>
+        <p role="status">Score {{ graded.score }} / 5 — {{ graded.feedback }}</p>
+        <button mat-flat-button type="button" (click)="next()">Next</button>
       } @else {
         <mat-form-field>
-          <mat-label>Twoja odpowiedź</mat-label>
+          <mat-label>Your answer</mat-label>
           <textarea matInput [(ngModel)]="answer" rows="3"></textarea>
         </mat-form-field>
-        <button mat-flat-button type="button" [disabled]="!answer().trim() || grading()" (click)="submitAnswer()">Sprawdź</button>
+        <button mat-flat-button type="button" [disabled]="!answer().trim() || grading()" (click)="submitAnswer()">Check</button>
         @if (grading()) {
-          <p role="status">Sprawdzam odpowiedź…</p>
+          <p role="status">Checking the answer…</p>
         }
       }
     }
     @if (finished()) {
-      <p>Koniec quizu.</p>
+      <p>End of the quiz.</p>
     }
   </section>
 }

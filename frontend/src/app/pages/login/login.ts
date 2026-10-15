@@ -34,8 +34,8 @@ export class Login implements OnInit {
     const failure = this.route.snapshot.queryParamMap;
     if (failure.has('error')) {
       this.error.set(failure.get('error') === 'email'
-        ? 'Dostawca nie udostępnił zweryfikowanego adresu e-mail, więc nie można zalogować. Użyj e-maila i hasła.'
-        : 'Logowanie przez zewnętrznego dostawcę nie powiodło się. Spróbuj ponownie albo użyj e-maila.');
+        ? 'The provider did not share a verified e-mail address, so you cannot sign in. Use your e-mail and password.'
+        : 'Sign-in with the external provider failed. Try again or use your e-mail.');
     }
     this.auth.providers().subscribe((providers) => this.providers.set(providers));
   }
@@ -51,7 +51,7 @@ export class Login implements OnInit {
       : this.auth.login(this.email(), this.password());
     request.subscribe({
       next: () => this.router.navigateByUrl('/dashboard'),
-      error: (response) => this.error.set(apiErrorMessage(response.error as ApiError | null, 'Nie udało się zalogować.')),
+      error: (response) => this.error.set(apiErrorMessage(response.error as ApiError | null, 'Sign-in failed.')),
     });
   }
 }

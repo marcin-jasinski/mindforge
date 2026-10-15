@@ -52,7 +52,7 @@ indexed for a graph tier.
 **Inherited from T06.** The retrieval surface is one projected root index — `* [title](/path.md) - description`
 per page, sectioned by type — rendered by the same code that writes export's `index.md` and the Write step's
 linkable index. Pages gained a one-sentence `description` for exactly this. Links store `target_path` (T06
-renamed `slug` → `path`, e.g. `concepts/mitoza`). An exact path match is the same page; **synonyms that
+renamed `slug` → `path`, e.g. `concepts/mitosis`). An exact path match is the same page; **synonyms that
 slugify differently are this ticket's problem**, on the ingest critical path via Resolve. If Query files
 answers back, this ticket adds their page type and directory — T06 left none for them.
 
@@ -91,7 +91,7 @@ Ingest:       blocks + index ──Extract (LARGE)──▶ claims, each with a 
 The projected root index (T06: `* [title](/path.md) - description`, one line per live page) is what the model reads
 to decide which pages matter. It is rendered fresh per call, so it cannot be stale (T02 decision 6).
 
-- **Why not lexical-first.** MindForge is Polish by default, and Postgres ships no Polish text-search dictionary:
+- **Why not lexical-first.** MindForge content is often Polish, and Postgres ships no Polish text-search dictionary:
   `to_tsvector('polish', …)` does not exist without installing ispell files. A `simple` configuration cannot equate
   *mitozy* with *mitoza*, and no lexical tier equates *podział mitotyczny* with *Mitoza*. On T04's own criterion
   every such miss is a **duplicate page**, the compounding failure mode. A model reading titles and descriptions

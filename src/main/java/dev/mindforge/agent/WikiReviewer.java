@@ -19,7 +19,7 @@ import dev.mindforge.infrastructure.ai.PromptLoader;
  */
 public class WikiReviewer {
 
-    public static final String VERSION = "1";
+    public static final String VERSION = "2";
     public static final ModelTier TIER = ModelTier.LARGE;
 
     private final AIGateway gateway;

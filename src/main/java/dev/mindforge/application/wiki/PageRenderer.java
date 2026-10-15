@@ -82,7 +82,7 @@ public final class PageRenderer {
         Map<String, String> lines = new LinkedHashMap<>();
         sources.stream().sorted(Comparator.comparing(SourceCitation::uploadedAt)).forEach(source -> {
             if (source.conversation()) {
-                lines.put(source.documentId().toString(), "Rozmowa, " + dateOf(source));
+                lines.put(source.documentId().toString(), "Conversation, " + dateOf(source));
             } else {
                 // the newest version of a lesson names it
                 lines.remove(source.lessonId());

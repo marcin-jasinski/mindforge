@@ -111,13 +111,13 @@ at commit 2 (`INGEST`) or deleted (`REVERT`). Page counts stay derived from `pag
 The final vocabulary amends T11 decision 4. Only non-zero counts are listed:
 
 ```markdown
-* **Ingest**: [Biologia — lekcja 3](/sources/biologia-lekcja-3.md) — 2 created, 5 revised, 1 claim superseded.
+* **Ingest**: [Biology — lesson 3](/sources/biology-lesson-3.md) — 2 created, 5 revised, 1 claim superseded.
 * **Edit**: conversation — 1 revised, 1 deleted.
 * **Lint**: links added to 12 pages.
-* **Revert**: undid the ingest of 2026-09-09 ([Biologia — lekcja 2](/sources/biologia-lekcja-2.md)) — 3 pages restored, 2 pages removed, 1 supersession removed.
+* **Revert**: undid the ingest of 2026-09-09 ([Biology — lesson 2](/sources/biology-lesson-2.md)) — 3 pages restored, 2 pages removed, 1 supersession removed.
 * **Revert**: undid the edit of 2026-09-09 — 1 page restored.
 * **Revert**: undid the Lint of 2026-09-09 — 12 pages restored.
-* **Revert**: removed 1 supersession from the ingest of 2026-09-09 ([Biologia — lekcja 2](/sources/biologia-lekcja-2.md)).
+* **Revert**: removed 1 supersession from the ingest of 2026-09-09 ([Biology — lesson 2](/sources/biology-lesson-2.md)).
 ```
 
 How each count is derived from the run's revisions:

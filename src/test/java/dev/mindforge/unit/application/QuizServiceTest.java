@@ -55,85 +55,85 @@ class QuizServiceTest {
 
     @Test
     void shouldTargetWeakPagesFirstThenUnstudiedByCreationThenTheRest() {
-        WikiPage strong = makePage("concepts/mocna", 1);
-        WikiPage unstudiedLater = makePage("concepts/pozniejsza", 3);
-        WikiPage weak = makePage("concepts/slaba", 4);
-        WikiPage unstudiedEarlier = makePage("concepts/wczesniejsza", 2);
+        WikiPage strong = makePage("concepts/strong", 1);
+        WikiPage unstudiedLater = makePage("concepts/later", 3);
+        WikiPage weak = makePage("concepts/weak", 4);
+        WikiPage unstudiedEarlier = makePage("concepts/earlier", 2);
         givenPages(strong, unstudiedLater, weak, unstudiedEarlier);
         when(study.pageScores(KB)).thenReturn(List.of(new PageScore(strong.pageId(), 4.5),
             new PageScore(weak.pageId(), 1.0)));
-        gateway.answer(Prompts.QUIZ, questionAbout("concepts/slaba"));
+        gateway.answer(Prompts.QUIZ, questionAbout("concepts/weak"));
 
         makeService().start(KB, USER, new StudyScope.WholeKnowledgeBase());
 
         String prompt = gateway.recordedCalls().getFirst().prompt();
-        assertThat(List.of("=== concepts/slaba", "=== concepts/wczesniejsza", "=== concepts/pozniejsza",
-            "=== concepts/mocna")).isSortedAccordingTo((a, b) -> Integer.compare(prompt.indexOf(a), prompt.indexOf(b)));
+        assertThat(List.of("=== concepts/weak", "=== concepts/earlier", "=== concepts/later",
+            "=== concepts/strong")).isSortedAccordingTo((a, b) -> Integer.compare(prompt.indexOf(a), prompt.indexOf(b)));
     }
 
     @Test
     void shouldAskAboutAPageAndItsDirectNeighboursOnly() {
-        WikiPage mitoza = makePage("concepts/mitoza", 1);
-        WikiPage chromosom = makePage("concepts/chromosom", 2);
+        WikiPage mitosis = makePage("concepts/mitosis", 1);
+        WikiPage chromosome = makePage("concepts/chromosome", 2);
         WikiPage dna = makePage("concepts/dna", 3);
         givenPages();
-        when(wiki.findById(KB, mitoza.pageId())).thenReturn(Optional.of(mitoza));
+        when(wiki.findById(KB, mitosis.pageId())).thenReturn(Optional.of(mitosis));
         when(wiki.outboundLinks(eq(KB), any())).thenAnswer(call -> Stream.of(
-                new PageLink(mitoza.pageId(), chromosom.path(), null), new PageLink(chromosom.pageId(), dna.path(), null))
+                new PageLink(mitosis.pageId(), chromosome.path(), null), new PageLink(chromosome.pageId(), dna.path(), null))
             .filter(link -> call.<Collection<UUID>>getArgument(1).contains(link.pageId())).toList());
-        when(wiki.findByPaths(eq(KB), any())).thenAnswer(call -> Stream.of(mitoza, chromosom, dna)
+        when(wiki.findByPaths(eq(KB), any())).thenAnswer(call -> Stream.of(mitosis, chromosome, dna)
             .filter(page -> call.<Collection<String>>getArgument(1).contains(page.path())).toList());
-        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitoza"));
+        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitosis"));
 
-        makeService().start(KB, USER, new StudyScope.Page(mitoza.pageId()));
+        makeService().start(KB, USER, new StudyScope.Page(mitosis.pageId()));
 
         assertThat(gateway.recordedCalls().getFirst().prompt())
-            .contains("=== concepts/mitoza", "=== concepts/chromosom").doesNotContain("=== concepts/dna");
+            .contains("=== concepts/mitosis", "=== concepts/chromosome").doesNotContain("=== concepts/dna");
     }
 
     @Test
     void shouldKeepReferenceAnswersInTheSessionAndHandOnlyTheQuestionOut() {
-        WikiPage page = makePage("concepts/mitoza", 1);
+        WikiPage page = makePage("concepts/mitosis", 1);
         givenPages(page);
-        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitoza").replace("]}", ", {\"pagePath\": \"concepts/zmyslona\","
-            + " \"question\": \"Zmyślone?\", \"referenceAnswer\": \"Tak.\"}]}"));
+        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitosis").replace("]}", ", {\"pagePath\": \"concepts/made-up\","
+            + " \"question\": \"Made up?\", \"referenceAnswer\": \"Yes.\"}]}"));
         QuizService service = makeService();
 
         QuizSession session = service.start(KB, USER, new StudyScope.WholeKnowledgeBase());
         when(sessions.find(eq(KB), eq(session.sessionId()), any())).thenReturn(Optional.of(session));
 
         assertThat(session.questions()).singleElement().satisfies(question -> assertThat(question.referenceAnswer())
-            .isEqualTo("Podział komórki."));
+            .isEqualTo("Cell division."));
         assertThat(service.next(KB, USER, session.sessionId())).contains(new QuizService.NextQuestion(1, 1,
-            "Co to mitoza?"));
+            "What is mitosis?"));
         assertThatExceptionOfType(NotOwnerException.class)
             .isThrownBy(() -> service.next(KB, UUID.randomUUID(), session.sessionId()));
     }
 
     @Test
     void shouldGradeTheCurrentQuestionRecordItsScoreAndRefuseAnswersOnceFinished() {
-        WikiPage page = makePage("concepts/mitoza", 1);
+        WikiPage page = makePage("concepts/mitosis", 1);
         givenPages(page);
-        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitoza"));
+        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitosis"));
         gateway.answer(Prompts.GRADE, "{\"score\": 9, \"feedback\": \"Dobrze.\"}");
         QuizService service = makeService();
         QuizSession session = service.start(KB, USER, new StudyScope.WholeKnowledgeBase());
         when(sessions.find(eq(KB), eq(session.sessionId()), any())).thenReturn(Optional.of(session),
             Optional.of(session.advanced()));
 
-        QuizService.Graded graded = service.answer(KB, USER, session.sessionId(), "Podział komórki.");
+        QuizService.Graded graded = service.answer(KB, USER, session.sessionId(), "Cell division.");
 
         assertThat(graded.evaluation().score()).isEqualTo(5);
         assertThat(graded.finished()).isTrue();
         verify(study).recordQuizScore(eq(KB), eq(page.pageId()), eq(5), any());
         verify(sessions).updateCursor(KB, session.sessionId(), 1);
         assertThatExceptionOfType(QuizFinishedException.class)
-            .isThrownBy(() -> service.answer(KB, USER, session.sessionId(), "Jeszcze raz."));
+            .isThrownBy(() -> service.answer(KB, USER, session.sessionId(), "Once more."));
     }
 
     @Test
     void shouldRefuseWhenTheModelWritesNoUsableQuestion() {
-        givenPages(makePage("concepts/mitoza", 1));
+        givenPages(makePage("concepts/mitosis", 1));
         for (String completion : List.of("{\"questions\":[{}]}", "{\"questions\":[null]}", "{\"questions\":[]}",
             "{\"questions\":[{\"pagePath\":null,\"question\":null,\"referenceAnswer\":null}]}", "{}")) {
             gateway.answer(Prompts.QUIZ, completion);
@@ -146,8 +146,8 @@ class QuizServiceTest {
 
     @Test
     void shouldAcceptAQuizAtOnceAndWriteItsQuestionsInTheBackground() throws InterruptedException {
-        givenPages(makePage("concepts/mitoza", 1));
-        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitoza"));
+        givenPages(makePage("concepts/mitosis", 1));
+        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitosis"));
         QuizService service = makeService();
 
         QuizSession accepted = service.begin(KB, USER, new StudyScope.WholeKnowledgeBase());
@@ -164,7 +164,7 @@ class QuizServiceTest {
 
     @Test
     void shouldReportABackgroundFailureOnceAndNotTheNextTime() throws InterruptedException {
-        givenPages(makePage("concepts/mitoza", 1));
+        givenPages(makePage("concepts/mitosis", 1));
         gateway.answer(Prompts.QUIZ, "{\"questions\":[]}");
         QuizService service = makeService();
         QuizSession accepted = service.begin(KB, USER, new StudyScope.WholeKnowledgeBase());
@@ -178,7 +178,7 @@ class QuizServiceTest {
 
     @Test
     void shouldNotTellAnotherUserWhetherAQuizIsBeingPrepared() {
-        givenPages(makePage("concepts/mitoza", 1));
+        givenPages(makePage("concepts/mitosis", 1));
         CountDownLatch release = new CountDownLatch(1);
         gateway.answer(Prompts.QUIZ, prompt -> {
             try {
@@ -186,7 +186,7 @@ class QuizServiceTest {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-            return questionAbout("concepts/mitoza");
+            return questionAbout("concepts/mitosis");
         });
         QuizService service = makeService();
         QuizSession accepted = service.begin(KB, USER, new StudyScope.WholeKnowledgeBase());
@@ -202,7 +202,7 @@ class QuizServiceTest {
     // ---------------------------------------------------------------------------
 
     private QuizService makeService() {
-        PromptLoader prompts = new PromptLoader("pl");
+        PromptLoader prompts = new PromptLoader("en");
         return new QuizService(wiki, study, sessions, new QuizGenerator(gateway, prompts),
             new QuizEvaluator(gateway, prompts), ProcessingSettings.defaults(), Duration.ofHours(1));
     }
@@ -216,13 +216,13 @@ class QuizServiceTest {
     }
 
     private static String questionAbout(String path) {
-        return Prompts.json(Map.of("questions", List.of(Map.of("pagePath", path, "question", "Co to mitoza?",
-            "referenceAnswer", "Podział komórki.", "groundingExcerpt", "Mitoza to podział komórki."))));
+        return Prompts.json(Map.of("questions", List.of(Map.of("pagePath", path, "question", "What is mitosis?",
+            "referenceAnswer", "Cell division.", "groundingExcerpt", "Mitosis is cell division."))));
     }
 
     private static WikiPage makePage(String path, int day) {
         Instant created = Instant.parse("2026-09-01T00:00:00Z").plus(day, ChronoUnit.DAYS);
-        return new WikiPage(UUID.randomUUID(), KB, path, path, "Opis.", PageType.CONCEPT,
-            "# Faza\n\nTreść " + path + ".\n", 1, created, created);
+        return new WikiPage(UUID.randomUUID(), KB, path, path, "Description.", PageType.CONCEPT,
+            "# Phase\n\nContent " + path + ".\n", 1, created, created);
     }
 }

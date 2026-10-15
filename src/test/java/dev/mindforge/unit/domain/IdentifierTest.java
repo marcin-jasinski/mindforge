@@ -10,8 +10,8 @@ class IdentifierTest {
 
     @Test
     void shouldTransliterateGreekLettersByTheirPolishNames() {
-        assertThat(Identifier.slugify("α-helisa")).isEqualTo("alfa-helisa");
-        assertThat(Identifier.slugify("β-helisa")).isEqualTo("beta-helisa");
+        assertThat(Identifier.slugify("α-helix")).isEqualTo("alfa-helix");
+        assertThat(Identifier.slugify("β-helix")).isEqualTo("beta-helix");
         assertThat(Identifier.slugify("π")).isEqualTo("pi");
     }
 
@@ -51,12 +51,12 @@ class IdentifierTest {
 
     @Test
     void shouldAcceptOnlyLowercaseHyphenSeparatedIdentifiersUpTo80Characters() {
-        assertThat(Identifier.matches("alfa-helisa")).isTrue();
+        assertThat(Identifier.matches("alfa-helix")).isTrue();
         assertThat(Identifier.matches("a".repeat(80))).isTrue();
 
         assertThat(Identifier.matches("a--b")).isFalse();
         assertThat(Identifier.matches("-x")).isFalse();
-        assertThat(Identifier.matches("Mitoza")).isFalse();
+        assertThat(Identifier.matches("Mitosis")).isFalse();
         assertThat(Identifier.matches("bio_3")).isFalse();
         assertThat(Identifier.matches("")).isFalse();
         assertThat(Identifier.matches("a".repeat(81))).isFalse();

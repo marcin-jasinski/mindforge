@@ -78,7 +78,7 @@ export class Chat implements OnInit {
   }
 
   edit(quotedAnswer?: string): void {
-    const instruction = quotedAnswer ? 'Zapisz tę odpowiedź w wiki.' : this.draft().trim();
+    const instruction = quotedAnswer ? 'Save this answer to the wiki.' : this.draft().trim();
     this.push({ role: 'user', text: instruction });
     const typed = this.draft();
     this.draft.set('');
@@ -94,16 +94,16 @@ export class Chat implements OnInit {
 
   revert(run: RunReport): void {
     // ponytail: native confirm, as on the run report; a MatDialog when it needs to show what will be undone
-    if (!confirm('Cofnąć tę zmianę? Strony wrócą do poprzedniej wersji.')) {
+    if (!confirm('Revert this change? The pages go back to their previous version.')) {
       return;
     }
     this.runs.revert(this.kbId(), run.runId).subscribe({
       next: () => {
-        this.push({ role: 'edit', text: 'Cofnięto zmianę.' });
+        this.push({ role: 'edit', text: 'The change was reverted.' });
         this.progress.reload(this.kbId());
       },
       error: (response: HttpErrorResponse) =>
-        this.push({ role: 'edit', text: apiErrorMessage(response.error as ApiError | null, 'Tej zmiany nie można już cofnąć.') }),
+        this.push({ role: 'edit', text: apiErrorMessage(response.error as ApiError | null, 'This change can no longer be reverted.') }),
     });
   }
 
@@ -128,8 +128,8 @@ export class Chat implements OnInit {
         this.progress.reload(this.kbId());
         this.busy.set(false);
         const text = run.failureReason === EDIT_NAMED_NO_PAGE
-          ? 'Nie wiem, którą stronę zmienić — nazwij stronę albo przeformułuj.'
-          : run.status === 'COMPLETED' ? 'Zmieniono wiki.' : `Nie udało się: ${failureReasonLabel(run.failureReason ?? '')}`;
+          ? 'I do not know which page to change — name the page or rephrase.'
+          : run.status === 'COMPLETED' ? 'The wiki was changed.' : `Failed: ${failureReasonLabel(run.failureReason ?? '')}`;
         this.push({ role: 'edit', text, run });
       });
   }

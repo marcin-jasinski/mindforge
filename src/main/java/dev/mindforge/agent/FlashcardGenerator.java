@@ -20,7 +20,7 @@ import dev.mindforge.infrastructure.ai.PromptLoader;
  */
 public class FlashcardGenerator {
 
-    public static final String VERSION = "1";
+    public static final String VERSION = "2";
     public static final ModelTier TIER = ModelTier.LARGE;
 
     private final AIGateway gateway;
@@ -40,7 +40,7 @@ public class FlashcardGenerator {
     public List<CardDraft> generate(String title, String body, Set<String> anchors, List<Flashcard> current,
                                     List<Flashcard> reusable) {
         String prompt = prompts.render("flashcard_generator", Map.of(
-            "title", title, "body", body, "sections", anchors.isEmpty() ? "(brak)" : String.join(", ", anchors),
+            "title", title, "body", body, "sections", anchors.isEmpty() ? "(none)" : String.join(", ", anchors),
             "current", render(current), "reusable", render(reusable)));
         Output output = ModelJson.read(getClass().getSimpleName(),
             gateway.complete(TIER, prompt, DeadlineProfile.BATCH).content(), Output.class);
@@ -57,7 +57,7 @@ public class FlashcardGenerator {
     }
 
     private static String render(List<Flashcard> cards) {
-        return cards.isEmpty() ? "(brak)" : cards.stream()
+        return cards.isEmpty() ? "(none)" : cards.stream()
             .map(FlashcardGenerator::line)
             .collect(Collectors.joining("\n"));
     }

@@ -1,52 +1,52 @@
 @if (report(); as run) {
   <h1>{{ kindLabel(run.kind) }} — {{ statusLabel(run.status) }}</h1>
   <p>
-    Utworzono {{ run.createdAt | dateTime }}
+    Created {{ run.createdAt | dateTime }}
     @if (run.finishedAt) {
-      · zakończono {{ run.finishedAt | dateTime }}
+      · finished {{ run.finishedAt | dateTime }}
     }
     @if (run.failureReason) {
       · <span class="error">{{ reasonLabel(run.failureReason) }}</span>
     }
   </p>
   @if (run.revertOffered) {
-    <button mat-flat-button type="button" (click)="revert()">Cofnij ten przebieg</button>
+    <button mat-flat-button type="button" (click)="revert()">Revert this run</button>
   }
   @if (message(); as text) {
     <p class="error" role="alert">{{ text }}</p>
   }
 
-  <h2>Zapisane strony</h2>
+  <h2>Pages written</h2>
   @for (change of run.pages; track change.pageId) {
     <section class="stack">
       <h3>
         @if (change.after.markdownBody) {
           <a [routerLink]="pageLink(change.path)">{{ change.after.title }}</a>
         } @else {
-          {{ change.after.title }} (usunięta)
+          {{ change.after.title }} (deleted)
         }
-        <small>· długość {{ change.lengthBefore ?? 0 }} → {{ change.lengthAfter ?? 0 }}</small>
+        <small>· length {{ change.lengthBefore ?? 0 }} → {{ change.lengthAfter ?? 0 }}</small>
       </h3>
       <app-diff-view [before]="change.before?.markdownBody" [after]="change.after.markdownBody" />
     </section>
   } @empty {
-    <p>Ten przebieg nie zapisał żadnej strony.</p>
+    <p>This run wrote no pages.</p>
   }
 
   @if (run.supersessions.length) {
-    <h2>Poprawione sekcje</h2>
+    <h2>Superseded sections</h2>
     <ul>
       @for (row of run.supersessions; track row.supersessionId) {
         <li>
-          {{ row.supersededPath ?? '(usunięta strona)' }}#{{ row.sectionAnchor }} ← {{ row.supersedingPath ?? '(usunięta strona)' }}
-          <button mat-button type="button" (click)="removeSupersession(row.supersessionId)">Usuń</button>
+          {{ row.supersededPath ?? '(deleted page)' }}#{{ row.sectionAnchor }} ← {{ row.supersedingPath ?? '(deleted page)' }}
+          <button mat-button type="button" (click)="removeSupersession(row.supersessionId)">Remove</button>
         </li>
       }
     </ul>
   }
 
   @if (run.failures.length) {
-    <h2>Pominięte i nieudane</h2>
+    <h2>Skipped and failed</h2>
     <ul>
       @for (failure of run.failures; track $index) {
         <li>{{ failureLine(failure) }}</li>
@@ -55,7 +55,7 @@
   }
 
   @if (run.findings.length) {
-    <h2>Ustalenia przeglądu</h2>
+    <h2>Review findings</h2>
     <ul>
       @for (finding of run.findings; track $index) {
         <li><strong>{{ findingLabel(finding.kind) }}</strong>: {{ finding.text }} {{ finding.pages.join(', ') }}</li>

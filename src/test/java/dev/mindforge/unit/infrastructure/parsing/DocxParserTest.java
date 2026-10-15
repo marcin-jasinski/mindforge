@@ -27,13 +27,13 @@ class DocxParserTest {
         ParsedDocument parsed = parser.parse(makeDocx());
 
         assertThat(parsed.blocks()).containsExactly(
-            ContentBlock.heading("Mitoza", 1, 0),
-            ContentBlock.text("Przed tabelą.", 1),
-            ContentBlock.text("Faza | Opis\nProfaza | Kondensacja", 2),
-            ContentBlock.heading("Fazy", 2, 3),
-            ContentBlock.text("Po tabeli.", 4));
+            ContentBlock.heading("Mitosis", 1, 0),
+            ContentBlock.text("Before the table.", 1),
+            ContentBlock.text("Phase | Description\nProphase | Condensation", 2),
+            ContentBlock.heading("Phases", 2, 3),
+            ContentBlock.text("After the table.", 4));
         assertThat(parsed.text())
-            .isEqualTo("Mitoza\n\nPrzed tabelą.\n\nFaza | Opis\nProfaza | Kondensacja\n\nFazy\n\nPo tabeli.");
+            .isEqualTo("Mitosis\n\nBefore the table.\n\nPhase | Description\nProphase | Condensation\n\nPhases\n\nAfter the table.");
         assertThat(parsed.metadata()).isEmpty();
     }
 
@@ -55,17 +55,17 @@ class DocxParserTest {
             addStyle(styles, "Nagwek2", "heading 2");
 
             docx.createParagraph().setStyle("Nagwek1");
-            docx.getLastParagraph().createRun().setText("Mitoza");
-            docx.createParagraph().createRun().setText("Przed tabelą.");
+            docx.getLastParagraph().createRun().setText("Mitosis");
+            docx.createParagraph().createRun().setText("Before the table.");
             XWPFTable table = docx.createTable(2, 2);
-            table.getRow(0).getCell(0).setText("Faza");
-            table.getRow(0).getCell(1).setText("Opis");
-            table.getRow(1).getCell(0).setText("Profaza");
-            table.getRow(1).getCell(1).setText("Kondensacja");
+            table.getRow(0).getCell(0).setText("Phase");
+            table.getRow(0).getCell(1).setText("Description");
+            table.getRow(1).getCell(0).setText("Prophase");
+            table.getRow(1).getCell(1).setText("Condensation");
             docx.createParagraph();
             docx.createParagraph().setStyle("Nagwek2");
-            docx.getLastParagraph().createRun().setText("Fazy");
-            docx.createParagraph().createRun().setText("Po tabeli.");
+            docx.getLastParagraph().createRun().setText("Phases");
+            docx.createParagraph().createRun().setText("After the table.");
 
             docx.write(out);
             return out.toByteArray();

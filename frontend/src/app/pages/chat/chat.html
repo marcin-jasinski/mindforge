@@ -8,25 +8,25 @@
       }
       @if (message.cited?.length) {
         <p>
-          Źródła:
+          Sources:
           @for (path of message.cited; track path) {
             <a [routerLink]="citedLink(path)" [title]="path">{{ citedTitle(path) }}</a>&nbsp;
           }
         </p>
       }
       @if (message.role === 'assistant') {
-        <button mat-button type="button" [disabled]="busy()" (click)="edit(message.text)">Zapisz w wiki</button>
+        <button mat-button type="button" [disabled]="busy()" (click)="edit(message.text)">Save to wiki</button>
       }
       @if (message.run; as run) {
         <p>
-          Zmienione strony: {{ run.pages.length }}
+          Changed pages: {{ run.pages.length }}
           @for (failure of run.failures; track $index) {
-            <br />Pominięto: {{ failureLine(failure) }}
+            <br />Skipped: {{ failureLine(failure) }}
           }
         </p>
-        <a mat-button [routerLink]="['..', 'runs', run.runId]">Raport</a>
+        <a mat-button [routerLink]="['..', 'runs', run.runId]">Report</a>
         @if (run.revertOffered) {
-          <button mat-button type="button" (click)="revert(run)">Cofnij</button>
+          <button mat-button type="button" (click)="revert(run)">Revert</button>
         }
       }
     </div>
@@ -34,11 +34,11 @@
 </section>
 <form class="stack" (ngSubmit)="ask()">
   <mat-form-field>
-    <mat-label>Zapytaj albo poproś o zmianę strony</mat-label>
+    <mat-label>Ask a question or request a page change</mat-label>
     <textarea matInput name="draft" [(ngModel)]="draft" rows="3"></textarea>
   </mat-form-field>
   <div class="row">
-    <button mat-flat-button type="submit" [disabled]="!draft().trim() || busy()">Zapytaj</button>
-    <button mat-stroked-button type="button" [disabled]="!draft().trim() || busy()" (click)="edit()">Zmień wiki</button>
+    <button mat-flat-button type="submit" [disabled]="!draft().trim() || busy()">Ask</button>
+    <button mat-stroked-button type="button" [disabled]="!draft().trim() || busy()" (click)="edit()">Change wiki</button>
   </div>
 </form>
