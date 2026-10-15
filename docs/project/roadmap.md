@@ -5,7 +5,7 @@
 
 ## Current State
 
-- **Version**: 1.0.0
+- **Version**: 1.1.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
   4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete
