@@ -79,8 +79,17 @@ management:
   endpoint:
     health:
       show-details: never
+  # Every trace is kept; TracingConfig decides which spans reach Langfuse.
+  tracing:
+    sampling:
+      probability: 1.0
 
 mindforge:
+  # Langfuse trace export (TracingConfig); off unless both keys are set.
+  langfuse:
+    host: ${LANGFUSE_HOST:https://cloud.langfuse.com}
+    public-key: ${LANGFUSE_PUBLIC_KEY:}
+    secret-key: ${LANGFUSE_SECRET_KEY:}
   security:
     jwt-secret: ${JWT_SECRET:}
     jwt-expiry-seconds: ${JWT_EXPIRY_SECONDS:86400}

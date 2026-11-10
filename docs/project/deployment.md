@@ -40,6 +40,8 @@ Every variable is listed in `env.example`. The ones a deployment must set:
 | `OPENROUTER_API_KEY` | The model provider |
 | `GOOGLE_CLIENT_*`, `GITHUB_CLIENT_*` | OAuth sign-in; any non-empty placeholder disables that provider in practice |
 | `PORT` | Set by Railway and Render; defaults to 8080 |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Optional. Export model-call traces to Langfuse; with either one unset, nothing is exported |
+| `LANGFUSE_HOST` | Optional. Langfuse base URL; defaults to `https://cloud.langfuse.com` |
 
 ## Railway
 
