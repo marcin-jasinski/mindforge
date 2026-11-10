@@ -31,7 +31,7 @@ import org.springframework.util.StringUtils;
 /**
  * Langfuse sees model work only, as metadata: no prompt, completion or error text leaves the process.
  *
- * <p>Naming convention for MindForge observations (Phase 14.3): a run or service observation is exported when its span
+ * <p>Naming convention for MindForge observations: a run or service observation is exported when its span
  * name starts with {@code mindforge.} or it carries a low-cardinality key that does, e.g. observation
  * {@code mindforge.run} with key {@code mindforge.run.id}, or contextual name {@code PageWriter} with key
  * {@code mindforge.service=PageWriter}. Spring AI's model-call spans are recognised by their {@code gen_ai.*} keys.
@@ -49,14 +49,14 @@ public class TracingConfig {
     /** Enables Spring Boot's OTLP/HTTP span exporter; without both Langfuse keys there is no exporter at all. */
     @Bean
     @Conditional(LangfuseKeysSet.class)
-    public OtlpTracingConnectionDetails langfuseEndpoint(Environment env) {
+    OtlpTracingConnectionDetails langfuseEndpoint(Environment env) {
         String host = StringUtils.trimTrailingCharacter(env.getProperty("mindforge.langfuse.host", DEFAULT_HOST), '/');
         return transport -> host + "/api/public/otel/v1/traces";
     }
 
     @Bean
     @Conditional(LangfuseKeysSet.class)
-    public OtlpHttpSpanExporterBuilderCustomizer langfuseAuth(Environment env) {
+    OtlpHttpSpanExporterBuilderCustomizer langfuseAuth(Environment env) {
         String credentials = env.getProperty(PUBLIC_KEY) + ":" + env.getProperty(SECRET_KEY);
         String basic = "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
         return builder -> builder.addHeader("Authorization", basic);
@@ -79,7 +79,7 @@ public class TracingConfig {
 
     /** Replaces Boot's exporter list so every exporter gets spans without a status message. */
     @Bean
-    public SpanExporters spanExporters(ObjectProvider<SpanExporter> exporters) {
+    SpanExporters spanExporters(ObjectProvider<SpanExporter> exporters) {
         return SpanExporters.of(exporters.orderedStream().map(TracingConfig::withoutStatusMessage).toList());
     }
 

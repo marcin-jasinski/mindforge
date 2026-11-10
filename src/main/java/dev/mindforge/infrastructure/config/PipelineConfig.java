@@ -110,7 +110,7 @@ public class PipelineConfig {
     /** A background model service's gateway: its span and cost entry are named as its {@code step_versions} key. */
     private static AIGateway background(AIGateway aiGateway, Semaphore permits, ObservationRegistry registry,
                                         Class<?> service) {
-        return new PermitGateway(new TracingGateway(aiGateway, service.getSimpleName(), registry), permits);
+        return new PermitGateway(TracingGateway.forService(aiGateway, service, registry), permits);
     }
 
     @Bean

@@ -24,6 +24,11 @@ public class TracingGateway implements AIGateway {
         this.registry = registry;
     }
 
+    /** Names the span and cost entry after the model service, as its {@code step_versions} key is named. */
+    public static TracingGateway forService(AIGateway delegate, Class<?> service, ObservationRegistry registry) {
+        return new TracingGateway(delegate, service.getSimpleName(), registry);
+    }
+
     @Override
     public CompletionResult complete(ModelTier tier, String prompt, DeadlineProfile deadline) {
         ObservationRunMeter.Run run = ObservationRunMeter.CURRENT.get();

@@ -1,6 +1,7 @@
 package dev.mindforge.infrastructure.ai;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,6 +17,8 @@ import dev.mindforge.domain.model.DeadlineProfile;
 import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.domain.port.AIGateway;
 import dev.mindforge.infrastructure.config.AppProperties;
+import com.openai.core.JsonValue;
+import com.openai.models.completions.CompletionUsage;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
@@ -89,7 +92,21 @@ public class AIGatewayAdapter implements AIGateway, DisposableBean {
             resolvedModel != null ? resolvedModel : model,
             "openrouter",
             latencyMs,
-            CostObservationFilter.costUsd(response));
+            costUsd(response));
+    }
+
+    /** OpenRouter's charge in USD, or {@code null} when the response carries none (not measured, never 0). */
+    static Double costUsd(ChatResponse response) {
+        if (response == null || response.getMetadata() == null) {
+            return null;
+        }
+        Usage usage = response.getMetadata().getUsage();
+        if (usage == null || !(usage.getNativeUsage() instanceof CompletionUsage nativeUsage)) {
+            return null;
+        }
+        JsonValue cost = nativeUsage._additionalProperties().get("cost");
+        Optional<Number> number = cost == null ? Optional.empty() : cost.asNumber();
+        return number.map(Number::doubleValue).orElse(null);
     }
 
     @Override
