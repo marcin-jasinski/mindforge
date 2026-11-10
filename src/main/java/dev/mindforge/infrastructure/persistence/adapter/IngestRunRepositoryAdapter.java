@@ -92,7 +92,7 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
 
     @Override
     public void recordCost(UUID kbId, UUID runId, Double costUsd) {
-        runs.updateCost(kbId, runId, costUsd);
+        runs.addCost(kbId, runId, costUsd);
     }
 
     @Override

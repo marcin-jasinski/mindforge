@@ -45,7 +45,10 @@ public interface IngestRunRepository {
     void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<RunFailure> failures,
               Map<String, String> stepVersions);
 
-    /** Stores the Run Cost in its own update, after the run's terminal commit; {@code null} is "not measured". */
+    /**
+     * Adds one attempt's Run Cost in its own update, after its terminal commit; a fenced attempt and its re-queue
+     * share the run id, so the costs add up. {@code null} is "not measured" and leaves the cost unchanged.
+     */
     void recordCost(UUID kbId, UUID runId, Double costUsd);
 
     /** Stores a Lint's findings and suggestions; call inside the run's fenced commit. */

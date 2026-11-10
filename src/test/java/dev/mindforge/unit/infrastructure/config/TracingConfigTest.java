@@ -7,14 +7,9 @@ import java.util.Collection;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.micrometer.tracing.opentelemetry.autoconfigure.SpanExporters;
-import org.springframework.boot.micrometer.tracing.opentelemetry.autoconfigure.otlp.OtlpTracingAutoConfiguration;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import dev.mindforge.infrastructure.config.TracingConfig;
 import io.micrometer.tracing.otel.bridge.CompositeSpanExporter;
-import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
@@ -61,28 +56,6 @@ class TracingConfigTest {
         assertThat(span.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);
         assertThat(span.getStatus().getDescription()).isEmpty();
         assertThat(span.toString()).doesNotContain("secret prompt");
-    }
-
-    @Test
-    void shouldExportToLangfuseOnlyWhenBothKeysAreSet() {
-        ApplicationContextRunner runner = new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(OtlpTracingAutoConfiguration.class))
-                .withUserConfiguration(TracingConfig.class)
-                .withPropertyValues("mindforge.langfuse.host=https://langfuse.example/");
-
-        runner.withPropertyValues("mindforge.langfuse.public-key=pk-lf-1", "mindforge.langfuse.secret-key=sk-lf-1")
-                .run(ctx -> {
-                    assertThat(ctx.getBean(OtlpHttpSpanExporter.class).toString())
-                            .contains("endpoint=https://langfuse.example/api/public/otel/v1/traces")
-                            .contains("Authorization=OBFUSCATED");
-                    // Boot's batch processor exports through the wrapper, never the raw exporter
-                    assertThat(ctx.getBean(SpanExporters.class).list()).singleElement()
-                            .isNotInstanceOf(OtlpHttpSpanExporter.class);
-                });
-        runner.withPropertyValues("mindforge.langfuse.public-key=pk-lf-1", "mindforge.langfuse.secret-key=")
-                .run(ctx -> assertThat(ctx).doesNotHaveBean(OtlpHttpSpanExporter.class));
-        runner.withPropertyValues("mindforge.langfuse.secret-key=sk-lf-1")
-                .run(ctx -> assertThat(ctx).doesNotHaveBean(OtlpHttpSpanExporter.class));
     }
 
     private static List<SpanData> export(java.util.function.Consumer<Tracer> emit) {

@@ -96,9 +96,10 @@ public interface IngestRunJpaRepository extends JpaRepository<IngestRunEntity, U
     int fence(UUID knowledgeBaseId, UUID runId, String from, String to);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query(value = "UPDATE ingest_runs SET cost = :cost"
-        + " WHERE run_id = :runId AND knowledge_base_id = :knowledgeBaseId", nativeQuery = true)
-    int updateCost(UUID knowledgeBaseId, UUID runId, Double cost);
+    @Query(value = "UPDATE ingest_runs SET cost = COALESCE(cost, 0) + :cost"
+        + " WHERE run_id = :runId AND knowledge_base_id = :knowledgeBaseId AND CAST(:cost AS float8) IS NOT NULL",
+        nativeQuery = true)
+    int addCost(UUID knowledgeBaseId, UUID runId, Double cost);
 
     Optional<IngestRunEntity> findByKnowledgeBaseIdAndRunId(UUID knowledgeBaseId, UUID runId);
 

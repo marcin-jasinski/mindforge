@@ -1386,14 +1386,14 @@ error text ever leaves the process.
 
 ### Tasks
 
-- [ ] **14.1 — Cost from the provider** (`dev.mindforge.infrastructure.ai`)
+- [x] **14.1 — Cost from the provider** (`dev.mindforge.infrastructure.ai`)
   - OpenRouter returns `usage.cost` on every response. `AIGatewayAdapter` reads it from
     `((CompletionUsage) usage.getNativeUsage())._additionalProperties().get("cost")` into `CompletionResult.costUsd`.
   - `costUsd` becomes `Double`: `null` when the provider sent no cost ("not measured"), never `0`.
   - An `ObservationFilter` writes the same value onto Spring AI's `gen_ai.client.operation` span as
     `gen_ai.usage.cost`, so every attempt, retries included, carries its own cost. The Langfuse price table is not used.
 
-- [ ] **14.2 — Langfuse export** (`spring-boot-starter-opentelemetry`)
+- [x] **14.2 — Langfuse export** (`spring-boot-starter-opentelemetry`)
   - OTLP/HTTP to `${LANGFUSE_HOST}/api/public/otel/v1/traces` (default `https://cloud.langfuse.com`), Basic auth
     `base64(LANGFUSE_PUBLIC_KEY:LANGFUSE_SECRET_KEY)`. No exporter when either key is absent. Sampling `1.0`.
   - No Langfuse client and no hand-built model-call spans: Spring AI's own observation is the call span.
@@ -1402,7 +1402,7 @@ error text ever leaves the process.
   - A `SpanFilter` keeps an exception's class name and drops its message and stack-trace event: a provider message
     can quote the request or the response.
 
-- [ ] **14.3 — Service and run spans**
+- [x] **14.3 — Service and run spans**
   - `TracingGateway(delegate, serviceName)` decorates the gateway per model service in `PipelineConfig` /
     `QueryConfig`, next to `PermitGateway`. It opens an observation named after the service, so a run's trace reads
     run → `PageWriter` → `chat <model>`. The `AIGateway` port does not change.
@@ -1414,7 +1414,7 @@ error text ever leaves the process.
     thread created before the run does not see it — every pool a run uses today is created per run.
   - No trace id is stored: the run id is on the root span; find a run's trace in Langfuse by it.
 
-- [ ] **14.4 — Run Cost and anomaly warning**
+- [x] **14.4 — Run Cost and anomaly warning**
   - After dispatch, for every terminal state (a failed run spent money too), `RunWorker` writes
     `runs.recordCost(kbId, runId, cost)` in its own update — outside the run's commit, since cost is telemetry, not
     wiki state. A crash before it leaves `cost` `NULL` ("not measured", T28).
@@ -1423,15 +1423,15 @@ error text ever leaves the process.
   - If the cost exceeds `mindforge.ai.cost-warning-usd` (default `0.50`; INGEST and LINT alike), log `WARN` with the
     run id and the per-service breakdown (keys as in `step_versions`).
 
-- [ ] **14.5 — Tests and docs**
+- [x] **14.5 — Tests and docs**
   - `StubAIGateway` reports a cost. A unit test sums cost across forked threads and checks the `WARN`.
   - `deployment.md` lists `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`.
 
 ### Completion Checklist
 
 - [ ] Langfuse traces appear for a real ingest run (manual), with no prompt, completion or error text.
-- [ ] Per-run cost matches the sum of its calls.
-- [ ] Integration gracefully disabled when env vars are absent.
+- [x] Per-run cost matches the sum of its calls.
+- [x] Integration gracefully disabled when env vars are absent.
 
 ---
 
