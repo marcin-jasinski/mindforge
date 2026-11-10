@@ -87,9 +87,7 @@ public class AIGatewayAdapter implements AIGateway, DisposableBean {
             resolvedModel != null ? resolvedModel : model,
             "openrouter",
             latencyMs,
-            // ponytail: real cost accounting arrives with Phase 14 (Langfuse); OpenRouter's
-            // chat-completions response carries no per-call cost field to read here.
-            0.0);
+            CostObservationFilter.costUsd(response));
     }
 
     @Override

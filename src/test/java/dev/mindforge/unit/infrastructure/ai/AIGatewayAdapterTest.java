@@ -23,6 +23,8 @@ import dev.mindforge.domain.model.DeadlineProfile;
 import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.infrastructure.ai.AIGatewayAdapter;
 import dev.mindforge.infrastructure.config.AppProperties;
+import com.openai.core.JsonValue;
+import com.openai.models.completions.CompletionUsage;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.retry.Retry;
@@ -84,6 +86,26 @@ class AIGatewayAdapterTest {
         assertThat(result.outputTokens()).isEqualTo(34);
         assertThat(result.model()).isEqualTo("large-model");
         assertThat(result.provider()).isEqualTo("openrouter");
+    }
+
+    @Test
+    void shouldReadProviderCostFromNativeUsage() {
+        AIGatewayAdapter adapter = makeAdapter();
+        when(chatModel.call(any(Prompt.class))).thenReturn(fixtureResponseWithCost(0.0042));
+
+        CompletionResult result = adapter.complete(ModelTier.LARGE, "hello", DeadlineProfile.INTERACTIVE);
+
+        assertThat(result.costUsd()).isEqualTo(0.0042);
+    }
+
+    @Test
+    void shouldReportCostAsNotMeasuredWhenProviderSendsNone() {
+        AIGatewayAdapter adapter = makeAdapter();
+        when(chatModel.call(any(Prompt.class))).thenReturn(fixtureResponse("large-model", 12, 34));
+
+        CompletionResult result = adapter.complete(ModelTier.LARGE, "hello", DeadlineProfile.INTERACTIVE);
+
+        assertThat(result.costUsd()).isNull();
     }
 
     @Test
@@ -186,6 +208,20 @@ class AIGatewayAdapterTest {
             .minimumNumberOfCalls(10)
             .recordExceptions(TransientAiException.class, IOException.class, DeadlineExceededException.class)
             .build());
+    }
+
+    static ChatResponse fixtureResponseWithCost(double cost) {
+        CompletionUsage nativeUsage = CompletionUsage.builder()
+            .promptTokens(1).completionTokens(1).totalTokens(2)
+            .putAdditionalProperty("cost", JsonValue.from(cost))
+            .build();
+        return ChatResponse.builder()
+            .generations(List.of(new Generation(new AssistantMessage("hello back"))))
+            .metadata(ChatResponseMetadata.builder()
+                .model("large-model")
+                .usage(new DefaultUsage(1, 1, 2, nativeUsage))
+                .build())
+            .build();
     }
 
     private static ChatResponse fixtureResponse(String model, int promptTokens, int completionTokens) {
