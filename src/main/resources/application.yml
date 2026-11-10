@@ -107,6 +107,7 @@ mindforge:
     sweep-interval: ${RUNS_SWEEP_INTERVAL:PT1M}
   ai:
     background-permits: ${AI_BACKGROUND_PERMITS:4}
+    cost-warning-usd: ${AI_COST_WARNING_USD:0.50}
     model:
       small: ${AI_MODEL_SMALL:openai/gpt-4o-mini}
       large: ${AI_MODEL_LARGE:openai/gpt-4o}

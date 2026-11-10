@@ -17,11 +17,13 @@ import dev.mindforge.domain.model.DomainEvent;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.RunFencedException;
 import dev.mindforge.domain.model.RunKind;
+import dev.mindforge.domain.model.RunCost;
 import dev.mindforge.domain.model.RunProgress;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.port.EventPublisher;
 import dev.mindforge.domain.port.IngestRunRepository;
 import dev.mindforge.domain.port.ProgressNotifier;
+import dev.mindforge.domain.port.RunMeter;
 
 /**
  * Claims the oldest {@code QUEUED} run of a knowledge base and runs it, and sweeps runs this process is not running
@@ -42,11 +44,14 @@ public class RunWorker {
     private final EventPublisher events;
     private final TransactionOperations transactions;
     private final Executor executor;
+    private final RunMeter meter;
+    private final double costWarningUsd;
     private final Set<UUID> active = ConcurrentHashMap.newKeySet();
     private volatile boolean stopped;
 
     public RunWorker(IngestRunRepository runs, IngestPipeline pipeline, LintService lint, ProgressNotifier progress,
-                     EventPublisher events, TransactionOperations transactions, Executor executor) {
+                     EventPublisher events, TransactionOperations transactions, Executor executor, RunMeter meter,
+                     double costWarningUsd) {
         this.runs = runs;
         this.pipeline = pipeline;
         this.lint = lint;
@@ -54,6 +59,8 @@ public class RunWorker {
         this.events = events;
         this.transactions = transactions;
         this.executor = executor;
+        this.meter = meter;
+        this.costWarningUsd = costWarningUsd;
     }
 
     /** Starts the oldest queued run of the knowledge base, unless another run holds its lease. */
@@ -116,11 +123,20 @@ public class RunWorker {
 
     private void dispatch(IngestRun run) {
         switch (run.kind()) {
-            case INGEST -> pipeline.run(run);
-            case LINT -> lint.run(run);
+            case INGEST -> recordCost(run, meter.measure(run, () -> pipeline.run(run)));
+            case LINT -> recordCost(run, meter.measure(run, () -> lint.run(run)));
             // a revert is one synchronous transaction and is never queued
             case REVERT -> runs.fail(run.knowledgeBaseId(), run.runId(), "a revert is never queued", false,
                 List.of(), Map.of());
+        }
+    }
+
+    /** Cost is telemetry, not wiki state: its own update after the run's terminal commit, whatever that was. */
+    private void recordCost(IngestRun run, RunCost cost) {
+        runs.recordCost(run.knowledgeBaseId(), run.runId(), cost.totalUsd());
+        if (cost.totalUsd() != null && cost.totalUsd() > costWarningUsd) {
+            log.warn("Run {} cost {} USD, above {} USD: {}", run.runId(), cost.totalUsd(), costWarningUsd,
+                cost.byService());
         }
     }
 

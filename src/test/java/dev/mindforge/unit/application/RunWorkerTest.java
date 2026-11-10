@@ -30,6 +30,7 @@ import dev.mindforge.application.service.LintService;
 import dev.mindforge.application.service.RunWorker;
 import dev.mindforge.domain.model.DomainEvent;
 import dev.mindforge.domain.model.IngestRun;
+import dev.mindforge.domain.model.RunCost;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.port.EventPublisher;
@@ -153,7 +154,10 @@ class RunWorkerTest {
 
     private RunWorker makeWorker(Executor executor) {
         return new RunWorker(runs, pipeline, lint, mock(ProgressNotifier.class), events,
-            TransactionOperations.withoutTransaction(), executor);
+            TransactionOperations.withoutTransaction(), executor, (run, work) -> {
+                work.run();
+                return RunCost.of(Map.of());
+            }, 0.50);
     }
 
     private static IngestRun makeRun(RunKind kind, RunStatus status, int attempt) {

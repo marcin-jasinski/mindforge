@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -29,6 +30,8 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.DefaultUsage;
@@ -52,6 +55,24 @@ class AIGatewayAdapterTest {
         adapter.complete(ModelTier.SMALL, "hello", DeadlineProfile.INTERACTIVE);
 
         assertThat(capturedRequestModel()).isEqualTo("small-model");
+    }
+
+    @Test
+    void shouldCallTheModelUnderTheCallersObservationSoTheChatSpanNestsUnderTheService() {
+        ObservationRegistry registry = ObservationRegistry.create();
+        registry.observationConfig().observationHandler(context -> true);
+        AtomicReference<Observation> current = new AtomicReference<>();
+        when(chatModel.call(any(Prompt.class))).thenAnswer(invocation -> {
+            current.set(registry.getCurrentObservation());
+            return fixtureResponse("small-model", 10, 20);
+        });
+        Observation service = Observation.start("mindforge.service", registry);
+
+        try (Observation.Scope scope = service.openScope()) {
+            makeAdapter().complete(ModelTier.SMALL, "hello", DeadlineProfile.INTERACTIVE);
+        }
+
+        assertThat(current.get()).isSameAs(service);
     }
 
     @Test
