@@ -6,6 +6,7 @@ import java.time.Duration;
 import dev.mindforge.domain.model.DeadlineExceededException;
 import dev.mindforge.domain.port.AIGateway;
 import dev.mindforge.infrastructure.ai.AIGatewayAdapter;
+import dev.mindforge.infrastructure.ai.CostObservationFilter;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.core.IntervalFunction;
@@ -26,6 +27,12 @@ public class AiConfig {
                         Retry aiGatewayRetry,
                         CircuitBreaker aiGatewayCircuitBreaker) {
         return new AIGatewayAdapter(chatModel, properties, aiGatewayRetry, aiGatewayCircuitBreaker);
+    }
+
+    /** Boot registers every {@code ObservationFilter} bean on the observation registry. */
+    @Bean
+    CostObservationFilter costObservationFilter() {
+        return new CostObservationFilter();
     }
 
     /**
