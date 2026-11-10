@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.micrometer.tracing.opentelemetry.autoconfigure.SpanExporters;
 import org.springframework.boot.micrometer.tracing.opentelemetry.autoconfigure.otlp.OtlpTracingAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
@@ -16,6 +17,7 @@ import io.micrometer.tracing.otel.bridge.CompositeSpanExporter;
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
@@ -45,7 +47,9 @@ class TracingConfigTest {
     void shouldKeepExceptionClassNameAndDropItsMessageAndEvent() {
         List<SpanData> exported = export(tracer -> {
             Span span = tracer.spanBuilder("chat gpt-4o").setAttribute("gen_ai.operation.name", "chat").startSpan();
+            // what Micrometer's OtelSpan.error does
             span.recordException(new IllegalStateException("provider quoted the secret prompt"));
+            span.setStatus(StatusCode.ERROR, "provider quoted the secret prompt");
             span.end();
         });
 
@@ -54,6 +58,8 @@ class TracingConfigTest {
                 .isEqualTo("java.lang.IllegalStateException");
         assertThat(span.getAttributes().get(AttributeKey.stringKey("gen_ai.operation.name"))).isEqualTo("chat");
         assertThat(span.getEvents()).extracting(EventData::getName).doesNotContain("exception");
+        assertThat(span.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);
+        assertThat(span.getStatus().getDescription()).isEmpty();
         assertThat(span.toString()).doesNotContain("secret prompt");
     }
 
@@ -65,9 +71,14 @@ class TracingConfigTest {
                 .withPropertyValues("mindforge.langfuse.host=https://langfuse.example/");
 
         runner.withPropertyValues("mindforge.langfuse.public-key=pk-lf-1", "mindforge.langfuse.secret-key=sk-lf-1")
-                .run(ctx -> assertThat(ctx.getBean(OtlpHttpSpanExporter.class).toString())
-                        .contains("endpoint=https://langfuse.example/api/public/otel/v1/traces")
-                        .contains("Authorization=OBFUSCATED"));
+                .run(ctx -> {
+                    assertThat(ctx.getBean(OtlpHttpSpanExporter.class).toString())
+                            .contains("endpoint=https://langfuse.example/api/public/otel/v1/traces")
+                            .contains("Authorization=OBFUSCATED");
+                    // Boot's batch processor exports through the wrapper, never the raw exporter
+                    assertThat(ctx.getBean(SpanExporters.class).list()).singleElement()
+                            .isNotInstanceOf(OtlpHttpSpanExporter.class);
+                });
         runner.withPropertyValues("mindforge.langfuse.public-key=pk-lf-1", "mindforge.langfuse.secret-key=")
                 .run(ctx -> assertThat(ctx).doesNotHaveBean(OtlpHttpSpanExporter.class));
         runner.withPropertyValues("mindforge.langfuse.secret-key=sk-lf-1")
@@ -85,7 +96,7 @@ class TracingConfigTest {
             @Override public CompletableResultCode flush() { return CompletableResultCode.ofSuccess(); }
             @Override public CompletableResultCode shutdown() { return CompletableResultCode.ofSuccess(); }
         };
-        SpanExporter composite = new CompositeSpanExporter(List.of(capture),
+        SpanExporter composite = new CompositeSpanExporter(List.of(TracingConfig.withoutStatusMessage(capture)),
                 List.of(config.langfuseSpans()), List.of(), List.of(config.exceptionWithoutMessage()));
         try (SdkTracerProvider provider = SdkTracerProvider.builder()
                 .addSpanProcessor(SimpleSpanProcessor.create(composite)).build()) {

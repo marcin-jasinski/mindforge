@@ -2,6 +2,7 @@ package dev.mindforge.infrastructure.config;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,6 +10,13 @@ import io.micrometer.tracing.exporter.SpanExportingPredicate;
 import io.micrometer.tracing.exporter.SpanFilter;
 import io.micrometer.tracing.otel.bridge.OtelFinishedSpan;
 import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.sdk.common.CompletableResultCode;
+import io.opentelemetry.sdk.trace.data.DelegatingSpanData;
+import io.opentelemetry.sdk.trace.data.SpanData;
+import io.opentelemetry.sdk.trace.data.StatusData;
+import io.opentelemetry.sdk.trace.export.SpanExporter;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.micrometer.tracing.opentelemetry.autoconfigure.SpanExporters;
 import org.springframework.boot.micrometer.tracing.opentelemetry.autoconfigure.otlp.OtlpHttpSpanExporterBuilderCustomizer;
 import org.springframework.boot.micrometer.tracing.opentelemetry.autoconfigure.otlp.OtlpTracingConnectionDetails;
 import org.springframework.context.annotation.Bean;
@@ -69,10 +77,45 @@ public class TracingConfig {
                 || span.getTags().keySet().stream().anyMatch(k -> k.startsWith("gen_ai.") || k.startsWith(PREFIX));
     }
 
+    /** Replaces Boot's exporter list so every exporter gets spans without a status message. */
+    @Bean
+    public SpanExporters spanExporters(ObjectProvider<SpanExporter> exporters) {
+        return SpanExporters.of(exporters.orderedStream().map(TracingConfig::withoutStatusMessage).toList());
+    }
+
+    /**
+     * Micrometer's {@code OtelSpan.error} writes the exception message into the status description, and a
+     * {@link SpanFilter} cannot change the status; this wrapper keeps the status code and drops the description.
+     */
+    public static SpanExporter withoutStatusMessage(SpanExporter delegate) {
+        return new SpanExporter() {
+            @Override
+            public CompletableResultCode export(Collection<SpanData> spans) {
+                return delegate.export(spans.stream().map(TracingConfig::withoutStatusMessage).toList());
+            }
+
+            @Override
+            public CompletableResultCode flush() { return delegate.flush(); }
+
+            @Override
+            public CompletableResultCode shutdown() { return delegate.shutdown(); }
+        };
+    }
+
+    private static SpanData withoutStatusMessage(SpanData span) {
+        if (span.getStatus().getDescription().isEmpty()) {
+            return span;
+        }
+        StatusData status = StatusData.create(span.getStatus().getStatusCode(), "");
+        return new DelegatingSpanData(span) {
+            @Override
+            public StatusData getStatus() { return status; }
+        };
+    }
+
     /**
      * Keeps the exception's class name as {@code error.type}; drops the exception event (message and stack trace).
-     * Known gap: Micrometer's {@code OtelSpan.error} also writes the message into the span status description, and
-     * {@code FinishedSpan} offers no way to change the status.
+     * The same message in the status description is dropped by {@link #withoutStatusMessage(SpanExporter)}.
      */
     @Bean
     public SpanFilter exceptionWithoutMessage() {
