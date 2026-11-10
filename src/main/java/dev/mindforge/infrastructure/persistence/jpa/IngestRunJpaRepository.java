@@ -95,6 +95,11 @@ public interface IngestRunJpaRepository extends JpaRepository<IngestRunEntity, U
         nativeQuery = true)
     int fence(UUID knowledgeBaseId, UUID runId, String from, String to);
 
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = "UPDATE ingest_runs SET cost = :cost"
+        + " WHERE run_id = :runId AND knowledge_base_id = :knowledgeBaseId", nativeQuery = true)
+    int updateCost(UUID knowledgeBaseId, UUID runId, Double cost);
+
     Optional<IngestRunEntity> findByKnowledgeBaseIdAndRunId(UUID knowledgeBaseId, UUID runId);
 
     Optional<IngestRunEntity> findFirstByKnowledgeBaseIdAndStatusOrderByCreatedAt(UUID knowledgeBaseId,

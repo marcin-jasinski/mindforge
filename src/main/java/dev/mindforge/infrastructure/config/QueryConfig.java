@@ -12,19 +12,25 @@ import dev.mindforge.domain.port.InteractionStore;
 import dev.mindforge.domain.port.PageSearchQuery;
 import dev.mindforge.domain.port.WikiStore;
 import dev.mindforge.infrastructure.ai.PromptLoader;
+import dev.mindforge.infrastructure.ai.TracingGateway;
+import io.micrometer.observation.ObservationRegistry;
 
 /** Wires Query and page search; Query's model services call the gateway directly, outside the permit pool. */
 @Configuration
 public class QueryConfig {
 
     @Bean
-    PageSelector pageSelector(AIGateway aiGateway, PromptLoader promptLoader) {
-        return new PageSelector(aiGateway, promptLoader);
+    PageSelector pageSelector(AIGateway aiGateway, ObservationRegistry observationRegistry,
+                              PromptLoader promptLoader) {
+        return new PageSelector(
+            new TracingGateway(aiGateway, PageSelector.class.getSimpleName(), observationRegistry), promptLoader);
     }
 
     @Bean
-    AnswerWriter answerWriter(AIGateway aiGateway, PromptLoader promptLoader) {
-        return new AnswerWriter(aiGateway, promptLoader);
+    AnswerWriter answerWriter(AIGateway aiGateway, ObservationRegistry observationRegistry,
+                              PromptLoader promptLoader) {
+        return new AnswerWriter(
+            new TracingGateway(aiGateway, AnswerWriter.class.getSimpleName(), observationRegistry), promptLoader);
     }
 
     @Bean

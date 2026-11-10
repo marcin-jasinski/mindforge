@@ -19,6 +19,7 @@ import dev.mindforge.infrastructure.config.AppProperties;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -44,6 +45,7 @@ import org.springframework.beans.factory.DisposableBean;
 public class AIGatewayAdapter implements AIGateway, DisposableBean {
 
     private static final Logger log = LoggerFactory.getLogger(AIGatewayAdapter.class);
+    private static final ContextSnapshotFactory CONTEXT = ContextSnapshotFactory.builder().build();
 
     private final ChatModel chatModel;
     private final AppProperties.Ai.Model modelRouting;
@@ -116,7 +118,8 @@ public class AIGatewayAdapter implements AIGateway, DisposableBean {
         // Retry + CircuitBreaker run inside the race, so every retry attempt shares this
         // single timeout budget rather than each attempt getting a fresh deadline.
         Supplier<ChatResponse> call = resilient(() -> chatModel.call(request));
-        Future<ChatResponse> future = deadlineExecutor.submit(call::get);
+        // the caller's observation (its model service) becomes the parent of Spring AI's chat span
+        Future<ChatResponse> future = deadlineExecutor.submit(CONTEXT.captureAll().wrap(call::get));
         try {
             return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
