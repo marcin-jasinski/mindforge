@@ -48,5 +48,5 @@ Thumbs.db
 # ---------------------------------------------------------------------------
 # Dark factory (local run state)
 # ---------------------------------------------------------------------------
-.claude/factory-run.json
+.claude/factory-run*.json
 docs/factory/**/.tmp/
