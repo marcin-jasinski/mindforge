@@ -1,0 +1,14 @@
+{
+  "enabledPlugins": {
+    "dark-factory@dark-factory": true
+  },
+  "extraKnownMarketplaces": {
+    "dark-factory": {
+      "source": {
+        "source": "github",
+        "repo": "marcin-jasinski/dark-factory",
+        "ref": "develop"
+      }
+    }
+  }
+}
