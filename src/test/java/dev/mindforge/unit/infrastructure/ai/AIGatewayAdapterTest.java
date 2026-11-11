@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -23,10 +24,14 @@ import dev.mindforge.domain.model.DeadlineProfile;
 import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.infrastructure.ai.AIGatewayAdapter;
 import dev.mindforge.infrastructure.config.AppProperties;
+import com.openai.core.JsonValue;
+import com.openai.models.completions.CompletionUsage;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.DefaultUsage;
@@ -50,6 +55,24 @@ class AIGatewayAdapterTest {
         adapter.complete(ModelTier.SMALL, "hello", DeadlineProfile.INTERACTIVE);
 
         assertThat(capturedRequestModel()).isEqualTo("small-model");
+    }
+
+    @Test
+    void shouldCallTheModelUnderTheCallersObservationSoTheChatSpanNestsUnderTheService() {
+        ObservationRegistry registry = ObservationRegistry.create();
+        registry.observationConfig().observationHandler(context -> true);
+        AtomicReference<Observation> current = new AtomicReference<>();
+        when(chatModel.call(any(Prompt.class))).thenAnswer(invocation -> {
+            current.set(registry.getCurrentObservation());
+            return fixtureResponse("small-model", 10, 20);
+        });
+        Observation service = Observation.start("mindforge.service", registry);
+
+        try (Observation.Scope scope = service.openScope()) {
+            makeAdapter().complete(ModelTier.SMALL, "hello", DeadlineProfile.INTERACTIVE);
+        }
+
+        assertThat(current.get()).isSameAs(service);
     }
 
     @Test
@@ -84,6 +107,26 @@ class AIGatewayAdapterTest {
         assertThat(result.outputTokens()).isEqualTo(34);
         assertThat(result.model()).isEqualTo("large-model");
         assertThat(result.provider()).isEqualTo("openrouter");
+    }
+
+    @Test
+    void shouldReadProviderCostFromNativeUsage() {
+        AIGatewayAdapter adapter = makeAdapter();
+        when(chatModel.call(any(Prompt.class))).thenReturn(fixtureResponseWithCost(0.0042));
+
+        CompletionResult result = adapter.complete(ModelTier.LARGE, "hello", DeadlineProfile.INTERACTIVE);
+
+        assertThat(result.costUsd()).isEqualTo(0.0042);
+    }
+
+    @Test
+    void shouldReportCostAsNotMeasuredWhenProviderSendsNone() {
+        AIGatewayAdapter adapter = makeAdapter();
+        when(chatModel.call(any(Prompt.class))).thenReturn(fixtureResponse("large-model", 12, 34));
+
+        CompletionResult result = adapter.complete(ModelTier.LARGE, "hello", DeadlineProfile.INTERACTIVE);
+
+        assertThat(result.costUsd()).isNull();
     }
 
     @Test
@@ -186,6 +229,20 @@ class AIGatewayAdapterTest {
             .minimumNumberOfCalls(10)
             .recordExceptions(TransientAiException.class, IOException.class, DeadlineExceededException.class)
             .build());
+    }
+
+    static ChatResponse fixtureResponseWithCost(double cost) {
+        CompletionUsage nativeUsage = CompletionUsage.builder()
+            .promptTokens(1).completionTokens(1).totalTokens(2)
+            .putAdditionalProperty("cost", JsonValue.from(cost))
+            .build();
+        return ChatResponse.builder()
+            .generations(List.of(new Generation(new AssistantMessage("hello back"))))
+            .metadata(ChatResponseMetadata.builder()
+                .model("large-model")
+                .usage(new DefaultUsage(1, 1, 2, nativeUsage))
+                .build())
+            .build();
     }
 
     private static ChatResponse fixtureResponse(String model, int promptTokens, int completionTokens) {

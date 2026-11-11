@@ -1,6 +1,7 @@
 package dev.mindforge.infrastructure.ai;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,9 +17,12 @@ import dev.mindforge.domain.model.DeadlineProfile;
 import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.domain.port.AIGateway;
 import dev.mindforge.infrastructure.config.AppProperties;
+import com.openai.core.JsonValue;
+import com.openai.models.completions.CompletionUsage;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
+import io.micrometer.context.ContextSnapshotFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -44,6 +48,7 @@ import org.springframework.beans.factory.DisposableBean;
 public class AIGatewayAdapter implements AIGateway, DisposableBean {
 
     private static final Logger log = LoggerFactory.getLogger(AIGatewayAdapter.class);
+    private static final ContextSnapshotFactory CONTEXT = ContextSnapshotFactory.builder().build();
 
     private final ChatModel chatModel;
     private final AppProperties.Ai.Model modelRouting;
@@ -87,9 +92,21 @@ public class AIGatewayAdapter implements AIGateway, DisposableBean {
             resolvedModel != null ? resolvedModel : model,
             "openrouter",
             latencyMs,
-            // ponytail: real cost accounting arrives with Phase 14 (Langfuse); OpenRouter's
-            // chat-completions response carries no per-call cost field to read here.
-            0.0);
+            costUsd(response));
+    }
+
+    /** OpenRouter's charge in USD, or {@code null} when the response carries none (not measured, never 0). */
+    static Double costUsd(ChatResponse response) {
+        if (response == null || response.getMetadata() == null) {
+            return null;
+        }
+        Usage usage = response.getMetadata().getUsage();
+        if (usage == null || !(usage.getNativeUsage() instanceof CompletionUsage nativeUsage)) {
+            return null;
+        }
+        JsonValue cost = nativeUsage._additionalProperties().get("cost");
+        Optional<Number> number = cost == null ? Optional.empty() : cost.asNumber();
+        return number.map(Number::doubleValue).orElse(null);
     }
 
     @Override
@@ -118,7 +135,8 @@ public class AIGatewayAdapter implements AIGateway, DisposableBean {
         // Retry + CircuitBreaker run inside the race, so every retry attempt shares this
         // single timeout budget rather than each attempt getting a fresh deadline.
         Supplier<ChatResponse> call = resilient(() -> chatModel.call(request));
-        Future<ChatResponse> future = deadlineExecutor.submit(call::get);
+        // the caller's observation (its model service) becomes the parent of Spring AI's chat span
+        Future<ChatResponse> future = deadlineExecutor.submit(CONTEXT.captureAll().wrap(call::get));
         try {
             return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {

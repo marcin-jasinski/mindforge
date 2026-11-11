@@ -76,6 +76,10 @@ _Avoid_: File, upload, source file
 One execution that changes the wiki — integrating a document or conversation turn, reverting an earlier run, or a full Lint — and the record of what it changed. Runs queue per knowledge base; at most one is active.
 _Avoid_: Job, pipeline run, artifact, checkpoint
 
+**Run Cost**:
+What the model provider charged for the responses an ingest run received; unknown when not measured, never assumed zero. A lower bound — calls abandoned at their deadline are not counted.
+_Avoid_: Price, spend, billing
+
 **Page Revision**:
 An immutable snapshot of a page's title, description, type and prose immediately after one write.
 _Avoid_: Version, history entry

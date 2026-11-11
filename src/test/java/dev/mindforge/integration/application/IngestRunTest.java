@@ -2,6 +2,7 @@ package dev.mindforge.integration.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.Assertions.within;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -237,6 +238,19 @@ class IngestRunTest extends TestContainerBase {
 
         assertThat(runs.findById(kbId, run.runId()).orElseThrow().failures()).containsExactly(
             RunFailure.ofPath("write", "concepts/a", "x"), RunFailure.omittedPages("supersede", 3));
+    }
+
+    @Test
+    void costRecordedByEachAttemptOfARunAddsUpAndAnUnmeasuredAttemptKeepsIt() {
+        UUID kbId = insertKnowledgeBase();
+        givenTheNotesAnswers(MITOSIS_BODY, MEIOSIS_BODY, NO_LINKS);
+        IngestRun run = awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.COMPLETED);
+        double firstAttempt = awaitCost(run.runId());
+
+        runs.recordCost(kbId, run.runId(), 0.25);
+        runs.recordCost(kbId, run.runId(), null);
+
+        assertThat(costOf(run.runId())).isCloseTo(firstAttempt + 0.25, within(1e-9));
     }
 
     @Test
@@ -499,6 +513,22 @@ class IngestRunTest extends TestContainerBase {
             }
             await(Duration.ofMillis(50));
         }
+    }
+
+    /** The worker records cost after the run's terminal commit, so it can land after {@link #awaitRun}. */
+    private double awaitCost(UUID runId) {
+        long deadline = System.nanoTime() + TIMEOUT.toNanos();
+        while (costOf(runId) == null) {
+            if (System.nanoTime() > deadline) {
+                throw new AssertionError("Run " + runId + " recorded no cost");
+            }
+            await(Duration.ofMillis(50));
+        }
+        return costOf(runId);
+    }
+
+    private Double costOf(UUID runId) {
+        return jdbc.queryForObject("SELECT cost FROM ingest_runs WHERE run_id = ?", Double.class, runId);
     }
 
     private static void await(CountDownLatch latch) {

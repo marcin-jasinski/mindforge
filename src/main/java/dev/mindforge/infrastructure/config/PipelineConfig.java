@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -25,8 +26,10 @@ import dev.mindforge.domain.port.DocumentRepository;
 import dev.mindforge.domain.port.EventPublisher;
 import dev.mindforge.domain.port.IngestRunRepository;
 import dev.mindforge.domain.port.WikiStore;
+import dev.mindforge.infrastructure.ai.ObservationRunMeter;
 import dev.mindforge.infrastructure.ai.PermitGateway;
 import dev.mindforge.infrastructure.ai.PromptLoader;
+import dev.mindforge.infrastructure.ai.TracingGateway;
 import dev.mindforge.infrastructure.event.RunWorkerTriggers;
 import dev.mindforge.infrastructure.event.SseProgressNotifier;
 
@@ -61,36 +64,53 @@ public class PipelineConfig {
     }
 
     @Bean
-    RelevanceGuard relevanceGuard(AIGateway aiGateway, Semaphore backgroundPermits, PromptLoader promptLoader) {
-        return new RelevanceGuard(new PermitGateway(aiGateway, backgroundPermits), promptLoader);
+    RelevanceGuard relevanceGuard(AIGateway aiGateway, Semaphore backgroundPermits,
+                                  ObservationRegistry observationRegistry, PromptLoader promptLoader) {
+        return new RelevanceGuard(
+            background(aiGateway, backgroundPermits, observationRegistry, RelevanceGuard.class), promptLoader);
     }
 
     @Bean
-    ClaimExtractor claimExtractor(AIGateway aiGateway, Semaphore backgroundPermits, PromptLoader promptLoader,
+    ClaimExtractor claimExtractor(AIGateway aiGateway, Semaphore backgroundPermits,
+                                  ObservationRegistry observationRegistry, PromptLoader promptLoader,
                                   ProcessingSettings processingSettings) {
-        return new ClaimExtractor(new PermitGateway(aiGateway, backgroundPermits), promptLoader,
+        return new ClaimExtractor(
+            background(aiGateway, backgroundPermits, observationRegistry, ClaimExtractor.class), promptLoader,
             processingSettings.maxClaimsPerExtractCall());
     }
 
     @Bean
-    PageWriter pageWriter(AIGateway aiGateway, Semaphore backgroundPermits, PromptLoader promptLoader) {
-        return new PageWriter(new PermitGateway(aiGateway, backgroundPermits), promptLoader);
+    PageWriter pageWriter(AIGateway aiGateway, Semaphore backgroundPermits, ObservationRegistry observationRegistry,
+                          PromptLoader promptLoader) {
+        return new PageWriter(
+            background(aiGateway, backgroundPermits, observationRegistry, PageWriter.class), promptLoader);
     }
 
     @Bean
-    LinkChecker linkChecker(AIGateway aiGateway, Semaphore backgroundPermits, PromptLoader promptLoader) {
-        return new LinkChecker(new PermitGateway(aiGateway, backgroundPermits), promptLoader);
+    LinkChecker linkChecker(AIGateway aiGateway, Semaphore backgroundPermits, ObservationRegistry observationRegistry,
+                            PromptLoader promptLoader) {
+        return new LinkChecker(
+            background(aiGateway, backgroundPermits, observationRegistry, LinkChecker.class), promptLoader);
     }
 
     @Bean
     SupersessionDetector supersessionDetector(AIGateway aiGateway, Semaphore backgroundPermits,
-                                              PromptLoader promptLoader) {
-        return new SupersessionDetector(new PermitGateway(aiGateway, backgroundPermits), promptLoader);
+                                              ObservationRegistry observationRegistry, PromptLoader promptLoader) {
+        return new SupersessionDetector(
+            background(aiGateway, backgroundPermits, observationRegistry, SupersessionDetector.class), promptLoader);
     }
 
     @Bean
-    WikiReviewer wikiReviewer(AIGateway aiGateway, Semaphore backgroundPermits, PromptLoader promptLoader) {
-        return new WikiReviewer(new PermitGateway(aiGateway, backgroundPermits), promptLoader);
+    WikiReviewer wikiReviewer(AIGateway aiGateway, Semaphore backgroundPermits,
+                              ObservationRegistry observationRegistry, PromptLoader promptLoader) {
+        return new WikiReviewer(
+            background(aiGateway, backgroundPermits, observationRegistry, WikiReviewer.class), promptLoader);
+    }
+
+    /** A background model service's gateway: its span and cost entry are named as its {@code step_versions} key. */
+    private static AIGateway background(AIGateway aiGateway, Semaphore permits, ObservationRegistry registry,
+                                        Class<?> service) {
+        return new PermitGateway(TracingGateway.forService(aiGateway, service, registry), permits);
     }
 
     @Bean
@@ -122,9 +142,11 @@ public class PipelineConfig {
     @Bean
     RunWorker runWorker(IngestRunRepository ingestRunRepository, IngestPipeline ingestPipeline,
                         LintService lintService, SseProgressNotifier progressNotifier, EventPublisher eventPublisher,
-                        TransactionOperations transactionOperations, Executor runExecutor) {
+                        TransactionOperations transactionOperations, Executor runExecutor,
+                        ObservationRegistry observationRegistry, AppProperties properties) {
         return new RunWorker(ingestRunRepository, ingestPipeline, lintService, progressNotifier, eventPublisher,
-            transactionOperations, runExecutor);
+            transactionOperations, runExecutor, new ObservationRunMeter(observationRegistry),
+            properties.getAi().getCostWarningUsd());
     }
 
     @Bean

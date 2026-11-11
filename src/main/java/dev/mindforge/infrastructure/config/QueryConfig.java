@@ -1,5 +1,6 @@
 package dev.mindforge.infrastructure.config;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,19 +13,24 @@ import dev.mindforge.domain.port.InteractionStore;
 import dev.mindforge.domain.port.PageSearchQuery;
 import dev.mindforge.domain.port.WikiStore;
 import dev.mindforge.infrastructure.ai.PromptLoader;
+import dev.mindforge.infrastructure.ai.TracingGateway;
 
 /** Wires Query and page search; Query's model services call the gateway directly, outside the permit pool. */
 @Configuration
 public class QueryConfig {
 
     @Bean
-    PageSelector pageSelector(AIGateway aiGateway, PromptLoader promptLoader) {
-        return new PageSelector(aiGateway, promptLoader);
+    PageSelector pageSelector(AIGateway aiGateway, ObservationRegistry observationRegistry,
+                              PromptLoader promptLoader) {
+        return new PageSelector(
+            TracingGateway.forService(aiGateway, PageSelector.class, observationRegistry), promptLoader);
     }
 
     @Bean
-    AnswerWriter answerWriter(AIGateway aiGateway, PromptLoader promptLoader) {
-        return new AnswerWriter(aiGateway, promptLoader);
+    AnswerWriter answerWriter(AIGateway aiGateway, ObservationRegistry observationRegistry,
+                              PromptLoader promptLoader) {
+        return new AnswerWriter(
+            TracingGateway.forService(aiGateway, AnswerWriter.class, observationRegistry), promptLoader);
     }
 
     @Bean

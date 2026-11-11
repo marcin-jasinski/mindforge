@@ -17,6 +17,9 @@ import dev.mindforge.domain.port.AIGateway;
  */
 public final class StubAIGateway implements AIGateway {
 
+    /** What every stub call reports as its provider cost. */
+    public static final double COST_PER_CALL_USD = 0.001;
+
     private final Map<ModelTier, String> responses;
     private final List<Answer> answers = new CopyOnWriteArrayList<>();
     private final List<Call> recordedCalls = new CopyOnWriteArrayList<>();
@@ -37,7 +40,7 @@ public final class StubAIGateway implements AIGateway {
             .map(answer -> answer.responder().apply(prompt))
             .orElseGet(() -> unmatched(tier, prompt));
         recordedCalls.add(new Call(tier, prompt, deadline, content));
-        return new CompletionResult(content, 10, 20, "stub-model", "stub", 0L, 0.0);
+        return new CompletionResult(content, 10, 20, "stub-model", "stub", 0L, COST_PER_CALL_USD);
     }
 
     /** With answers registered, an unmatched prompt is a routing bug: fail naming it rather than return a placeholder. */

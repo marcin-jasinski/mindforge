@@ -91,6 +91,11 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
+    public void recordCost(UUID kbId, UUID runId, Double costUsd) {
+        runs.addCost(kbId, runId, costUsd);
+    }
+
+    @Override
     public void recordFindings(UUID kbId, UUID runId, List<ReviewItem> findings) {
         runs.findByKnowledgeBaseIdAndRunId(kbId, runId).orElseThrow().setFindings(findings);
     }

@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.unit.DataSize;
 import org.springframework.validation.annotation.Validated;
@@ -125,6 +126,13 @@ public class AppProperties {
         /** Concurrent model calls across every ingest and Lint run. */
         @Positive
         private int backgroundPermits = 4;
+
+        /** A run that costs more logs a WARN with its per-service breakdown. */
+        @PositiveOrZero
+        private double costWarningUsd = 0.50;
+
+        public double getCostWarningUsd() { return costWarningUsd; }
+        public void setCostWarningUsd(double costWarningUsd) { this.costWarningUsd = costWarningUsd; }
 
         public int getBackgroundPermits() { return backgroundPermits; }
         public void setBackgroundPermits(int backgroundPermits) { this.backgroundPermits = backgroundPermits; }
