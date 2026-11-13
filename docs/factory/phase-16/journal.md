@@ -19,3 +19,9 @@
 2026-11-13T19:07:53Z P16-02 implement implementer@inherit DONE
 2026-11-13T19:12:26Z P16-02 test r1 tester@sonnet PASS
 2026-11-13T19:13:01Z P16-02 review r1 correctness@opus standards@sonnet spec-security@opus approve; triage accepted=0 -> PASS
+2026-11-13T19:16:30Z P16-03 implement implementer@inherit DONE (API: accept(byte[],mime), accept(BufferedImage))
+2026-11-13T19:21:15Z P16-03 test r1 tester@sonnet PASS
+2026-11-13T19:22:27Z P16-03 review r1 correctness@opus=changes standards@sonnet=approve spec-security@opus=changes; triage accepted=3 (C1,C2,S1)
+2026-11-13T19:25:05Z P16-03 fix r1 fixer@inherit C1,C2,S1 FIXED (adds MAX_PIXELS=50M pre-decode guard, orchestrator accepts as local)
+2026-11-13T19:29:52Z P16-03 test r2 tester@sonnet PASS
+2026-11-13T19:30:38Z P16-03 review r2 correctness@opus spec-security@opus approve; triage accepted=0 -> PASS

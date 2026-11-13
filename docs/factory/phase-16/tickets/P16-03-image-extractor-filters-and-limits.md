@@ -1,14 +1,14 @@
 ---
 id: P16-03
 title: Add the ImageExtractor that filters, re-encodes, deduplicates and caps a document's images
-status: ready
+status: done
 plan_tasks: [16.1]
 decisions: [D05]
 depends_on: [P16-01]
 size: M
 issue: 13
 commit:
-fix_rounds: 0
+fix_rounds: 1
 ---
 ## Goal
 A parser-side helper `dev.mindforge.infrastructure.parsing.ImageExtractor` decides, per extracted image, whether it
@@ -58,16 +58,16 @@ opt-out switch in Phase 16.
 - Dissent risk to watch: silent loss from the 5 MB skip and from images that cannot be decoded — a WARN log line each.
 
 ## Acceptance criteria
-- [ ] AC1: `ImageExtractor` exists with the three constants above (64, 5 MB, 100) and is not a Spring bean.
-- [ ] AC2: An image narrower or shorter than 64 px is skipped; a 64x64 image is accepted.
-- [ ] AC3: PNG and JPEG input is returned byte-identical with MIME `image/png` / `image/jpeg`.
-- [ ] AC4: GIF and BMP input is returned as PNG (`image/png`) that `ImageIO.read` decodes.
-- [ ] AC5: EMF, WMF and SVG MIME types and undecodable bytes are skipped without an exception.
-- [ ] AC6: An image whose emitted bytes exceed 5 MB is skipped with a WARN log.
-- [ ] AC7: The same emitted bytes accepted a second time return empty (SHA-256 dedup); duplicates do not count.
-- [ ] AC8: `checkCount(101)` throws `UploadRejectedException` with message "The document has 101 images (limit 100)";
+- [x] AC1: `ImageExtractor` exists with the three constants above (64, 5 MB, 100) and is not a Spring bean.
+- [x] AC2: An image narrower or shorter than 64 px is skipped; a 64x64 image is accepted.
+- [x] AC3: PNG and JPEG input is returned byte-identical with MIME `image/png` / `image/jpeg`.
+- [x] AC4: GIF and BMP input is returned as PNG (`image/png`) that `ImageIO.read` decodes.
+- [x] AC5: EMF, WMF and SVG MIME types and undecodable bytes are skipped without an exception.
+- [x] AC6: An image whose emitted bytes exceed 5 MB is skipped with a WARN log.
+- [x] AC7: The same emitted bytes accepted a second time return empty (SHA-256 dedup); duplicates do not count.
+- [x] AC8: `checkCount(101)` throws `UploadRejectedException` with message "The document has 101 images (limit 100)";
   `checkCount(100)` does not.
-- [ ] AC9: No log line contains image bytes or base64.
+- [x] AC9: No log line contains image bytes or base64.
 
 ## Test plan
 - Unit (plain JUnit + AssertJ, no Spring): `src/test/java/dev/mindforge/unit/infrastructure/parsing/ImageExtractorTest.java`
@@ -85,3 +85,9 @@ opt-out switch in Phase 16.
 - Documentation of the limits (P16-10).
 
 ## Notes
+- Decided: `accept(byte[] bytes, String mimeType)` decodes with `ImageIO.read` and takes the size from the decoded image (no width/height parameters), plus `accept(BufferedImage)` that emits PNG for decoded PDF images, because DOCX pictures have no dimensions before decode and "decodable raster only" needs a decode for PNG/JPEG pass-through too. A JPEG that ImageIO cannot decode (for example CMYK) is skipped with a WARN.
+- Tester r1 AC map (ImageExtractorTest): AC1 shouldHaveTheLimitsAndNoAnnotation; AC2 shouldSkipAnImageNarrowerOrShorterThan64Px + shouldAcceptA64By64Image; AC3 shouldKeepPngAndJpegBytesAsTheyAre; AC4 shouldReEncodeGifAndBmpToPng; AC5 shouldSkipVectorFormatsAndUndecodableBytesWithoutAnException; AC6 shouldSkipAnImageOver5MbWithAWarning; AC7 shouldAcceptTheSameImageOnceAndNotCountDuplicates; AC8 shouldRejectMoreThan100Images; AC9 shouldNeverLogImageBytes.
+
+### Deferred findings
+- correctness/C3 minor 0.6 src/main/java/dev/mindforge/infrastructure/parsing/ImageExtractor.java:43: A null `mimeType` throws `NullPointerException` instead of a skip, because `Set.of(...).contains(null)` throws.
+- spec-security/S2 minor 0.5 src/main/java/dev/mindforge/infrastructure/parsing/ImageExtractor.java:60: PNG/JPEG pass-through trusts the declared MIME type, not the decoded format, so bytes of another format declared as image/png or image/jpeg are emitted unchanged with a wrong MIME type, against D05 "re-encode every other decodable raster to PNG".
