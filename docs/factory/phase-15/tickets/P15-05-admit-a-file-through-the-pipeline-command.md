@@ -11,7 +11,7 @@ commit:
 fix_rounds: 0
 ---
 ## Goal
-`--spring.profiles.active=cli pipeline --file <path> --kb <id> --user <email>` resolves the user, checks that the user
+`--spring.profiles.active=cli pipeline --file=<path> --kb=<id> --user=<email>` resolves the user, checks that the user
 owns the Knowledge Base, reads the file, names its MIME type from the extension and calls the same
 `IngestionService.ingest` as an upload, with `UploadSource.CLI`. Every refusal before a run is queued ends with exit
 code 2 and one line on stderr. (Waiting for the Ingest Run and the run outcome are P15-06; in this ticket the runner
@@ -36,13 +36,13 @@ prints the document id and reports exit 0 after `ingest` returns.)
   thin adapter; constructor injection; ownership verified before any resource access.
 
 ## Decisions to apply
-**D04 — Decision:** Both CLI runners take a required `--user <email>`. An application-service method resolves the email
+**D04 — Decision:** Both CLI runners take a required `--user=<email>`. An application-service method resolves the email
 to a `User`, then the runner calls `KnowledgeBaseService.requireOwner(kbId, user.userId())` before any work. That user
 is `DocumentUpload.uploadedBy`. No password: the database credentials are the trust boundary. Do not add a default
 that falls back to the KB owner.
 
 **D04 — Implementation notes (part applied here):**
-- `mindforge-pipeline`: `--file <path> --kb <id> --user <email>`. Order: parse args, `byEmail`,
+- `mindforge-pipeline`: `--file=<path> --kb=<id> --user=<email>`. Order: parse args, `byEmail`,
   `requireOwner(kbId, userId)`, then work. The runner never touches `UserRepository`.
 - `new DocumentUpload(kbId, user.userId(), UploadSource.CLI, ...)` (D06).
 - Missing `--user`, unknown email, unknown KB or `NotOwnerException`: one line to stderr, non-zero exit (2 per D08), no
@@ -50,7 +50,7 @@ that falls back to the KB owner.
 - Unit tests (Mockito, no Spring): unknown email -> non-zero exit, ingest never called; KB owned by another user ->
   non-zero exit, no ingest; happy path passes the resolved id into `DocumentUpload`.
 
-**D07 — Decision:** The pipeline CLI finds the MIME type of `--file <path>` from a fixed, case-insensitive extension
+**D07 — Decision:** The pipeline CLI finds the MIME type of `--file=<path>` from a fixed, case-insensitive extension
 map (`.md`, `.markdown` -> `text/markdown`; `.txt` -> `text/plain`; `.pdf` -> `application/pdf`; `.docx` -> the DOCX
 MIME type). Any other extension gives `application/octet-stream`, which `UploadSanitizer.admit` refuses with its normal
 message. Do not call `Files.probeContentType` and do not add a `--mime` option.

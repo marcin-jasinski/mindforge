@@ -11,7 +11,7 @@ commit:
 fix_rounds: 0
 ---
 ## Goal
-`--spring.profiles.active=cli quiz --kb <id> --user <email>` resolves the user, checks ownership, starts a Quiz Session
+`--spring.profiles.active=cli quiz --kb=<id> --user=<email>` resolves the user, checks ownership, starts a Quiz Session
 over the whole Knowledge Base with the synchronous `QuizService.start`, then asks each question on stdout, reads one
 answer line from stdin, grades it through `QuizService.answer` (the same path as the web UI), prints the score and
 feedback, and prints a summary at the end. EOF on stdin ends the quiz cleanly with the summary. The reference answer and
@@ -57,7 +57,7 @@ print or log the session or its questions — only `NextQuestion` and `Graded`.
   stdout never contains the reference answer or grounding excerpt text of the stub session; `requireOwner` failure
   stops before `start`.
 
-**D04 — Decision (quiz part):** `quiz` takes a required `--user <email>`, resolved with `AccountService.byEmail`; the
+**D04 — Decision (quiz part):** `quiz` takes a required `--user=<email>`, resolved with `AccountService.byEmail`; the
 runner calls `requireOwner(kbId, user.userId())` before any work and passes `user.userId()` to every `QuizService` call,
 so `owned` and `recordQuizScore` use it. Missing `--user`, unknown email, unknown KB or `NotOwnerException`: one line to
 stderr, exit 2, no quiz session. Message for KB failures: "knowledge base not found or not owned by <email>". No
@@ -80,7 +80,7 @@ created); any other unexpected exception -> 1 (logged with `log`).
 - [ ] AC7: `NotFoundException` from `start` -> one stderr line, non-zero exit (2), no `next`/`answer` call.
 - [ ] AC8: stdout and stderr never contain the stub session's reference answer or grounding excerpt text.
 - [ ] AC9: In a `cli` context (Testcontainers, `StubAIGateway`, `mindforge.cli.exit-when-done=false`), running the
-      `QuizCommandRunner` with `quiz --kb <id> --user <owner email>` over a KB with at least one wiki page and scripted
+      `QuizCommandRunner` with `quiz --kb=<id> --user=<owner email>` over a KB with at least one wiki page and scripted
       answers prints at least one graded answer and a summary, exits 0, and the quiz score is recorded for that user's
       page through the normal study store.
 

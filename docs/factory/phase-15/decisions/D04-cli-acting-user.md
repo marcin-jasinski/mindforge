@@ -11,7 +11,7 @@ tallies: [docs/factory/phase-15/ballots/Q04.r1.tally.md]
 adr: docs/adr/0019-cli-acts-as-a-named-user-without-password.md
 ---
 ## Decision
-Use B: both CLI runners take a required `--user <email>`. An application-service method resolves the email to a
+Use B: both CLI runners take a required `--user=<email>`. An application-service method resolves the email to a
 `User` (normalised the same way as sign-in; unknown email gives `NotFoundException("User")`), then the runner calls
 `KnowledgeBaseService.requireOwner(kbId, user.userId())` before any work. That user is `DocumentUpload.uploadedBy`,
 the quiz session `userId` and the owner of the recorded quiz scores. No password: the database credentials are the
@@ -39,7 +39,7 @@ that falls back to the KB owner, because that brings back A's silent-misattribut
 - Application: `AccountService.byEmail(String email): User` — `users.findByEmail(normalise(email))
   .orElseThrow(() -> new NotFoundException("User"))`. Do not call `recordLogin`. The runners never touch
   `UserRepository`.
-- `mindforge-pipeline` (W03): `--file <path> --kb <id> --user <email>`; `mindforge-quiz` (W05): `--kb <id> --user <email>`
+- `mindforge-pipeline` (W03): `--file=<path> --kb=<id> --user=<email>`; `mindforge-quiz` (W05): `--kb=<id> --user=<email>`
   (plus Q09 scope flags). Order: parse args, `byEmail`, `requireOwner(kbId, userId)`, then work.
 - Pipeline: `new DocumentUpload(kbId, user.userId(), UploadSource.CLI, ...)` (D06). Quiz: pass `user.userId()` to every
   `QuizService` call so `owned` and `recordQuizScore` use it.

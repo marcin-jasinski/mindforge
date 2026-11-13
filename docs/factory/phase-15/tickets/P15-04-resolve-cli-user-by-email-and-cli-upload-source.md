@@ -24,7 +24,7 @@ source saves, loads and deduplicates exactly like an `API` document.
   Javadoc on channel behaviour. `upload_source` is `VARCHAR(50)` without a CHECK constraint (`V1__baseline.sql`), and
   the mapper uses `UploadSource.valueOf` (`infrastructure/persistence/.../DocumentEntityMapper.java`), so no migration.
 - Only `CONVERSATION` and `ARTICLE` change behaviour (`IngestPipeline`, `IngestionService`).
-- ADR `docs/adr/0019-cli-acts-as-a-named-user-without-password.md` (accepted): the CLI takes `--user <email>`, resolves
+- ADR `docs/adr/0019-cli-acts-as-a-named-user-without-password.md` (accepted): the CLI takes `--user=<email>`, resolves
   it through an application service, then checks ownership; no password.
 - Tests: `src/test/java/dev/mindforge/unit/application/AccountServiceTest.java`,
   `src/test/java/dev/mindforge/integration/persistence/DocumentRepositoryAdapterTest.java`,
@@ -32,7 +32,7 @@ source saves, loads and deduplicates exactly like an `API` document.
   `ConcurrentUploadTest`).
 
 ## Decisions to apply
-**D04 — Decision:** Both CLI runners take a required `--user <email>`. An application-service method resolves the email
+**D04 — Decision:** Both CLI runners take a required `--user=<email>`. An application-service method resolves the email
 to a `User` (normalised the same way as sign-in; unknown email gives `NotFoundException("User")`), then the runner calls
 `KnowledgeBaseService.requireOwner(kbId, user.userId())` before any work. That user is `DocumentUpload.uploadedBy`, the
 quiz session `userId` and the owner of the recorded quiz scores. No password: the database credentials are the trust

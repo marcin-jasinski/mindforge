@@ -21,3 +21,10 @@
 2026-11-13T00:36:54Z P15-02 implement@inherit DONE
 2026-11-13T00:40:53Z P15-02 test/r1@sonnet PASS
 2026-11-13T00:41:36Z P15-02 review/r1 correctness@opus,spec-security@opus approve; standards@sonnet approve (1 nit deferred); test-guard clean
+2026-11-13T00:41:46Z P15-02 commit 278139f done
+2026-11-13T00:45:33Z P15-03 implement@inherit DONE
+2026-11-13T00:49:28Z P15-03 test/r1@sonnet PASS
+2026-11-13T00:51:02Z P15-03 review/r1 correctness@opus changes(1 major); spec-security@opus approve(1 minor); standards@sonnet approve(1 nit)
+2026-11-13T00:52:56Z P15-03 fix/r1@inherit C1 FIXED (usage uses --name=value; D03/D08 amended; tickets P15-04..08 and D04/D07 aligned)
+2026-11-13T00:56:46Z P15-03 test/r2@sonnet PASS
+2026-11-13T00:57:06Z P15-03 review/r2 correctness@opus approve (C1 verified fixed)

@@ -11,7 +11,7 @@ tallies: [docs/factory/phase-15/ballots/Q07.r1.tally.md]
 adr: 
 ---
 ## Decision
-Use A: the pipeline CLI finds the MIME type of `--file <path>` from a fixed, case-insensitive extension map (`.md`, `.markdown` -> `text/markdown`; `.txt` -> `text/plain`; `.pdf` -> `application/pdf`; `.docx` -> the DOCX MIME type). Any other extension gives `application/octet-stream`, which `UploadSanitizer.admit` refuses with its normal message. Do not call `Files.probeContentType` and do not add a `--mime` option.
+Use A: the pipeline CLI finds the MIME type of `--file=<path>` from a fixed, case-insensitive extension map (`.md`, `.markdown` -> `text/markdown`; `.txt` -> `text/plain`; `.pdf` -> `application/pdf`; `.docx` -> the DOCX MIME type). Any other extension gives `application/octet-stream`, which `UploadSanitizer.admit` refuses with its normal message. Do not call `Files.probeContentType` and do not add a `--mime` option.
 
 ## Why
 - The result is deterministic on all operating systems; `Files.probeContentType` can return `null` or `text/x-markdown` for `.md`, and the sanitizer refuses both (UploadSanitizer.java:38-40).

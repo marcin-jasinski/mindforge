@@ -11,7 +11,7 @@ tallies: [docs/factory/phase-15/ballots/Q08.r1.tally.md]
 adr:
 ---
 ## Decision
-Use B: the pipeline CLI takes `--file`, `--kb`, `--user` (D04), an optional `--lesson-id <id>` and a boolean
+Use B: the pipeline CLI takes `--file`, `--kb`, `--user` (D04), an optional `--lesson-id=<id>` and a boolean
 `--new-version` flag, and maps them 1:1 onto `DocumentUpload.lessonId` / `DocumentUpload.newVersion` with
 `UploadSource.CLI` (D06). It waits for its own run as D01 says and ends with one of three stable exit codes:
 **0** = success, **1** = the ingest ran (or ran before) and failed, **2** = the input was refused before any run
@@ -57,8 +57,11 @@ script contract; document them in the CLI usage text and do not renumber them la
   - usage error (D03), missing/unknown `--user`, unknown KB, `NotOwnerException` (D04), unreadable `--file` -> 2.
   - any other unexpected exception -> 1 (logged).
 - Usage text lists the flags and the three exit codes.
-- Unit tests (Mockito, `DefaultApplicationArguments`, no Spring): `--lesson-id x --new-version` reaches
+- Unit tests (Mockito, `DefaultApplicationArguments`, no Spring): `--lesson-id=x --new-version` reaches
   `DocumentUpload("x", true)`; no flags -> `(null, false)`; each refusal exception -> 2 and ingest-wait not started;
   LessonAlreadyExists message mentions `--new-version`; COMPLETED -> 0; COMPLETED with page failures -> 0 + warning;
   FAILED -> 1; timeout -> 1; identical upload with latest COMPLETED -> 0 without drain; identical upload with latest
   FAILED -> 1; usage error -> 2.
+
+## Amendment (P15-03 review, round 1)
+Option values use the `--name=value` form (`--file=<path> --kb=<id> --user=<email> --lesson-id=<id>`). Spring's `ApplicationArguments` binds a value only from `--name=value`; the space form (`--file <path>`) gives an option with no value and turns the value into a non-option argument. `--new-version` stays a flag with no value. No custom parser (no command framework).

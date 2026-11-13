@@ -4,3 +4,8 @@
 spring:
   main:
     web-application-type: none
+
+mindforge:
+  cli:
+    # End the process with the runners' exit code once they return. Tests set it to false.
+    exit-when-done: true

@@ -27,6 +27,8 @@ import dev.mindforge.application.service.RunWorker;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
+import dev.mindforge.cli.CliExitOnReady;
+import dev.mindforge.cli.CliUsageRunner;
 import dev.mindforge.cli.ConsoleProgressNotifier;
 import dev.mindforge.domain.port.IngestRunRepository;
 import dev.mindforge.domain.port.ProgressNotifier;
@@ -40,7 +42,8 @@ import dev.mindforge.support.TestContainerBase;
 @TestPropertySource(properties = {
     "mindforge.security.jwt-secret=test-jwt-secret-for-integration-tests-minimum-length",
     "spring.ai.openai.api-key=test-placeholder",
-    "spring.jpa.hibernate.ddl-auto=none"
+    "spring.jpa.hibernate.ddl-auto=none",
+    "mindforge.cli.exit-when-done=false"
 })
 class CliProfileContextTest extends TestContainerBase {
 
@@ -90,6 +93,12 @@ class CliProfileContextTest extends TestContainerBase {
             .singleElement().isInstanceOf(ConsoleProgressNotifier.class);
         assertThat(context.getBeanNamesForType(SseProgressNotifier.class)).isEmpty();
         assertThat(context.getBeanNamesForType(RunController.class)).isEmpty();
+    }
+
+    @Test
+    void withoutACommandTheContextLoadsReportsTheRefusedExitCodeAndDoesNotExit() {
+        assertThat(context.getBean(CliUsageRunner.class).getExitCode()).isEqualTo(2);
+        assertThat(context.getBeanNamesForType(CliExitOnReady.class)).isEmpty();
     }
 
     @Test

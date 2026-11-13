@@ -24,8 +24,8 @@ The docs describe how to run `mindforge-pipeline` and `mindforge-quiz`, their fl
 - `CLAUDE.md`: only the "Project State" paragraph may change ("Work resumes at Phase 14 ..."). Check the roadmap for
   the real next phase (Phase 14 has an open manual checklist item; Phases 14, 15, 16 are parallel after 13).
 - `docs/INDEX.md`: change only if a new doc file is added (this ticket should not add one).
-- As built (from P15-01..P15-07): commands `pipeline --file <path> --kb <id> --user <email> [--lesson-id <id>]
-  [--new-version]` and `quiz --kb <id> --user <email>`; exit codes 0 success, 1 run failed or timed out, 2 input
+- As built (from P15-01..P15-07): commands `pipeline --file=<path> --kb=<id> --user=<email> [--lesson-id=<id>]
+  [--new-version]` and `quiz --kb=<id> --user=<email>`; exit codes 0 success, 1 run failed or timed out, 2 input
   refused; `mindforge.cli.run-timeout` (default PT30M); `UploadSource.CLI`; under `cli` no web server and no run sweep.
   Read the merged code to confirm before you write.
 - Docs are written in ASD-STE100 Simplified Technical English where the house rules require it; follow the style of

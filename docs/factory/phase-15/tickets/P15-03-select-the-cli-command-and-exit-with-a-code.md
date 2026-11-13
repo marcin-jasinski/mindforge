@@ -1,14 +1,14 @@
 ---
 id: P15-03
 title: Select the CLI command from the first argument and exit with a stable code
-status: ready
+status: done
 plan_tasks: [15.1, 15.2]
 decisions: [D03, D08]
 depends_on: [P15-02]
 size: M
 issue: 4
 commit:
-fix_rounds: 0
+fix_rounds: 1
 ---
 ## Goal
 In the `cli` profile, the first non-option argument names the command (`pipeline` or `quiz`). A missing or unknown
@@ -29,7 +29,7 @@ its context through `SpringApplication.exit` and ends with the exit code the run
 
 ## Decisions to apply
 **D03 — Decision:** The first non-option argument is the command. Run `java -jar mindforge.jar
---spring.profiles.active=cli pipeline --file <path> --kb <id>` or `... --spring.profiles.active=cli quiz --kb <id>`.
+--spring.profiles.active=cli pipeline --file=<path> --kb=<id>` or `... --spring.profiles.active=cli quiz --kb=<id>`.
 Each runner reads the command from `ApplicationArguments.getNonOptionArgs()` and returns at once if the command is not
 its own. A missing or unknown command prints usage to stderr and ends the process with a non-zero exit code.
 `mindforge-pipeline` and `mindforge-quiz` are documentation labels only; the concrete subcommands are `pipeline` and
@@ -67,15 +67,15 @@ the cli integration tests. Runners report outcomes only through `ExitCodeGenerat
 outcome, so a test context with no arguments still loads (it prints usage and reports 2, and nothing exits).
 
 ## Acceptance criteria
-- [ ] AC1: `CliCommand.of(args)` returns the first non-option argument, or empty when there is none.
-- [ ] AC2: With no non-option argument, the usage runner prints usage to stderr and its `getExitCode()` is 2.
-- [ ] AC3: With an unknown first argument (e.g. `foo`), usage is printed to stderr and the exit code is 2.
-- [ ] AC4: With `pipeline` or `quiz` as first argument, the usage runner prints nothing and its exit code is 0.
-- [ ] AC5: The usage text contains `pipeline --file <path> --kb <id> --user <email> [--lesson-id <id>]
-      [--new-version]`, `quiz --kb <id> --user <email>`, and the meaning of exit codes 0, 1 and 2.
-- [ ] AC6: In the `cli` context with `mindforge.cli.exit-when-done=false` the context loads with no arguments and no
+- [x] AC1: `CliCommand.of(args)` returns the first non-option argument, or empty when there is none.
+- [x] AC2: With no non-option argument, the usage runner prints usage to stderr and its `getExitCode()` is 2.
+- [x] AC3: With an unknown first argument (e.g. `foo`), usage is printed to stderr and the exit code is 2.
+- [x] AC4: With `pipeline` or `quiz` as first argument, the usage runner prints nothing and its exit code is 0.
+- [x] AC5: The usage text contains `pipeline --file=<path> --kb=<id> --user=<email> [--lesson-id=<id>]
+      [--new-version]`, `quiz --kb=<id> --user=<email>`, and the meaning of exit codes 0, 1 and 2.
+- [x] AC6: In the `cli` context with `mindforge.cli.exit-when-done=false` the context loads with no arguments and no
       exit listener bean exists; with the default (true) the listener bean exists in the `cli` profile only.
-- [ ] AC7: No `System.exit` call exists in any runner class.
+- [x] AC7: No `System.exit` call exists in any runner class.
 
 ## Test plan
 - AC1–AC5: unit tests `src/test/java/dev/mindforge/unit/cli/CliCommandTest.java` and
@@ -103,3 +103,10 @@ outcome, so a test context with no arguments still loads (it prints usage and re
 - Changing `MindForgeApplication.main`.
 
 ## Notes
+- Decided: the usage text is a package-private constant `CliUsageRunner.USAGE` because the runner tickets (P15-05..07) print the same text for missing options from the same package.
+- Decided: AC6 presence check is a separate `integration/cli/CliExitOnReadyWiringTest` with `ApplicationContextRunner` over `CliConfig` because it never fires `ApplicationReadyEvent`, so the exit cannot start.
+- Tester r1 AC map: AC1 CliCommandTest; AC2-AC5 CliUsageRunnerTest; AC6 CliProfileContextTest (absent) + CliExitOnReadyWiringTest (present); AC7 grep: no System.exit in runners (only CliExitOnReady, if any).
+
+### Deferred findings
+- spec-security/S1 minor 0.5 src/main/java/dev/mindforge/cli/CliUsageRunner.java:17: The usage text documents space-separated option values (`--file <path> --kb <id>`), but Spring's `ApplicationArguments` only takes an option value from the `--name=value` form, so a script that follows the usage gives the runners options with no value, and the values become extra non-option arguments.
+- standards/S1 nit 0.5 src/test/java/dev/mindforge/integration/cli/CliProfileContextTest.java:30: The new dev.mindforge.cli imports sit between dev.mindforge.domain imports instead of in alphabetical order.

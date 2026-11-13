@@ -55,7 +55,7 @@ An end-to-end `cli`-profile test ingests a Markdown file to COMPLETED.
 - Tests: unit — runner waits on its own run id when an older QUEUED run exists; dedup path exits without waiting;
   FAILED run gives a non-zero exit code.
 
-**D08 — Decision:** The pipeline CLI takes `--file`, `--kb`, `--user`, an optional `--lesson-id <id>` and a boolean
+**D08 — Decision:** The pipeline CLI takes `--file`, `--kb`, `--user`, an optional `--lesson-id=<id>` and a boolean
 `--new-version` flag, mapped 1:1 onto `DocumentUpload.lessonId` / `DocumentUpload.newVersion` with `UploadSource.CLI`.
 It waits for its own run as D01 says and ends with **0** = success, **1** = the ingest ran (or ran before) and failed,
 **2** = the input was refused before any run was queued.
@@ -85,7 +85,7 @@ waiting (D08); COMPLETED -> print "already ingested", exit 0; FAILED -> exit 1 w
 Record this in the ticket Notes if you deviate.
 
 ## Acceptance criteria
-- [ ] AC1: `--lesson-id x --new-version` reaches `ingest` as `DocumentUpload(..., "x", true)`; no flags -> `(null,
+- [ ] AC1: `--lesson-id=x --new-version` reaches `ingest` as `DocumentUpload(..., "x", true)`; no flags -> `(null,
       false)`; a blank `--lesson-id` is `null`.
 - [ ] AC2: `LessonAlreadyExistsException` -> exit 2 and the stderr message mentions `--new-version`; no drain.
 - [ ] AC3: Latest run QUEUED -> the runner calls `watch(runId)`, then `drain(kbId)`, polls `findById(kbId, runId)` for
@@ -99,7 +99,7 @@ Record this in the ticket Notes if you deviate.
 - [ ] AC9: `mindforge.cli.run-timeout` is bound in `AppProperties` with default PT30M.
 - [ ] AC10: End to end: in a `cli` context (Testcontainers PostgreSQL, `StubAIGateway`,
       `mindforge.cli.exit-when-done=false`), running the `PipelineCommandRunner` bean with
-      `pipeline --file <temp .md> --kb <id> --user <owner email>` ends with exit code 0, the document has
+      `pipeline --file=<temp .md> --kb=<id> --user=<owner email>` ends with exit code 0, the document has
       `UploadSource.CLI` and its run is COMPLETED, and stdout contains at least one progress line for that run.
 - [ ] AC11: Runner tests in AC3–AC8 run without a Spring context and without real sleeps longer than the test needs
       (inject the poll interval/clock or a small timeout).
