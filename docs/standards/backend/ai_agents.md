@@ -66,6 +66,21 @@ openAi.chatCompletionEntity(request);  // ❌
 
 `AIGateway` exposes chat completion only — there are no embeddings (ADR 0016).
 
+## Images
+
+`PdfParser` and `DocxParser` emit IMAGE blocks through `ImageExtractor`, which keeps only the images worth a `VISION`
+call:
+
+- Raster images only. PNG and JPEG bytes are kept as they are; every other decodable raster is re-encoded to PNG.
+  EMF, WMF, SVG and anything that does not decode are skipped.
+- An image narrower or shorter than 64 px is skipped. An image over 50 megapixels is skipped before decode.
+- Each distinct image (SHA-256 of its bytes) is emitted once per document, at its first position.
+- An image whose emitted bytes exceed 5 MB is skipped.
+- After the filters and the dedup, more than 100 images rejects the upload (`UploadRejectedException`).
+
+The ingest run describes the kept images first, before Preprocess (`ImageDescriber`, `VISION`; ADR 0020). There is no
+switch to turn image description off.
+
 ## Prompt Files
 
 Prompt files follow the pattern `{name}.{locale}.md`. English (`en`) is the only locale: every prompt, like the UI and the logs, is in English.

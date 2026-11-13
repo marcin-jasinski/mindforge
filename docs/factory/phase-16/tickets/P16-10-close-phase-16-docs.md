@@ -1,7 +1,7 @@
 ---
 id: P16-10
 title: Record the Describe step in ADR 0013 and the architecture, document the image limits, and close Phase 16
-status: ready
+status: done
 plan_tasks: [16.1, 16.2, 16.3]
 decisions: [D01, D05]
 depends_on: [P16-01, P16-02, P16-03, P16-04, P16-05, P16-06, P16-07, P16-08, P16-09]
@@ -65,26 +65,26 @@ Q08 (answered by the plan and ADR 0013 "Amendments"): not a blocker; record a da
 notes that the gateway gains an image-carrying single-shot completion (ADR 0021).
 
 ## Acceptance criteria
-- [ ] AC1: ADR 0013 `## Amendments` has a new dated entry (2026-11-13, phase-16 factory run): Describe images
+- [x] AC1: ADR 0013 `## Amendments` has a new dated entry (2026-11-13, phase-16 factory run): Describe images
   (`ImageDescriber`, VISION) runs first, per IMAGE block, before Preprocess; `AIGateway` gains one image-carrying
   single-shot overload; links to ADR 0020 and ADR 0021.
-- [ ] AC2: `docs/project/architecture.md` ingest flow starts with `Describe images (VISION; per IMAGE block; skipped for
+- [x] AC2: `docs/project/architecture.md` ingest flow starts with `Describe images (VISION; per IMAGE block; skipped for
   conversation turns) → Preprocess → RelevanceGuard ...`, and the `IngestPipeline` line names the describe step; it
   states dropped images are counted as `describe` RunFailures.
-- [ ] AC3: `docs/project/tech-stack.md` "Object Storage" says extracted image bytes are kept in `content_blocks`, while
+- [x] AC3: `docs/project/tech-stack.md` "Object Storage" says extracted image bytes are kept in `content_blocks`, while
   the uploaded file's bytes are still not retained.
-- [ ] AC4: An "Images" paragraph (filters: raster only, PNG/JPEG kept, others re-encoded to PNG, EMF/WMF/SVG skipped,
+- [x] AC4: An "Images" paragraph (filters: raster only, PNG/JPEG kept, others re-encoded to PNG, EMF/WMF/SVG skipped,
   < 64 px skipped, duplicates once, > 5 MB skipped, > 100 images rejects the upload) is in
   `docs/standards/backend/ai_agents.md` (or architecture.md ingest section) and in `docs/project/deployment.md`, which
   also names `AI_MODEL_VISION` as the model the image descriptions use.
-- [ ] AC5: `docs/project/implementation-plan.md`: Phase 16 heading `## [x]`, tasks 16.1–16.3 `[x]`, both completion
+- [x] AC5: `docs/project/implementation-plan.md`: Phase 16 heading `## [x]`, tasks 16.1–16.3 `[x]`, both completion
   checklist items `[x]`, each with a short pointer to the proving test (`AIGatewayAdapterTest
   .shouldRouteVisionTierToItsConfiguredModelStringForImageCall`; `ImageIngestTest`).
-- [ ] AC6: `docs/project/roadmap.md`: Phase 16 `[x]`, and the "Next" line no longer names Phase 16 (Phase 14's manual
+- [x] AC6: `docs/project/roadmap.md`: Phase 16 `[x]`, and the "Next" line no longer names Phase 16 (Phase 14's manual
   Langfuse check, then Phase 17).
-- [ ] AC7: CLAUDE.md "Project State" paragraph states Phase 16 is complete and where work resumes; nothing else in
+- [x] AC7: CLAUDE.md "Project State" paragraph states Phase 16 is complete and where work resumes; nothing else in
   CLAUDE.md changes.
-- [ ] AC8: `docs/INDEX.md` ADR description covers 0020 (image bytes in content blocks, described in the run) and 0021
+- [x] AC8: `docs/INDEX.md` ADR description covers 0020 (image bytes in content blocks, described in the run) and 0021
   (AIGateway image overload); other INDEX descriptions change only if a described file changed meaning.
 
 ## Test plan
@@ -108,3 +108,5 @@ notes that the gateway gains an image-carrying single-shot completion (ADR 0021)
 - Marking Phase 14 items complete.
 
 ## Notes
+- Decided: no new CONTEXT.md term, because "IMAGE block" and "describe" are code names a reader finds in the architecture and ADR 0020, and no domain term changed meaning.
+- Decided: the roadmap "Completed Phases" line also lists 16, and the INDEX entries for deployment.md and ai_agents.md name the image limits, because both files gained an Images section.

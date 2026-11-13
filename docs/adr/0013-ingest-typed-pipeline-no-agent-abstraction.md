@@ -53,3 +53,13 @@ Decided in [T04](../wayfinder/tickets/04-ingest-execution-model.md), refined by
 - `Preprocessor` is plain application code, not a model service
   ([T28](../wayfinder/tickets/28-minor-review-findings.md)). The per-run write semaphore becomes one global permit pool
   for background calls ([T17](../wayfinder/tickets/17-run-lifecycle.md)).
+
+2026-11-13, from the phase-16 factory run:
+
+- **Describe images runs first, per IMAGE block, before Preprocess.** `ImageDescriber` (a model service on the
+  `VISION` tier) replaces each IMAGE block with a TEXT block that holds its description, at the same position. It is
+  skipped for conversation turns. A dropped image is a `describe` RunFailure
+  ([ADR 0020](0020-images-described-in-the-run-bytes-kept-in-content-blocks.md)).
+- **`AIGateway` gains one image-carrying single-shot overload**, on the `VISION` tier only. Every call stays
+  single-shot; "`AIGateway` is unchanged" above now reads "unchanged except this overload"
+  ([ADR 0021](0021-aigateway-image-overload.md)).
