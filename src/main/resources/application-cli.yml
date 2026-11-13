@@ -1,0 +1,6 @@
+# Command-line profile: no embedded web server, no security filter chain, no run sweep.
+# Activate with: --spring.profiles.active=cli
+
+spring:
+  main:
+    web-application-type: none

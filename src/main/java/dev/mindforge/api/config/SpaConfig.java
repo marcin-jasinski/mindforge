@@ -2,6 +2,7 @@ package dev.mindforge.api.config;
 
 import java.io.IOException;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -10,6 +11,7 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
 
 /** Serves the Angular build from {@code classpath:/static/}; a client-side route falls through to {@code index.html}. */
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class SpaConfig implements WebMvcConfigurer {
 
     @Override

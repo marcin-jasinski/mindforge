@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import io.swagger.v3.core.converter.ModelConverters;
 import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,6 +16,7 @@ import dev.mindforge.api.dto.response.ErrorResponse;
  * exception handlers return that shape, so it is published here.
  */
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class ApiDocsConfig {
 
     private static final String RESPONSE_SUFFIX = "Response";

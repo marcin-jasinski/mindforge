@@ -7,6 +7,7 @@ import java.util.concurrent.Semaphore;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.support.TransactionOperations;
 
@@ -149,7 +150,9 @@ public class PipelineConfig {
             properties.getAi().getCostWarningUsd());
     }
 
+    /** Not in the {@code cli} profile: a CLI process must not sweep or drain the runs of a live server. */
     @Bean
+    @Profile("!cli")
     RunWorkerTriggers runWorkerTriggers(RunWorker runWorker, Executor runExecutor) {
         return new RunWorkerTriggers(runWorker, runExecutor);
     }

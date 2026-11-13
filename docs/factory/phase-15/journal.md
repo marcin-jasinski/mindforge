@@ -13,3 +13,7 @@
 2026-11-12T23:56:55Z Q08 decided unanimous solvers@sonnet judge@opus votes=B(3/3) changes=identical-upload-with-FAILED-run exits 1 -> --file --kb --user [--lesson-id] [--new-version]; exit 0 ok, 1 run failed/timeout, 2 refused input
 2026-11-12T23:56:55Z Q09 decided unanimous solvers@sonnet(pragmatist retried) judge@opus votes=A(3/3) changes=none -> sync QuizService.start whole KB, next/answer loop, score+feedback per answer, summary, EOF stops
 2026-11-13T00:03:17Z - tickets ticket-writer@opus tickets=8 (P15-01..P15-08) parked=0
+2026-11-13T00:03:43Z - tracker tickets issues #2-#9
+2026-11-13T00:15:04Z P15-01 implement@inherit DONE
+2026-11-13T00:19:06Z P15-01 test/r1@sonnet PASS
+2026-11-13T00:29:23Z P15-01 review/r1 correctness@opus,spec-security@opus,standards@sonnet approve x3; test-guard clean

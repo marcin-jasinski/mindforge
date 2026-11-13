@@ -1,6 +1,7 @@
 package dev.mindforge.api.config;
 
 import jakarta.servlet.DispatcherType;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import dev.mindforge.infrastructure.security.JwtService;
  * {@code /actuator}; the SPA and static files are public.
  */
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableWebSecurity
 public class SecurityConfig {
 

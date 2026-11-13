@@ -1,7 +1,7 @@
 ---
 id: P15-01
 title: Boot the cli profile without the web stack and without the run sweep
-status: ready
+status: done
 plan_tasks: [15.1, 15.2]
 decisions: [D02, D01]
 depends_on: []
@@ -67,17 +67,17 @@ with a RUNNING run row of "another process"; assert it is still RUNNING after th
 (The runner's explicit `drain`/wait and `RunWorker.stop()` are P15-06.)
 
 ## Acceptance criteria
-- [ ] AC1: `src/main/resources/application-cli.yml` exists and sets `spring.main.web-application-type: none`.
-- [ ] AC2: In a context with profile `cli`, the context is not a `WebApplicationContext`, there is no
+- [x] AC1: `src/main/resources/application-cli.yml` exists and sets `spring.main.web-application-type: none`.
+- [x] AC2: In a context with profile `cli`, the context is not a `WebApplicationContext`, there is no
       `SecurityFilterChain` bean, and `IngestionService`, `QuizService`, `KnowledgeBaseService`, `AccountService` and
       `RunWorker` beans exist.
-- [ ] AC3: In a context with profile `cli`, there is no `RunWorkerTriggers` bean.
-- [ ] AC4: A RUNNING ingest run row inserted by the test (not in this JVM's active set) is still RUNNING after the
+- [x] AC3: In a context with profile `cli`, there is no `RunWorkerTriggers` bean.
+- [x] AC4: A RUNNING ingest run row inserted by the test (not in this JVM's active set) is still RUNNING after the
       `cli` context is ready and after a short sweep interval (the test sets `mindforge.runs.sweep-interval` to a few
       seconds or less and waits longer than it).
-- [ ] AC5: In the default profile, `RunWorkerTriggers`, `SecurityFilterChain` and the API config beans still exist;
+- [x] AC5: In the default profile, `RunWorkerTriggers`, `SecurityFilterChain` and the API config beans still exist;
       all existing tests stay green (baseline failure `ApiFlowTest.theLoginRouteIsTheSinglePageApp` excepted).
-- [ ] AC6: `MindForgeApplication` is unchanged; no `@Profile` annotation is added to `dev.mindforge.api` classes.
+- [x] AC6: `MindForgeApplication` is unchanged; no `@Profile` annotation is added to `dev.mindforge.api` classes.
 
 ## Test plan
 - AC1–AC4: integration test `src/test/java/dev/mindforge/integration/cli/CliProfileContextTest.java` (new),
@@ -104,3 +104,6 @@ with a RUNNING run row of "another process"; assert it is still RUNNING after th
 - Changing `MindForgeApplication.main`.
 
 ## Notes
+- Decided: moved the PT1H `mindforge.runs.sweep-interval` in `TestContainerBase` from its `@DynamicPropertySource` to a class-level `@TestPropertySource` because a subclass `@DynamicPropertySource` cannot override a base one (the base registers last and wins); checked with a mutation run (without `@Profile("!cli")` the AC4 test fails).
+- Decided: the API controllers need no condition because the cli context loads without them (`@SpringBootTest` with `@ActiveProfiles("cli")` boots a non-web context).
+- Tester r1 AC map: AC1 -> CliProfileContextTest.theCliProfileTurnsTheWebApplicationTypeOff; AC2 -> theCliContextHasTheApplicationServicesButNoWebStack; AC3 -> theCliContextHasNoRunWorkerTriggers; AC4 -> aRunningRunOfAnotherProcessIsNotSweptByTheCliContext (0.2s interval, waits 2s); AC5 -> existing integration/api suite (ApiFlowTest etc.) in the gate, only baseline failure; AC6 -> git diff (no MindForgeApplication change, no @Profile in api).
