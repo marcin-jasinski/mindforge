@@ -27,7 +27,7 @@ Complete phase-by-phase breakdown of all development work: phases 0–21, each w
 
 ### Deployment (`project/deployment.md`)
 How MindForge is built and run: the multi-stage Dockerfile, `compose.yml` with PostgreSQL, the local override, the
-configuration a deployment must set, Railway and Render, graceful shutdown, the one-live-instance ceiling, and the CLI commands (`pipeline`, `quiz`) with their exit codes and trust model.
+configuration a deployment must set, the vision model and image limits, Railway and Render, graceful shutdown, the one-live-instance ceiling, and the CLI commands (`pipeline`, `quiz`) with their exit codes and trust model.
 
 ### Tech Stack (`project/tech-stack.md`)
 Technology choices with rationale. Covers backend (Java 21, Spring Boot 4.1, Spring AI, Spring Data JPA/Hibernate, PostgreSQL as the only data store, Caffeine), frontend (Angular standalone SPA), bundle export, infrastructure (Docker, Flyway, Maven), and what was removed (Neo4j, pgvector, object storage). Read before introducing new dependencies or proposing technology changes.
@@ -43,7 +43,7 @@ Navigable summary of the hexagonal architecture — layers, model services, the 
 The ubiquitous language: Knowledge Base, Page, Page Path, Page Type, Concept, Source Summary, Section, Ingest Run, Page Revision, Tombstone, Revert, Supersession, Index, Bundle, Flashcard, Study Scope, Weak Page, and the operations Ingest (including the Conversation Edit), Query and Lint — with terms to avoid. Use these names in code, docs and conversation.
 
 ### Architecture Decision Records (`adr/`)
-One file per load-bearing decision. 0001–0009 cover the original stack; 0010–0018 record the wiki re-cut (knowledge model, taxonomy and path identity, automatic revisions and revert, typed ingest pipeline, Postgres-only wiki storage, runs/lease/no outbox, index retrieval, Lint link insertions, flashcard identity); 0019 records the CLI trust model (a named user, no password). 0005 and 0006 are superseded by 0016.
+One file per load-bearing decision. 0001–0009 cover the original stack; 0010–0018 record the wiki re-cut (knowledge model, taxonomy and path identity, automatic revisions and revert, typed ingest pipeline, Postgres-only wiki storage, runs/lease/no outbox, index retrieval, Lint link insertions, flashcard identity); 0019 records the CLI trust model (a named user, no password); 0020 records that images are described inside the ingest run and their bytes are kept in the content blocks; 0021 records the `AIGateway` image overload (VISION tier only). 0005 and 0006 are superseded by 0016.
 
 ### Wiki Re-cut Map (`wayfinder/okf-wiki-map.md`)
 The decision map that produced the wiki re-cut: destination, every decision with a link to the ticket holding its full reasoning (`wayfinder/tickets/`), and what was ruled out of scope. Read a ticket's `## Answer` when you need the *why* behind an ADR.
@@ -99,6 +99,7 @@ How code that calls an LLM is written:
 - a `VERSION` constant, bumped only on logic or prompt changes and recorded on every run in `step_versions`;
 - model selection by `ModelTier` enum (`LARGE`, `SMALL`, `VISION`), never by provider string;
 - all calls single-shot through `AIGateway`;
+- the image filters and limits for IMAGE blocks (64 px, 5 MB, 100 images per upload);
 - prompt file naming;
 - the "every rule stated in the prompt is enforced in code" discipline — code owns type, path, membership and deletion;
 - lesson identity resolution.

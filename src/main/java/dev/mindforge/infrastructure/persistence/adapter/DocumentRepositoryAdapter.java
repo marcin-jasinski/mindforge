@@ -44,7 +44,7 @@ public class DocumentRepositoryAdapter implements DocumentRepository {
 
     @Override
     public Optional<Document> findByContentHash(UUID knowledgeBaseId, ContentHash contentHash) {
-        return jpaRepository.findByKnowledgeBaseIdAndContentHashAndUploadSourceNot(
+        return jpaRepository.findWithoutBlocksByContentHash(
                 knowledgeBaseId, contentHash.sha256(), UploadSource.CONVERSATION.name())
             .map(mapper::toDomain);
     }
@@ -66,7 +66,7 @@ public class DocumentRepositoryAdapter implements DocumentRepository {
 
     @Override
     public List<Document> listByKnowledgeBase(UUID knowledgeBaseId) {
-        return jpaRepository.findByKnowledgeBaseId(knowledgeBaseId)
+        return jpaRepository.findWithoutBlocksByKnowledgeBaseId(knowledgeBaseId)
             .stream()
             .map(mapper::toDomain)
             .toList();

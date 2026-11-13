@@ -17,6 +17,7 @@ public final class Prompts {
     public static final String GRADE = "# Task: answer grading";
     public static final String SELECT = "# Task: page selection for an answer";
     public static final String ANSWER = "# Task: answer from the wiki";
+    public static final String DESCRIBE = "# Task: image description";
 
     public static final String RELEVANT = "{\"relevant\": true, \"reason\": \"Biology notes.\", \"confidence\": 0.9}";
 

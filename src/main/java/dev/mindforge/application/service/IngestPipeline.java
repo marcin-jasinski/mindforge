@@ -29,17 +29,20 @@ import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionOperations;
 
 import dev.mindforge.agent.ClaimExtractor;
+import dev.mindforge.agent.ImageDescriber;
 import dev.mindforge.agent.LinkChecker;
 import dev.mindforge.agent.PageWriter;
 import dev.mindforge.agent.RelevanceGuard;
 import dev.mindforge.agent.SupersessionDetector;
 import dev.mindforge.application.ingest.DraftValidator;
 import dev.mindforge.application.ingest.HeadingChunker;
+import dev.mindforge.application.ingest.ImageContext;
 import dev.mindforge.application.ingest.Preprocessor;
 import dev.mindforge.application.ingest.Resolver;
 import dev.mindforge.application.ingest.SupersessionInputs;
 import dev.mindforge.application.wiki.IndexRenderer;
 import dev.mindforge.application.wiki.LinkInsertionApplier;
+import dev.mindforge.domain.model.BlockType;
 import dev.mindforge.domain.model.Claim;
 import dev.mindforge.domain.model.ContentBlock;
 import dev.mindforge.domain.model.ConversationTurn;
@@ -78,9 +81,9 @@ import dev.mindforge.domain.port.ProgressNotifier;
 import dev.mindforge.domain.port.WikiStore;
 
 /**
- * Ingests one claimed {@code INGEST} run end to end (ADR 0013, T17): Preprocess → RelevanceGuard → Extract per chunk →
- * Resolve → parallel writes with draft checks → link check → commit 1 → Supersede → commit 2. Every model call happens
- * outside a transaction; each commit is fenced on the run's status and lease. A run fails only when no page task
+ * Ingests one claimed {@code INGEST} run end to end (ADR 0013, T17, ADR 0020): Describe images → Preprocess →
+ * RelevanceGuard → Extract per chunk → Resolve → parallel writes with draft checks → link check → commit 1 → Supersede
+ * → commit 2. Every model call happens outside a transaction; each commit is fenced on the run's status and lease. A run fails only when no page task
  * succeeded; a failure after commit 1 completes it with {@code supersession_skipped}.
  */
 public class IngestPipeline {
@@ -92,6 +95,7 @@ public class IngestPipeline {
     private final DocumentRepository documents;
     private final WikiStore wiki;
     private final IngestRunRepository runs;
+    private final ImageDescriber describer;
     private final RelevanceGuard guard;
     private final ClaimExtractor extractor;
     private final PageWriter writer;
@@ -102,12 +106,14 @@ public class IngestPipeline {
     private final ProcessingSettings settings;
 
     public IngestPipeline(DocumentRepository documents, WikiStore wiki, IngestRunRepository runs,
-                          RelevanceGuard guard, ClaimExtractor extractor, PageWriter writer, LinkChecker linkChecker,
-                          SupersessionDetector detector, ProgressNotifier progress,
+                          ImageDescriber describer, RelevanceGuard guard, ClaimExtractor extractor,
+                          PageWriter writer, LinkChecker linkChecker, SupersessionDetector detector,
+                          ProgressNotifier progress,
                           TransactionOperations transactions, ProcessingSettings settings) {
         this.documents = documents;
         this.wiki = wiki;
         this.runs = runs;
+        this.describer = describer;
         this.guard = guard;
         this.extractor = extractor;
         this.writer = writer;
@@ -156,10 +162,11 @@ public class IngestPipeline {
             .orElseThrow(() -> new IngestRunFailedException("the run's document is gone", false));
         boolean conversation = document.uploadSource() == UploadSource.CONVERSATION;
         boolean article = document.uploadSource() == UploadSource.ARTICLE;
+        List<ContentBlock> blocks = Preprocessor.clean(
+            conversation ? document.contentBlocks() : describeImages(state, document));
         List<IndexEntry> index = wiki.listIndex(kbId);
         String renderedIndex = IndexRenderer.render(index);
         Resolver resolver = new Resolver(index, article);
-        List<ContentBlock> blocks = Preprocessor.clean(document.contentBlocks());
         List<String> digests = new ArrayList<>();
         List<EditItem> edits = List.of();
 
@@ -242,6 +249,46 @@ public class IngestPipeline {
             return written;
         });
         return new Committed(article, checked, revisions);
+    }
+
+    /**
+     * Sends every IMAGE block to the describer in document order and puts a described image's text at its position;
+     * a dropped image is a {@code describe} failure. Gateway and deadline errors propagate and fail the run.
+     */
+    private List<ContentBlock> describeImages(RunState state, Document document) {
+        List<ContentBlock> raw = document.contentBlocks();
+        int total = (int) raw.stream().filter(block -> block.blockType() == BlockType.IMAGE).count();
+        if (total == 0) {
+            return raw;
+        }
+        String title = document.lessonIdentity().title();
+        List<ContentBlock> described = new ArrayList<>(raw.size());
+        int done = 0;
+        for (int i = 0; i < raw.size(); i++) {
+            ContentBlock block = raw.get(i);
+            if (block.blockType() != BlockType.IMAGE) {
+                described.add(block);
+                continue;
+            }
+            step(state, "describe", done, total);
+            String item = "block " + block.position();
+            switch (describer.describe(title, ImageContext.before(raw, i), block.image())) {
+                case ImageDescriber.Described image -> described.add(ContentBlock.text(image.text(), block.position()));
+                case ImageDescriber.NotRelevant ignored ->
+                    state.addFailure(RunFailure.ofItem("describe", item, null, "not relevant"));
+                case ImageDescriber.Unusable ignored ->
+                    state.addFailure(RunFailure.ofItem("describe", item, null, "no usable description"));
+            }
+            done++;
+        }
+        state.version(ImageDescriber.class, ImageDescriber.VERSION, ImageDescriber.TIER);
+        boolean noneDescribed = described.size() == raw.size() - total;
+        boolean noText = described.stream()
+            .noneMatch(block -> block.blockType() == BlockType.TEXT && !block.content().isBlank());
+        if (noneDescribed && noText) {
+            throw new IngestRunFailedException("no image could be described", true);
+        }
+        return described;
     }
 
     private void checkClaimCap(int claims) {

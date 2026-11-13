@@ -1,9 +1,11 @@
 package dev.mindforge.infrastructure.ai;
 
 import java.util.concurrent.Semaphore;
+import java.util.function.Supplier;
 
 import dev.mindforge.domain.model.CompletionResult;
 import dev.mindforge.domain.model.DeadlineProfile;
+import dev.mindforge.domain.model.ImageInput;
 import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.domain.port.AIGateway;
 
@@ -24,9 +26,18 @@ public class PermitGateway implements AIGateway {
 
     @Override
     public CompletionResult complete(ModelTier tier, String prompt, DeadlineProfile deadline) {
+        return withPermit(() -> delegate.complete(tier, prompt, deadline));
+    }
+
+    @Override
+    public CompletionResult complete(ModelTier tier, String prompt, ImageInput image, DeadlineProfile deadline) {
+        return withPermit(() -> delegate.complete(tier, prompt, image, deadline));
+    }
+
+    private CompletionResult withPermit(Supplier<CompletionResult> call) {
         permits.acquireUninterruptibly();
         try {
-            return delegate.complete(tier, prompt, deadline);
+            return call.get();
         } finally {
             permits.release();
         }

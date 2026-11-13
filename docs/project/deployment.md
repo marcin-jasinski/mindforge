@@ -43,6 +43,21 @@ Every variable is listed in `env.example`. The ones a deployment must set:
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Optional. Export model-call traces to Langfuse; with either one unset, nothing is exported |
 | `LANGFUSE_HOST` | Optional. Langfuse base URL; defaults to `https://cloud.langfuse.com` |
 
+### Images
+
+The ingest run describes the images of a PDF or DOCX upload with the model in `AI_MODEL_VISION`
+(`mindforge.ai.model.vision`), one call per image, before the rest of the run. The image limits are constants, not
+settings:
+
+- Raster images only: PNG and JPEG are kept as they are, other decodable rasters are re-encoded to PNG, and EMF, WMF,
+  SVG and images that do not decode are skipped.
+- Images narrower or shorter than 64 px, images over 50 megapixels and images over 5 MB are skipped.
+- A duplicate image is kept once per document.
+- An upload with more than 100 images after these filters is rejected.
+
+Each run attempt, including a retry, pays the vision calls again. Extracted image bytes are stored in
+`documents.content_blocks`, so they count toward the database size.
+
 ## Railway
 
 1. Create a project from the repository; Railway builds the `Dockerfile` (see `railway.json`).

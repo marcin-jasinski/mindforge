@@ -14,6 +14,7 @@ import dev.mindforge.domain.model.AIGatewayUnavailableException;
 import dev.mindforge.domain.model.CompletionResult;
 import dev.mindforge.domain.model.DeadlineExceededException;
 import dev.mindforge.domain.model.DeadlineProfile;
+import dev.mindforge.domain.model.ImageInput;
 import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.domain.port.AIGateway;
 import dev.mindforge.infrastructure.config.AppProperties;
@@ -26,12 +27,16 @@ import io.micrometer.context.ContextSnapshotFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.content.Media;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.util.MimeTypeUtils;
 
 /**
  * {@code AIGateway} adapter backed by Spring AI's OpenAI-compatible client, pointed at
@@ -75,8 +80,27 @@ public class AIGatewayAdapter implements AIGateway, DisposableBean {
     @Override
     public CompletionResult complete(ModelTier tier, String prompt, DeadlineProfile deadline) {
         String model = resolveModel(tier);
-        Prompt request = new Prompt(prompt, OpenAiChatOptions.builder().model(model).build());
+        return complete(new Prompt(prompt, options(model)), model, deadline);
+    }
 
+    @Override
+    public CompletionResult complete(ModelTier tier, String prompt, ImageInput image, DeadlineProfile deadline) {
+        if (tier != ModelTier.VISION) {
+            throw new IllegalArgumentException("An image needs the VISION tier");
+        }
+        String model = resolveModel(tier);
+        UserMessage message = UserMessage.builder()
+            .text(prompt)
+            .media(new Media(MimeTypeUtils.parseMimeType(image.mimeType()), new ByteArrayResource(image.data())))
+            .build();
+        return complete(new Prompt(message, options(model)), model, deadline);
+    }
+
+    private static OpenAiChatOptions options(String model) {
+        return OpenAiChatOptions.builder().model(model).build();
+    }
+
+    private CompletionResult complete(Prompt request, String model, DeadlineProfile deadline) {
         long start = System.currentTimeMillis();
         ChatResponse response = callWithDeadline(request, deadline);
         long latencyMs = System.currentTimeMillis() - start;

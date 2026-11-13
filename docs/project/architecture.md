@@ -54,8 +54,8 @@ composition roots.
 - `IngestionService` — upload; dedup and the lesson rule under the knowledge-base row lock; persist `Document` and its
   `QUEUED` run
 - `RunWorker` — claim the oldest `QUEUED` run per knowledge base, dispatch it, and sweep
-- `IngestPipeline` — Preprocess, Extract, Resolve, fan-out, draft checks, commit, Supersede (`Preprocessor` and the
-  `HeadingChunker` are plain code in `application.ingest`)
+- `IngestPipeline` — Describe images, Preprocess, Extract, Resolve, fan-out, draft checks, commit, Supersede
+  (`Preprocessor` and the `HeadingChunker` are plain code in `application.ingest`)
 - `RevertService`, `LintService`, `HealthService`, `QueryService`, `FlashcardService`, `QuizService`, `KnowledgeBaseService`
 - `IndexRenderer`, `LogRenderer` — pure renderers shared by the model prompts and export
 
@@ -63,7 +63,8 @@ composition roots.
 
 - `persistence/` — JPA entities, Spring Data repositories, MapStruct mappers, port and query-port adapters
 - `ai/` — `AIGatewayAdapter` (Spring AI, OpenRouter; Resilience4j retry + circuit breaker)
-- `parsing/` — `ParserRegistry` (the `DocumentParser` port) + MIME-dispatch `FormatParser`s (Markdown, PDF, DOCX, TXT)
+- `parsing/` — `ParserRegistry` (the `DocumentParser` port) + MIME-dispatch `FormatParser`s (Markdown, PDF, DOCX, TXT);
+  `ImageExtractor` filters the images that PDF and DOCX emit as IMAGE blocks
 - `event/` — `SpringEventPublisher`, `SseProgressNotifier` (in-memory emitters per knowledge base)
 - `export/` — `BundleExporter` (zip, SnakeYAML frontmatter), `BundleConformanceValidator`
 - `security/` — upload sanitizer, egress policy
@@ -78,6 +79,7 @@ each declares a `VERSION` that is recorded on every run it takes part in. Determ
 
 | Service | Tier | Used by |
 |---|---|---|
+| `ImageDescriber` | VISION | Ingest — documents only: one call per IMAGE block |
 | `RelevanceGuard` | SMALL | Ingest — documents only |
 | `ClaimExtractor` | LARGE | Ingest — per chunk: titled claims with proposed target paths; edit items for conversation turns |
 | `PageWriter` | LARGE | Ingest — description and body |
@@ -108,7 +110,8 @@ DocumentController → IngestionService
     ↓  persist Document + QUEUED run + IngestRunQueued in one transaction        [HTTP 202 Accepted]
 AFTER_COMMIT → RunWorker.drain(kb): oldest QUEUED run of that knowledge base
     ↓  claim: lease (active_run_id) + QUEUED → RUNNING in one transaction
-Preprocess → RelevanceGuard (SMALL; skipped for conversation turns)
+Describe images (VISION; per IMAGE block; skipped for conversation turns)
+    → Preprocess → RelevanceGuard (SMALL; skipped for conversation turns)
     → Extract (LARGE per chunk, sequential: blocks + index + pages planned so far → titled claims; claims-per-call cap)
     → Resolve (code: verify targets, derive paths, one task per path, page-task cap, edit deletions and retitles)
     → Write (LARGE ×N, parallel, one global permit pool; drafts validated; unchanged drafts dropped)
@@ -121,6 +124,11 @@ ProgressNotifier → SSE per knowledge base at each step and after each commit; 
 
 A conversation edit is the same run: its `Document` is the chat turn, and Extract's edit prompt returns claims,
 deletions and retitles instead of document claims.
+
+Describe images replaces each IMAGE block with a TEXT block that holds its description (`"Image: ..."`), at the same
+position, in document order. An image the describer drops (not relevant, or no usable description) is counted as a
+`describe` RunFailure. If the document has no text and no image could be described, the run fails retryable. The
+`Document` is not changed, so every attempt of a run describes its images again (ADR 0020).
 
 **Query:**
 ```

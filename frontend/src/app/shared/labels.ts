@@ -48,6 +48,7 @@ const FAILURE_REASONS: [RegExp, string][] = [
   [/^AI gateway call exceeded/, 'The model did not reply in time. Retry the run.'],
   [/^AI gateway circuit is open/, 'The model is temporarily unavailable. Retry the run in a moment.'],
   [/^the document has no text/, 'The document contains no text.'],
+  [/^no image could be described/, 'No image in the document could be described. Retry the run.'],
   [/^the run's document is gone/, 'The document of this run was removed.'],
   [/^edit named no page/, 'No page to change was named.'],
   [/^no applicable change/, 'There is no change to apply.'],
@@ -56,6 +57,7 @@ const FAILURE_REASONS: [RegExp, string][] = [
 ];
 
 const FAILURE_STEPS: Record<string, string> = {
+  describe: 'image description',
   resolve: 'resolve pages',
   linkCheck: 'link check',
   review: 'review',
@@ -78,6 +80,7 @@ export function failureLine(failure: {
 }
 
 const PROGRESS_STEPS: Record<string, string> = {
+  describe: 'Describing images',
   extract: 'Reading the document',
   resolve: 'Choosing the pages to write',
   write: 'Writing pages',

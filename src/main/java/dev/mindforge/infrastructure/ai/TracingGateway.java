@@ -1,7 +1,10 @@
 package dev.mindforge.infrastructure.ai;
 
+import java.util.function.Supplier;
+
 import dev.mindforge.domain.model.CompletionResult;
 import dev.mindforge.domain.model.DeadlineProfile;
+import dev.mindforge.domain.model.ImageInput;
 import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.domain.port.AIGateway;
 import io.micrometer.observation.Observation;
@@ -31,6 +34,15 @@ public class TracingGateway implements AIGateway {
 
     @Override
     public CompletionResult complete(ModelTier tier, String prompt, DeadlineProfile deadline) {
+        return traced(() -> delegate.complete(tier, prompt, deadline));
+    }
+
+    @Override
+    public CompletionResult complete(ModelTier tier, String prompt, ImageInput image, DeadlineProfile deadline) {
+        return traced(() -> delegate.complete(tier, prompt, image, deadline));
+    }
+
+    private CompletionResult traced(Supplier<CompletionResult> call) {
         ObservationRunMeter.Run run = ObservationRunMeter.CURRENT.get();
         Observation service = Observation.createNotStarted("mindforge.service", registry)
             .contextualName(serviceName)
@@ -38,7 +50,7 @@ public class TracingGateway implements AIGateway {
         if (run != null) {
             service.parentObservation(run.observation());
         }
-        CompletionResult result = service.observe(() -> delegate.complete(tier, prompt, deadline));
+        CompletionResult result = service.observe(call);
         if (run != null && result.costUsd() != null) {
             run.add(serviceName, result.costUsd());
         }

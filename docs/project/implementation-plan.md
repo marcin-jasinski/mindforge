@@ -1471,7 +1471,7 @@ error text ever leaves the process.
 
 ---
 
-## [ ] Phase 16 — Image Analysis
+## [x] Phase 16 — Image Analysis
 
 > **Changed in v3.0:** image descriptions become text blocks that flow into pages like any other content;
 > there is no `DocumentArtifact` to attach them to and no checkpoint skip.
@@ -1481,20 +1481,33 @@ content reaches the wiki.
 
 ### Tasks
 
-- [ ] **16.1 — PDF/DOCX image extraction**
+- [x] **16.1 — PDF/DOCX image extraction**
   - Extend `PdfParser` and `DocxParser` to emit `ContentBlock`s with `BlockType.IMAGE` carrying bytes + MIME type.
+  - *As built:* an IMAGE block carries an `ImageInput` (bytes + MIME type) and is stored in `documents.content_blocks`
+    (ADR 0020). `PdfParser` emits a page's images after its text; `DocxParser` emits a picture right after the
+    paragraph or table that holds it. `ImageExtractor` keeps decodable rasters only (PNG/JPEG as they are, others
+    re-encoded to PNG; EMF, WMF, SVG skipped), skips images under 64 px, over 50 megapixels or over 5 MB, keeps each
+    distinct image once (SHA-256), and rejects an upload with more than 100 images. The document list and the dedup
+    lookup do not load the blocks.
 
-- [ ] **16.2 — `ImageDescriber`** (`dev.mindforge.agent`, VISION)
+- [x] **16.2 — `ImageDescriber`** (`dev.mindforge.agent`, VISION)
   - `VERSION` constant. For each IMAGE block, `AIGateway.complete(VISION, ...)`; replaces the block with a
     TEXT block holding the description, in document order, before `RelevanceGuard`.
+  - *As built:* `AIGateway` gains one image overload, `VISION` only (ADR 0021). `IngestPipeline` describes images as
+    the run's first step, before Preprocess, and skips the step for conversation turns. A description is one line that
+    starts with `"Image: "`; a dropped image is a `describe` RunFailure, and a document without text whose images are
+    all dropped fails the run retryable. The run report labels the step and its failures.
 
-- [ ] **16.3 — Unit tests**
+- [x] **16.3 — Unit tests**
   - `ImageDescriberTest` with `StubAIGateway(VISION)`; `PdfParserTest` image extraction.
+  - *As built:* also `ImageExtractorTest`, `DocxParserTest`, `ImageContextTest` and the integration test
+    `ImageIngestTest`.
 
 ### Completion Checklist
 
-- [ ] `VISION` tier routes to the correct model string.
-- [ ] An image's description appears in the pages its document produced.
+- [x] `VISION` tier routes to the correct model string.
+  (`AIGatewayAdapterTest.shouldRouteVisionTierToItsConfiguredModelStringForImageCall`)
+- [x] An image's description appears in the pages its document produced. (`ImageIngestTest`)
 
 ---
 

@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import dev.mindforge.agent.AnswerWriter;
 import dev.mindforge.agent.ClaimExtractor;
 import dev.mindforge.agent.FlashcardGenerator;
+import dev.mindforge.agent.ImageDescriber;
 import dev.mindforge.agent.LinkChecker;
 import dev.mindforge.agent.PageSelector;
 import dev.mindforge.agent.PageWriter;
@@ -25,7 +26,7 @@ class ModelServiceVersionTest {
     @ParameterizedTest
     @ValueSource(classes = {RelevanceGuard.class, ClaimExtractor.class, PageWriter.class, LinkChecker.class,
         SupersessionDetector.class, WikiReviewer.class, FlashcardGenerator.class, QuizGenerator.class,
-        QuizEvaluator.class, PageSelector.class, AnswerWriter.class})
+        QuizEvaluator.class, PageSelector.class, AnswerWriter.class, ImageDescriber.class})
     void everyModelServiceDeclaresAStaticFinalVersion(Class<?> service) throws Exception {
         Field version = service.getField("VERSION");
 

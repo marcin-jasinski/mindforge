@@ -92,8 +92,11 @@ pgvector — the rendered index is the retrieval system. Both have named re-add 
 ## Object Storage
 
 None. Uploaded documents are parsed at upload and stored as extracted text and content blocks in
-PostgreSQL; the original bytes are not retained, and the wiki bundle is rendered only on export
-(ADR 0014). Add object storage if a feature ever needs the original upload bytes.
+PostgreSQL; the uploaded file's bytes are not retained, and the wiki bundle is rendered only on export
+(ADR 0014). Extracted image bytes are kept: each IMAGE block holds its bytes and MIME type in
+`documents.content_blocks` (JSONB), so that every ingest run can describe the images again (ADR 0020). The document
+list, the API responses and the export do not read them. Add object storage if a feature ever needs the original
+upload bytes.
 
 ---
 

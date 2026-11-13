@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,13 @@ import org.springframework.test.context.TestPropertySource;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import dev.mindforge.domain.model.ContentBlock;
+import dev.mindforge.domain.model.ContentHash;
+import dev.mindforge.domain.model.Document;
+import dev.mindforge.domain.model.ImageInput;
+import dev.mindforge.domain.model.LessonIdentity;
+import dev.mindforge.domain.model.UploadSource;
+import dev.mindforge.domain.port.DocumentRepository;
 import dev.mindforge.support.Prompts;
 import dev.mindforge.support.StubAIGateway;
 import dev.mindforge.support.TestContainerBase;
@@ -59,6 +67,9 @@ class ApiFlowTest extends TestContainerBase {
 
     @Autowired
     private StubAIGateway gateway;
+
+    @Autowired
+    private DocumentRepository documents;
 
     // ---------------------------------------------------------------------------
     // Auth
@@ -126,6 +137,31 @@ class ApiFlowTest extends TestContainerBase {
         assertThat(client.get(kb + "/index").json().get("pages")).isEmpty();
         assertThat(client.post(kb + "/runs/" + runId + "/revert", Map.of()).json().get("code").asString())
             .isEqualTo("REVERT_NOT_ALLOWED");
+    }
+
+    @Test
+    void aDocumentWithAnImage_isListedAndShownWithoutItsBytesOrBlocks() {
+        Client client = signedUp();
+        String kb = createKnowledgeBase(client);
+        UUID kbId = UUID.fromString(kb.substring(kb.lastIndexOf('/') + 1));
+        UUID userId = UUID.fromString(client.get("/api/v1/auth/me").json().get("userId").asString());
+        byte[] bytes = "figure-bytes-that-must-not-leave-the-server".getBytes(StandardCharsets.UTF_8);
+        Document stored = documents.insert(kbId, new Document(UUID.randomUUID(), kbId,
+            new LessonIdentity("figures", "Figures"), ContentHash.compute(bytes), "figures.pdf", "application/pdf",
+            "Before the figure", List.of(ContentBlock.text("Before the figure", 0),
+                ContentBlock.image(new ImageInput(bytes, "image/png"), 1)),
+            UploadSource.API, userId, null, null));
+
+        Response list = client.get(kb + "/documents");
+        Response detail = client.get(kb + "/documents/" + stored.documentId());
+
+        assertThat(list.json().findValuesAsString("documentId")).containsExactly(stored.documentId().toString());
+        assertThat(detail.json().get("documentId").asString()).isEqualTo(stored.documentId().toString());
+        String base64 = Base64.getEncoder().encodeToString(bytes);
+        for (Response response : List.of(list, detail)) {
+            assertThat(response.body()).doesNotContain(base64).doesNotContain("\"contentBlocks\"")
+                .doesNotContain("\"image\"");
+        }
     }
 
     @Test
