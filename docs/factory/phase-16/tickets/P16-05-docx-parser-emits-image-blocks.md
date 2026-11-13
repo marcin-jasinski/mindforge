@@ -1,7 +1,7 @@
 ---
 id: P16-05
 title: Emit IMAGE blocks from DocxParser right after the paragraph or table that holds the picture
-status: ready
+status: done
 plan_tasks: [16.1, 16.3]
 decisions: [D09, D05]
 depends_on: [P16-03]
@@ -51,14 +51,14 @@ Additional rule (consequence of P16-01, `content == ""` for IMAGE): the `ParsedD
 the non-IMAGE blocks only — exclude IMAGE blocks from the join.
 
 ## Acceptance criteria
-- [ ] AC1: A paragraph with text and a picture yields the paragraph's TEXT block at n and the IMAGE block at n+1.
-- [ ] AC2: A paragraph holding only a picture yields only an IMAGE block (no blank TEXT block, no position gap).
-- [ ] AC3: A picture inside a table cell yields an IMAGE block directly after the table's TEXT block.
-- [ ] AC4: Two pictures in one paragraph keep run order.
-- [ ] AC5: A PNG picture is emitted byte-identical as `image/png`; an EMF picture is not emitted and the parse succeeds.
-- [ ] AC6: The same picture inserted twice is emitted once; a picture smaller than 64 px is not emitted.
-- [ ] AC7: A DOCX with 101 distinct accepted pictures throws `UploadRejectedException`.
-- [ ] AC8: Positions are consecutive and 0-based; `ParsedDocument.text()` has no extra separators from IMAGE blocks;
+- [x] AC1: A paragraph with text and a picture yields the paragraph's TEXT block at n and the IMAGE block at n+1.
+- [x] AC2: A paragraph holding only a picture yields only an IMAGE block (no blank TEXT block, no position gap).
+- [x] AC3: A picture inside a table cell yields an IMAGE block directly after the table's TEXT block.
+- [x] AC4: Two pictures in one paragraph keep run order.
+- [x] AC5: A PNG picture is emitted byte-identical as `image/png`; an EMF picture is not emitted and the parse succeeds.
+- [x] AC6: The same picture inserted twice is emitted once; a picture smaller than 64 px is not emitted.
+- [x] AC7: A DOCX with 101 distinct accepted pictures throws `UploadRejectedException`.
+- [x] AC8: Positions are consecutive and 0-based; `ParsedDocument.text()` has no extra separators from IMAGE blocks;
   existing `DocxParserTest` cases pass.
 
 ## Test plan
@@ -77,3 +77,5 @@ the non-IMAGE blocks only — exclude IMAGE blocks from the join.
 - PDF (P16-04), Markdown or plain-text images; `ParserRegistry`; settings; new dependencies.
 
 ## Notes
+- Decided: the MIME type comes from `PictureType.getContentType()` (`application/octet-stream` when POI has no type), and each picture part is considered once per parse, keyed by its package part name, because the extractor detects the real format from the bytes and a part can be referenced from many runs.
+- Tester r1 AC map (DocxParserTest): AC1 shouldEmitParagraphPictureRightAfterTheParagraphText; AC2 shouldEmitOnlyAnImageBlockForAPictureOnlyParagraph; AC3 shouldEmitTableCellPictureRightAfterTheTable; AC4 shouldKeepRunOrderForTwoPicturesInOneParagraph; AC5 shouldEmitPngByteIdenticalAndSkipEmf; AC6 shouldEmitARepeatedPictureOnceAndSkipASmallPicture; AC7 shouldRejectADocxWithMoreThanOneHundredDistinctPictures (+ boundary 100 accepted, positions 0..99); AC8 positions/text asserts in the above plus existing cases.
