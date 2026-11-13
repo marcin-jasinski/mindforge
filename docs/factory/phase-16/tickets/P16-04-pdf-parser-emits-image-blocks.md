@@ -1,14 +1,14 @@
 ---
 id: P16-04
 title: Emit IMAGE blocks from PdfParser after each page's text, in content-stream order
-status: ready
+status: done
 plan_tasks: [16.1, 16.3]
 decisions: [D09, D05]
 depends_on: [P16-03]
 size: M
 issue: 14
 commit:
-fix_rounds: 0
+fix_rounds: 1
 ---
 ## Goal
 An uploaded PDF yields, for each page, its TEXT block (if the page has text) followed by one IMAGE block per accepted
@@ -54,15 +54,15 @@ original content) must stay the text of the TEXT blocks only — exclude IMAGE b
 separators are added.
 
 ## Acceptance criteria
-- [ ] AC1: A one-page PDF with text and one 64x64+ image yields TEXT at position 0 and IMAGE at position 1 carrying the
+- [x] AC1: A one-page PDF with text and one 64x64+ image yields TEXT at position 0 and IMAGE at position 1 carrying the
   image's bytes as PNG (`image/png`) or JPEG (`image/jpeg`).
-- [ ] AC2: Two different images on one page are emitted in content-stream (draw) order.
-- [ ] AC3: A page with an image and no text emits the IMAGE block (no empty TEXT block).
-- [ ] AC4: The same image drawn on three pages is emitted once, at its first occurrence.
-- [ ] AC5: A JPEG (DCT) image is emitted byte-identical as `image/jpeg`; a lossless image is emitted as decodable PNG.
-- [ ] AC6: An image smaller than 64 px is not emitted; an image that fails to decode is skipped and the parse succeeds.
-- [ ] AC7: A PDF with 101 distinct accepted images throws `UploadRejectedException`.
-- [ ] AC8: Positions are consecutive and 0-based over the whole document; `ParsedDocument.text()` contains only page
+- [x] AC2: Two different images on one page are emitted in content-stream (draw) order.
+- [x] AC3: A page with an image and no text emits the IMAGE block (no empty TEXT block).
+- [x] AC4: The same image drawn on three pages is emitted once, at its first occurrence.
+- [x] AC5: A JPEG (DCT) image is emitted byte-identical as `image/jpeg`; a lossless image is emitted as decodable PNG.
+- [x] AC6: An image smaller than 64 px is not emitted; an image that fails to decode is skipped and the parse succeeds.
+- [x] AC7: A PDF with 101 distinct accepted images throws `UploadRejectedException`.
+- [x] AC8: Positions are consecutive and 0-based over the whole document; `ParsedDocument.text()` contains only page
   text (unchanged for PDFs without images; existing `PdfParserTest` cases pass).
 
 ## Test plan
@@ -81,3 +81,6 @@ separators are added.
 - Changing `ParserRegistry`, adding settings or dependencies, changing `ImageExtractor` limits.
 
 ## Notes
+- Decided: `PdfParser` checks a PDF image's declared width/height against `ImageExtractor.MIN_DIMENSION` and `MAX_PIXELS` before `getImage()`, because `accept(BufferedImage)` has no pre-decode pixel guard and a huge XObject would otherwise allocate its full raster; images are collected by a private `PDFStreamEngine` subclass on the `Do` operator (recursing into form XObjects, guarded against self-reference); inline images (`BI`) are not extracted.
+- Decided: a DCT stream's raw bytes go to `accept(bytes, "image/jpeg")` with no `getImage()` fallback, so a JPEG that ImageIO cannot decode (for example CMYK) is skipped, consistent with P16-03.
+- Tester r1 AC map (PdfParserTest): AC1 shouldEmitThePageTextThenItsImageAsPng; AC2 shouldEmitTwoImagesOfAPageInDrawOrder; AC3 shouldEmitTheImageOfAPageWithoutText; AC4 shouldEmitTheSameImageOnThreePagesOnceAtItsFirstOccurrence; AC5 shouldEmitAJpegByteIdenticalAndALosslessImageAsDecodablePng; AC6 shouldSkipASmallImageAndAnImageThatDoesNotDecode; AC7 shouldRejectAPdfWithMoreThan100DistinctImages; AC8 shouldKeepPositionsConsecutiveAndTextFromTextBlocksOnly + existing cases.
