@@ -12,6 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, UUID> {
 
+    String WITHOUT_BLOCKS = "SELECT new dev.mindforge.infrastructure.persistence.jpa.DocumentWithoutBlocks("
+        + "d.documentId, d.knowledgeBaseId, d.lessonId, d.lessonTitle, d.contentHash, d.sourceFilename, d.mimeType,"
+        + " d.originalContent, d.uploadSource, d.uploadedBy, d.createdAt, d.updatedAt) FROM DocumentEntity d";
+
     /** A row lock only means something inside the caller's transaction, so one must already be open. */
     @Transactional(propagation = Propagation.MANDATORY)
     @Query(value = "SELECT kb_id FROM knowledge_bases WHERE kb_id = :knowledgeBaseId FOR UPDATE", nativeQuery = true)
@@ -19,15 +23,17 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, UUI
 
     Optional<DocumentEntity> findByKnowledgeBaseIdAndDocumentId(UUID knowledgeBaseId, UUID documentId);
 
-    Optional<DocumentEntity> findByKnowledgeBaseIdAndContentHashAndUploadSourceNot(UUID knowledgeBaseId,
-                                                                                   String contentHash,
-                                                                                   String uploadSource);
+    @Query(WITHOUT_BLOCKS + " WHERE d.knowledgeBaseId = :knowledgeBaseId AND d.contentHash = :contentHash"
+        + " AND d.uploadSource <> :uploadSource")
+    Optional<DocumentWithoutBlocks> findWithoutBlocksByContentHash(UUID knowledgeBaseId, String contentHash,
+                                                                   String uploadSource);
 
     @Query(value = "SELECT lesson_title FROM documents WHERE knowledge_base_id = :knowledgeBaseId AND lesson_id = :lessonId"
         + " ORDER BY created_at DESC LIMIT 1", nativeQuery = true)
     Optional<String> findLessonTitle(UUID knowledgeBaseId, String lessonId);
 
-    List<DocumentEntity> findByKnowledgeBaseId(UUID knowledgeBaseId);
+    @Query(WITHOUT_BLOCKS + " WHERE d.knowledgeBaseId = :knowledgeBaseId")
+    List<DocumentWithoutBlocks> findWithoutBlocksByKnowledgeBaseId(UUID knowledgeBaseId);
 
     @Query(value = "SELECT EXISTS (SELECT 1 FROM documents WHERE knowledge_base_id = :knowledgeBaseId"
         + " AND lower(lesson_title) = lower(:title) AND lesson_id <> :lessonId)", nativeQuery = true)

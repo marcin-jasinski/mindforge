@@ -1,7 +1,7 @@
 ---
 id: P16-02
 title: Keep content blocks off the document list and the dedup lookup, and out of every document response
-status: ready
+status: done
 plan_tasks: [16.1]
 decisions: [D01]
 depends_on: [P16-01]
@@ -55,14 +55,14 @@ Implementer's choice of mechanism, with these limits:
 - If you decide to defer, write the reason in this ticket's Notes and still deliver the `DocumentResponse` test.
 
 ## Acceptance criteria
-- [ ] AC1: `listByKnowledgeBase(kbId)` does not select the `content_blocks` column (proved by an integration test that
+- [x] AC1: `listByKnowledgeBase(kbId)` does not select the `content_blocks` column (proved by an integration test that
   a document inserted with an IMAGE block comes back from the list with no content blocks, or by asserting the SQL).
-- [ ] AC2: The dedup lookup used by `IngestionService.ingest` does not select `content_blocks`; an identical upload is
+- [x] AC2: The dedup lookup used by `IngestionService.ingest` does not select `content_blocks`; an identical upload is
   still answered with the existing document's id (existing tests keep passing).
-- [ ] AC3: `findById(kbId, documentId)` still returns the full blocks, including the IMAGE block's `ImageInput`.
-- [ ] AC4: For a document whose blocks include an IMAGE block, the JSON body of the document list and the single
+- [x] AC3: `findById(kbId, documentId)` still returns the full blocks, including the IMAGE block's `ImageInput`.
+- [x] AC4: For a document whose blocks include an IMAGE block, the JSON body of the document list and the single
   document endpoint contains neither the base64 of the image bytes nor a `contentBlocks`/`image` field.
-- [ ] AC5: Port Javadoc states what each read method loads.
+- [x] AC5: Port Javadoc states what each read method loads.
 
 ## Test plan
 - Integration (Testcontainers): extend
@@ -89,3 +89,5 @@ Implementer's choice of mechanism, with these limits:
 - Export checks (P16-08 covers the export with a real image run).
 
 ## Notes
+- Decided: both read paths use one JPQL constructor projection (`DocumentWithoutBlocks`, all columns but `content_blocks`) mapped by a default method on `DocumentEntityMapper` to a `Document` with empty blocks, because it keeps the port signatures (no `IngestionServiceTest` change) and follows the existing `SELECT new` pattern; `original_content` stays selected so no other field of the returned `Document` changes.
+- Tester r1 AC map: AC1 -> DocumentRepositoryAdapterTest.theListAndTheDedupLookup_leaveOutTheBlocks_whileFindByIdKeepsTheImage; AC2 -> same test + findByContentHash_skipsAConversationTurn; AC3 -> same test (findById keeps IMAGE); AC4 -> ApiFlowTest.aDocumentWithAnImage_isListedAndShownWithoutItsBytesOrBlocks; AC5 -> port Javadoc in DocumentRepository (inspected).

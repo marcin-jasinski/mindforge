@@ -177,6 +177,33 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     }
 
     @Test
+    void theListAndTheDedupLookup_leaveOutTheBlocks_whileFindByIdKeepsTheImage() {
+        ImageInput image = new ImageInput(new byte[] {(byte) 0x89, 'P', 'N', 'G', 1, 2, 3}, "image/png");
+        Document saved = adapter.insert(kbId, makeDocument(kbId, "figure-lesson", List.of(
+            ContentBlock.text("Before the figure", 0),
+            ContentBlock.image(image, 1))));
+
+        assertThat(adapter.listByKnowledgeBase(kbId)).singleElement().satisfies(listed -> {
+            assertThat(listed.documentId()).isEqualTo(saved.documentId());
+            assertThat(listed.lessonIdentity()).isEqualTo(saved.lessonIdentity());
+            assertThat(listed.contentBlocks()).isEmpty();
+        });
+        assertThat(adapter.findByContentHash(kbId, saved.contentHash())).hasValueSatisfying(identical -> {
+            assertThat(identical.documentId()).isEqualTo(saved.documentId());
+            assertThat(identical.contentBlocks()).isEmpty();
+        });
+        assertThat(adapter.findById(kbId, saved.documentId()).orElseThrow().contentBlocks())
+            .containsExactly(ContentBlock.text("Before the figure", 0), ContentBlock.image(image, 1));
+    }
+
+    @Test
+    void findByContentHash_skipsAConversationTurn() {
+        Document turn = adapter.insert(kbId, makeDocument(kbId, "conversation", UploadSource.CONVERSATION));
+
+        assertThat(adapter.findByContentHash(kbId, turn.contentHash())).isEmpty();
+    }
+
+    @Test
     void aRowWrittenBeforeImageBlocks_readsBackWithNoImages() {
         UUID documentId = UUID.randomUUID();
         String oldShapeBlocks = """
