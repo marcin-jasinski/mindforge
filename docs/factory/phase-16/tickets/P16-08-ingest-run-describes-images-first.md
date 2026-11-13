@@ -1,7 +1,7 @@
 ---
 id: P16-08
 title: Describe a document's images as the ingest run's first step and replace each IMAGE block in place
-status: ready
+status: done
 plan_tasks: [16.2]
 decisions: [D06, D04]
 depends_on: [P16-04, P16-07]
@@ -102,28 +102,28 @@ Implementer choices (record in Notes): put the context builder and block replace
 total)` before/while describing (the frontend label is P16-09). Keep the version recorded once per run.
 
 ## Acceptance criteria
-- [ ] AC1: `IngestPipeline` takes `ImageDescriber` (constructor) and `PipelineConfig` passes the bean; for a
+- [x] AC1: `IngestPipeline` takes `ImageDescriber` (constructor) and `PipelineConfig` passes the bean; for a
   non-conversation document with IMAGE blocks, every IMAGE block is sent to `ImageDescriber` in document order before
   `Preprocessor.clean` and before `RelevanceGuard`, outside any transaction. Documents without IMAGE blocks and
   conversation turns make no VISION call and record no `ImageDescriber` version (existing `step_versions` assertions
   in `IngestRunTest` still pass).
-- [ ] AC2: A `Described` image becomes a TEXT block with content `"Image: ..."` at the IMAGE block's position; the
+- [x] AC2: A `Described` image becomes a TEXT block with content `"Image: ..."` at the IMAGE block's position; the
   Extract prompt shows it as `[<position>] Image: ...`.
-- [ ] AC3: The context passed for an image is the preceding TEXT/HEADING content in document order, at most the last
+- [x] AC3: The context passed for an image is the preceding TEXT/HEADING content in document order, at most the last
   1500 characters, no earlier descriptions, `""` for a first-position image; the title is the lesson title.
-- [ ] AC4: `NotRelevant` and `Unusable` images are dropped, each adding one `RunFailure` with step `describe`, item
+- [x] AC4: `NotRelevant` and `Unusable` images are dropped, each adding one `RunFailure` with step `describe`, item
   `"block <position>"`, reason `"not relevant"` / `"no usable description"`; the run continues.
-- [ ] AC5: `AIGatewayUnavailableException` or `DeadlineExceededException` during describe fails the run retryable with
+- [x] AC5: `AIGatewayUnavailableException` or `DeadlineExceededException` during describe fails the run retryable with
   no `describe` RunFailure recorded.
-- [ ] AC6: An image-only document whose images are all dropped fails with reason "no image could be described",
+- [x] AC6: An image-only document whose images are all dropped fails with reason "no image could be described",
   retryable = true; a document with text plus all images dropped completes on its text with the drops recorded.
-- [ ] AC7: `step_versions` contains `ImageDescriber` = `VERSION@<vision model>` whenever the document had an IMAGE block
+- [x] AC7: `step_versions` contains `ImageDescriber` = `VERSION@<vision model>` whenever the document had an IMAGE block
   (also when all were dropped).
-- [ ] AC8: A retry of a failed run of an image document describes the images again (VISION calls recorded on the
+- [x] AC8: A retry of a failed run of an image document describes the images again (VISION calls recorded on the
   stub for the second attempt).
-- [ ] AC9 (checklist): an uploaded PDF (built in the test with PDFBox, one page of text plus one image) completes, and
+- [x] AC9 (checklist): an uploaded PDF (built in the test with PDFBox, one page of text plus one image) completes, and
   the description text appears in the `markdownBody` of a page its document produced.
-- [ ] AC10: The export bundle of that knowledge base contains no base64 of the image bytes.
+- [x] AC10: The export bundle of that knowledge base contains no base64 of the image bytes.
 
 ## Test plan
 - Integration (Testcontainers, `StubAIGateway`): new
@@ -153,3 +153,9 @@ total)` before/while describing (the frontend label is P16-09). Keep the version
 - Changes to `RelevanceGuard`, `ClaimExtractor`, `PageWriter` or their prompts/VERSIONs.
 
 ## Notes
+- Decided: the context builder is `application.ingest.ImageContext.before(blocks, index)` (unit-tested), joining blocks with "\n\n" like the PDF page separator, because it keeps the cap and the skip of IMAGE blocks testable without a model; the replacement loop stays in `IngestPipeline.describeImages` since it calls the describer.
+- Decided: progress `step(state, "describe", done, total)` is sent before each image, because the frontend label (P16-09) can then show "n of total".
+- Decided: the describe step runs before `wiki.listIndex`, because the index is then read after the slow vision calls and is fresher for Extract.
+- Decided: `ImageDescriber` version is recorded once, after the loop and before the all-dropped check, because it then appears also on a run that fails "no image could be described"; a gateway or deadline error mid-loop records no version (the run fails anyway).
+- Decided: AC10 is asserted in `ImageIngestTest` through `ExportedBundle`, not in `BundleExportTest`, because it needs the image bytes the run actually sent.
+- Tester r1 AC map: AC1 ImageIngestTest.aDocumentWithoutImagesMakesNoVisionCall + first test (order before guard); AC2 first test (Extract "[2] Image: ..."); AC3 ImageContextTest + first test (context/title); AC4 first two tests; AC5 anUnavailableGateway.../anExceededDeadline...; AC6 anImageOnly... tests + aDocumentWithTextCompletes...; AC7 first test + all-dropped tests; AC8 anImageOnlyDocumentWithNoRelevantImage...AndARetryDescribesAgain; AC9 first test (page body); AC10 first test (ExportedBundle).

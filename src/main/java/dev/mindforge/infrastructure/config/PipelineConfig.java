@@ -132,12 +132,13 @@ public class PipelineConfig {
 
     @Bean
     IngestPipeline ingestPipeline(DocumentRepository documentRepository, WikiStore wikiStore,
-                                  IngestRunRepository ingestRunRepository, RelevanceGuard relevanceGuard,
-                                  ClaimExtractor claimExtractor, PageWriter pageWriter, LinkChecker linkChecker,
-                                  SupersessionDetector supersessionDetector, ProgressNotifier progressNotifier,
+                                  IngestRunRepository ingestRunRepository, ImageDescriber imageDescriber,
+                                  RelevanceGuard relevanceGuard, ClaimExtractor claimExtractor, PageWriter pageWriter,
+                                  LinkChecker linkChecker, SupersessionDetector supersessionDetector,
+                                  ProgressNotifier progressNotifier,
                                   TransactionOperations transactionOperations, ProcessingSettings processingSettings) {
-        return new IngestPipeline(documentRepository, wikiStore, ingestRunRepository, relevanceGuard, claimExtractor,
-            pageWriter, linkChecker, supersessionDetector, progressNotifier, transactionOperations,
+        return new IngestPipeline(documentRepository, wikiStore, ingestRunRepository, imageDescriber, relevanceGuard,
+            claimExtractor, pageWriter, linkChecker, supersessionDetector, progressNotifier, transactionOperations,
             processingSettings);
     }
 
