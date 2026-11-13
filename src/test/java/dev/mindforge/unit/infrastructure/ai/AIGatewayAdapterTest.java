@@ -15,12 +15,15 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 
 import dev.mindforge.domain.model.AIGatewayUnavailableException;
 import dev.mindforge.domain.model.CompletionResult;
 import dev.mindforge.domain.model.DeadlineExceededException;
 import dev.mindforge.domain.model.DeadlineProfile;
+import dev.mindforge.domain.model.ImageInput;
 import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.infrastructure.ai.AIGatewayAdapter;
 import dev.mindforge.infrastructure.config.AppProperties;
@@ -33,6 +36,7 @@ import io.github.resilience4j.retry.RetryConfig;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.DefaultUsage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -93,6 +97,54 @@ class AIGatewayAdapterTest {
         adapter.complete(ModelTier.VISION, "hello", DeadlineProfile.INTERACTIVE);
 
         assertThat(capturedRequestModel()).isEqualTo("vision-model");
+    }
+
+    @Test
+    void shouldRouteVisionTierToItsConfiguredModelStringForImageCall() {
+        AIGatewayAdapter adapter = makeAdapter();
+        when(chatModel.call(any(Prompt.class))).thenReturn(fixtureResponseWithCost(0.0042));
+        ImageInput image = makeImage();
+
+        CompletionResult result = adapter.complete(ModelTier.VISION, "describe", image, DeadlineProfile.BACKGROUND);
+
+        ArgumentCaptor<Prompt> captor = ArgumentCaptor.forClass(Prompt.class);
+        verify(chatModel).call(captor.capture());
+        Prompt request = captor.getValue();
+        assertThat(((OpenAiChatOptions) request.getOptions()).getModel()).isEqualTo("vision-model");
+        assertThat(request.getInstructions()).singleElement().isInstanceOfSatisfying(UserMessage.class, message -> {
+            assertThat(message.getText()).isEqualTo("describe");
+            assertThat(message.getMedia()).singleElement().satisfies(media -> {
+                assertThat(media.getMimeType().toString()).isEqualTo("image/png");
+                assertThat(media.getDataAsByteArray()).isEqualTo(image.data());
+            });
+        });
+        assertThat(result.content()).isEqualTo("hello back");
+        assertThat(result.provider()).isEqualTo("openrouter");
+        assertThat(result.costUsd()).isEqualTo(0.0042);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ModelTier.class, names = {"SMALL", "LARGE"})
+    void shouldRejectImageOnNonVisionTier(ModelTier tier) {
+        AIGatewayAdapter adapter = makeAdapter();
+
+        assertThatThrownBy(() -> adapter.complete(tier, "describe", makeImage(), DeadlineProfile.BACKGROUND))
+            .isInstanceOf(IllegalArgumentException.class);
+        verify(chatModel, never()).call(any(Prompt.class));
+    }
+
+    @Test
+    void shouldRetryTransientFailureOfAnImageCallThroughTheSharedPath() {
+        AIGatewayAdapter adapter = makeAdapter();
+        when(chatModel.call(any(Prompt.class)))
+            .thenThrow(new TransientAiException("503"))
+            .thenReturn(fixtureResponse("vision-model", 1, 1));
+
+        CompletionResult result = adapter.complete(ModelTier.VISION, "describe", makeImage(),
+            DeadlineProfile.BACKGROUND);
+
+        assertThat(result.model()).isEqualTo("vision-model");
+        verify(chatModel, times(2)).call(any(Prompt.class));
     }
 
     @Test
@@ -204,6 +256,10 @@ class AIGatewayAdapterTest {
 
     private AIGatewayAdapter makeAdapter() {
         return new AIGatewayAdapter(chatModel, makeProperties(), retry(), breaker());
+    }
+
+    private static ImageInput makeImage() {
+        return new ImageInput(new byte[] {(byte) 0x89, 'P', 'N', 'G'}, "image/png");
     }
 
     private static AppProperties makeProperties() {

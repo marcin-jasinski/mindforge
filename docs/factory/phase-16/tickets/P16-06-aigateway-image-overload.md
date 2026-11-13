@@ -1,7 +1,7 @@
 ---
 id: P16-06
 title: Add the AIGateway image overload, routed to the VISION model, through the adapter, decorators and stub
-status: ready
+status: done
 plan_tasks: [16.2]
 decisions: [D03]
 depends_on: [P16-01]
@@ -69,22 +69,22 @@ domain image value.
 - Dissent risk: keep `ImageInput` to two fields.
 
 ## Acceptance criteria
-- [ ] AC1: `AIGateway` declares the abstract image overload (no `default`); the project compiles with all four
+- [x] AC1: `AIGateway` declares the abstract image overload (no `default`); the project compiles with all four
   implementors overriding it.
-- [ ] AC2: `AIGatewayAdapter` image call with `VISION` sends a `Prompt` whose options model equals the configured vision
+- [x] AC2: `AIGatewayAdapter` image call with `VISION` sends a `Prompt` whose options model equals the configured vision
   model string and whose single `UserMessage` holds the prompt text and exactly one `Media` with the image's MIME type
   and bytes.
-- [ ] AC3: `AIGatewayAdapter` image call with `SMALL` or `LARGE` throws `IllegalArgumentException` and `ChatModel.call`
+- [x] AC3: `AIGatewayAdapter` image call with `SMALL` or `LARGE` throws `IllegalArgumentException` and `ChatModel.call`
   is never invoked.
-- [ ] AC4: The image call uses the same deadline race, Retry, CircuitBreaker and `CompletionResult` mapping as the text
+- [x] AC4: The image call uses the same deadline race, Retry, CircuitBreaker and `CompletionResult` mapping as the text
   call (one shared private path; the text call's behaviour and tests are unchanged).
-- [ ] AC5: `PermitGateway` takes and releases a permit around the image call (a test with a 1-permit semaphore or a
+- [x] AC5: `PermitGateway` takes and releases a permit around the image call (a test with a 1-permit semaphore or a
   permit count check).
-- [ ] AC6: `TracingGateway` records the image call's cost under its service name on the current run meter, the same
+- [x] AC6: `TracingGateway` records the image call's cost under its service name on the current run meter, the same
   as a text call.
-- [ ] AC7: `StubAIGateway` answers image calls by prompt fragment, records the `ImageInput` on `Call` (null for text
+- [x] AC7: `StubAIGateway` answers image calls by prompt fragment, records the `ImageInput` on `Call` (null for text
   calls), and throws `IllegalArgumentException` for a non-VISION image call; all existing tests compile and pass.
-- [ ] AC8: `docs/standards/backend/ai_agents.md` shows the image overload example.
+- [x] AC8: `docs/standards/backend/ai_agents.md` shows the image overload example.
 
 ## Test plan
 - Unit (mocked `ChatModel`, no Spring): `src/test/java/dev/mindforge/unit/infrastructure/ai/AIGatewayAdapterTest.java`
@@ -111,3 +111,7 @@ domain image value.
 - Changing model routing properties or adding settings.
 
 ## Notes
+- Decided: `StubAIGateway.Call` gains `ImageInput image` as its third component (no convenience constructor) because the stub is the only constructor call site.
+- Decided: the stub's shared private path is named `respond(...)`, not `answer(...)`, because `answer(...)` already names the public fragment-registration methods.
+- Decided: AC7's VISION check and image recording are proved through `PermitGatewayTest` (stub as delegate), with no separate `StubAIGatewayTest`, as the test plan allows.
+- Tester r1 AC map: AC1 compile (gate) | AC2 AIGatewayAdapterTest.shouldRouteVisionTierToItsConfiguredModelStringForImageCall | AC3 AIGatewayAdapterTest.shouldRejectImageOnNonVisionTier (SMALL, LARGE) | AC4 AIGatewayAdapterTest.shouldRetryTransientFailureOfAnImageCallThroughTheSharedPath | AC5 PermitGatewayTest.shouldTakeAndReleaseAPermitAroundAnImageCall | AC6 TracingGatewayTest.shouldRecordAnImageCallsSpanAndCostUnderTheServiceName | AC7 PermitGatewayTest (stub image recorded, null for text, non-VISION rejected) | AC8 docs/standards/backend/ai_agents.md diff

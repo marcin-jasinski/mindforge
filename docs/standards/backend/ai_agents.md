@@ -55,6 +55,9 @@ All LLM calls flow through `AIGateway`. Never instantiate or call a provider SDK
 ```java
 // CORRECT
 CompletionResult r = gateway.complete(ModelTier.LARGE, prompt, DeadlineProfile.BACKGROUND);
+// one image with the prompt: VISION tier only, any other tier throws IllegalArgumentException (ADR 0021)
+CompletionResult d = gateway.complete(ModelTier.VISION, prompt, new ImageInput(bytes, "image/png"),
+    DeadlineProfile.BACKGROUND);
 
 // NEVER
 OpenAiApi openAi = new OpenAiApi(apiKey);

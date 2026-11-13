@@ -8,6 +8,7 @@ import java.util.function.UnaryOperator;
 
 import dev.mindforge.domain.model.CompletionResult;
 import dev.mindforge.domain.model.DeadlineProfile;
+import dev.mindforge.domain.model.ImageInput;
 import dev.mindforge.domain.model.ModelTier;
 import dev.mindforge.domain.port.AIGateway;
 
@@ -34,12 +35,25 @@ public final class StubAIGateway implements AIGateway {
 
     @Override
     public CompletionResult complete(ModelTier tier, String prompt, DeadlineProfile deadline) {
+        return respond(tier, prompt, null, deadline);
+    }
+
+    /** Answers like a text call and records the image; an image on any tier but VISION is a caller bug. */
+    @Override
+    public CompletionResult complete(ModelTier tier, String prompt, ImageInput image, DeadlineProfile deadline) {
+        if (tier != ModelTier.VISION) {
+            throw new IllegalArgumentException("An image needs the VISION tier");
+        }
+        return respond(tier, prompt, image, deadline);
+    }
+
+    private CompletionResult respond(ModelTier tier, String prompt, ImageInput image, DeadlineProfile deadline) {
         String content = answers.stream()
             .filter(answer -> prompt.contains(answer.promptFragment()))
             .findFirst()
             .map(answer -> answer.responder().apply(prompt))
             .orElseGet(() -> unmatched(tier, prompt));
-        recordedCalls.add(new Call(tier, prompt, deadline, content));
+        recordedCalls.add(new Call(tier, prompt, image, deadline, content));
         return new CompletionResult(content, 10, 20, "stub-model", "stub", 0L, COST_PER_CALL_USD);
     }
 
@@ -76,7 +90,8 @@ public final class StubAIGateway implements AIGateway {
         return new Builder();
     }
 
-    public record Call(ModelTier tier, String prompt, DeadlineProfile deadline, String response) {}
+    /** One recorded call; {@code image} is null for a text call. */
+    public record Call(ModelTier tier, String prompt, ImageInput image, DeadlineProfile deadline, String response) {}
 
     private record Answer(String promptFragment, UnaryOperator<String> responder) {}
 
