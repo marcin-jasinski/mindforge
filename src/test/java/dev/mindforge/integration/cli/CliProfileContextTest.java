@@ -18,6 +18,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.context.WebApplicationContext;
 
+import dev.mindforge.api.controller.RunController;
 import dev.mindforge.application.service.AccountService;
 import dev.mindforge.application.service.IngestionService;
 import dev.mindforge.application.service.KnowledgeBaseService;
@@ -26,8 +27,11 @@ import dev.mindforge.application.service.RunWorker;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
+import dev.mindforge.cli.ConsoleProgressNotifier;
 import dev.mindforge.domain.port.IngestRunRepository;
+import dev.mindforge.domain.port.ProgressNotifier;
 import dev.mindforge.infrastructure.event.RunWorkerTriggers;
+import dev.mindforge.infrastructure.event.SseProgressNotifier;
 import dev.mindforge.support.TestContainerBase;
 
 @Tag("integration")
@@ -78,6 +82,14 @@ class CliProfileContextTest extends TestContainerBase {
     @Test
     void theCliContextHasNoRunWorkerTriggers() {
         assertThat(context.getBeanNamesForType(RunWorkerTriggers.class)).isEmpty();
+    }
+
+    @Test
+    void theOnlyProgressNotifierIsTheConsoleNotifier() {
+        assertThat(context.getBeansOfType(ProgressNotifier.class).values())
+            .singleElement().isInstanceOf(ConsoleProgressNotifier.class);
+        assertThat(context.getBeanNamesForType(SseProgressNotifier.class)).isEmpty();
+        assertThat(context.getBeanNamesForType(RunController.class)).isEmpty();
     }
 
     @Test

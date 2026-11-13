@@ -1,7 +1,7 @@
 ---
 id: P15-02
 title: Print run progress to the console in the cli profile
-status: ready
+status: done
 plan_tasks: [15.1]
 decisions: [D05]
 depends_on: [P15-01]
@@ -59,17 +59,17 @@ replaces `SseProgressNotifier`. Change the `IngestPipeline`, `LintService` and `
   `ProgressNotifier` in the default profile).
 
 ## Acceptance criteria
-- [ ] AC1: `PipelineConfig.ingestPipeline`, `lintService` and `runWorker` take `ProgressNotifier`, not
+- [x] AC1: `PipelineConfig.ingestPipeline`, `lintService` and `runWorker` take `ProgressNotifier`, not
       `SseProgressNotifier`.
-- [ ] AC2: `ConsoleProgressNotifier.notify` prints one line per `RunProgress` with short run id, kind, step (omitted or
+- [x] AC2: `ConsoleProgressNotifier.notify` prints one line per `RunProgress` with short run id, kind, step (omitted or
       blank when null), `done/total` (only when both are set) and status.
-- [ ] AC3: Before `watch(runId)` is called, every run's progress is printed; after `watch(runId)`, progress of any
+- [x] AC3: Before `watch(runId)` is called, every run's progress is printed; after `watch(runId)`, progress of any
       other run id is not printed.
-- [ ] AC4: `notify` never throws: not when the `PrintStream` throws a `RuntimeException`, not when `progress` or its
+- [x] AC4: `notify` never throws: not when the `PrintStream` throws a `RuntimeException`, not when `progress` or its
       fields are null.
-- [ ] AC5: In the `cli` context there is exactly one `ProgressNotifier` bean, it is a `ConsoleProgressNotifier`, and
+- [x] AC5: In the `cli` context there is exactly one `ProgressNotifier` bean, it is a `ConsoleProgressNotifier`, and
       there is no `SseProgressNotifier` bean and no `RunController` bean.
-- [ ] AC6: In the default profile `SseProgressNotifier` is the only `ProgressNotifier` and `RunController` exists; all
+- [x] AC6: In the default profile `SseProgressNotifier` is the only `ProgressNotifier` and `RunController` exists; all
       existing tests stay green.
 
 ## Test plan
@@ -92,3 +92,13 @@ replaces `SseProgressNotifier`. Change the `IngestPipeline`, `LintService` and `
 - Any command runner (P15-03+).
 
 ## Notes
+- Decided: a null runId prints as `[--------]` and null kind/step/status are omitted from the line, because the line must still print and never throw.
+- AC1: PipelineConfig compile + full gate green (ProgressNotifier port params).
+- AC2: ConsoleProgressNotifierTest aStepWithPageCounts..., aStatusChangeOmitsTheStep..., theCountsArePrintedOnlyWhenBothAreSet.
+- AC3: ConsoleProgressNotifierTest everyRunIsPrintedBeforeARunIsWatched, anotherRunIsNotPrintedOnceARunIsWatched.
+- AC4: ConsoleProgressNotifierTest aFailingConsoleDoesNotThrow, aNullProgressDoesNotThrow, aProgressWithNullFieldsDoesNotThrow.
+- AC5: CliProfileContextTest theOnlyProgressNotifierIsTheConsoleNotifier.
+- AC6: existing integration suite (ApiFlowTest, SSE tests) green except baseline failure.
+
+### Deferred findings
+- standards/S1 nit 0.5 src/test/java/dev/mindforge/integration/cli/CliProfileContextTest.java:30: Import of dev.mindforge.cli.ConsoleProgressNotifier sits between dev.mindforge.domain imports, breaking alphabetical import order.
