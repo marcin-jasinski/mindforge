@@ -52,3 +52,4 @@
 2026-11-13T01:53:39Z P15-08 commit 1da1e91 done
 2026-11-13T01:55:10Z - holistic review@opus approve (3 minor deferred: INDEX.md ADR-0019 link, exit-1 text, duplicated option parsing)
 2026-11-13T01:56:02Z - docs scribe@sonnet INDEX.md + REPORT.md
+2026-11-13T02:04:37Z - integration gate on phase branch: only baseline failure (90 IT, 1 baseline); coverage checks met
