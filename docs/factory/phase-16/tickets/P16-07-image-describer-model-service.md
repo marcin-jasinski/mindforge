@@ -1,7 +1,7 @@
 ---
 id: P16-07
 title: Add the ImageDescriber model service on the VISION tier with its prompt and code-enforced output rules
-status: ready
+status: done
 plan_tasks: [16.2, 16.3]
 decisions: [D06, D04]
 depends_on: [P16-06]
@@ -79,19 +79,19 @@ failure.
   `Unusable`, and lets gateway/deadline exceptions propagate unchanged. Do not catch `RuntimeException` broadly.
 
 ## Acceptance criteria
-- [ ] AC1: `ImageDescriber` has `public static final String VERSION` (non-blank) and
+- [x] AC1: `ImageDescriber` has `public static final String VERSION` (non-blank) and
   `public static final ModelTier TIER = ModelTier.VISION`; it is listed in `ModelServiceVersionTest`.
-- [ ] AC2: `describe` makes exactly one gateway call with tier `VISION`, deadline `BACKGROUND`, and the given
+- [x] AC2: `describe` makes exactly one gateway call with tier `VISION`, deadline `BACKGROUND`, and the given
   `ImageInput`; the prompt contains the lesson title and the context string.
-- [ ] AC3: `{"relevant": true, "description": "A cell diagram"}` -> `Described("Image: A cell diagram")`; a multi-line
+- [x] AC3: `{"relevant": true, "description": "A cell diagram"}` -> `Described("Image: A cell diagram")`; a multi-line
   description is normalised to a single line.
-- [ ] AC4: `{"relevant": false, ...}` -> `NotRelevant`.
-- [ ] AC5: Malformed JSON, missing `relevant`, blank or null description with `relevant: true`, a description over 1000
+- [x] AC4: `{"relevant": false, ...}` -> `NotRelevant`.
+- [x] AC5: Malformed JSON, missing `relevant`, blank or null description with `relevant: true`, a description over 1000
   characters, and a blank completion -> `Unusable` (no exception).
-- [ ] AC6: `AIGatewayUnavailableException` and `DeadlineExceededException` from the gateway propagate unchanged.
-- [ ] AC7: `image_describer.en.md` exists, starts with a `# Task:` line, wraps the context in a tag declared as untrusted
+- [x] AC6: `AIGatewayUnavailableException` and `DeadlineExceededException` from the gateway propagate unchanged.
+- [x] AC7: `image_describer.en.md` exists, starts with a `# Task:` line, wraps the context in a tag declared as untrusted
   data, states the language rule and the relevance rule, and asks for the JSON object only.
-- [ ] AC8: `PipelineConfig` defines an `ImageDescriber` bean built with
+- [x] AC8: `PipelineConfig` defines an `ImageDescriber` bean built with
   `background(aiGateway, backgroundPermits, observationRegistry, ImageDescriber.class)` and the `PromptLoader`; the
   application context still starts (existing integration tests pass).
 
@@ -120,3 +120,9 @@ failure.
 - Any `Agent` interface or shared image abstraction.
 
 ## Notes
+Decided: `MARKER` and `MAX_DESCRIPTION_CHARS` are package-private constants and the length limit counts Java `char`s after `TextRules.singleLine`, because nothing outside the service reads them and the ticket says "characters" without more detail.
+Decided: AC7 is checked by a unit test that renders the prompt and asserts its required phrases, because one test per AC is the rule and the prompt is cheap to render.
+AC map (tester r1): AC1 ModelServiceVersionTest (ImageDescriber.class); AC2 ImageDescriberTest.shouldMakeOneVisionCallWithTheImageTitleAndContext; AC3 shouldPrefixARelevantDescriptionWithTheMarker + shouldNormaliseAMultiLineDescriptionToOneLine; AC4 shouldReturnNotRelevantWhenTheModelSaysSo; AC5 shouldReturnUnusableForOutputThatBreaksTheRules + ...OverTheLimit; AC6 shouldPropagateAnUnavailableGateway/ExceededDeadline; AC7 shouldDeclareTheContextAsUntrustedData...; AC8 PipelineConfig bean + context-starting integration tests (gate green except baseline).
+
+### Deferred findings
+- correctness/C1 minor 0.6 src/main/java/dev/mindforge/agent/ImageDescriber.java:55: The prompt tells the model not to start the description with "Image:", but code does not check this, so a model that ignores the rule produces a doubled marker.

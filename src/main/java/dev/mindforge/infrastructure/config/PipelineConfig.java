@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.support.TransactionOperations;
 
 import dev.mindforge.agent.ClaimExtractor;
+import dev.mindforge.agent.ImageDescriber;
 import dev.mindforge.agent.LinkChecker;
 import dev.mindforge.agent.PageWriter;
 import dev.mindforge.agent.RelevanceGuard;
@@ -70,6 +71,13 @@ public class PipelineConfig {
                                   ObservationRegistry observationRegistry, PromptLoader promptLoader) {
         return new RelevanceGuard(
             background(aiGateway, backgroundPermits, observationRegistry, RelevanceGuard.class), promptLoader);
+    }
+
+    @Bean
+    ImageDescriber imageDescriber(AIGateway aiGateway, Semaphore backgroundPermits,
+                                  ObservationRegistry observationRegistry, PromptLoader promptLoader) {
+        return new ImageDescriber(
+            background(aiGateway, backgroundPermits, observationRegistry, ImageDescriber.class), promptLoader);
     }
 
     @Bean
