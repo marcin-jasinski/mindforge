@@ -6,7 +6,7 @@ plan_tasks: [16.2, 16.3]
 decisions: [D06, D04]
 depends_on: [P16-06]
 size: M
-issue:
+issue: 17
 commit:
 fix_rounds: 0
 ---
