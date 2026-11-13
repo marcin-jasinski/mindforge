@@ -7,8 +7,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import dev.mindforge.domain.model.ContentBlock;
 import dev.mindforge.domain.model.ContentHash;
 import dev.mindforge.domain.model.Document;
+import dev.mindforge.domain.model.ImageInput;
 import dev.mindforge.domain.model.LessonIdentity;
 import dev.mindforge.domain.model.UploadSource;
 import dev.mindforge.domain.port.DocumentRepository;
@@ -157,6 +159,44 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
         assertThat(adapter.listByKnowledgeBase(kbId)).isEmpty();
     }
 
+    @Test
+    void anImageBlock_roundTripsWithEqualBytesAndMimeType() {
+        ImageInput image = new ImageInput(new byte[] {(byte) 0x89, 'P', 'N', 'G', 0, (byte) 0xFF}, "image/png");
+        Document saved = adapter.insert(kbId, makeDocument(kbId, "image-lesson", List.of(
+            ContentBlock.text("Before the figure", 0),
+            ContentBlock.image(image, 1))));
+
+        Document found = adapter.findById(kbId, saved.documentId()).orElseThrow();
+
+        assertThat(found.contentBlocks()).hasSize(2);
+        assertThat(found.contentBlocks().get(0).image()).isNull();
+        ContentBlock imageBlock = found.contentBlocks().get(1);
+        assertThat(imageBlock).isEqualTo(ContentBlock.image(image, 1));
+        assertThat(imageBlock.image().data()).isEqualTo(image.data());
+        assertThat(imageBlock.image().mimeType()).isEqualTo("image/png");
+    }
+
+    @Test
+    void aRowWrittenBeforeImageBlocks_readsBackWithNoImages() {
+        UUID documentId = UUID.randomUUID();
+        String oldShapeBlocks = """
+            [{"blockType": "HEADING", "content": "Old", "mediaRef": null, "mediaType": null,
+              "metadata": {"level": 1}, "position": 0},
+             {"blockType": "TEXT", "content": "Old body", "mediaRef": null, "mediaType": null,
+              "metadata": {}, "position": 1}]
+            """;
+        jdbcTemplate.update("""
+            INSERT INTO documents (document_id, knowledge_base_id, lesson_id, lesson_title, content_hash,
+                source_filename, mime_type, content_blocks, upload_source, uploaded_by)
+            VALUES (?, ?, 'old-lesson', 'Old lesson', ?, 'old.md', 'text/markdown', ?::jsonb, 'API', ?)
+            """, documentId, kbId, ContentHash.compute("old-row".getBytes()).sha256(), oldShapeBlocks, userId);
+
+        Document found = adapter.findById(kbId, documentId).orElseThrow();
+
+        assertThat(found.contentBlocks()).extracting(ContentBlock::content).containsExactly("Old", "Old body");
+        assertThat(found.contentBlocks()).extracting(ContentBlock::image).containsOnlyNulls();
+    }
+
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
@@ -174,13 +214,21 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     }
 
     private Document makeDocument(UUID kbId, String lessonId, UploadSource source) {
+        return makeDocument(kbId, lessonId, source, List.of());
+    }
+
+    private Document makeDocument(UUID kbId, String lessonId, List<ContentBlock> contentBlocks) {
+        return makeDocument(kbId, lessonId, UploadSource.API, contentBlocks);
+    }
+
+    private Document makeDocument(UUID kbId, String lessonId, UploadSource source, List<ContentBlock> contentBlocks) {
         Document base = TestFixtures.makeDocument(null, kbId);
         return new Document(
             base.documentId(), kbId,
             new LessonIdentity(lessonId, lessonId + " title"),
             ContentHash.compute((lessonId + "-unique-content").getBytes()),
             lessonId + ".md", "text/markdown", lessonId + " content",
-            List.of(), source,
+            contentBlocks, source,
             userId,
             base.createdAt(), base.updatedAt()
         );

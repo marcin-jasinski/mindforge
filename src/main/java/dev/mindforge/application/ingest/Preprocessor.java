@@ -23,7 +23,7 @@ public final class Preprocessor {
     public static List<ContentBlock> clean(List<ContentBlock> blocks) {
         return blocks.stream()
             .map(block -> new ContentBlock(block.blockType(), clean(block), block.mediaRef(), block.mediaType(),
-                block.metadata(), block.position()))
+                block.metadata(), block.position(), block.image()))
             .filter(block -> !block.content().isBlank())
             .toList();
     }

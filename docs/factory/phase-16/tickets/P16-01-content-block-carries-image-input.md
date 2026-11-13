@@ -1,7 +1,7 @@
 ---
 id: P16-01
 title: Add the ImageInput value and let an IMAGE content block carry it
-status: ready
+status: done
 plan_tasks: [16.1]
 decisions: [D02, D03]
 depends_on: []
@@ -68,19 +68,19 @@ field read back with `image == null`. No migration.
   returned array does not change the record); `toString` has no bytes.
 
 ## Acceptance criteria
-- [ ] AC1: `ImageInput` exists in `dev.mindforge.domain.model`, imports only JDK classes, validates as above, copies
+- [x] AC1: `ImageInput` exists in `dev.mindforge.domain.model`, imports only JDK classes, validates as above, copies
   bytes in and out, compares by content, and its `toString` shows MIME type and byte length only.
-- [ ] AC2: `ContentBlock` has the seventh component `image`; constructing IMAGE without `image`, or any other type with
+- [x] AC2: `ContentBlock` has the seventh component `image`; constructing IMAGE without `image`, or any other type with
   `image`, throws `IllegalArgumentException`.
-- [ ] AC3: `ContentBlock.image(img, pos)` returns an IMAGE block with `content == ""`, `mediaRef == null`,
+- [x] AC3: `ContentBlock.image(img, pos)` returns an IMAGE block with `content == ""`, `mediaRef == null`,
   `mediaType == null`, the given position and image; `heading`/`text`/`code` produce `image() == null`.
-- [ ] AC4: `ContentBlock.toString()` of an IMAGE block contains no base64 or raw bytes.
-- [ ] AC5: `Preprocessor.clean` keeps the `image` component on rebuilt blocks (null for non-IMAGE blocks).
-- [ ] AC6: A `Document` with an IMAGE block inserted through `DocumentRepositoryAdapter` reads back with equal
+- [x] AC4: `ContentBlock.toString()` of an IMAGE block contains no base64 or raw bytes.
+- [x] AC5: `Preprocessor.clean` keeps the `image` component on rebuilt blocks (null for non-IMAGE blocks).
+- [x] AC6: A `Document` with an IMAGE block inserted through `DocumentRepositoryAdapter` reads back with equal
   `ImageInput` (bytes and MIME type).
-- [ ] AC7: A `documents` row whose `content_blocks` JSON lacks the `image` key (old shape, inserted with raw SQL) reads
+- [x] AC7: A `documents` row whose `content_blocks` JSON lacks the `image` key (old shape, inserted with raw SQL) reads
   back with every block's `image() == null`.
-- [ ] AC8: No Flyway migration is added; all existing tests still pass.
+- [x] AC8: No Flyway migration is added; all existing tests still pass.
 
 ## Test plan
 - Unit (plain JUnit + AssertJ, no Spring): `src/test/java/dev/mindforge/unit/domain/ImageInputTest.java` (new) for AC1;
@@ -105,3 +105,5 @@ field read back with `image == null`. No migration.
 - Special IMAGE handling inside `Preprocessor.clean` beyond passing `image` through.
 
 ## Notes
+- Decided: the PreprocessorTest for AC5 cleans only HEADING/TEXT blocks, because IMAGE blocks must not reach `clean` (content `""` would be dropped) and the ticket forbids special IMAGE handling there.
+- Tester r1 AC map: AC1 ImageInputTest (8 tests); AC2 ContentBlockTest.anImageBlockWithoutAnImage_isRejected/aTextBlockWithAnImage_isRejected; AC3 imageFactory_buildsAnImageBlockWithEmptyContent/textFactories_carryNoImage; AC4 toStringOfAnImageBlock_hasNoBytes; AC5 PreprocessorTest.clean_keepsTheImageComponentOfARebuiltBlock; AC6 DocumentRepositoryAdapterTest.anImageBlock_roundTripsWithEqualBytesAndMimeType; AC7 aRowWrittenBeforeImageBlocks_readsBackWithNoImages; AC8 no migration in git status, gate shows only baseline failure.

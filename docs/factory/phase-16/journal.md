@@ -11,3 +11,7 @@
 2026-11-13T09:29:23Z Q06 decided unanimous votes=A/A/A changes=0 -> lesson title + last 1500 chars as context; JSON {relevant, description}; TEXT "Image: "+description; irrelevant/unusable dropped as describe RunFailure
 2026-11-13T09:29:43Z Q05 decided majority votes=A/B/B changes=0 -> raster only, PNG/JPEG kept else PNG via ImageIO, skip <64px and >5MB, SHA-256 dedup, >100 images rejects upload, no opt-out
 2026-11-13T09:36:21Z - tickets ticket-writer@opus P16-01..P16-10, none parked
+2026-11-13T09:36:45Z - tracker tickets issues created
+2026-11-13T09:40:55Z P16-01 implement implementer@inherit DONE
+2026-11-13T09:45:29Z P16-01 test r1 tester@sonnet PASS
+2026-11-13T09:46:10Z P16-01 review r1 correctness@opus standards@sonnet spec-security@opus approve; triage accepted=0 deferred=0 -> PASS
