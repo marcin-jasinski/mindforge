@@ -27,7 +27,7 @@ Complete phase-by-phase breakdown of all development work: phases 0–21, each w
 
 ### Deployment (`project/deployment.md`)
 How MindForge is built and run: the multi-stage Dockerfile, `compose.yml` with PostgreSQL, the local override, the
-configuration a deployment must set, Railway and Render, graceful shutdown and the one-live-instance ceiling.
+configuration a deployment must set, Railway and Render, graceful shutdown, the one-live-instance ceiling, and the CLI commands (`pipeline`, `quiz`) with their exit codes and trust model.
 
 ### Tech Stack (`project/tech-stack.md`)
 Technology choices with rationale. Covers backend (Java 21, Spring Boot 4.1, Spring AI, Spring Data JPA/Hibernate, PostgreSQL as the only data store, Caffeine), frontend (Angular standalone SPA), bundle export, infrastructure (Docker, Flyway, Maven), and what was removed (Neo4j, pgvector, object storage). Read before introducing new dependencies or proposing technology changes.
@@ -43,7 +43,7 @@ Navigable summary of the hexagonal architecture — layers, model services, the 
 The ubiquitous language: Knowledge Base, Page, Page Path, Page Type, Concept, Source Summary, Section, Ingest Run, Page Revision, Tombstone, Revert, Supersession, Index, Bundle, Flashcard, Study Scope, Weak Page, and the operations Ingest (including the Conversation Edit), Query and Lint — with terms to avoid. Use these names in code, docs and conversation.
 
 ### Architecture Decision Records (`adr/`)
-One file per load-bearing decision. 0001–0009 cover the original stack; 0010–0018 record the wiki re-cut (knowledge model, taxonomy and path identity, automatic revisions and revert, typed ingest pipeline, Postgres-only wiki storage, runs/lease/no outbox, index retrieval, Lint link insertions, flashcard identity). 0005 and 0006 are superseded by 0016.
+One file per load-bearing decision. 0001–0009 cover the original stack; 0010–0018 record the wiki re-cut (knowledge model, taxonomy and path identity, automatic revisions and revert, typed ingest pipeline, Postgres-only wiki storage, runs/lease/no outbox, index retrieval, Lint link insertions, flashcard identity); 0019 records the CLI trust model (a named user, no password). 0005 and 0006 are superseded by 0016.
 
 ### Wiki Re-cut Map (`wayfinder/okf-wiki-map.md`)
 The decision map that produced the wiki re-cut: destination, every decision with a link to the ticket holding its full reasoning (`wayfinder/tickets/`), and what was ruled out of scope. Read a ticket's `## Answer` when you need the *why* behind an ADR.

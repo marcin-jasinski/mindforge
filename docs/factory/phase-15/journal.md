@@ -50,3 +50,5 @@
 2026-11-13T01:52:53Z P15-08 fix/r1@inherit S1 FIXED (deployment.md lists JWT_SECRET >= 32 bytes for CLI); fast check exit 0
 2026-11-13T01:53:39Z P15-08 review/r2 correctness@opus,spec-security@opus approve (S1 verified fixed)
 2026-11-13T01:53:39Z P15-08 commit 1da1e91 done
+2026-11-13T01:55:10Z - holistic review@opus approve (3 minor deferred: INDEX.md ADR-0019 link, exit-1 text, duplicated option parsing)
+2026-11-13T01:56:02Z - docs scribe@sonnet INDEX.md + REPORT.md
