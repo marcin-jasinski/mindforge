@@ -7,7 +7,7 @@ decisions: [D01, D05]
 depends_on: [P16-01, P16-02, P16-03, P16-04, P16-05, P16-06, P16-07, P16-08, P16-09]
 size: S
 issue: 20
-commit:
+commit: 15e4e26
 fix_rounds: 0
 ---
 ## Goal
@@ -110,3 +110,7 @@ notes that the gateway gains an image-carrying single-shot completion (ADR 0021)
 ## Notes
 - Decided: no new CONTEXT.md term, because "IMAGE block" and "describe" are code names a reader finds in the architecture and ADR 0020, and no domain term changed meaning.
 - Decided: the roadmap "Completed Phases" line also lists 16, and the INDEX entries for deployment.md and ai_agents.md name the image limits, because both files gained an Images section.
+
+### Deferred findings
+- holistic/H1 minor 0.7 src/main/java/dev/mindforge/application/service/IngestionService.java:162: The single-document GET (`IngestionService.document`) and `remove` (line 177) still read through `DocumentRepository.findById`, which loads `content_blocks` with all image bytes, but neither needs the blocks. This goes against the read-path rule of ADR 0020 that P16-02 applied only to the list and the dedup lookup.
+- holistic/H2 minor 0.6 src/main/java/dev/mindforge/infrastructure/parsing/PdfParser.java:101: `PdfParser.extract` copies the minimum-dimension and pixel-cap checks of `ImageExtractor` (P16-03), including the log text. The image filter rules now live in two classes and can drift apart.

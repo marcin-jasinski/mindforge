@@ -49,3 +49,5 @@
 2026-11-13T20:49:28Z P16-10 implement implementer@inherit DONE (docs only)
 2026-11-13T20:54:35Z P16-10 test r1 tester@sonnet PASS
 2026-11-13T20:55:51Z P16-10 review r1 correctness@opus standards@sonnet spec-security@opus approve; triage accepted=0 -> PASS
+2026-11-13T20:58:17Z - holistic review@opus approve (2 minor deferred: H1 GET/remove still load content_blocks via findById, H2 size checks duplicated in PdfParser)
+2026-11-13T20:59:25Z - docs scribe@sonnet REPORT.md (plan/roadmap/INDEX already current from P16-10)
