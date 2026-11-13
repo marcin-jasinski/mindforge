@@ -76,6 +76,13 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     }
 
     @Test
+    void aCliDocument_loadsBackWithItsUploadSource() {
+        Document saved = adapter.insert(kbId, makeDocument(kbId, "cli-lesson", UploadSource.CLI));
+
+        assertThat(adapter.findById(kbId, saved.documentId())).map(Document::uploadSource).contains(UploadSource.CLI);
+    }
+
+    @Test
     void insert_neverOverwritesAnExistingDocument() {
         Document document = makeDocument(kbId, "test-lesson");
         adapter.insert(kbId, document);
@@ -163,13 +170,17 @@ class DocumentRepositoryAdapterTest extends TestContainerBase {
     }
 
     private Document makeDocument(UUID kbId, String lessonId) {
+        return makeDocument(kbId, lessonId, UploadSource.API);
+    }
+
+    private Document makeDocument(UUID kbId, String lessonId, UploadSource source) {
         Document base = TestFixtures.makeDocument(null, kbId);
         return new Document(
             base.documentId(), kbId,
             new LessonIdentity(lessonId, lessonId + " title"),
             ContentHash.compute((lessonId + "-unique-content").getBytes()),
             lessonId + ".md", "text/markdown", lessonId + " content",
-            List.of(), UploadSource.API,
+            List.of(), source,
             userId,
             base.createdAt(), base.updatedAt()
         );

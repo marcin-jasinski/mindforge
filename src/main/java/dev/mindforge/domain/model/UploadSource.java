@@ -6,6 +6,7 @@ package dev.mindforge.domain.model;
  */
 public enum UploadSource {
     API,
+    CLI,
     FILE_WATCHER,
     CONVERSATION,
     ARTICLE

@@ -1,5 +1,6 @@
 package dev.mindforge.api.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -11,6 +12,7 @@ import dev.mindforge.infrastructure.config.AppProperties;
  * Lint.
  */
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class RateLimitConfig implements WebMvcConfigurer {
 
     private static final String KB = "/api/v1/knowledge-bases/*";

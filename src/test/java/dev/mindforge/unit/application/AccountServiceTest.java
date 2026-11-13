@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import dev.mindforge.application.service.AccountService;
 import dev.mindforge.domain.model.AccountException;
+import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.User;
 import dev.mindforge.domain.port.PasswordHasher;
 import dev.mindforge.domain.port.UserRepository;
@@ -80,6 +81,23 @@ class AccountServiceTest {
             .containsExactly("olivia@example.com", null, "https://example.org/a.png");
         assertThat(again).isEqualTo(created);
         verify(users).insert(any());
+    }
+
+    @Test
+    void shouldResolveAMixedCaseAndPaddedEmailWithoutRecordingALogin() {
+        User ann = TestFixtures.makeUser(null, "ann@example.com");
+        when(users.findByEmail("ann@example.com")).thenReturn(Optional.of(ann));
+
+        assertThat(new AccountService(users, hasher).byEmail("  Ann@Example.COM ")).isEqualTo(ann);
+        verify(users, never()).recordLogin(any(), any());
+    }
+
+    @Test
+    void shouldRefuseAnUnknownEmailWithoutRecordingALogin() {
+        assertThatExceptionOfType(NotFoundException.class)
+            .isThrownBy(() -> new AccountService(users, hasher).byEmail("nobody@example.com"))
+            .withMessageContaining("User");
+        verify(users, never()).recordLogin(any(), any());
     }
 
     private static UserRepository makeUsers() {

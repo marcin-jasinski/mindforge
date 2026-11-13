@@ -7,6 +7,7 @@ import java.util.concurrent.Semaphore;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.support.TransactionOperations;
 
@@ -25,6 +26,7 @@ import dev.mindforge.domain.port.AIGateway;
 import dev.mindforge.domain.port.DocumentRepository;
 import dev.mindforge.domain.port.EventPublisher;
 import dev.mindforge.domain.port.IngestRunRepository;
+import dev.mindforge.domain.port.ProgressNotifier;
 import dev.mindforge.domain.port.WikiStore;
 import dev.mindforge.infrastructure.ai.ObservationRunMeter;
 import dev.mindforge.infrastructure.ai.PermitGateway;
@@ -113,7 +115,9 @@ public class PipelineConfig {
         return new PermitGateway(TracingGateway.forService(aiGateway, service, registry), permits);
     }
 
+    /** Not in the {@code cli} profile: there the console notifier of {@code CliConfig} prints the progress. */
     @Bean
+    @Profile("!cli")
     SseProgressNotifier progressNotifier() {
         return new SseProgressNotifier();
     }
@@ -122,7 +126,7 @@ public class PipelineConfig {
     IngestPipeline ingestPipeline(DocumentRepository documentRepository, WikiStore wikiStore,
                                   IngestRunRepository ingestRunRepository, RelevanceGuard relevanceGuard,
                                   ClaimExtractor claimExtractor, PageWriter pageWriter, LinkChecker linkChecker,
-                                  SupersessionDetector supersessionDetector, SseProgressNotifier progressNotifier,
+                                  SupersessionDetector supersessionDetector, ProgressNotifier progressNotifier,
                                   TransactionOperations transactionOperations, ProcessingSettings processingSettings) {
         return new IngestPipeline(documentRepository, wikiStore, ingestRunRepository, relevanceGuard, claimExtractor,
             pageWriter, linkChecker, supersessionDetector, progressNotifier, transactionOperations,
@@ -133,7 +137,7 @@ public class PipelineConfig {
     LintService lintService(WikiStore wikiStore, IngestRunRepository ingestRunRepository,
                             DocumentRepository documentRepository, LinkChecker linkChecker,
                             WikiReviewer wikiReviewer, EventPublisher eventPublisher,
-                            SseProgressNotifier progressNotifier, TransactionOperations transactionOperations,
+                            ProgressNotifier progressNotifier, TransactionOperations transactionOperations,
                             ProcessingSettings processingSettings) {
         return new LintService(wikiStore, ingestRunRepository, documentRepository, linkChecker, wikiReviewer,
             eventPublisher, progressNotifier, transactionOperations, processingSettings);
@@ -141,7 +145,7 @@ public class PipelineConfig {
 
     @Bean
     RunWorker runWorker(IngestRunRepository ingestRunRepository, IngestPipeline ingestPipeline,
-                        LintService lintService, SseProgressNotifier progressNotifier, EventPublisher eventPublisher,
+                        LintService lintService, ProgressNotifier progressNotifier, EventPublisher eventPublisher,
                         TransactionOperations transactionOperations, Executor runExecutor,
                         ObservationRegistry observationRegistry, AppProperties properties) {
         return new RunWorker(ingestRunRepository, ingestPipeline, lintService, progressNotifier, eventPublisher,
@@ -149,7 +153,9 @@ public class PipelineConfig {
             properties.getAi().getCostWarningUsd());
     }
 
+    /** Not in the {@code cli} profile: a CLI process must not sweep or drain the runs of a live server. */
     @Bean
+    @Profile("!cli")
     RunWorkerTriggers runWorkerTriggers(RunWorker runWorker, Executor runExecutor) {
         return new RunWorkerTriggers(runWorker, runExecutor);
     }

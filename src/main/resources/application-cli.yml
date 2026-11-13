@@ -1,0 +1,13 @@
+# Command-line profile: no embedded web server, no security filter chain, no run sweep.
+# Activate with: --spring.profiles.active=cli
+
+spring:
+  main:
+    web-application-type: none
+
+mindforge:
+  cli:
+    # End the process with the runners' exit code once they return. Tests set it to false.
+    exit-when-done: true
+    # How long the pipeline command waits for its own run to be COMPLETED or FAILED.
+    run-timeout: PT30M

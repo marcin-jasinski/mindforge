@@ -8,9 +8,9 @@
 - **Version**: 1.1.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete; 15 (CLI Entry Points)
 - **In Progress**: None
-- **Next**: Phase 14 (Observability & Tracing)
+- **Next**: Phase 14 (Observability & Tracing; only its manual Langfuse check is open), then Phase 16 (Image Analysis)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -102,7 +102,7 @@ Query, the Angular SPA and Docker deployment.
 
 - [ ] **Phase 14 — Observability & Tracing** *(changed)* — Langfuse spans per LLM call and per ingest
   run; per-run cost anomaly warnings. `[Effort: S]`
-- [ ] **Phase 15 — CLI Entry Points** *(changed)* — `mindforge-pipeline` (local file ingestion) and
+- [x] **Phase 15 — CLI Entry Points** *(changed)* — `mindforge-pipeline` (local file ingestion) and
   `mindforge-quiz`. The Neo4j backfill CLI is deleted. `[Effort: S]`
 
 ### Extended Sources (Phases 16–17)

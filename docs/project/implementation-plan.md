@@ -1435,25 +1435,39 @@ error text ever leaves the process.
 
 ---
 
-## [ ] Phase 15 — CLI Entry Points
+## [x] Phase 15 — CLI Entry Points
 
 > **Changed in v3.0:** `mindforge-backfill` (Neo4j rebuild) is deleted.
+> **As built:** one JAR, one `cli` profile, two subcommands: `pipeline` (`mindforge-pipeline`) and `quiz`
+> (`mindforge-quiz`), selected by the first non-option argument; option values use `--name=value`. The runners are
+> `ApplicationRunner`s, not `CommandLineRunner`s, so they read parsed `ApplicationArguments`; each one is an
+> `ExitCodeGenerator` and the process ends through `SpringApplication.exit` with a stable code: 0 success, 1 run
+> failed or timed out, 2 input refused. Both commands take a required `--user=<email>` and check that this user owns
+> `--kb` before any work, with no password (ADR-0019). Under `cli` there is no web server and no `RunWorkerTriggers`
+> (no run sweep); `docs/project/deployment.md` documents the commands and the "stop the server first" rule.
 
 **Goal:** Utility CLI entry points for scripted ingestion and terminal quizzes.
 
 ### Tasks
 
-- [ ] **15.1 — `mindforge-pipeline` CLI** (`dev.mindforge.cli`)
+- [x] **15.1 — `mindforge-pipeline` CLI** (`dev.mindforge.cli`)
   - `CommandLineRunner` under `--spring.profiles.active=cli`; `--file <path> --kb <id>`; ingests through the
     same `IngestionService` and pipeline; prints step progress.
+  - *As built:* `ApplicationRunner` for the `pipeline` subcommand: `--file=<path> --kb=<id> --user=<email>
+    [--lesson-id=<id>] [--new-version]`. `--user` names the uploader (`UploadSource.CLI`). The command calls
+    `IngestionService.ingest`, then `RunWorker.drain` in its own process, prints step progress for its own run and
+    waits up to `mindforge.cli.run-timeout` (default `PT30M`) for it to be COMPLETED or FAILED.
 
-- [ ] **15.2 — `mindforge-quiz` CLI**
+- [x] **15.2 — `mindforge-quiz` CLI**
   - Interactive terminal quiz through the same `QuizService` as the web UI.
+  - *As built:* `ApplicationRunner` for the `quiz` subcommand: `--kb=<id> --user=<email>`. `--user` owns the quiz
+    session and its scores. The quiz covers the whole knowledge base and ends when the questions are finished or at
+    end of input.
 
 ### Completion Checklist
 
-- [ ] Both CLI runners work via `java -jar mindforge.jar --spring.profiles.active=cli`.
-- [ ] CLI quiz submits answers through the same `QuizService` path as the web UI.
+- [x] Both CLI runners work via `java -jar mindforge.jar --spring.profiles.active=cli`.
+- [x] CLI quiz submits answers through the same `QuizService` path as the web UI.
 
 ---
 

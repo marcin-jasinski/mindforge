@@ -35,6 +35,12 @@ public class AppProperties {
     @Valid
     private RateLimits rateLimits = new RateLimits();
 
+    @Valid
+    private Cli cli = new Cli();
+
+    public Cli getCli() { return cli; }
+    public void setCli(Cli cli) { this.cli = cli; }
+
     public RateLimits getRateLimits() { return rateLimits; }
     public void setRateLimits(RateLimits rateLimits) { this.rateLimits = rateLimits; }
 
@@ -53,6 +59,17 @@ public class AppProperties {
     // ---------------------------------------------------------------------------
     // Nested configuration types
     // ---------------------------------------------------------------------------
+
+    /** The command-line adapter ({@code cli} profile). */
+    public static class Cli {
+
+        /** How long the pipeline command waits for its own run to be COMPLETED or FAILED. */
+        @NotNull
+        private Duration runTimeout = Duration.ofMinutes(30);
+
+        public Duration getRunTimeout() { return runTimeout; }
+        public void setRunTimeout(Duration runTimeout) { this.runTimeout = runTimeout; }
+    }
 
     /** Per-user cap on the endpoints that spend model calls (Query, Quiz start, upload and retry, Lint). */
     public static class RateLimits {

@@ -63,6 +63,15 @@ public class AccountService {
         return users.findById(userId).orElseThrow(() -> new NotFoundException("User"));
     }
 
+    /**
+     * Resolves the user an email names, normalised as at sign-in, without signing them in.
+     *
+     * @throws NotFoundException when no account has that email
+     */
+    public User byEmail(String email) {
+        return users.findByEmail(normalise(email)).orElseThrow(() -> new NotFoundException("User"));
+    }
+
     public User rename(UUID userId, String displayName) {
         return users.updateDisplayName(userId, TextRules.singleLine(displayName));
     }

@@ -153,6 +153,17 @@ class IngestRunTest extends TestContainerBase {
     }
 
     @Test
+    void aSecondCliUploadOfTheSameContentIsDeduplicatedAsAnApiUploadIs() {
+        UUID kbId = insertKnowledgeBase();
+        UUID first = cliUpload(kbId, "biology.md");
+        UUID second = cliUpload(kbId, "biology-copy.md");
+
+        assertThat(second).isEqualTo(first);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM ingest_runs WHERE document_id = ?", Integer.class,
+            first)).isEqualTo(1);
+    }
+
+    @Test
     void aSecondLessonWithATakenTitleCarriesItsIdSoCitationsDoNotReadAlike() {
         UUID kbId = insertKnowledgeBase();
         UUID first = upload(kbId, "mitosis.md", NOTES, false);
@@ -484,6 +495,11 @@ class IngestRunTest extends TestContainerBase {
     private UUID upload(UUID kbId, String filename, String markdown, boolean newVersion) {
         return ingestion.ingest(new DocumentUpload(kbId, ownerOf(kbId), UploadSource.API, filename,
             MarkdownParser.MIME_TYPE, markdown.getBytes(StandardCharsets.UTF_8), null, newVersion));
+    }
+
+    private UUID cliUpload(UUID kbId, String filename) {
+        return ingestion.ingest(new DocumentUpload(kbId, ownerOf(kbId), UploadSource.CLI, filename,
+            MarkdownParser.MIME_TYPE, NOTES.getBytes(StandardCharsets.UTF_8), null, false));
     }
 
     /** A conversation turn queued exactly as an upload is. */
