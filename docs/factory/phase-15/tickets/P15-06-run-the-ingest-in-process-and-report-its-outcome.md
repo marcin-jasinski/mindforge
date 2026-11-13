@@ -1,7 +1,7 @@
 ---
 id: P15-06
 title: Run the pipeline command's Ingest Run in process and exit with its outcome
-status: ready
+status: done
 plan_tasks: [15.1]
 decisions: [D01, D08]
 depends_on: [P15-05]
@@ -85,23 +85,23 @@ waiting (D08); COMPLETED -> print "already ingested", exit 0; FAILED -> exit 1 w
 Record this in the ticket Notes if you deviate.
 
 ## Acceptance criteria
-- [ ] AC1: `--lesson-id=x --new-version` reaches `ingest` as `DocumentUpload(..., "x", true)`; no flags -> `(null,
+- [x] AC1: `--lesson-id=x --new-version` reaches `ingest` as `DocumentUpload(..., "x", true)`; no flags -> `(null,
       false)`; a blank `--lesson-id` is `null`.
-- [ ] AC2: `LessonAlreadyExistsException` -> exit 2 and the stderr message mentions `--new-version`; no drain.
-- [ ] AC3: Latest run QUEUED -> the runner calls `watch(runId)`, then `drain(kbId)`, polls `findById(kbId, runId)` for
+- [x] AC2: `LessonAlreadyExistsException` -> exit 2 and the stderr message mentions `--new-version`; no drain.
+- [x] AC3: Latest run QUEUED -> the runner calls `watch(runId)`, then `drain(kbId)`, polls `findById(kbId, runId)` for
       its own run id (not the first claimed run) and exits 0 when it is COMPLETED.
-- [ ] AC4: COMPLETED with non-empty `failures` or `supersessionSkipped` -> exit 0 and one warning line on stderr.
-- [ ] AC5: FAILED -> exit 1 and the failure reason on stderr.
-- [ ] AC6: No terminal status within `mindforge.cli.run-timeout` -> exit 1 with a timeout message.
-- [ ] AC7: Identical upload with latest run COMPLETED -> exit 0, `drain` never called; with latest FAILED -> exit 1 with
+- [x] AC4: COMPLETED with non-empty `failures` or `supersessionSkipped` -> exit 0 and one warning line on stderr.
+- [x] AC5: FAILED -> exit 1 and the failure reason on stderr.
+- [x] AC6: No terminal status within `mindforge.cli.run-timeout` -> exit 1 with a timeout message.
+- [x] AC7: Identical upload with latest run COMPLETED -> exit 0, `drain` never called; with latest FAILED -> exit 1 with
       the retry/remove hint, `drain` never called; with latest RUNNING -> exit 0, `drain` never called.
-- [ ] AC8: `runWorker.stop()` is called on every path that called `drain`.
-- [ ] AC9: `mindforge.cli.run-timeout` is bound in `AppProperties` with default PT30M.
-- [ ] AC10: End to end: in a `cli` context (Testcontainers PostgreSQL, `StubAIGateway`,
+- [x] AC8: `runWorker.stop()` is called on every path that called `drain`.
+- [x] AC9: `mindforge.cli.run-timeout` is bound in `AppProperties` with default PT30M.
+- [x] AC10: End to end: in a `cli` context (Testcontainers PostgreSQL, `StubAIGateway`,
       `mindforge.cli.exit-when-done=false`), running the `PipelineCommandRunner` bean with
       `pipeline --file=<temp .md> --kb=<id> --user=<owner email>` ends with exit code 0, the document has
       `UploadSource.CLI` and its run is COMPLETED, and stdout contains at least one progress line for that run.
-- [ ] AC11: Runner tests in AC3–AC8 run without a Spring context and without real sleeps longer than the test needs
+- [x] AC11: Runner tests in AC3–AC8 run without a Spring context and without real sleeps longer than the test needs
       (inject the poll interval/clock or a small timeout).
 
 ## Test plan
@@ -127,3 +127,11 @@ Record this in the ticket Notes if you deviate.
 - Documentation (P15-08).
 
 ## Notes
+- Decided: a latest run in WRITTEN after ingest is reported like RUNNING (exit 0, no wait) because only a QUEUED run can be this call's run.
+- Decided: the poll interval is a constructor argument (1 s from `CliConfig`, 1 ms in unit tests) because AC11 forbids long sleeps; an interrupted wait is reported as the timeout (exit 1).
+- Decided: the AC10 test replaces the console notifier with a `@Primary` one on a buffer, because the bean's `System.out` is fixed when the context starts.
+- AC map: AC1 theLessonIdAndNewVersionOptionsReachTheUpload; AC2 anExistingLessonIsRefusedWithAHintAtNewVersion...; AC3 aQueuedRunIsWatchedDrainedAndAwaitedByItsOwnId; AC4 aCompletedRunWithFailuresOrASkippedSupersessionPrintsOneWarning; AC5 aFailedRunReportsItsReason...; AC6 aRunThatDoesNotEndWithinTheTimeout...; AC7 anIdenticalUploadReportsTheLatestRunWithoutDraining + ...HintsAtRetryOrRemove; AC8 stop() verified in failed/timeout/drain-throws tests; AC9 theRunTimeoutDefaultsToThirtyMinutes; AC10 PipelineCommandIntegrationTest; AC11 poll 1ms/timeout 20ms.
+
+### Deferred findings
+- correctness/C1 nit 0.8 src/test/java/dev/mindforge/unit/cli/PipelineCommandRunnerTest.java:680: The assertion `assertThat(err.size()).isZero()` cannot fail, because every case in the loop writes to its own `caseErr` buffer and the shared `err` buffer is never given to a runner.
+- spec-security/S1 minor 0.6 src/main/java/dev/mindforge/cli/PipelineCommandRunner.java:245: A repeated `--lesson-id` (for example `--lesson-id=a --lesson-id=b`) is silently treated as absent, so the file is ingested with no lesson instead of being refused.
