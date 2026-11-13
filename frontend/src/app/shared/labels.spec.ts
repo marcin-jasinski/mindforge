@@ -11,15 +11,20 @@ describe('labels', () => {
     expect(failureLine({ step: 'linkCheck', count: 2 })).toBe('link check — 2 skipped');
     expect(failureLine({ step: 'write', path: 'concepts/mitosis', reason: 'unexpected error' }))
       .toBe('page write · concepts/mitosis: Unexpected error — the details are in the server log.');
+    expect(failureLine({ step: 'describe', item: 'block 3', reason: 'not relevant' }))
+      .toBe('image description · block 3: not relevant');
   });
 
   it('translates known failure reasons and leaves unknown ones', () => {
     expect(failureReasonLabel('unexpected error')).toContain('Unexpected error');
     expect(failureReasonLabel('Extract returned 400 claims')).toBe('Extract returned 400 claims');
+    expect(failureReasonLabel('no image could be described'))
+      .toBe('No image in the document could be described. Retry the run.');
   });
 
   it('names a running step in plain words and shows an unknown step as sent', () => {
     expect(progressStepLabel('linkCheck')).toBe('Checking links');
+    expect(progressStepLabel('describe')).toBe('Describing images');
     expect(progressStepLabel('newStep')).toBe('newStep');
   });
 });

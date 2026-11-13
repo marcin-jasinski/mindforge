@@ -1,7 +1,7 @@
 ---
 id: P16-09
 title: Label the image description step, its skipped images and its run failure in the run report
-status: ready
+status: done
 plan_tasks: [16.2]
 decisions: [D04]
 depends_on: [P16-08]
@@ -46,12 +46,12 @@ Also (same behaviour, needed so the new texts read well):
 - Reasons `"not relevant"` and `"no usable description"` are already readable; do not add entries for them.
 
 ## Acceptance criteria
-- [ ] AC1: `failureLine({ step: 'describe', item: 'block 3', reason: 'not relevant' })` returns
+- [x] AC1: `failureLine({ step: 'describe', item: 'block 3', reason: 'not relevant' })` returns
   `'image description · block 3: not relevant'`.
-- [ ] AC2: `failureReasonLabel('no image could be described')` returns the new sentence.
-- [ ] AC3: If the backend sends a `describe` progress step, `progressStepLabel('describe')` returns
+- [x] AC2: `failureReasonLabel('no image could be described')` returns the new sentence.
+- [x] AC3: If the backend sends a `describe` progress step, `progressStepLabel('describe')` returns
   `'Describing images'`.
-- [ ] AC4: `cd frontend && npm test -- --no-watch && npm run build` passes.
+- [x] AC4: `cd frontend && npm test -- --no-watch && npm run build` passes.
 
 ## Test plan
 - Frontend unit (Angular test runner): add cases to `frontend/src/app/shared/labels.spec.ts` for AC1–AC3.
@@ -65,3 +65,7 @@ Also (same behaviour, needed so the new texts read well):
 - Backend changes.
 
 ## Notes
+- AC1 -> labels.spec.ts 'failureLine' case (describe / block 3 / not relevant)
+- AC2 -> labels.spec.ts 'translates known failure reasons' (no image could be described)
+- AC3 -> labels.spec.ts progressStepLabel('describe')
+- AC4 -> gates: mvn verify, npm test, npm run build all pass
