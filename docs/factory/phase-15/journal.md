@@ -44,3 +44,8 @@
 2026-11-13T01:38:06Z P15-07 implement@inherit DONE
 2026-11-13T01:43:55Z P15-07 test/r1@sonnet PASS (tester added QuizService mock to CliExitOnReadyWiringTest; full gate rerun by orchestrator)
 2026-11-13T01:48:33Z P15-07 gate rerun (orchestrator) only baseline failure; review/r1 correctness@opus,spec-security@opus approve; standards@sonnet approve(1 nit); test-guard clean
+2026-11-13T01:48:34Z P15-07 commit 8362ce8 done
+2026-11-13T01:50:14Z P15-08 implement@inherit DONE (docs only)
+2026-11-13T01:51:38Z P15-08 test/r1@sonnet PASS; review/r1 correctness@opus approve(3 minor); spec-security@opus changes(1 major,1 minor); standards@sonnet approve
+2026-11-13T01:52:53Z P15-08 fix/r1@inherit S1 FIXED (deployment.md lists JWT_SECRET >= 32 bytes for CLI); fast check exit 0
+2026-11-13T01:53:39Z P15-08 review/r2 correctness@opus,spec-security@opus approve (S1 verified fixed)

@@ -1,14 +1,14 @@
 ---
 id: P15-08
 title: Document the CLI entry points and close Phase 15 in the plan and roadmap
-status: ready
+status: done
 plan_tasks: [15.1, 15.2]
 decisions: [D01, D04]
 depends_on: [P15-06, P15-07]
 size: S
 issue: 9
 commit:
-fix_rounds: 0
+fix_rounds: 1
 ---
 ## Goal
 The docs describe how to run `mindforge-pipeline` and `mindforge-quiz`, their flags and exit codes, the trust model of
@@ -45,16 +45,16 @@ Also from D03: document both command lines in `deployment.md` (CLI section) unde
 `mindforge-quiz`. From D08: document the exit codes as a stable script contract.
 
 ## Acceptance criteria
-- [ ] AC1: `deployment.md` has a CLI section with both command lines (labels `mindforge-pipeline`, `mindforge-quiz`),
+- [x] AC1: `deployment.md` has a CLI section with both command lines (labels `mindforge-pipeline`, `mindforge-quiz`),
       all flags, the three exit codes and `mindforge.cli.run-timeout`.
-- [ ] AC2: `deployment.md#one-live-instance` has the D01 paragraph (stop the server first; consequence if not).
-- [ ] AC3: `deployment.md` states the D04 trust model and links ADR-0019.
-- [ ] AC4: In `implementation-plan.md`, tasks 15.1 and 15.2 and both checklist items are ticked, with an "as built"
+- [x] AC2: `deployment.md#one-live-instance` has the D01 paragraph (stop the server first; consequence if not).
+- [x] AC3: `deployment.md` states the D04 trust model and links ADR-0019.
+- [x] AC4: In `implementation-plan.md`, tasks 15.1 and 15.2 and both checklist items are ticked, with an "as built"
       note for `--user`, `ApplicationRunner` (instead of `CommandLineRunner`) and the `pipeline`/`quiz` subcommands; the
       Phase 15 heading is ticked.
-- [ ] AC5: `roadmap.md` marks Phase 15 done and its "Next" line is correct.
-- [ ] AC6: Only the "Project State" paragraph of `CLAUDE.md` changes.
-- [ ] AC7: `docs/INDEX.md` is unchanged unless a new doc was added.
+- [x] AC5: `roadmap.md` marks Phase 15 done and its "Next" line is correct.
+- [x] AC6: Only the "Project State" paragraph of `CLAUDE.md` changes.
+- [x] AC7: `docs/INDEX.md` is unchanged unless a new doc was added.
 
 ## Test plan
 Documentation only: review against the merged code (`dev.mindforge.cli`, `application-cli.yml`, `AppProperties`).
@@ -71,3 +71,11 @@ Documentation only: review against the merged code (`dev.mindforge.cli`, `applic
 - Phase 14's open manual checklist item.
 
 ## Notes
+Decided: roadmap "Next" and CLAUDE.md keep Phase 14 first (only its manual Langfuse check is open), then Phase 16, because Phase 14 is not ticked and Phase 16 is the first unstarted phase.
+Decided: deployment.md exit code 1 also names the wait timeout and unexpected errors, because PipelineCommandRunner and QuizCommandRunner return RUN_FAILED for both.
+
+### Deferred findings
+- correctness/C1 minor 0.85 docs/project/deployment.md:80: The deployment guide says an identical file means "no run is queued ... and does not wait", but when the latest run of the identical document is still QUEUED, the command drains the queue and waits for that run.
+- correctness/C2 minor 0.8 docs/project/deployment.md:99: The exit-code table leaves out two code paths that return 2. The pipeline returns 2 when it cannot read the file, and the quiz returns 2 when the knowledge base has nothing to quiz. The table also says "before a run was queued" for the quiz, which never queues a run.
+- correctness/C3 minor 0.7 docs/project/deployment.md:126: The guide says "the next server start re-queues it" for a run that the CLI claimed and left RUNNING. This is not always true. The sweep re-queues only INGEST runs with attempt < 3, and the CLI drain can also claim a QUEUED LINT run. The guide also does not tell the operator that the CLI's own run stays RUNNING after a timeout (exit 1). The server later fails that run and runs it again.
+- spec-security/S2 minor 0.7 docs/project/deployment.md:100: The description of exit code 2 leaves out two refusals that the code reports as 2, and its claim that a retry with the same input always fails again is not true.
