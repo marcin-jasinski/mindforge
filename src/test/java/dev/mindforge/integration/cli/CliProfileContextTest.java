@@ -30,6 +30,7 @@ import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.cli.CliExitOnReady;
 import dev.mindforge.cli.CliUsageRunner;
 import dev.mindforge.cli.ConsoleProgressNotifier;
+import dev.mindforge.cli.PipelineCommandRunner;
 import dev.mindforge.domain.port.IngestRunRepository;
 import dev.mindforge.domain.port.ProgressNotifier;
 import dev.mindforge.infrastructure.event.RunWorkerTriggers;
@@ -99,6 +100,11 @@ class CliProfileContextTest extends TestContainerBase {
     void withoutACommandTheContextLoadsReportsTheRefusedExitCodeAndDoesNotExit() {
         assertThat(context.getBean(CliUsageRunner.class).getExitCode()).isEqualTo(2);
         assertThat(context.getBeanNamesForType(CliExitOnReady.class)).isEmpty();
+    }
+
+    @Test
+    void thePipelineCommandRunnerIsABeanThatDoesNothingWithoutItsCommand() {
+        assertThat(context.getBean(PipelineCommandRunner.class).getExitCode()).isZero();
     }
 
     @Test

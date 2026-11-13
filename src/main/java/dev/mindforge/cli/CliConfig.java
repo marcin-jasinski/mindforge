@@ -5,6 +5,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+import dev.mindforge.application.service.AccountService;
+import dev.mindforge.application.service.IngestionService;
+import dev.mindforge.application.service.KnowledgeBaseService;
+
 /**
  * Wires the command-line adapter: in the {@code cli} profile run progress goes to the console, not to SSE; the first
  * non-option argument selects the command, and the process ends with the exit code the runners report.
@@ -21,6 +25,12 @@ public class CliConfig {
     @Bean
     CliUsageRunner cliUsageRunner() {
         return new CliUsageRunner(System.err);
+    }
+
+    @Bean
+    PipelineCommandRunner pipelineCommandRunner(AccountService accounts, KnowledgeBaseService knowledgeBases,
+                                                IngestionService ingestion) {
+        return new PipelineCommandRunner(accounts, knowledgeBases, ingestion, System.out, System.err);
     }
 
     @Bean

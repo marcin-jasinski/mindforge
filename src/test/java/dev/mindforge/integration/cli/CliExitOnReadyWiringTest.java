@@ -1,11 +1,15 @@
 package dev.mindforge.integration.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import dev.mindforge.application.service.AccountService;
+import dev.mindforge.application.service.IngestionService;
+import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.cli.CliConfig;
 import dev.mindforge.cli.CliExitOnReady;
 
@@ -14,7 +18,10 @@ import dev.mindforge.cli.CliExitOnReady;
 class CliExitOnReadyWiringTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
-        .withUserConfiguration(CliConfig.class);
+        .withUserConfiguration(CliConfig.class)
+        .withBean(AccountService.class, () -> mock(AccountService.class))
+        .withBean(KnowledgeBaseService.class, () -> mock(KnowledgeBaseService.class))
+        .withBean(IngestionService.class, () -> mock(IngestionService.class));
 
     @Test
     void theExitListenerExistsByDefaultInTheCliProfile() {

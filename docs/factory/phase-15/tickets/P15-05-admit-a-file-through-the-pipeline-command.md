@@ -1,7 +1,7 @@
 ---
 id: P15-05
 title: Admit a file into a knowledge base through the pipeline command as a named user
-status: ready
+status: done
 plan_tasks: [15.1]
 decisions: [D04, D07]
 depends_on: [P15-03, P15-04]
@@ -72,21 +72,21 @@ an unparsable `--kb` UUID), unknown user, unknown KB, `NotOwnerException`, unrea
 the exception message on stderr. Any other unexpected exception -> 1 (logged with `log`).
 
 ## Acceptance criteria
-- [ ] AC1: `PipelineCommandRunner` does nothing (exit code 0, no service call) when the command is not `pipeline`.
-- [ ] AC2: `pipeline` without `--file`, `--kb` or `--user`, or with a `--kb` that is not a UUID, prints usage to stderr,
+- [x] AC1: `PipelineCommandRunner` does nothing (exit code 0, no service call) when the command is not `pipeline`.
+- [x] AC2: `pipeline` without `--file`, `--kb` or `--user`, or with a `--kb` that is not a UUID, prints usage to stderr,
       exit code 2, and calls no service.
-- [ ] AC3: Unknown `--user` email -> one stderr line, exit 2, `requireOwner` and `ingest` never called.
-- [ ] AC4: KB unknown or owned by another user -> stderr "knowledge base not found or not owned by <email>", exit 2,
+- [x] AC3: Unknown `--user` email -> one stderr line, exit 2, `requireOwner` and `ingest` never called.
+- [x] AC4: KB unknown or owned by another user -> stderr "knowledge base not found or not owned by <email>", exit 2,
       `ingest` never called.
-- [ ] AC5: `--user` with mixed case and padding resolves through `AccountService.byEmail` (no `UserRepository` in
+- [x] AC5: `--user` with mixed case and padding resolves through `AccountService.byEmail` (no `UserRepository` in
       `dev.mindforge.cli`).
-- [ ] AC6: Unreadable or missing `--file` -> one stderr line, exit 2, `ingest` never called.
-- [ ] AC7: On the happy path `ingest` receives `DocumentUpload(kbId, resolvedUserId, UploadSource.CLI, <file name>,
+- [x] AC6: Unreadable or missing `--file` -> one stderr line, exit 2, `ingest` never called.
+- [x] AC7: On the happy path `ingest` receives `DocumentUpload(kbId, resolvedUserId, UploadSource.CLI, <file name>,
       <mime from map>, <file bytes>, null, false)`.
-- [ ] AC8: `mimeTypeOf` gives the D07 table results for all the listed file names.
-- [ ] AC9: Each of `UploadRejectedException`, `LessonIdentityException`, `UnknownLessonException`,
+- [x] AC8: `mimeTypeOf` gives the D07 table results for all the listed file names.
+- [x] AC9: Each of `UploadRejectedException`, `LessonIdentityException`, `UnknownLessonException`,
       `LessonAlreadyExistsException` from `ingest` -> its message on stderr, exit 2.
-- [ ] AC10: The runner is a bean in `CliConfig` (profile `cli`), constructor-injected, and contains no `System.exit`.
+- [x] AC10: The runner is a bean in `CliConfig` (profile `cli`), constructor-injected, and contains no `System.exit`.
 
 ## Test plan
 - AC1–AC7, AC9: unit, `src/test/java/dev/mindforge/unit/cli/PipelineCommandRunnerTest.java` (new): Mockito mocks of
@@ -110,3 +110,17 @@ the exception message on stderr. Any other unexpected exception -> 1 (logged wit
 - A password prompt; a KB-owner fallback for `--user`.
 
 ## Notes
+- Decided: `mimeTypeOf` lives in `PipelineCommandRunner` (the CLI command class) as `public static`, because the unit tests are in another package.
+- Decided: refusal lines are "user not found: <email>" and "cannot read file: <path>" because the ticket fixes only the KB message; an invalid path string (`InvalidPathException`) is an unreadable file (exit 2).
+- Decided: an option given more than once, or blank, counts as missing (usage, exit 2), because `ApplicationArguments` gives a list and the runner takes a single value; the `--user` value goes to `byEmail` unchanged so normalising stays in one place.
+- Decided: `CliExitOnReadyWiringTest` registers mocks of `AccountService`, `KnowledgeBaseService`, `IngestionService`, because it loads `CliConfig` alone and the new runner bean needs them.
+- AC1: PipelineCommandRunnerTest.anotherCommandDoesNothing
+- AC2: PipelineCommandRunnerTest.aMissingOrInvalidOptionPrintsTheUsageAndCallsNoService
+- AC3: PipelineCommandRunnerTest.anUnknownUserIsRefusedBeforeTheOwnershipCheck
+- AC4: PipelineCommandRunnerTest.aKnowledgeBaseOfAnotherOwnerIsRefusedWithoutIngest, anUnknownKnowledgeBaseIsRefusedWithoutIngest
+- AC5: PipelineCommandRunnerTest.aMixedCaseAndPaddedEmailIsResolvedByTheAccountService
+- AC6: PipelineCommandRunnerTest.aMissingFileIsRefusedWithoutIngest
+- AC7: PipelineCommandRunnerTest.theHappyPathIngestsTheFileAsTheResolvedUserFromTheCli
+- AC8: MimeTypeOfTest.theExtensionNamesTheMimeType; PipelineCommandRunnerTest.anUnsupportedFileShowsTheSanitizersMessage
+- AC9: PipelineCommandRunnerTest.eachRefusalOfTheIngestPrintsItsMessageAndReportsTheRefusedExitCode (exit 1 path: anUnexpectedFailureReportsTheRunFailedExitCode)
+- AC10: CliProfileContextTest.thePipelineCommandRunnerIsABeanThatDoesNothingWithoutItsCommand
