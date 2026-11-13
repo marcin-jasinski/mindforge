@@ -1,0 +1,13 @@
+# Journal — phase-16
+
+2026-11-13T09:17:18Z - start base=2b45984 baseline_failures=1 (ApiFlowTest.theLoginRouteIsTheSinglePageApp)
+2026-11-13T09:17:27Z - tracker start issue=#10
+2026-11-13T09:22:06Z - plan planner@opus questions=11 (7 open, 0 blocker, 4 answered); W01-W08
+2026-11-13T09:25:23Z Q01 decided unanimous votes=A/A/A changes=0 -> describe images in the run as first step; IMAGE bytes kept in content_blocks (ADR 0020)
+2026-11-13T09:25:23Z Q03 decided majority votes=A/B/B changes=0 -> abstract AIGateway.complete(tier, prompt, ImageInput, deadline); ImageInput record in domain.model; VISION only (ADR 0021)
+2026-11-13T09:25:23Z Q09 decided judge votes=A changes=0 -> PDF images after the page TEXT block; DOCX images after the holding paragraph/table
+2026-11-13T09:28:12Z Q02 decided majority votes=B/A/A changes=0 -> nullable ImageInput image as last ContentBlock component; IMAGE content ""; no migration
+2026-11-13T09:28:12Z Q04 decided unanimous votes=B/B/B changes=0 -> drop unusable per-image output as RunFailure(describe); gateway/deadline errors and all-dropped-no-text fail the run retryable
+2026-11-13T09:29:23Z Q06 decided unanimous votes=A/A/A changes=0 -> lesson title + last 1500 chars as context; JSON {relevant, description}; TEXT "Image: "+description; irrelevant/unusable dropped as describe RunFailure
+2026-11-13T09:29:43Z Q05 decided majority votes=A/B/B changes=0 -> raster only, PNG/JPEG kept else PNG via ImageIO, skip <64px and >5MB, SHA-256 dedup, >100 images rejects upload, no opt-out
+2026-11-13T09:36:21Z - tickets ticket-writer@opus P16-01..P16-10, none parked
