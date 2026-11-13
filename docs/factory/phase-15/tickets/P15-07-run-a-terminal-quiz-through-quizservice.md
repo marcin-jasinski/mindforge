@@ -1,7 +1,7 @@
 ---
 id: P15-07
 title: Run an interactive terminal quiz over a Knowledge Base through QuizService
-status: ready
+status: done
 plan_tasks: [15.2]
 decisions: [D09, D04]
 depends_on: [P15-03, P15-04]
@@ -69,17 +69,17 @@ user, KB not found / not owned; `NotFoundException` from `start` (nothing to ask
 created); any other unexpected exception -> 1 (logged with `log`).
 
 ## Acceptance criteria
-- [ ] AC1: `QuizCommandRunner` does nothing (exit 0, no service call) when the command is not `quiz`.
-- [ ] AC2: `quiz` without `--kb` or `--user`, or with a non-UUID `--kb` -> usage on stderr, exit 2, no service call.
-- [ ] AC3: Unknown email or KB not owned -> one stderr line, exit 2, `QuizService.start` never called.
-- [ ] AC4: Happy path calls `start(kbId, resolvedUserId, StudyScope.WholeKnowledgeBase)` and passes `resolvedUserId` to
+- [x] AC1: `QuizCommandRunner` does nothing (exit 0, no service call) when the command is not `quiz`.
+- [x] AC2: `quiz` without `--kb` or `--user`, or with a non-UUID `--kb` -> usage on stderr, exit 2, no service call.
+- [x] AC3: Unknown email or KB not owned -> one stderr line, exit 2, `QuizService.start` never called.
+- [x] AC4: Happy path calls `start(kbId, resolvedUserId, StudyScope.WholeKnowledgeBase)` and passes `resolvedUserId` to
       every `next` and `answer` call.
-- [ ] AC5: With 5 questions and 5 input lines, stdout shows `Question 1/5: ...` to `Question 5/5: ...`, each score as
+- [x] AC5: With 5 questions and 5 input lines, stdout shows `Question 1/5: ...` to `Question 5/5: ...`, each score as
       `n/5` with its feedback, and a summary with answered count, total and mean score; exit 0.
-- [ ] AC6: EOF after the first question -> exactly one `answer` call, summary printed, exit 0.
-- [ ] AC7: `NotFoundException` from `start` -> one stderr line, non-zero exit (2), no `next`/`answer` call.
-- [ ] AC8: stdout and stderr never contain the stub session's reference answer or grounding excerpt text.
-- [ ] AC9: In a `cli` context (Testcontainers, `StubAIGateway`, `mindforge.cli.exit-when-done=false`), running the
+- [x] AC6: EOF after the first question -> exactly one `answer` call, summary printed, exit 0.
+- [x] AC7: `NotFoundException` from `start` -> one stderr line, non-zero exit (2), no `next`/`answer` call.
+- [x] AC8: stdout and stderr never contain the stub session's reference answer or grounding excerpt text.
+- [x] AC9: In a `cli` context (Testcontainers, `StubAIGateway`, `mindforge.cli.exit-when-done=false`), running the
       `QuizCommandRunner` with `quiz --kb=<id> --user=<owner email>` over a KB with at least one wiki page and scripted
       answers prints at least one graded answer and a summary, exits 0, and the quiz score is recorded for that user's
       page through the normal study store.
@@ -106,3 +106,9 @@ created); any other unexpected exception -> 1 (logged with `log`).
 - Flashcards, Query or other CLI commands.
 
 ## Notes
+- Decided: output lines are `Score: n/5`, the feedback on its own line, and `Quiz ended: <answered> of <total> questions answered, total score <sum>, mean score <m>/5` (mean `-` when nothing was answered), because they are local to the adapter and simple to change.
+- Decided: `NotFoundException` from `start` prints `nothing to quiz: <message>` and an unknown email prints `user not found: <email>`, the same form as the pipeline command.
+- Tester AC map: AC1-AC8 -> unit/cli/QuizCommandRunnerTest (10 tests); AC9 -> integration/cli/QuizCommandIntegrationTest; ADDED: QuizService mock bean in CliExitOnReadyWiringTest (new CliConfig dependency).
+
+### Deferred findings
+- standards/S1 nit 0.6 src/test/java/dev/mindforge/integration/cli/CliExitOnReadyWiringTest.java:28: Fully qualified QuizService name used inline instead of an import, unlike the neighbouring bean lines.

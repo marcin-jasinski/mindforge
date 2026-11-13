@@ -25,6 +25,8 @@ class CliExitOnReadyWiringTest {
         .withBean(AccountService.class, () -> mock(AccountService.class))
         .withBean(KnowledgeBaseService.class, () -> mock(KnowledgeBaseService.class))
         .withBean(IngestionService.class, () -> mock(IngestionService.class))
+        .withBean(dev.mindforge.application.service.QuizService.class,
+            () -> mock(dev.mindforge.application.service.QuizService.class))
         .withBean(IngestRunRepository.class, () -> mock(IngestRunRepository.class))
         .withBean(RunWorker.class, () -> mock(RunWorker.class))
         .withBean(AppProperties.class, AppProperties::new);

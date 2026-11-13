@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Profile;
 import dev.mindforge.application.service.AccountService;
 import dev.mindforge.application.service.IngestionService;
 import dev.mindforge.application.service.KnowledgeBaseService;
+import dev.mindforge.application.service.QuizService;
 import dev.mindforge.application.service.RunWorker;
 import dev.mindforge.domain.port.IngestRunRepository;
 import dev.mindforge.infrastructure.config.AppProperties;
@@ -41,6 +42,12 @@ public class CliConfig {
                                                 AppProperties properties) {
         return new PipelineCommandRunner(accounts, knowledgeBases, ingestion, runs, runWorker, progress,
             properties.getCli().getRunTimeout(), RUN_POLL_INTERVAL, System.out, System.err);
+    }
+
+    @Bean
+    QuizCommandRunner quizCommandRunner(AccountService accounts, KnowledgeBaseService knowledgeBases,
+                                        QuizService quizzes) {
+        return new QuizCommandRunner(accounts, knowledgeBases, quizzes, System.in, System.out, System.err);
     }
 
     @Bean
