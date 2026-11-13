@@ -28,3 +28,7 @@
 2026-11-13T00:52:56Z P15-03 fix/r1@inherit C1 FIXED (usage uses --name=value; D03/D08 amended; tickets P15-04..08 and D04/D07 aligned)
 2026-11-13T00:56:46Z P15-03 test/r2@sonnet PASS
 2026-11-13T00:57:06Z P15-03 review/r2 correctness@opus approve (C1 verified fixed)
+2026-11-13T00:57:10Z P15-03 commit 491ff8c done
+2026-11-13T01:00:47Z P15-04 implement@inherit DONE
+2026-11-13T01:04:49Z P15-04 test/r1@sonnet PASS
+2026-11-13T01:05:33Z P15-04 review/r1 correctness@opus,spec-security@opus,standards@sonnet approve x3; test-guard clean

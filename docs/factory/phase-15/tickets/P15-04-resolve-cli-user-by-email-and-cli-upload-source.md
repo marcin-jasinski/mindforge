@@ -1,7 +1,7 @@
 ---
 id: P15-04
 title: Resolve a user by email and add the CLI upload source
-status: ready
+status: done
 plan_tasks: [15.1, 15.2]
 decisions: [D04, D06]
 depends_on: []
@@ -55,13 +55,13 @@ the CLI upload command ingests. Do not use or remove `FILE_WATCHER` in this phas
 - Risk to watch: future code must not branch on `== UploadSource.API` to mean "a normal upload".
 
 ## Acceptance criteria
-- [ ] AC1: `AccountService.byEmail("  Ann@Example.COM ")` returns the user stored as `ann@example.com`.
-- [ ] AC2: `byEmail` of an unknown email throws `NotFoundException` for `User`.
-- [ ] AC3: `byEmail` never calls `UserRepository.recordLogin`.
-- [ ] AC4: `UploadSource.CLI` exists directly after `API`; no Flyway migration is added.
-- [ ] AC5: A `Document` with `UploadSource.CLI` saved through the document repository adapter loads back with
+- [x] AC1: `AccountService.byEmail("  Ann@Example.COM ")` returns the user stored as `ann@example.com`.
+- [x] AC2: `byEmail` of an unknown email throws `NotFoundException` for `User`.
+- [x] AC3: `byEmail` never calls `UserRepository.recordLogin`.
+- [x] AC4: `UploadSource.CLI` exists directly after `API`; no Flyway migration is added.
+- [x] AC5: A `Document` with `UploadSource.CLI` saved through the document repository adapter loads back with
       `UploadSource.CLI`.
-- [ ] AC6: Two `IngestionService.ingest` calls with `UploadSource.CLI` and identical content in one KB return the same
+- [x] AC6: Two `IngestionService.ingest` calls with `UploadSource.CLI` and identical content in one KB return the same
       document id and queue only one run.
 
 ## Test plan
@@ -83,3 +83,10 @@ the CLI upload command ingests. Do not use or remove `FILE_WATCHER` in this phas
 - Any runner code (P15-05+).
 
 ## Notes
+- Decided: the `UploadSource` Javadoc is not changed, because it names only the channels that change behaviour and `CLI` behaves as `API`.
+- AC1: AccountServiceTest.shouldResolveAMixedCaseAndPaddedEmailWithoutRecordingALogin
+- AC2: AccountServiceTest.shouldRefuseAnUnknownEmailWithoutRecordingALogin
+- AC3: both tests above (`verify(users, never()).recordLogin`)
+- AC4: UploadSource diff reviewed (CLI after API); no migration in the change
+- AC5: DocumentRepositoryAdapterTest.aCliDocument_loadsBackWithItsUploadSource
+- AC6: IngestRunTest.aSecondCliUploadOfTheSameContentIsDeduplicatedAsAnApiUploadIs
