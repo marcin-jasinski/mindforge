@@ -4,7 +4,7 @@
 |---|---|---|---|---|
 | P18-01 | Store external identity links with an ExternalIdentityRepository port and the V8 external_identities table | — | M | done |
 | P18-02 | Reserve the users.invalid email domain for bot accounts and refuse it on registration and provider sign-in | P18-01 | S | done |
-| P18-03 | Resolve a chat-platform user to a MindForge user, provisioning the account and a default knowledge base on first contact | P18-01, P18-02 | M | ready |
+| P18-03 | Resolve a chat-platform user to a MindForge user, provisioning the account and a default knowledge base on first contact | P18-01, P18-02 | M | done |
 | P18-04 | Add the Discord settings, the fail-closed guild and role allowlist, the per-user command rate limit, and the JDA bot lifecycle | — | M | ready |
 | P18-05 | Gate every Discord slash command through the allowlist, rate limit and identity resolution, reply ephemerally, and resolve the kb option | P18-03, P18-04 | L | ready |
 | P18-06 | Answer /ask in Discord with a one-turn Query interaction over QueryService | P18-05 | S | ready |

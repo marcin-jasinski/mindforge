@@ -1,13 +1,13 @@
 ---
 id: P18-03
 title: Resolve a chat-platform user to a MindForge user, provisioning the account and a default knowledge base on first contact
-status: in_progress
+status: done
 plan_tasks: [18.1, 18.2, 18.4]
 decisions: [D01, D03]
 depends_on: [P18-01, P18-02]
 size: M
 issue: 35
-commit:
+commit: d5f4ef5
 fix_rounds: 0
 ---
 ## Goal

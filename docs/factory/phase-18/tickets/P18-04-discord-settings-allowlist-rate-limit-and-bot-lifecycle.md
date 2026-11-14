@@ -1,7 +1,7 @@
 ---
 id: P18-04
 title: Add the Discord settings, the fail-closed guild and role allowlist, the per-user command rate limit, and the JDA bot lifecycle
-status: ready
+status: in_progress
 plan_tasks: [18.2, 18.4]
 decisions: [D04, D11]
 depends_on: []
@@ -84,20 +84,20 @@ Implementation notes:
   two users have separate counters.
 
 ## Acceptance criteria
-- [ ] AC1: `pom.xml` has the JDA dependency (latest stable, audio excluded); `mvn dependency:tree` shows no conflict that
+- [x] AC1: `pom.xml` has the JDA dependency (latest stable, audio excluded); `mvn dependency:tree` shows no conflict that
   breaks Jackson 3 or OkHttp users; the full gate passes.
-- [ ] AC2: `AppProperties.Discord` binds `mindforge.discord.bot-token`, `allowed-guild-ids`, `allowed-role-ids`;
+- [x] AC2: `AppProperties.Discord` binds `mindforge.discord.bot-token`, `allowed-guild-ids`, `allowed-role-ids`;
   `application.yml` sets `bot-token: ${DISCORD_BOT_TOKEN:}` and the two lists with empty defaults; a non-numeric id fails binding.
-- [ ] AC3: Token set and empty guild list fails validation with the message above; no token and empty list passes;
+- [x] AC3: Token set and empty guild list fails validation with the message above; no token and empty list passes;
   token set and one guild passes.
-- [ ] AC4: `DiscordAllowlist.admits` behaves as in D04 for all five cases.
-- [ ] AC5: `DiscordRateLimiter.tryAcquire` admits `limit` calls, rejects call `limit+1` with retry seconds >= 1, resets
+- [x] AC4: `DiscordAllowlist.admits` behaves as in D04 for all five cases.
+- [x] AC5: `DiscordRateLimiter.tryAcquire` admits `limit` calls, rejects call `limit+1` with retry seconds >= 1, resets
   after the window (fake clock), and keeps separate counters per user.
-- [ ] AC6: `dev.mindforge.discord.DiscordConfig` is `@Profile("!cli")` and its beans are conditional on a non-blank
+- [x] AC6: `dev.mindforge.discord.DiscordConfig` is `@Profile("!cli")` and its beans are conditional on a non-blank
   token; with no token, no JDA, `DiscordAllowlist`, `DiscordRateLimiter` or `DiscordBot` bean exists.
-- [ ] AC7: `DiscordBot` is an `ApplicationRunner` that waits for JDA to be ready and logs one INFO line without the
+- [x] AC7: `DiscordBot` is an `ApplicationRunner` that waits for JDA to be ready and logs one INFO line without the
   token; JDA is shut down when the context closes (destroy method calls `shutdown()` and waits a bounded time).
-- [ ] AC8: No class outside `dev.mindforge.discord` imports `net.dv8tion.jda`.
+- [x] AC8: No class outside `dev.mindforge.discord` imports `net.dv8tion.jda`.
 
 ## Test plan
 - Unit: `src/test/java/dev/mindforge/unit/discord/DiscordAllowlistTest.java` (new) for AC4;
@@ -127,3 +127,13 @@ Implementation notes:
 - Documentation (P18-10).
 
 ## Notes
+- Decided: JDA 6.7.0 is declared before Spring AI in `pom.xml` because both `okhttp-jvm` (5.x) and Spring AI's `okhttp` 4.12.0 hold package `okhttp3`; before this change the OTLP exporter's `okhttp-jvm` 5.3.2 came first, and declaring JDA later would have put 4.12.0 first. Now `okhttp-jvm` 5.5.0 (JDA's version, also used by the OTLP exporter) comes first; a JDA login with an invalid token against Discord loaded OkHttp 5.5.0 and returned `InvalidTokenException`, so JDA runs on the resolved OkHttp. Jackson 2 resolves to Boot's 2.21.4; Jackson 3 is unchanged.
+- Decided: `opus-java` and `tink` are excluded because no JDA 6.7.0 class references them (voice only).
+- Decided: the bounded shutdown wait is a fixed 10 s (`DiscordConfig.SHUTDOWN_WAIT`), then `shutdownNow()`, because a destroy method is not governed by `spring.lifecycle.timeout-per-shutdown-phase` and 10 s stays inside its 30 s default.
+- Decided: the `@Profile("!cli")` and token `@Conditional` sit on the `DiscordConfig` class, so every Discord bean shares them; the `JDA` bean has `destroyMethod = ""` so only `DiscordBot.close()` shuts JDA down.
+- Decided: JDA is built with `createLight` and no gateway intents because slash interactions carry the member and roles without privileged intents. Note: `JDABuilder.build()` checks the token synchronously, so an invalid token fails startup.
+- AC map (tester r1): AC1 -> full gate green (only baseline ApiFlowTest failure); AC2 -> DiscordPropertiesTest (bind, empty, non-numeric); AC3 -> DiscordPropertiesTest (3 cases); AC4 -> DiscordAllowlistTest; AC5 -> DiscordRateLimiterTest; AC6 -> DiscordConfigWiringTest + integration/discord/DiscordConfigTest; AC7 -> DiscordBotTest (ADDED); AC8 -> grep: net.dv8tion only in dev.mindforge.discord (plus DiscordConfigTest).
+
+### Deferred findings
+- correctness/C1 minor 0.6 src/main/java/dev/mindforge/discord/DiscordBot.java:26: The unbounded `jda.awaitReady()` in an ApplicationRunner holds back `ApplicationReadyEvent`, so a slow or unreachable Discord gateway at boot delays (possibly forever) every ready listener, including the startup run sweep.
+- standards/S1 minor 0.7 src/test/java/dev/mindforge/discord/DiscordConfigWiringTest.java:1: A no-Spring-context unit test sits in src/test/java/dev/mindforge/discord, outside the unit/ tree.

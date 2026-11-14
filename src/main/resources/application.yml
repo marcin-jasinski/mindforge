@@ -111,6 +111,12 @@ mindforge:
     connect-timeout: ${ARTICLES_CONNECT_TIMEOUT:5s}
     # Total per article URL, across all its redirects.
     request-timeout: ${ARTICLES_REQUEST_TIMEOUT:15s}
+  # Discord bot (DiscordConfig); off unless the token is set. With the token, the guild list is required (fail closed).
+  # Lists are comma-separated snowflake ids; an empty role list admits any member of an allowed guild.
+  discord:
+    bot-token: ${DISCORD_BOT_TOKEN:}
+    allowed-guild-ids: ${MINDFORGE_DISCORD_ALLOWED_GUILD_IDS:}
+    allowed-role-ids: ${MINDFORGE_DISCORD_ALLOWED_ROLE_IDS:}
   rate-limits:
     # Per user, across Query turns and edits, Quiz start, upload and retry, and Lint.
     requests: ${RATE_LIMIT_REQUESTS:30}
