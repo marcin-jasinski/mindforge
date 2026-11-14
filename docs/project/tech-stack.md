@@ -208,6 +208,7 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 | `commonmark` + `commonmark-ext-yaml-front-matter` | Markdown + frontmatter parsing |
 | `pdfbox` | PDF text + metadata extraction |
 | `poi-ooxml` | DOCX parsing |
+| `jsoup` | HTML → text for fetched articles (ADR 0026) |
 | `cytoscape` (npm) | Interactive page-link graph visualization |
 | `openapi-typescript` (npm) | Frontend type generation from OpenAPI spec |
 

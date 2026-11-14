@@ -1,7 +1,7 @@
 ---
 id: P17-04
 title: Convert fetched HTML into a title and plain-text HEADING/TEXT/CODE blocks with a jsoup converter private to the fetcher
-status: ready
+status: done
 plan_tasks: [17.2, 17.3]
 decisions: [D05]
 depends_on: []
@@ -62,21 +62,21 @@ because the article's content hash is computed over its text (D07).
 order (empty string when there are no blocks). P17-05 uses it as `FetchedArticle.text`.
 
 ## Acceptance criteria
-- [ ] AC1: `pom.xml` declares `org.jsoup:jsoup` with its version in `<properties>` and a comment citing ADR 0026;
+- [x] AC1: `pom.xml` declares `org.jsoup:jsoup` with its version in `<properties>` and a comment citing ADR 0026;
   `docs/project/tech-stack.md` has the dependency row.
-- [ ] AC2: `<h1>`–`<h3>` become HEADING blocks with levels 1–3, in document order with increasing `position`.
-- [ ] AC3: `<pre><code>` becomes one CODE block with whitespace and line breaks kept.
-- [ ] AC4: Paragraphs and list items become TEXT blocks; empty or whitespace-only elements produce no block.
-- [ ] AC5: Text inside script, style, noscript, nav, header, footer, aside, template and iframe is absent from every
+- [x] AC2: `<h1>`–`<h3>` become HEADING blocks with levels 1–3, in document order with increasing `position`.
+- [x] AC3: `<pre><code>` becomes one CODE block with whitespace and line breaks kept.
+- [x] AC4: Paragraphs and list items become TEXT blocks; empty or whitespace-only elements produce no block.
+- [x] AC5: Text inside script, style, noscript, nav, header, footer, aside, template and iframe is absent from every
   block.
-- [ ] AC6: Entities are decoded (`&amp;` -> `&`, `&nbsp;` -> space-like, `&#x27;` -> `'`); escaped markup in the input
+- [x] AC6: Entities are decoded (`&amp;` -> `&`, `&nbsp;` -> space-like, `&#x27;` -> `'`); escaped markup in the input
   (`&lt;script&gt;`) appears only as the literal text, and no block contains a real tag from the source
   (`<script`, `<div`, `<a href`).
-- [ ] AC7: Malformed HTML (unclosed tags) still yields text blocks.
-- [ ] AC8: Title order: `<title>`, then `og:title`, then first `<h1>`, then null; empty input gives null title, no
+- [x] AC7: Malformed HTML (unclosed tags) still yields text blocks.
+- [x] AC8: Title order: `<title>`, then `og:title`, then first `<h1>`, then null; empty input gives null title, no
   blocks and `text() == ""`.
-- [ ] AC9: Converting the same HTML twice gives equal `ArticleText` (deterministic).
-- [ ] AC10: `ParserRegistry` and `IngestionConfig` are unchanged; the registry has no `text/html` entry.
+- [x] AC9: Converting the same HTML twice gives equal `ArticleText` (deterministic).
+- [x] AC10: `ParserRegistry` and `IngestionConfig` are unchanged; the registry has no `text/html` entry.
 
 ## Test plan
 - Unit (plain JUnit 5 + AssertJ, fixed HTML strings, no Spring):
@@ -98,3 +98,12 @@ order (empty string when there are no blocks). P17-05 uses it as `FetchedArticle
 - Images in articles; link extraction from articles (no recursion).
 
 ## Notes
+- Decided: TEXT blocks come from inline text gathered between jsoup block-element boundaries (flushed on `isBlock()` open/close, `<br>` = space), not from `Element.text()` per paragraph, because nested lists and loose text in `<div>`s would otherwise be duplicated or lost; headings still use `Element.text()` and `<pre>` uses `wholeText()`.
+- Decided: whitespace including `&nbsp;` (U+00A0) is collapsed to one space and stripped in headings, TEXT blocks and the title, because AC4 needs `&nbsp;`-only elements to count as empty; CODE keeps its whitespace as is.
+- Decided: the first-`<h1>` title fallback reads the body after boilerplate removal, because a `<header>` h1 is usually the site name, not the article title.
+- Decided: AC10 is checked by diff only; no unit test of `ParserRegistry` exists under `unit/infrastructure/parsing/`.
+- AC map (tester r1): AC1 review (pom.xml, tech-stack.md diff); AC2 shouldMapHeadingsToHeadingBlocksWithTheirLevelInDocumentOrder; AC3 shouldKeepWhitespaceAndLineBreaksOfPreformattedCode; AC4 shouldMapParagraphsAndListItemsToTextBlocksAndSkipEmptyElements; AC5 shouldDropTextInsideBoilerplateElements; AC6 shouldDecodeEntitiesAndNeverEmitRealMarkup; AC7 shouldStillYieldTextFromMalformedHtml; AC8 shouldPreferTheTitleElement/FallBackToOgTitle.../FallBackToTheFirstH1.../ReturnNullTitle.../GiveNoTitleNoBlocksAndEmptyTextForEmptyInput; AC9 shouldBeDeterministicForTheSameHtml; AC10 diff only (config/parsing untouched).
+
+### Deferred findings
+- correctness/C1 nit 0.6 src/main/java/dev/mindforge/infrastructure/web/HtmlArticleConverter.java:48: The whitespace pattern collapses only ASCII whitespace and U+00A0, so a paragraph that holds only another non-breaking space (U+202F narrow no-break space, U+2007 figure space) still gives a TEXT block.
+- spec-security/S1 minor 0.5 src/main/java/dev/mindforge/infrastructure/web/HtmlArticleConverter.java:99: Tag-like text inside RCDATA elements (`<textarea>`, a `<title>` in the body) reaches a TEXT block as a literal `<script>…</script>` string, so D05's "no `<`-tag markup survives" holds only by HTML-parsing semantics, and no test covers or documents this case.
