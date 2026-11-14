@@ -1,14 +1,14 @@
 ---
 id: P18-05
 title: Gate every Discord slash command through the allowlist, rate limit and identity resolution, reply ephemerally, and resolve the kb option
-status: ready
+status: in_progress
 plan_tasks: [18.2, 18.4]
 decisions: [D14, D03]
 depends_on: [P18-03, P18-04]
 size: L
 issue: 37
 commit:
-fix_rounds: 0
+fix_rounds: 1
 ---
 ## Goal
 The bot listens for slash commands and `kb` autocomplete. Every command passes one gate in a fixed order: guild/role
@@ -83,22 +83,22 @@ Implementation notes:
   choices and provisions nothing.
 
 ## Acceptance criteria
-- [ ] AC1: A command from a guild not on the allowlist gets the ephemeral reply "This bot is not available here." and
+- [x] AC1: A command from a guild not on the allowlist gets the ephemeral reply "This bot is not available here." and
   neither the rate limiter, `ExternalIdentityService` nor any command is called (18.4).
-- [ ] AC2: A command from a DM (null guild) and from a member without a required role are rejected the same way.
-- [ ] AC3: A command over the rate limit gets "Rate limit reached. Try again in N s." and `ExternalIdentityService` and
+- [x] AC2: A command from a DM (null guild) and from a member without a required role are rejected the same way.
+- [x] AC3: A command over the rate limit gets "Rate limit reached. Try again in N s." and `ExternalIdentityService` and
   the command are not called.
-- [ ] AC4: An admitted command is deferred ephemerally, the caller is resolved with `ExternalPlatform.DISCORD` and the
+- [x] AC4: An admitted command is deferred ephemerally, the caller is resolved with `ExternalPlatform.DISCORD` and the
   snowflake as external id, and the command receives the resolved user id.
-- [ ] AC5: An exception thrown by a command gives the fixed "Something went wrong. Try again later." reply; its message
+- [x] AC5: An exception thrown by a command gives the fixed "Something went wrong. Try again later." reply; its message
   is not shown or logged.
-- [ ] AC6: The JDA reply implementation calls `deferReply(true)`, sets ephemeral on every reply and follow-up, and splits
+- [x] AC6: The JDA reply implementation calls `deferReply(true)`, sets ephemeral on every reply and follow-up, and splits
   text over 2000 chars into ordered parts of at most 2000 chars.
-- [ ] AC7: `resolveKnowledgeBase` returns the id for an owned knowledge base and empty for a non-UUID value (no service
+- [x] AC7: `resolveKnowledgeBase` returns the id for an owned knowledge base and empty for a non-UUID value (no service
   call), an unknown id and another user's id.
-- [ ] AC8: `kb` autocomplete returns only the caller's knowledge bases filtered by the typed text, at most 25, names cut
+- [x] AC8: `kb` autocomplete returns only the caller's knowledge bases filtered by the typed text, at most 25, names cut
   to 100 chars; from a non-allowed guild it returns no choices and provisions nothing.
-- [ ] AC9: `DiscordBot` registers the definitions of all `DiscordCommand` beans as global commands with guild-only
+- [x] AC9: `DiscordBot` registers the definitions of all `DiscordCommand` beans as global commands with guild-only
   interaction context, and the listener is attached to JDA; no JDA type leaves `dev.mindforge.discord`.
 
 ## Test plan
@@ -125,3 +125,15 @@ Implementation notes:
 - Changes to `RateLimitInterceptor` or a shared web/bot counter.
 
 ## Notes
+Decided: `resolveKnowledgeBase(kbOption, userId, reply)` sends "Unknown knowledge base." itself on empty, because then one class owns the fixed text and P18-06..P18-08 cannot drift from it.
+Decided: every registered command is rate-limited (no per-command flag), because all four commands of this phase spend the model (D11).
+Decided: the gate's try block covers defer and identity resolution as well as the command, so any failure gets the fixed "Something went wrong" reply and a WARN with the exception class only.
+Decided: a command name with no `DiscordCommand` bean (after the allowlist and rate limit) gets the fixed error reply and a WARN, because only registered commands can reach the bot.
+Decided: JDA events run on a virtual-thread event pool (`setEventPool(newVirtualThreadPerTaskExecutor(), true)`), because commands block on `complete()` and on model calls and must not stall the gateway thread.
+Decided: `DiscordBot.run` attaches the listener before `awaitReady` and registers commands after it, because that is unit-testable with a mocked `JDA` and no interaction arrives before ready.
+Decided: autocomplete for a focused option other than `kb` sends no reply, because no other option is autocompleted.
+AC map (r1): AC1 DiscordCommandHandlerTest.aCommandFromAGuildNotOnTheAllowlist_isRejectedBeforeAnythingElse; AC2 ...FromADm_isRejectedTheSameWay + ...WithoutARequiredRole_...; AC3 ...OverTheRateLimit_getsTheRetrySeconds...; AC4 ...anAdmittedCommand_isDeferredThenGetsTheResolvedDiscordUser; AC5 ...anExceptionFromTheCommand_givesTheFixedReply...; AC6 JdaDiscordReplyTest (defer_isEphemeral, aTextOver2000Chars, aSplit_neverCutsASurrogatePair); AC7 DiscordKnowledgeBasesTest (owned/non-UUID/unknown/another user); AC8 DiscordKnowledgeBasesTest.autocomplete_* (3 tests); AC9 DiscordBotTest.run_attachesTheListenerAndRegistersEveryCommandForGuildsOnly + DiscordListenerTest.
+
+### Deferred findings
+- correctness/C2 minor 0.6 src/main/java/dev/mindforge/discord/DiscordCommandHandler.java:63: When defer() itself fails (for example the 3 s acknowledgement window has passed or the interaction is unknown), the catch calls reply.send(FAILED), which uses interaction.reply on an unacknowledged interaction and throws again, so the exception escapes the gate and JDA logs it with its message.
+- correctness/C3 minor 0.55 src/main/java/dev/mindforge/discord/DiscordListener.java:38: An exception in kb autocomplete (identity resolution conflict, repository failure) escapes the listener uncaught, so JDA logs it with the full message and the user gets no choices reply.

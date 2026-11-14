@@ -3,10 +3,12 @@ package dev.mindforge.discord;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.EnumSet;
+import java.util.concurrent.Executors;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
@@ -16,6 +18,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.StringUtils;
 
+import dev.mindforge.application.service.ExternalIdentityService;
+import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.infrastructure.config.AppProperties;
 
 /**
@@ -30,16 +34,38 @@ public class DiscordConfig {
     private static final String BOT_TOKEN = "mindforge.discord.bot-token";
     private static final Duration SHUTDOWN_WAIT = Duration.ofSeconds(10);
 
-    /** Logs in in the background; {@link DiscordBot} waits for it and shuts it down. */
+    /**
+     * Logs in in the background; {@link DiscordBot} waits for it and shuts it down. Events run on virtual threads,
+     * because commands block on the model and on JDA's {@code complete()}.
+     */
     @Bean(destroyMethod = "")
     JDA jda(AppProperties properties) {
         return JDABuilder.createLight(properties.getDiscord().getBotToken(), EnumSet.noneOf(GatewayIntent.class))
+            .setEventPool(Executors.newVirtualThreadPerTaskExecutor(), true)
             .build();
     }
 
     @Bean(destroyMethod = "close")
-    DiscordBot discordBot(JDA jda) {
-        return new DiscordBot(jda, SHUTDOWN_WAIT);
+    DiscordBot discordBot(JDA jda, DiscordListener listener, ObjectProvider<DiscordCommand> commands) {
+        return new DiscordBot(jda, listener, commands.orderedStream().toList(), SHUTDOWN_WAIT);
+    }
+
+    @Bean
+    DiscordListener discordListener(DiscordCommandHandler handler, DiscordKnowledgeBases knowledgeBases) {
+        return new DiscordListener(handler, knowledgeBases);
+    }
+
+    @Bean
+    DiscordCommandHandler discordCommandHandler(DiscordAllowlist allowlist, DiscordRateLimiter rateLimiter,
+                                                ExternalIdentityService identities,
+                                                ObjectProvider<DiscordCommand> commands) {
+        return new DiscordCommandHandler(allowlist, rateLimiter, identities, commands.orderedStream().toList());
+    }
+
+    @Bean
+    DiscordKnowledgeBases discordKnowledgeBases(DiscordAllowlist allowlist, ExternalIdentityService identities,
+                                                KnowledgeBaseService knowledgeBases) {
+        return new DiscordKnowledgeBases(allowlist, identities, knowledgeBases);
     }
 
     @Bean

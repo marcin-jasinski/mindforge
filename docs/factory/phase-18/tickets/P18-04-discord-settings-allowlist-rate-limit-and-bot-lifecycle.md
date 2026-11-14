@@ -1,13 +1,13 @@
 ---
 id: P18-04
 title: Add the Discord settings, the fail-closed guild and role allowlist, the per-user command rate limit, and the JDA bot lifecycle
-status: in_progress
+status: done
 plan_tasks: [18.2, 18.4]
 decisions: [D04, D11]
 depends_on: []
 size: M
 issue: 36
-commit:
+commit: ae61629
 fix_rounds: 0
 ---
 ## Goal
