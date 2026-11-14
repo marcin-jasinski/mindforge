@@ -1,14 +1,14 @@
 ---
 id: P18-08
 title: Upload a Document from Discord with /upload, downloading the attachment only from Discord's CDN hosts
-status: ready
+status: in_progress
 plan_tasks: [18.2]
 decisions: [D07, D12]
 depends_on: [P18-05]
 size: M
 issue: 40
 commit:
-fix_rounds: 0
+fix_rounds: 1
 ---
 ## Goal
 `/upload kb:<knowledge base> file:<attachment> [lesson_id] [new_version]` downloads the attachment from Discord's CDN
@@ -80,22 +80,22 @@ Implementation notes:
 - Docs note in the article-fetch docs is done in P18-10.
 
 ## Acceptance criteria
-- [ ] AC1: `UploadSource.DISCORD` exists and `/upload` is its only producer; `/upload` is registered with required
+- [x] AC1: `UploadSource.DISCORD` exists and `/upload` is its only producer; `/upload` is registered with required
   autocompleted `kb`, required attachment `file`, optional string `lesson_id`, optional boolean `new_version`.
-- [ ] AC2: An owned knowledge base and a valid CDN attachment lead to one `IngestionService.ingest` call with
+- [x] AC2: An owned knowledge base and a valid CDN attachment lead to one `IngestionService.ingest` call with
   `UploadSource.DISCORD`, the resolved user, the attachment filename and content type, the downloaded bytes,
   `lesson_id` and `new_version`; the reply says the run is queued (or names the existing document for an identical upload).
-- [ ] AC3: `DiscordAttachments.read` refuses an off-list host, `http`, userinfo and a non-default port without
+- [x] AC3: `DiscordAttachments.read` refuses an off-list host, `http`, userinfo and a non-default port without
   downloading; refuses a declared size over max-size without calling `download()`; fails on a body of max-size + 1;
   passes a body of exactly max-size.
-- [ ] AC4: `LessonAlreadyExistsException`, `UnknownLessonException`, `LessonIdentityException`,
+- [x] AC4: `LessonAlreadyExistsException`, `UnknownLessonException`, `LessonIdentityException`,
   `UploadRejectedException`, too large, refused host and `KnowledgeBaseBusyException` each map to a fixed reply without
   the exception message; WARN logs carry the host only, never the signed URL.
-- [ ] AC5: A not-owned or non-UUID `kb` replies "Unknown knowledge base." and nothing is downloaded or ingested.
-- [ ] AC6: `ArticleFetcher.SCANNED_SOURCES` includes `DISCORD`; the three D12 tests pass.
-- [ ] AC7: `OutboundHttpGuardTest` has the new markers, allows only the downloader file (comment cites ADR 0029), reports
+- [x] AC5: A not-owned or non-UUID `kb` replies "Unknown knowledge base." and nothing is downloaded or ingested.
+- [x] AC6: `ArticleFetcher.SCANNED_SOURCES` includes `DISCORD`; the three D12 tests pass.
+- [x] AC7: `OutboundHttpGuardTest` has the new markers, allows only the downloader file (comment cites ADR 0029), reports
   another Discord file containing `.download(`, and passes.
-- [ ] AC8: The `/upload` reply is ephemeral; `web-security.md` § Untrusted Input Handling names ADR 0029.
+- [x] AC8: The `/upload` reply is ephemeral; `web-security.md` § Untrusted Input Handling names ADR 0029.
 
 ## Test plan
 - Unit (plain Mockito, no Spring context): `src/test/java/dev/mindforge/unit/discord/DiscordAttachmentsTest.java` (new)
@@ -122,3 +122,13 @@ Implementation notes:
 - New upload settings or rules specific to Discord.
 
 ## Notes
+- Decided: `DiscordCall` gains `Map<String, Message.Attachment> attachments` (plus a 7-argument constructor without attachments), filled only for slash commands, because an autocomplete event does not resolve attachment options and the command must stay testable with a mocked `Attachment`.
+- Decided: `DiscordAttachments.read` checks both `attachment.getUrl()` and `attachment.getProxy().getUrl()` against the CDN rule, because JDA downloads an image from its proxy URL, not from `getUrl()`.
+- Decided: one `AttachmentRejectedException` with a `Reason` (NOT_FROM_DISCORD, TOO_LARGE, DOWNLOAD_FAILED) in `dev.mindforge.discord`; a failed or timed-out download gets the fixed reply "The attachment could not be downloaded. Try again later."
+- Decided: the success reply is one fixed text naming the document id, saying the run is queued and that an identical file returns its existing document, because `IngestionService.ingest` returns the same id for both cases (as the web's 202 does) and a run-state lookup would race the queued run.
+- AC map (tester r1): AC1 UploadCommandTest.definition_has...Options + uploadCommand_isTheOnlyProducer...; AC2 UploadCommandTest.anOwnedKnowledgeBase...ingestOnce...; AC3 DiscordAttachmentsTest (off-CDN url param, proxy url, size cap, cap+1, exact cap); AC4 UploadCommandTest.anIngestFailure_givesItsFixedReply... + DiscordAttachmentsTest.aRefusal_logsTheHost...; AC5 UploadCommandTest non-UUID/other-user cases; AC6 ArticleFetcherTest (DISCORD on/off, ARTICLE/CONVERSATION); AC7 OutboundHttpGuardTest.shouldReportAnotherDiscordFile...; AC8 UploadCommandTest.throughTheGate_theReplyIsDeferred... (ephemeral); web-security.md edited.
+- Seen, not fixed (fixer r1): a null Discord `content_type` still goes to ingest as null and gets REJECTED; S1 suggests an extension fallback like `PipelineCommandRunner.mimeTypeOf`, not in the accepted C1 fix.
+
+### Deferred findings
+- correctness/C2 minor 0.6 src/main/java/dev/mindforge/discord/DiscordAttachments.java:50: When the thread is interrupted, the code does not cancel the download future, so the OkHttp call continues and its response stream is never closed.
+- spec-security/S1 major 0.6 src/main/java/dev/mindforge/discord/UploadCommand.java:91: The raw Discord `content_type` goes to `IngestionService.ingest` as the MIME type. Discord sends text attachments with a charset parameter (for example `text/plain; charset=utf-8`, `text/markdown; charset=utf-8`), so a Markdown or text upload, the main use of `/upload`, gets the fixed "The file was refused" reply.

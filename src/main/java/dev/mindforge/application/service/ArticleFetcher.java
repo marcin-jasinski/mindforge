@@ -41,7 +41,7 @@ public class ArticleFetcher {
     private static final String TRAILING_PUNCTUATION = ".,;:!?)]\"'";
     private static final Set<BlockType> SCANNED_BLOCKS = EnumSet.of(BlockType.TEXT, BlockType.HEADING);
     private static final Set<UploadSource> SCANNED_SOURCES =
-        EnumSet.of(UploadSource.API, UploadSource.CLI, UploadSource.FILE_WATCHER);
+        EnumSet.of(UploadSource.API, UploadSource.CLI, UploadSource.FILE_WATCHER, UploadSource.DISCORD);
 
     private final DocumentRepository documents;
     private final ArticleSource articles;

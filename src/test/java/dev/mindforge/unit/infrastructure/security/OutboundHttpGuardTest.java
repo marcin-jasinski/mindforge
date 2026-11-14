@@ -27,7 +27,7 @@ class OutboundHttpGuardTest {
 
     private static final List<String> MARKERS = List.of("java.net.http.HttpClient", "HttpURLConnection",
         ".openConnection(", ".openStream(", "RestClient", "RestTemplate", "WebClient", "Jsoup.connect",
-        "org.apache.hc.client5", "org.jsoup");
+        "org.apache.hc.client5", "org.jsoup", "okhttp3", ".getProxy()", ".download(");
 
     /**
      * Files allowed by exact path outside the article fetch adapter. Each one calls an operator-configured endpoint,
@@ -35,7 +35,9 @@ class OutboundHttpGuardTest {
      */
     private static final Set<String> OPERATOR_ENDPOINT_FILES = Set.of(
         // OAuth2 token endpoint of the operator-configured provider, called through a JDK-transport RestClient.
-        "dev/mindforge/api/config/SecurityConfig.java");
+        "dev/mindforge/api/config/SecurityConfig.java",
+        // Discord attachment download through JDA's client, from a fixed CDN host list and size-capped (ADR 0029).
+        "dev/mindforge/discord/DiscordAttachments.java");
 
     private static final Pattern EGRESS_POLICY_FIELD = Pattern.compile("\\bEgressPolicy\\s+(\\w+)\\s*;");
 
@@ -63,6 +65,19 @@ class OutboundHttpGuardTest {
         write(root, ARTICLE_ADAPTER_DIR + "Adapter.java", "class Adapter { Object d = Jsoup.connect(\"x\"); }");
 
         assertThat(offenders(root)).containsExactly("dev/mindforge/application/Fetcher.java");
+    }
+
+    @Test
+    void shouldReportAnotherDiscordFileThatDownloadsAndIgnoreTheAllowedDownloader(@TempDir Path root)
+        throws IOException {
+        write(root, "dev/mindforge/discord/UploadCommand.java",
+            "class UploadCommand { Object f = attachment.getProxy().download(); }");
+        write(root, "dev/mindforge/discord/Other.java", "class Other { Object f = proxy.download(); }");
+        write(root, "dev/mindforge/discord/DiscordAttachments.java",
+            "class DiscordAttachments { Object f = attachment.getProxy().download(); }");
+
+        assertThat(offenders(root))
+            .containsExactly("dev/mindforge/discord/Other.java", "dev/mindforge/discord/UploadCommand.java");
     }
 
     @Test

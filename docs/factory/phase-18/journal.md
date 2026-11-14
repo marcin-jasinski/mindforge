@@ -37,3 +37,8 @@
 2026-11-14T22:18:52Z P18-06 commit 83cf3af
 2026-11-14T22:23:52Z P18-07 implement implementer@inherit DONE
 2026-11-14T22:29:24Z P18-07 gate r1 tester@sonnet PASS; reviews approve; accepted=0 deferred=1 -> PASS
+2026-11-14T22:29:24Z P18-07 commit b744a71
+2026-11-14T22:37:38Z P18-08 implement implementer@inherit DONE
+2026-11-14T22:43:28Z P18-08 gate r1 tester@sonnet PASS; triage accepted=1 (correctness C1 major) -> fix
+2026-11-14T22:45:56Z P18-08 fix r1 fixer@inherit C1 FIXED
+2026-11-14T22:51:08Z P18-08 gate r2 tester@sonnet PASS; correctness@opus approve; accepted=0 -> PASS

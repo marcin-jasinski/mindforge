@@ -8,7 +8,7 @@
 | P18-04 | Add the Discord settings, the fail-closed guild and role allowlist, the per-user command rate limit, and the JDA bot lifecycle | — | M | done |
 | P18-05 | Gate every Discord slash command through the allowlist, rate limit and identity resolution, reply ephemerally, and resolve the kb option | P18-03, P18-04 | L | done |
 | P18-06 | Answer /ask in Discord with a one-turn Query interaction over QueryService | P18-05 | S | done |
-| P18-07 | Run a Quiz Session from Discord with /quiz start and /quiz answer over QuizService | P18-05 | M | ready |
+| P18-07 | Run a Quiz Session from Discord with /quiz start and /quiz answer over QuizService | P18-05 | M | done |
 | P18-08 | Upload a Document from Discord with /upload, downloading the attachment only from Discord's CDN hosts | P18-05 | M | ready |
 | P18-09 | Send a daily DM to each Discord-linked user who has due Flashcards | P18-01, P18-04 | M | ready |
 | P18-10 | Record the Discord bot, its settings and the account model in the docs, open the linking follow-up, and close Phase 18 | P18-01..P18-09 | S | ready |

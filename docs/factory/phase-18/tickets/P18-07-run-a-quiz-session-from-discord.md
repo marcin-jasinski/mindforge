@@ -1,13 +1,13 @@
 ---
 id: P18-07
 title: Run a Quiz Session from Discord with /quiz start and /quiz answer over QuizService
-status: in_progress
+status: done
 plan_tasks: [18.2, 18.4]
 decisions: [D05]
 depends_on: [P18-05]
 size: M
 issue: 39
-commit:
+commit: b744a71
 fix_rounds: 0
 ---
 ## Goal

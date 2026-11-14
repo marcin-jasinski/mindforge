@@ -22,6 +22,7 @@ import dev.mindforge.discord.DiscordListener;
 import dev.mindforge.discord.JdaDiscordReply;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
@@ -29,6 +30,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.AutoCompleteQuery;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.requests.restaction.interactions.AutoCompleteCallbackAction;
 
 class DiscordListenerTest {
@@ -82,6 +84,27 @@ class DiscordListenerTest {
         assertThat(call.getValue().guildId()).isNull();
         assertThat(call.getValue().memberRoleIds()).isEmpty();
         assertThat(call.getValue().displayName()).isEqualTo("Ada");
+    }
+
+    @Test
+    void anAttachmentOption_isCarriedAsTheJdaAttachment() {
+        SlashCommandInteractionEvent event = mock(SlashCommandInteractionEvent.class);
+        User user = makeUser("Ada", "ada_l");
+        when(event.getUser()).thenReturn(user);
+        when(event.getName()).thenReturn("upload");
+        OptionMapping file = mock(OptionMapping.class);
+        Message.Attachment attachment = mock(Message.Attachment.class);
+        when(file.getName()).thenReturn("file");
+        when(file.getType()).thenReturn(OptionType.ATTACHMENT);
+        when(file.getAsString()).thenReturn("1");
+        when(file.getAsAttachment()).thenReturn(attachment);
+        when(event.getOptions()).thenReturn(List.of(file));
+
+        listener.onSlashCommandInteraction(event);
+
+        ArgumentCaptor<DiscordCall> call = ArgumentCaptor.forClass(DiscordCall.class);
+        verify(handler).handle(call.capture(), any(JdaDiscordReply.class));
+        assertThat(call.getValue().attachments()).containsExactly(Map.entry("file", attachment));
     }
 
     @Test

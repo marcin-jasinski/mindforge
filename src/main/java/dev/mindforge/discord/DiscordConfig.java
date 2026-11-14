@@ -19,6 +19,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.StringUtils;
 
 import dev.mindforge.application.service.ExternalIdentityService;
+import dev.mindforge.application.service.IngestionService;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.QueryService;
 import dev.mindforge.application.service.QuizService;
@@ -79,6 +80,13 @@ public class DiscordConfig {
     QuizCommand quizCommand(QuizService quizService, DiscordKnowledgeBases knowledgeBases,
                             DiscordQuizSessions quizSessions) {
         return new QuizCommand(quizService, knowledgeBases, quizSessions);
+    }
+
+    @Bean
+    UploadCommand uploadCommand(IngestionService ingestionService, DiscordKnowledgeBases knowledgeBases,
+                                AppProperties properties) {
+        return new UploadCommand(ingestionService, knowledgeBases, new DiscordAttachments(),
+            properties.getUpload().getMaxSize().toBytes());
     }
 
     @Bean
