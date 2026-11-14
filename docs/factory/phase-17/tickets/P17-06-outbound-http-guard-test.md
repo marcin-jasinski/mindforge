@@ -1,7 +1,7 @@
 ---
 id: P17-06
 title: Pin outbound HTTP client code to the article fetch adapter with a source-scan guard test
-status: ready
+status: done
 plan_tasks: [17.1]
 decisions: [D03]
 depends_on: [P17-05]
@@ -45,14 +45,14 @@ only in the article fetch adapter.
 - Do not wrap Spring AI, OTLP or OAuth2 clients.
 
 ## Acceptance criteria
-- [ ] AC1: `OutboundHttpGuardTest` passes on the current tree.
-- [ ] AC2: It reports every `src/main/java` file outside `dev/mindforge/infrastructure/web/` that contains any of:
+- [x] AC1: `OutboundHttpGuardTest` passes on the current tree.
+- [x] AC2: It reports every `src/main/java` file outside `dev/mindforge/infrastructure/web/` that contains any of:
   `java.net.http.HttpClient`, `HttpURLConnection`, `.openConnection(`, `.openStream(`, `RestClient`, `RestTemplate`,
   `WebClient`, `Jsoup.connect`, `org.apache.hc.client5`, `org.jsoup` — the failure message lists the file paths.
-- [ ] AC3: It fails when `HttpArticleSource.java` contains no call to `EgressPolicy` `check(`.
-- [ ] AC4: Its own logic is proven: a helper method that scans a given directory is exercised against a temporary
+- [x] AC3: It fails when `HttpArticleSource.java` contains no call to `EgressPolicy` `check(`.
+- [x] AC4: Its own logic is proven: a helper method that scans a given directory is exercised against a temporary
   directory (`@TempDir`) holding one offending file outside `web/`, and reports that file.
-- [ ] AC5: No new test dependency; no Spring context.
+- [x] AC5: No new test dependency; no Spring context.
 
 ## Test plan
 - Unit (plain JUnit 5 + AssertJ, `java.nio.file.Files.walk`):
@@ -67,3 +67,9 @@ only in the article fetch adapter.
 - Any change to main code, unless the scan finds a real offender; then stop and record it in Notes.
 
 ## Notes
+- Decided: allow `dev/mindforge/api/config/SecurityConfig.java` by exact path (its `RestClient` calls the operator-configured OAuth2 token endpoint, trusted per ADR 0023); no other file outside `infrastructure/web/` uses a marker, so no main code changed.
+- Decided: the AC3 check finds the `EgressPolicy` field name by regex and requires `<field>.check(` in `HttpArticleSource.java`, because a bare `.check(` match would also accept the private `check(` helper.
+- Tester AC map: AC1 shouldFindHttpClientCodeOnlyInTheArticleFetchAdapter; AC2 same + shouldReportAFileWithAMarkerOutsideTheAdapter...; AC3 shouldHaveTheArticleSourceCallEgressPolicyCheck + shouldNotAcceptAnArticleSource...; AC4 @TempDir test; AC5 plain JUnit, no deps.
+
+### Deferred findings
+- spec-security/S1 minor 0.4 src/test/java/dev/mindforge/unit/infrastructure/security/OutboundHttpGuardTest.java:28: The JDK HTTP client marker matches only the fully qualified name, so a wildcard import lets new JDK HTTP client code outside the adapter pass the tripwire.
