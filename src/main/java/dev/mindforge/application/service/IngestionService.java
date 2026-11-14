@@ -43,7 +43,8 @@ import dev.mindforge.domain.port.UploadPolicy;
  * Accepts an upload into a knowledge base. The upload is admitted, parsed and given a lesson identity outside
  * any transaction; then one transaction, opened by the knowledge base's row lock so uploads into one knowledge
  * base serialize, returns an identical document, applies the lesson rule, or inserts a new {@link Document}
- * together with its {@code QUEUED} ingest run and {@link DomainEvent.IngestRunQueued}.
+ * together with {@link DomainEvent.DocumentAccepted}, its {@code QUEUED} ingest run and
+ * {@link DomainEvent.IngestRunQueued}.
  */
 public class IngestionService {
 
@@ -107,6 +108,8 @@ public class IngestionService {
             Document document = documents.insert(kbId, new Document(
                 UUID.randomUUID(), kbId, placed, hash, filename, upload.mimeType(), parsed.text(), parsed.blocks(),
                 upload.source(), upload.uploadedBy(), null, null));
+            events.publish(new DomainEvent.DocumentAccepted(
+                document.documentId(), kbId, upload.uploadedBy(), upload.source(), Instant.now()));
             return new Accepted(document.documentId(), enqueue(kbId, document.documentId()));
         });
         if (accepted.run() != null) {

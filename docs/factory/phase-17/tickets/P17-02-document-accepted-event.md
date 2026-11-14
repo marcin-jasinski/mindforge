@@ -1,7 +1,7 @@
 ---
 id: P17-02
 title: Publish DocumentAccepted in the upload transaction when an upload inserts a new document
-status: ready
+status: done
 plan_tasks: [17.2]
 decisions: [D01]
 depends_on: []
@@ -44,15 +44,15 @@ infrastructure hands the work to the virtual-thread `runExecutor` (P17-08). Retr
   document, a retry or `submitEdit`.
 
 ## Acceptance criteria
-- [ ] AC1: `DomainEvent.DocumentAccepted` exists with the five components above, JDK imports only, and the sealed
+- [x] AC1: `DomainEvent.DocumentAccepted` exists with the five components above, JDK imports only, and the sealed
   `permits` clause lists both events.
-- [ ] AC2: A first upload of new content publishes exactly one `DocumentAccepted` carrying the new document id, the
+- [x] AC2: A first upload of new content publishes exactly one `DocumentAccepted` carrying the new document id, the
   knowledge base id, the uploader and the upload's `UploadSource`, plus the existing `IngestRunQueued`; it is published
   inside the transaction callback (before it returns).
-- [ ] AC3: An upload identical to an existing document publishes no `DocumentAccepted`.
-- [ ] AC4: An upload refused by the lesson rule (`LessonAlreadyExistsException`) publishes no `DocumentAccepted`.
-- [ ] AC5: `submitEdit` and `retry` publish no `DocumentAccepted`.
-- [ ] AC6: All existing tests pass unchanged in behaviour.
+- [x] AC3: An upload identical to an existing document publishes no `DocumentAccepted`.
+- [x] AC4: An upload refused by the lesson rule (`LessonAlreadyExistsException`) publishes no `DocumentAccepted`.
+- [x] AC5: `submitEdit` and `retry` publish no `DocumentAccepted`.
+- [x] AC6: All existing tests pass unchanged in behaviour.
 
 ## Test plan
 - Unit (Mockito, AssertJ, no Spring): extend `src/test/java/dev/mindforge/unit/application/IngestionServiceTest.java`
@@ -70,3 +70,5 @@ infrastructure hands the work to the virtual-thread `runExecutor` (P17-08). Retr
 - Docs (`hexagonal.md` § Domain Events is updated in P17-10).
 
 ## Notes
+- Decided: `DocumentAccepted` is published right after `documents.insert` and before `enqueue`, because the ticket says "after documents.insert" and listeners run only after commit, so the order inside the transaction does not change behaviour.
+- Test map (round 1): AC1 compile + field assertions in IngestionServiceTest.shouldInsertANewLesson...; AC2 same test plus shouldPublishDocumentAcceptedInsideTheUploadTransaction; AC3 shouldReturnTheExistingDocumentForAnIdenticalUpload (verifyNoInteractions events); AC4 shouldRejectAnUploadWhoseLessonAlreadyExists... (verifyNoInteractions events); AC5 shouldRetryADocumentOnlyWhenItsLatestRunFailed + shouldPublishOnlyTheQueuedRunForAConversationEdit; AC6 gate.

@@ -5,22 +5,27 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionOperations;
 
 import dev.mindforge.application.service.DocumentUpload;
@@ -79,17 +84,45 @@ class IngestionServiceTest {
         order.verify(documents).lockKnowledgeBase(KB);
         order.verify(documents).findByContentHash(KB, HASH);
         order.verify(documents).insert(eq(KB), inserted.capture());
+        order.verify(events).publish(any(DomainEvent.DocumentAccepted.class));
         order.verify(runs).enqueue(eq(KB), enqueued.capture());
-        order.verify(events).publish(published.capture());
+        order.verify(events).publish(any(DomainEvent.IngestRunQueued.class));
         order.verify(progress).notify(eq(KB), any());
+        verify(events, times(2)).publish(published.capture());
 
         assertThat(inserted.getValue()).usingRecursiveComparison().isEqualTo(new Document(
             documentId, KB, new LessonIdentity("notes", "notes"), HASH, "notes.md", "text/markdown",
             CONTENT, List.of(ContentBlock.text(CONTENT, 0)), UploadSource.API, USER, null, null));
         assertThat(enqueued.getValue()).extracting(IngestRun::kind, IngestRun::documentId, IngestRun::status)
             .containsExactly(RunKind.INGEST, documentId, RunStatus.QUEUED);
-        assertThat(published.getValue()).usingRecursiveComparison().ignoringFields("occurredAt")
-            .isEqualTo(new DomainEvent.IngestRunQueued(enqueued.getValue().runId(), KB, null));
+        assertThat(published.getAllValues()).usingRecursiveFieldByFieldElementComparatorIgnoringFields("occurredAt")
+            .containsExactly(
+                new DomainEvent.DocumentAccepted(documentId, KB, USER, UploadSource.API, null),
+                new DomainEvent.IngestRunQueued(enqueued.getValue().runId(), KB, null));
+    }
+
+    @Test
+    void shouldPublishDocumentAcceptedInsideTheUploadTransaction() {
+        AtomicBoolean inTransaction = new AtomicBoolean();
+        List<Boolean> publishedInTransaction = new ArrayList<>();
+        TransactionOperations recording = new TransactionOperations() {
+            @Override
+            public <T> T execute(TransactionCallback<T> action) {
+                inTransaction.set(true);
+                try {
+                    return action.doInTransaction(null);
+                } finally {
+                    inTransaction.set(false);
+                }
+            }
+        };
+        doAnswer(invocation -> publishedInTransaction.add(inTransaction.get()))
+            .when(events).publish(any(DomainEvent.DocumentAccepted.class));
+
+        new IngestionService((filename, mimeType, sizeBytes) -> filename, PARSER, documents, runs, events, progress,
+            recording).ingest(makeUpload(KB, null, false));
+
+        assertThat(publishedInTransaction).containsExactly(true);
     }
 
     @Test
@@ -136,7 +169,8 @@ class IngestionServiceTest {
         verify(documents).insert(eq(KB), inserted.capture());
         assertThat(inserted.getValue().documentId()).isEqualTo(documentId);
         assertThat(inserted.getValue().lessonIdentity().lessonId()).isEqualTo("notes");
-        verify(events).publish(any());
+        verify(events).publish(any(DomainEvent.DocumentAccepted.class));
+        verify(events).publish(any(DomainEvent.IngestRunQueued.class));
     }
 
     @Test
@@ -185,10 +219,19 @@ class IngestionServiceTest {
         InOrder order = inOrder(documents, runs, events, progress);
         order.verify(documents).lockKnowledgeBase(KB);
         order.verify(runs).enqueue(eq(KB), enqueued.capture());
-        order.verify(events).publish(any());
+        order.verify(events).publish(any(DomainEvent.IngestRunQueued.class));
         order.verify(progress).notify(eq(KB), any());
         assertThat(enqueued.getValue()).extracting(IngestRun::runId, IngestRun::documentId, IngestRun::attempt)
             .containsExactly(runId, documentId, 1);
+        verify(events, never()).publish(any(DomainEvent.DocumentAccepted.class));
+    }
+
+    @Test
+    void shouldPublishOnlyTheQueuedRunForAConversationEdit() {
+        makeService(null).submitEdit(KB, USER, "Add a section on meiosis.", null);
+
+        verify(events).publish(any(DomainEvent.IngestRunQueued.class));
+        verify(events, never()).publish(any(DomainEvent.DocumentAccepted.class));
     }
 
     @Test
