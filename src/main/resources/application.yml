@@ -105,6 +105,7 @@ mindforge:
   upload:
     max-size: ${UPLOAD_MAX_SIZE:50MB}
   articles:
+    fetch-external-articles: ${FETCH_EXTERNAL_ARTICLES:false}
     max-per-document: ${ARTICLES_MAX_PER_DOCUMENT:10}
     max-body-size: ${ARTICLES_MAX_BODY_SIZE:2MB}
     connect-timeout: ${ARTICLES_CONNECT_TIMEOUT:5s}

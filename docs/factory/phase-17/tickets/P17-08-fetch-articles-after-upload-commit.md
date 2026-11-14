@@ -1,7 +1,7 @@
 ---
 id: P17-08
 title: Fetch a new document's articles after the upload commits, on the run executor, when mindforge.articles.fetch-external-articles is on
-status: ready
+status: done
 plan_tasks: [17.2]
 decisions: [D01]
 depends_on: [P17-02, P17-07]
@@ -59,17 +59,17 @@ its own transaction. The upload request does not wait for the fetch. Retry and s
 by the tests below and by P17-07 AC2.
 
 ## Acceptance criteria
-- [ ] AC1: With no property set, the `ProcessingSettings` bean has `fetchExternalArticles() == false`; with
+- [x] AC1: With no property set, the `ProcessingSettings` bean has `fetchExternalArticles() == false`; with
   `mindforge.articles.fetch-external-articles=true` it is true.
-- [ ] AC2: `ArticleFetchTriggers.onDocumentAccepted` submits exactly one task to the executor, which calls
+- [x] AC2: `ArticleFetchTriggers.onDocumentAccepted` submits exactly one task to the executor, which calls
   `fetchFor(knowledgeBaseId, documentId, uploadedBy)` from the event; the listener method itself does no fetching.
-- [ ] AC3: When `fetchFor` throws any `RuntimeException`, the task logs it and does not rethrow.
-- [ ] AC4: The listener is `AFTER_COMMIT`; a rolled-back upload transaction triggers no fetch (by annotation, as in
+- [x] AC3: When `fetchFor` throws any `RuntimeException`, the task logs it and does not rethrow.
+- [x] AC4: The listener is `AFTER_COMMIT`; a rolled-back upload transaction triggers no fetch (by annotation, as in
   `RunWorkerTriggers`).
-- [ ] AC5: `ArticleFetchTriggers` is not a bean in the `cli` profile; `ArticleFetcher` is built in a `@Configuration`
+- [x] AC5: `ArticleFetchTriggers` is not a bean in the `cli` profile; `ArticleFetcher` is built in a `@Configuration`
   with `ProcessingSettings`, `DocumentRepository`, `ArticleSource`, `IngestionService` and
   `AppProperties.Articles.maxPerDocument`.
-- [ ] AC6: The application context starts in the default test profile and all existing integration tests pass.
+- [x] AC6: The application context starts in the default test profile and all existing integration tests pass.
 
 ## Test plan
 - Unit (Mockito, direct executor `Runnable::run`, AssertJ):
@@ -96,3 +96,6 @@ by the tests below and by P17-07 AC2.
 - Docs (P17-10).
 
 ## Notes
+- Decided: `ArticleFetcher` and `ArticleFetchTriggers` beans live in `ArticleFetchConfig` (not `PipelineConfig`), and the constructor argument order follows the P17-07 code (`DocumentRepository, ArticleSource, IngestionService, ProcessingSettings, maxPerDocument`), because the fetch wiring then sits in one config class.
+- Decided: the AC1 binding test is `src/test/java/dev/mindforge/infrastructure/config/ProcessingSettingsBindingTest.java` in package `dev.mindforge.infrastructure.config`, because `PipelineConfig.processingSettings` is package-private.
+- Tester r1 AC map: AC1 ProcessingSettingsBindingTest (both cases); AC2 ArticleFetchTriggersTest.onDocumentAccepted_submitsOneTaskThatFetchesTheEventsDocument; AC3 ArticleFetchTriggersTest.aFailingFetch_*; AC4 ArticleFetchTriggersTest.onDocumentAccepted_runsOnlyAfterTheUploadCommits; AC5 ArticleFetchConfigWiringTest (ADDED, @Profile("!cli")) + ArticleFetchConfig wiring; AC6 gate (context starts, only baseline failure).

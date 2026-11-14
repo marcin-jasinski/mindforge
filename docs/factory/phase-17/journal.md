@@ -50,3 +50,6 @@
 2026-11-14T09:53:01Z P17-07 implement@inherit DONE
 2026-11-14T12:31:41Z P17-07 gate r1 test/correctness/spec-security interrupted by usage limit (429); rerun
 2026-11-14T12:37:18Z P17-07 gate r1 PASS (test@sonnet PASS, correctness@opus approve, standards@sonnet approve, spec-security@opus approve; 2 deferred)
+2026-11-14T12:37:28Z P17-07 commit b3b0d6f done
+2026-11-14T12:43:00Z P17-08 implement@inherit DONE
+2026-11-14T12:48:43Z P17-08 gate r1 PASS (test@sonnet PASS +1 test, correctness@opus approve, standards@sonnet approve, spec-security@opus approve)

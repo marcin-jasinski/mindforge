@@ -70,6 +70,9 @@ public class AppProperties {
     /** Limits on fetching the web articles a document links to (ADR 0025). */
     public static class Articles {
 
+        /** Fetch the articles an uploaded document links to; off unless the deployment turns it on. */
+        private boolean fetchExternalArticles;
+
         /** Most article URLs fetched for one uploaded document. */
         @Positive
         private int maxPerDocument = 10;
@@ -90,6 +93,11 @@ public class AppProperties {
             return (maxBodySize == null || maxBodySize.toBytes() > 0)
                 && (connectTimeout == null || connectTimeout.isPositive())
                 && (requestTimeout == null || requestTimeout.isPositive());
+        }
+
+        public boolean isFetchExternalArticles() { return fetchExternalArticles; }
+        public void setFetchExternalArticles(boolean fetchExternalArticles) {
+            this.fetchExternalArticles = fetchExternalArticles;
         }
 
         public int getMaxPerDocument() { return maxPerDocument; }
