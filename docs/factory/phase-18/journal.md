@@ -18,3 +18,6 @@
 2026-11-14T21:08:20Z tracker tickets #33-#42
 2026-11-14T21:13:02Z P18-01 implement implementer@inherit DONE
 2026-11-14T21:18:49Z P18-01 gate r1 tester@sonnet PASS; review correctness@opus standards@sonnet spec-security@opus; triage accepted=0 deferred=3 -> PASS
+2026-11-14T21:18:49Z P18-01 commit 547afed
+2026-11-14T21:21:52Z P18-02 implement implementer@inherit DONE
+2026-11-14T21:27:14Z P18-02 gate r1 tester@sonnet PASS; reviews 3 approve; triage accepted=0 -> PASS

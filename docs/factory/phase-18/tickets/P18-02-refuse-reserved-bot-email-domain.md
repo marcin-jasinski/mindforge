@@ -1,7 +1,7 @@
 ---
 id: P18-02
 title: Reserve the users.invalid email domain for bot accounts and refuse it on registration and provider sign-in
-status: ready
+status: in_progress
 plan_tasks: [18.1]
 decisions: [D01]
 depends_on: [P18-01]
@@ -43,14 +43,14 @@ Implementation notes (this ticket's part):
 - Risk noted in D01: any future path that writes `users.email` outside `AccountService` must apply the same refusal.
 
 ## Acceptance criteria
-- [ ] AC1: `ExternalAccounts.syntheticEmail(DISCORD, "123456789012345678")` returns
+- [x] AC1: `ExternalAccounts.syntheticEmail(DISCORD, "123456789012345678")` returns
   `discord-123456789012345678@users.invalid`.
-- [ ] AC2: `syntheticEmail` rejects a blank id and an id with characters outside `[A-Za-z0-9]` with a domain exception
+- [x] AC2: `syntheticEmail` rejects a blank id and an id with characters outside `[A-Za-z0-9]` with a domain exception
   (not bare `RuntimeException`), and never returns more than 255 chars.
-- [ ] AC3: `isReserved` is true for `x@users.invalid` and false for `x@users.invalid.com` and `x@example.com`.
-- [ ] AC4: `AccountService.register` with `X@Users.Invalid` (any case) throws `AccountException` and inserts nothing.
-- [ ] AC5: `AccountService.signInWithProvider` with an address in `users.invalid` throws `AccountException` and inserts nothing.
-- [ ] AC6: The web maps the new refusal like the other account errors (no stack trace or raw message leaks); an existing
+- [x] AC3: `isReserved` is true for `x@users.invalid` and false for `x@users.invalid.com` and `x@example.com`.
+- [x] AC4: `AccountService.register` with `X@Users.Invalid` (any case) throws `AccountException` and inserts nothing.
+- [x] AC5: `AccountService.signInWithProvider` with an address in `users.invalid` throws `AccountException` and inserts nothing.
+- [x] AC6: The web maps the new refusal like the other account errors (no stack trace or raw message leaks); an existing
   registration test with a normal email still passes.
 
 ## Test plan
@@ -73,3 +73,7 @@ Implementation notes (this ticket's part):
 - Frontend changes.
 
 ## Notes
+Decided: `AccountException.reservedEmail()` is a conflict (409 `EMAIL_TAKEN`, existing frontend label) because the address is taken by the bot-account namespace, and no new code or handler change is needed.
+Decided: `syntheticEmail` rejects with `IllegalArgumentException` because domain value checks (`PagePath`, `TokenBudget`, ...) already use it.
+Decided: `OAuthLoginSuccessHandler` is not changed; a reserved provider email (cannot be verified, `.invalid` is not deliverable) fails through the default error path, which shows no message or stack trace.
+AC map (tester r1): AC1 ExternalAccountsTest.shouldDeriveTheSyntheticEmailOfADiscordUser; AC2 ...shouldRefuseABlankIdAndAnIdOutsideLettersAndDigits + shouldNeverReturnMoreThan255Characters; AC3 ...shouldReserveOnlyTheUsersInvalidDomain; AC4 AccountServiceTest.shouldRefuseToRegisterAnEmailInTheReservedDomain; AC5 AccountServiceTest.shouldRefuseAProviderSignInWithAnEmailInTheReservedDomain; AC6 existing conflict mapping (409 EMAIL_TAKEN), existing register tests pass.

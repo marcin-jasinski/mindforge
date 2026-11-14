@@ -14,6 +14,11 @@ public class AccountException extends SecurityException {
         return new AccountException("An account with this email already exists", true);
     }
 
+    /** The email is in the domain reserved for bot-provisioned accounts; refused like a taken email. */
+    public static AccountException reservedEmail() {
+        return new AccountException("This email address is reserved", true);
+    }
+
     /** The same message for an unknown email and a wrong password, so neither can be probed. */
     public static AccountException invalidCredentials() {
         return new AccountException("Invalid email or password", false);

@@ -2,7 +2,7 @@
 
 | id | title | depends_on | size | status |
 |---|---|---|---|---|
-| P18-01 | Store external identity links with an ExternalIdentityRepository port and the V8 external_identities table | — | M | ready |
+| P18-01 | Store external identity links with an ExternalIdentityRepository port and the V8 external_identities table | — | M | done |
 | P18-02 | Reserve the users.invalid email domain for bot accounts and refuse it on registration and provider sign-in | P18-01 | S | ready |
 | P18-03 | Resolve a chat-platform user to a MindForge user, provisioning the account and a default knowledge base on first contact | P18-01, P18-02 | M | ready |
 | P18-04 | Add the Discord settings, the fail-closed guild and role allowlist, the per-user command rate limit, and the JDA bot lifecycle | — | M | ready |

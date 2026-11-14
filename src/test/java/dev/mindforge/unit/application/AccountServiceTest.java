@@ -54,6 +54,24 @@ class AccountServiceTest {
     }
 
     @Test
+    void shouldRefuseToRegisterAnEmailInTheReservedDomain() {
+        assertThatExceptionOfType(AccountException.class)
+            .isThrownBy(() -> new AccountService(users, hasher).register("Mallory", " X@Users.Invalid", "password-password"))
+            .satisfies(e -> assertThat(e.conflict()).isTrue());
+        verify(users, never()).insert(any());
+        verify(users, never()).recordLogin(any(), any());
+    }
+
+    @Test
+    void shouldRefuseAProviderSignInWithAnEmailInTheReservedDomain() {
+        assertThatExceptionOfType(AccountException.class)
+            .isThrownBy(() -> new AccountService(users, hasher)
+                .signInWithProvider("discord-123456789012345678@USERS.invalid", "Mallory", null));
+        verify(users, never()).insert(any());
+        verify(users, never()).recordLogin(any(), any());
+    }
+
+    @Test
     void shouldRefuseAWrongPasswordAndAnAccountWithoutOneAlike() {
         User withPassword = new User(UUID.randomUUID(), "Alice", "alice@example.com", "hashed:good", null, Instant.EPOCH,
             null);

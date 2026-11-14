@@ -1,13 +1,13 @@
 ---
 id: P18-01
 title: Store external identity links with an ExternalIdentityRepository port and the V8 external_identities table
-status: in_progress
+status: done
 plan_tasks: [18.1]
 decisions: [D02]
 depends_on: []
 size: M
 issue: 33
-commit:
+commit: 547afed
 fix_rounds: 0
 ---
 ## Goal
