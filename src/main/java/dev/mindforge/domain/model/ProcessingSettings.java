@@ -4,7 +4,7 @@ import java.util.Map;
 
 /**
  * Pipeline tuning: chunk size, the two caps that fail a run loudly, the writer's and Supersede's input budgets,
- * feature flags, and the {@link ModelTier} to model-id mappings recorded on every run. Chunks never overlap —
+ * whether an upload's article URLs are fetched, feature flags, and the {@link ModelTier} to model-id mappings recorded on every run. Chunks never overlap —
  * Extract is their only consumer, and overlap would duplicate claims.
  */
 public record ProcessingSettings(
@@ -14,6 +14,7 @@ public record ProcessingSettings(
     int writerSourceTokens,
     int supersessionContextTokens,
     int cardPagesPerSession,
+    boolean fetchExternalArticles,
     Map<String, Boolean> featureFlags,
     Map<ModelTier, String> modelTierMappings
 ) {
@@ -38,7 +39,13 @@ public record ProcessingSettings(
     public static ProcessingSettings withModels(Map<ModelTier, String> modelTierMappings) {
         return new ProcessingSettings(DEFAULT_CHUNK_SIZE_TOKENS, DEFAULT_MAX_CLAIMS_PER_EXTRACT_CALL,
             DEFAULT_MAX_PAGE_TASKS_PER_RUN, DEFAULT_WRITER_SOURCE_TOKENS, DEFAULT_SUPERSESSION_CONTEXT_TOKENS,
-            DEFAULT_CARD_PAGES_PER_SESSION, Map.of(), modelTierMappings);
+            DEFAULT_CARD_PAGES_PER_SESSION, false, Map.of(), modelTierMappings);
+    }
+
+    /** A copy of these settings with the article fetch switch set to {@code fetchExternalArticles}. */
+    public ProcessingSettings withFetchExternalArticles(boolean fetchExternalArticles) {
+        return new ProcessingSettings(chunkSizeTokens, maxClaimsPerExtractCall, maxPageTasksPerRun, writerSourceTokens,
+            supersessionContextTokens, cardPagesPerSession, fetchExternalArticles, featureFlags, modelTierMappings);
     }
 
     public boolean isEnabled(String featureFlag) {

@@ -1,7 +1,7 @@
 ---
 id: P17-07
 title: Add the ArticleFetcher that extracts a document's article URLs, fetches each and queues it as an ARTICLE document, behind fetchExternalArticles
-status: ready
+status: done
 plan_tasks: [17.2, 17.3]
 decisions: [D06, D08]
 depends_on: [P17-03, P17-05]
@@ -78,24 +78,24 @@ and `withModels(...)` set it to false; add `ProcessingSettings withFetchExternal
 (used by P17-08). Do not use the `featureFlags` map for it.
 
 ## Acceptance criteria
-- [ ] AC1: `ProcessingSettings.defaults().fetchExternalArticles()` and `withModels(...).fetchExternalArticles()` are
+- [x] AC1: `ProcessingSettings.defaults().fetchExternalArticles()` and `withModels(...).fetchExternalArticles()` are
   false; `withFetchExternalArticles(true)` returns a copy with every other component equal.
-- [ ] AC2: With the switch off, `fetchFor` returns without calling `DocumentRepository`, `ArticleSource` or
+- [x] AC2: With the switch off, `fetchFor` returns without calling `DocumentRepository`, `ArticleSource` or
   `IngestionService` (a document with URLs fetches nothing).
-- [ ] AC3: For a parent with source `ARTICLE` or `CONVERSATION`, nothing is fetched; for `API`, `CLI`, `FILE_WATCHER`
+- [x] AC3: For a parent with source `ARTICLE` or `CONVERSATION`, nothing is fetched; for `API`, `CLI`, `FILE_WATCHER`
   the URLs are fetched. A missing document returns quietly (logged), fetching nothing.
-- [ ] AC4: `extractUrls` takes URLs from TEXT and HEADING blocks only; ignores CODE (and other types); handles Markdown
+- [x] AC4: `extractUrls` takes URLs from TEXT and HEADING blocks only; ignores CODE (and other types); handles Markdown
   links and bare URLs; trims trailing `.,;:!?)]"'`; drops fragments, keeps queries; dedups in document order; ignores
   `ftp:`, `mailto:` and unparsable strings.
-- [ ] AC5: With cap 2 and 3 distinct URLs, exactly the first 2 are fetched and the over-cap count (1) is logged.
-- [ ] AC6: Each fetched article is queued with `ingestArticle(kbId, uploadedBy, finalUrl, title, text, blocks)` from
+- [x] AC5: With cap 2 and 3 distinct URLs, exactly the first 2 are fetched and the over-cap count (1) is logged.
+- [x] AC6: Each fetched article is queued with `ingestArticle(kbId, uploadedBy, finalUrl, title, text, blocks)` from
   the `FetchedArticle`.
-- [ ] AC7: When URL 1 fails with any `ArticleFetchException` reason, `LessonAlreadyExistsException`,
+- [x] AC7: When URL 1 fails with any `ArticleFetchException` reason, `LessonAlreadyExistsException`,
   `LessonIdentityException` or an unexpected `RuntimeException`, URL 2 is still fetched and queued; nothing is
   ingested for URL 1.
-- [ ] AC8: Each skip is logged with its reason code and a URL with no userinfo, query or fragment; no log line or
+- [x] AC8: Each skip is logged with its reason code and a URL with no userinfo, query or fragment; no log line or
   exception message contains remote body text.
-- [ ] AC9: `ArticleFetcher` imports nothing outside domain, SLF4J and the JDK, and has no `@Transactional`.
+- [x] AC9: `ArticleFetcher` imports nothing outside domain, SLF4J and the JDK, and has no `@Transactional`.
 
 ## Test plan
 - Unit (plain Mockito for `DocumentRepository`, `ArticleSource`, `IngestionService`; AssertJ; `make*` factories such
@@ -119,3 +119,12 @@ and `withModels(...)` set it to false; add `ProcessingSettings withFetchExternal
 - Any change to `Resolver` or `IngestPipeline`.
 
 ## Notes
+- Decided: `extractUrls(List<ContentBlock>)` returns all distinct URLs and `fetchFor` applies the cap, because the over-cap log line needs the documentId and the full count, which a capped static helper cannot give.
+- Decided: `ArticleFetcher` takes `ProcessingSettings` and `int maxPerDocument` in its constructor, because the application layer cannot import `AppProperties`; P17-08 passes `articles.maxPerDocument`.
+- Decided: AC4 and the `safeUrl` rule are tested through `fetchFor` (captured `ArticleSource.fetch` calls and log lines), because the test package cannot call the package-private helpers.
+- Decided: an unexpected exception is logged as `reason=UNEXPECTED url=... exception=<class name>` at WARN, with no throwable attached, so no remote text reaches the log.
+- Tester r1 AC map: AC1 -> ProcessingSettingsTest (both tests); AC2 -> ArticleFetcherTest.fetchFor_withTheSwitchOff_touchesNothing; AC3 -> fetchFor_anArticleOrConversationParent_fetchesNothing, fetchFor_anUploadedParent_fetchesItsUrls, fetchFor_aMissingDocument_logsAndFetchesNothing; AC4 -> fetchFor_takesUrlsFromTextAndHeadingBlocksOnly, ..._dropsFragmentsKeepsQueriesAndDedupsInDocumentOrder, ..._trimsTrailingPunctuation, ..._ignoresOtherSchemesAndUnparsableUrls; AC5 -> fetchFor_overTheCap_...; AC6 -> fetchFor_queuesTheFetchedArticle; AC7 -> fetchFor_whenAFetchFails_..., fetchFor_whenAnIngestFails_...; AC8 -> assertSkipLogged in those tests + fetchFor_aDuplicateArticle_...; AC9 -> review (imports checked: domain, SLF4J, JDK only; no @Transactional).
+
+### Deferred findings
+- correctness/C1 minor 0.6 src/main/java/dev/mindforge/application/service/ArticleFetcher.java:40: A URL wrapped in Markdown emphasis keeps the closing markers, so the fetcher requests a wrong URL and the link is lost as an HTTP_STATUS skip.
+- standards/S1 nit 0.6 src/main/java/dev/mindforge/domain/model/ProcessingSettings.java:7: The edited Javadoc line is far longer than the 120-column wrap used in the rest of the file.
