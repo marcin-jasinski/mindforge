@@ -208,10 +208,12 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 | `commonmark` + `commonmark-ext-yaml-front-matter` | Markdown + frontmatter parsing |
 | `pdfbox` | PDF text + metadata extraction |
 | `poi-ooxml` | DOCX parsing |
+| `jsoup` | HTML → text for fetched articles (ADR 0026) |
+| `httpclient5` | Article fetcher only; its DNS resolver pins the addresses `EgressPolicy` checked (ADR 0025). Other Spring HTTP clients stay on the JDK transport (`spring.http.clients.imperative.factory: jdk`; the OAuth2 token client in `SecurityConfig`) |
 | `cytoscape` (npm) | Interactive page-link graph visualization |
 | `openapi-typescript` (npm) | Frontend type generation from OpenAPI spec |
 
 ---
 
-*Last Updated*: 2026-09-10
+*Last Updated*: 2026-11-14
 *Stack*: Java 21 / Spring Boot 4.1 / Angular 21 / PostgreSQL / Spring AI

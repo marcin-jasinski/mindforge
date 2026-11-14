@@ -30,12 +30,12 @@ public record LessonIdentity(String lessonId, String title) {
     public static final String KEY_LESSON_ID = "lesson_id";
     /** Metadata key of a PDF document's title. */
     public static final String KEY_PDF_TITLE = "Title";
+    /** Metadata key of a document's own title: Markdown frontmatter, or a fetched article's title. */
+    public static final String KEY_FRONTMATTER_TITLE = "title";
 
     public static final int MAX_TITLE_LENGTH = 200;
     private static final String ELLIPSIS = "…";
     private static final String RESERVED_SUFFIX = "-lesson";
-
-    private static final String KEY_FRONTMATTER_TITLE = "title";
 
     public LessonIdentity {
         requireNonNull(lessonId, "lessonId");

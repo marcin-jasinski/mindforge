@@ -5,22 +5,28 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionOperations;
 
 import dev.mindforge.application.service.DocumentUpload;
@@ -55,6 +61,7 @@ class IngestionServiceTest {
     private static final UUID OTHER_KB = UUID.randomUUID();
     private static final UUID USER = UUID.randomUUID();
     private static final String CONTENT = "Mitosis is cell division.";
+    private static final String ARTICLE_TEXT = "Cells are the units of life.";
     private static final ContentHash HASH = ContentHash.compute(CONTENT.getBytes(StandardCharsets.UTF_8));
 
     /** Reads the bytes as one text block, the way a real parser would for plain text. */
@@ -79,17 +86,45 @@ class IngestionServiceTest {
         order.verify(documents).lockKnowledgeBase(KB);
         order.verify(documents).findByContentHash(KB, HASH);
         order.verify(documents).insert(eq(KB), inserted.capture());
+        order.verify(events).publish(any(DomainEvent.DocumentAccepted.class));
         order.verify(runs).enqueue(eq(KB), enqueued.capture());
-        order.verify(events).publish(published.capture());
+        order.verify(events).publish(any(DomainEvent.IngestRunQueued.class));
         order.verify(progress).notify(eq(KB), any());
+        verify(events, times(2)).publish(published.capture());
 
         assertThat(inserted.getValue()).usingRecursiveComparison().isEqualTo(new Document(
             documentId, KB, new LessonIdentity("notes", "notes"), HASH, "notes.md", "text/markdown",
             CONTENT, List.of(ContentBlock.text(CONTENT, 0)), UploadSource.API, USER, null, null));
         assertThat(enqueued.getValue()).extracting(IngestRun::kind, IngestRun::documentId, IngestRun::status)
             .containsExactly(RunKind.INGEST, documentId, RunStatus.QUEUED);
-        assertThat(published.getValue()).usingRecursiveComparison().ignoringFields("occurredAt")
-            .isEqualTo(new DomainEvent.IngestRunQueued(enqueued.getValue().runId(), KB, null));
+        assertThat(published.getAllValues()).usingRecursiveFieldByFieldElementComparatorIgnoringFields("occurredAt")
+            .containsExactly(
+                new DomainEvent.DocumentAccepted(documentId, KB, USER, UploadSource.API, null),
+                new DomainEvent.IngestRunQueued(enqueued.getValue().runId(), KB, null));
+    }
+
+    @Test
+    void shouldPublishDocumentAcceptedInsideTheUploadTransaction() {
+        AtomicBoolean inTransaction = new AtomicBoolean();
+        List<Boolean> publishedInTransaction = new ArrayList<>();
+        TransactionOperations recording = new TransactionOperations() {
+            @Override
+            public <T> T execute(TransactionCallback<T> action) {
+                inTransaction.set(true);
+                try {
+                    return action.doInTransaction(null);
+                } finally {
+                    inTransaction.set(false);
+                }
+            }
+        };
+        doAnswer(invocation -> publishedInTransaction.add(inTransaction.get()))
+            .when(events).publish(any(DomainEvent.DocumentAccepted.class));
+
+        new IngestionService((filename, mimeType, sizeBytes) -> filename, PARSER, documents, runs, events, progress,
+            recording).ingest(makeUpload(KB, null, false));
+
+        assertThat(publishedInTransaction).containsExactly(true);
     }
 
     @Test
@@ -136,7 +171,8 @@ class IngestionServiceTest {
         verify(documents).insert(eq(KB), inserted.capture());
         assertThat(inserted.getValue().documentId()).isEqualTo(documentId);
         assertThat(inserted.getValue().lessonIdentity().lessonId()).isEqualTo("notes");
-        verify(events).publish(any());
+        verify(events).publish(any(DomainEvent.DocumentAccepted.class));
+        verify(events).publish(any(DomainEvent.IngestRunQueued.class));
     }
 
     @Test
@@ -185,10 +221,19 @@ class IngestionServiceTest {
         InOrder order = inOrder(documents, runs, events, progress);
         order.verify(documents).lockKnowledgeBase(KB);
         order.verify(runs).enqueue(eq(KB), enqueued.capture());
-        order.verify(events).publish(any());
+        order.verify(events).publish(any(DomainEvent.IngestRunQueued.class));
         order.verify(progress).notify(eq(KB), any());
         assertThat(enqueued.getValue()).extracting(IngestRun::runId, IngestRun::documentId, IngestRun::attempt)
             .containsExactly(runId, documentId, 1);
+        verify(events, never()).publish(any(DomainEvent.DocumentAccepted.class));
+    }
+
+    @Test
+    void shouldPublishOnlyTheQueuedRunForAConversationEdit() {
+        makeService(null).submitEdit(KB, USER, "Add a section on meiosis.", null);
+
+        verify(events).publish(any(DomainEvent.IngestRunQueued.class));
+        verify(events, never()).publish(any(DomainEvent.DocumentAccepted.class));
     }
 
     @Test
@@ -206,6 +251,120 @@ class IngestionServiceTest {
         verify(runs, never()).enqueue(any(), any());
     }
 
+    @Test
+    void shouldQueueAnArticleAsAnArticleDocumentWithoutAnnouncingIt() {
+        URI url = URI.create("https://h.example/a/intro-to-cells.html");
+        List<ContentBlock> blocks = makeArticleBlocks();
+        UploadPolicy policy = mock(UploadPolicy.class);
+        DocumentParser parser = mock(DocumentParser.class);
+
+        IngestionService.ArticleAccepted accepted = new IngestionService(policy, parser, documents, runs, events,
+            progress, TransactionOperations.withoutTransaction())
+            .ingestArticle(KB, USER, url, "Intro to Cells", ARTICLE_TEXT, blocks);
+
+        ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
+        ArgumentCaptor<IngestRun> enqueued = ArgumentCaptor.forClass(IngestRun.class);
+        InOrder order = inOrder(documents, runs, events, progress);
+        order.verify(documents).lockKnowledgeBase(KB);
+        order.verify(documents).insert(eq(KB), inserted.capture());
+        order.verify(runs).enqueue(eq(KB), enqueued.capture());
+        order.verify(events).publish(any(DomainEvent.IngestRunQueued.class));
+        order.verify(progress).notify(eq(KB), any());
+        verify(events, never()).publish(any(DomainEvent.DocumentAccepted.class));
+        verifyNoInteractions(policy, parser);
+
+        assertThat(accepted).isEqualTo(new IngestionService.ArticleAccepted(inserted.getValue().documentId(), false));
+        assertThat(inserted.getValue()).usingRecursiveComparison().isEqualTo(new Document(
+            accepted.documentId(), KB, new LessonIdentity("intro-to-cells", "Intro to Cells"),
+            ContentHash.compute(ARTICLE_TEXT.getBytes(StandardCharsets.UTF_8)), url.toString(), "text/html",
+            ARTICLE_TEXT, blocks, UploadSource.ARTICLE, USER, null, null));
+        assertThat(enqueued.getValue()).extracting(IngestRun::kind, IngestRun::documentId, IngestRun::status)
+            .containsExactly(RunKind.INGEST, accepted.documentId(), RunStatus.QUEUED);
+    }
+
+    @Test
+    void shouldNameAnUntitledArticleAfterItsLastPathSegmentElseItsHost() {
+        makeService(null).ingestArticle(KB, USER, URI.create("https://h.example/a/intro-to-cells.html/"), null,
+            ARTICLE_TEXT, makeArticleBlocks());
+        makeService(null).ingestArticle(KB, USER, URI.create("https://example.org/"), null,
+            "Another article.", makeArticleBlocks());
+
+        ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
+        verify(documents, times(2)).insert(eq(KB), inserted.capture());
+        assertThat(inserted.getAllValues()).extracting(Document::lessonIdentity).containsExactly(
+            new LessonIdentity("intro-to-cells", "intro-to-cells"), new LessonIdentity("example", "example"));
+    }
+
+    @Test
+    void shouldRejectAnArticleWithNoTitleAndNoUsableUrlBeforeTouchingTheKnowledgeBase() {
+        assertThatExceptionOfType(LessonIdentityException.class).isThrownBy(() -> makeService(null)
+            .ingestArticle(KB, USER, URI.create("file:///"), "  ", ARTICLE_TEXT, makeArticleBlocks()));
+        verifyNoInteractions(documents, runs, events, progress);
+    }
+
+    @Test
+    void shouldReturnTheExistingDocumentAsADuplicateForAnIdenticalArticle() {
+        Document existing = TestFixtures.makeDocument(null, KB);
+        when(documents.findByContentHash(KB, ContentHash.compute(ARTICLE_TEXT.getBytes(StandardCharsets.UTF_8))))
+            .thenReturn(Optional.of(existing));
+
+        IngestionService.ArticleAccepted accepted = makeService(null).ingestArticle(KB, USER,
+            URI.create("https://h.example/cells"), "Cells", ARTICLE_TEXT, makeArticleBlocks());
+
+        assertThat(accepted).isEqualTo(new IngestionService.ArticleAccepted(existing.documentId(), true));
+        verify(documents, never()).insert(any(), any());
+        verifyNoInteractions(runs, events, progress);
+    }
+
+    @Test
+    void shouldRejectAnArticleWhoseLessonAlreadyExistsInsteadOfMakingANewVersion() {
+        when(documents.findLessonTitle(KB, "cells")).thenReturn(Optional.of("Cells"));
+
+        assertThatThrownBy(() -> makeService(null).ingestArticle(KB, USER, URI.create("https://h.example/cells"),
+            "Cells", ARTICLE_TEXT, makeArticleBlocks()))
+            .isInstanceOfSatisfying(LessonAlreadyExistsException.class, rejection ->
+                assertThat(rejection.lesson()).isEqualTo(new LessonIdentity("cells", "Cells")));
+        verify(documents, never()).insert(any(), any());
+        verifyNoInteractions(runs, events);
+    }
+
+    @Test
+    void shouldGiveANewArticleLessonADistinctTitleWhenItsTitleIsTaken() {
+        when(documents.lessonTitleTaken(KB, "Cells", "cells")).thenReturn(true);
+
+        makeService(null).ingestArticle(KB, USER, URI.create("https://h.example/cells"), "Cells", ARTICLE_TEXT,
+            makeArticleBlocks());
+
+        ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
+        verify(documents).insert(eq(KB), inserted.capture());
+        assertThat(inserted.getValue().lessonIdentity()).isEqualTo(new LessonIdentity("cells", "Cells (cells)"));
+    }
+
+    @Test
+    void shouldCutALongArticleUrlToTheColumnLengthWithoutSplittingASurrogatePair() {
+        // 999 chars, then a two-char emoji straddling the 1000-char limit
+        String prefix = "https://h.example/";
+        String path = "a".repeat(999 - prefix.length()) + "\uD83E\uDDEC" + "tail";
+        URI url = URI.create(prefix + path);
+
+        makeService(null).ingestArticle(KB, USER, url, "Cells", ARTICLE_TEXT, makeArticleBlocks());
+
+        ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
+        verify(documents).insert(eq(KB), inserted.capture());
+        assertThat(inserted.getValue().sourceFilename()).isEqualTo(url.toString().substring(0, 999)).hasSize(999);
+    }
+
+    @Test
+    void shouldCutALongAsciiArticleUrlToExactlyTheColumnLength() {
+        URI url = URI.create("https://h.example/" + "a".repeat(2000));
+
+        makeService(null).ingestArticle(KB, USER, url, "Cells", ARTICLE_TEXT, makeArticleBlocks());
+
+        ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
+        verify(documents).insert(eq(KB), inserted.capture());
+        assertThat(inserted.getValue().sourceFilename()).isEqualTo(url.toString().substring(0, 1000));
+    }
+
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
@@ -219,6 +378,10 @@ class IngestionServiceTest {
         return new IngestionService(
             policy != null ? policy : (filename, mimeType, sizeBytes) -> filename,
             PARSER, documents, runs, events, progress, TransactionOperations.withoutTransaction());
+    }
+
+    private static List<ContentBlock> makeArticleBlocks() {
+        return List.of(ContentBlock.text(ARTICLE_TEXT, 0));
     }
 
     private static IngestRunRepository makeRuns() {

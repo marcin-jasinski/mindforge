@@ -47,7 +47,8 @@ public class PipelineConfig {
     ProcessingSettings processingSettings(AppProperties properties) {
         AppProperties.Ai.Model models = properties.getAi().getModel();
         return ProcessingSettings.withModels(Map.of(
-            ModelTier.SMALL, models.getSmall(), ModelTier.LARGE, models.getLarge(), ModelTier.VISION, models.getVision()));
+            ModelTier.SMALL, models.getSmall(), ModelTier.LARGE, models.getLarge(), ModelTier.VISION, models.getVision()))
+            .withFetchExternalArticles(properties.getArticles().isFetchExternalArticles());
     }
 
     @Bean

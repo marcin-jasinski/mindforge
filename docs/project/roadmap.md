@@ -8,9 +8,9 @@
 - **Version**: 1.1.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete; 15 (CLI Entry Points), 16 (Image Analysis)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete; 15 (CLI Entry Points), 16 (Image Analysis), 17 (Article Fetcher)
 - **In Progress**: None
-- **Next**: Phase 14 (Observability & Tracing; only its manual Langfuse check is open), then Phase 17 (Article Fetcher)
+- **Next**: Phase 14 (Observability & Tracing; only its manual Langfuse check is open), then Phase 18 (Discord Bot)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -109,7 +109,7 @@ Query, the Angular SPA and Docker deployment.
 
 - [x] **Phase 16 — Image Analysis** *(changed)* — `ImageDescriber` (VISION) turns image blocks into
   text blocks before extraction. `[Effort: M]`
-- [ ] **Phase 17 — Article Fetcher** *(changed)* — Referenced articles fetched through `EgressPolicy`
+- [x] **Phase 17 — Article Fetcher** *(changed)* — Referenced articles fetched through `EgressPolicy`
   become documents of their own, ingested as sources. Disabled by default. `[Effort: M]`
 
 ### Delivery Channels (Phases 18–19)
@@ -149,6 +149,6 @@ Query, the Angular SPA and Docker deployment.
 
 ---
 
-*Last Updated*: 2026-09-14
+*Last Updated*: 2026-11-14
 *Effort Scale*: `S` 2–3 days | `M` 1 week | `L` 2+ weeks
 *Reference*: [implementation-plan.md](./implementation-plan.md)

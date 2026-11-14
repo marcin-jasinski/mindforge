@@ -3,6 +3,7 @@ package dev.mindforge.infrastructure.config;
 import java.time.Duration;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -38,6 +39,12 @@ public class AppProperties {
     @Valid
     private Cli cli = new Cli();
 
+    @Valid
+    private Articles articles = new Articles();
+
+    public Articles getArticles() { return articles; }
+    public void setArticles(Articles articles) { this.articles = articles; }
+
     public Cli getCli() { return cli; }
     public void setCli(Cli cli) { this.cli = cli; }
 
@@ -59,6 +66,52 @@ public class AppProperties {
     // ---------------------------------------------------------------------------
     // Nested configuration types
     // ---------------------------------------------------------------------------
+
+    /** Limits on fetching the web articles a document links to (ADR 0025). */
+    public static class Articles {
+
+        /** Fetch the articles an uploaded document links to; off unless the deployment turns it on. */
+        private boolean fetchExternalArticles;
+
+        /** Most article URLs fetched for one uploaded document. */
+        @Positive
+        private int maxPerDocument = 10;
+
+        /** Largest article body read; a longer body fails, it is never truncated. */
+        @NotNull
+        private DataSize maxBodySize = DataSize.ofMegabytes(2);
+
+        @NotNull
+        private Duration connectTimeout = Duration.ofSeconds(5);
+
+        /** Total time for one article URL, across all its redirects. */
+        @NotNull
+        private Duration requestTimeout = Duration.ofSeconds(15);
+
+        @AssertTrue(message = "max-body-size, connect-timeout and request-timeout must be positive")
+        public boolean isLimitsPositive() {
+            return (maxBodySize == null || maxBodySize.toBytes() > 0)
+                && (connectTimeout == null || connectTimeout.isPositive())
+                && (requestTimeout == null || requestTimeout.isPositive());
+        }
+
+        public boolean isFetchExternalArticles() { return fetchExternalArticles; }
+        public void setFetchExternalArticles(boolean fetchExternalArticles) {
+            this.fetchExternalArticles = fetchExternalArticles;
+        }
+
+        public int getMaxPerDocument() { return maxPerDocument; }
+        public void setMaxPerDocument(int maxPerDocument) { this.maxPerDocument = maxPerDocument; }
+
+        public DataSize getMaxBodySize() { return maxBodySize; }
+        public void setMaxBodySize(DataSize maxBodySize) { this.maxBodySize = maxBodySize; }
+
+        public Duration getConnectTimeout() { return connectTimeout; }
+        public void setConnectTimeout(Duration connectTimeout) { this.connectTimeout = connectTimeout; }
+
+        public Duration getRequestTimeout() { return requestTimeout; }
+        public void setRequestTimeout(Duration requestTimeout) { this.requestTimeout = requestTimeout; }
+    }
 
     /** The command-line adapter ({@code cli} profile). */
     public static class Cli {

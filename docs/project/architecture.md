@@ -45,7 +45,7 @@ composition roots.
 - **Study**: `Flashcard`, `StudyScope`, `ReviewResult`
 - **Ports**: `WikiStore`, `RunReportQuery`, `WikiHealthQuery`, `BundleQuery`, `IngestRunRepository`,
   `DocumentRepository`, `DocumentParser`, `UploadPolicy`, `AIGateway`, `EventPublisher`, `ProgressNotifier`,
-  `StudyProgressStore`, `QuizSessionStore`, `InteractionStore`
+  `StudyProgressStore`, `QuizSessionStore`, `InteractionStore`, `ArticleSource`
 - **Constraint**: every tenant-scoped port method takes `kbId` as its first argument; the sweep's two system methods and
   the quiz-session cleanup's `deleteExpired` are the only exceptions
 
@@ -53,6 +53,8 @@ composition roots.
 
 - `IngestionService` — upload; dedup and the lesson rule under the knowledge-base row lock; persist `Document` and its
   `QUEUED` run
+- `ArticleFetcher` — no model: take the article URLs of a new document, fetch each through `ArticleSource` and queue
+  it through `IngestionService.ingestArticle` (Phase 17, off by default)
 - `RunWorker` — claim the oldest `QUEUED` run per knowledge base, dispatch it, and sweep
 - `IngestPipeline` — Describe images, Preprocess, Extract, Resolve, fan-out, draft checks, commit, Supersede
   (`Preprocessor` and the `HeadingChunker` are plain code in `application.ingest`)
@@ -65,7 +67,11 @@ composition roots.
 - `ai/` — `AIGatewayAdapter` (Spring AI, OpenRouter; Resilience4j retry + circuit breaker)
 - `parsing/` — `ParserRegistry` (the `DocumentParser` port) + MIME-dispatch `FormatParser`s (Markdown, PDF, DOCX, TXT);
   `ImageExtractor` filters the images that PDF and DOCX emit as IMAGE blocks
-- `event/` — `SpringEventPublisher`, `SseProgressNotifier` (in-memory emitters per knowledge base)
+- `event/` — `SpringEventPublisher`, `SseProgressNotifier` (in-memory emitters per knowledge base),
+  `RunWorkerTriggers`, `ArticleFetchTriggers`
+- `web/` — the article fetch adapter: `HttpArticleSource` (the `ArticleSource` port; HttpClient 5 pinned to the
+  addresses `EgressPolicy` checked, ADR 0025) and `HtmlArticleConverter` (jsoup, ADR 0026). Apart from operator-configured endpoints allowed by exact path in the guard test (today the OAuth2 token client in `SecurityConfig`), it is the only place in
+  `src/main` with HTTP-client code (`OutboundHttpGuardTest`)
 - `export/` — `BundleExporter` (zip, SnakeYAML frontmatter), `BundleConformanceValidator`
 - `security/` — upload sanitizer, egress policy
 - `config/` — `AppProperties` and every `@Configuration`
@@ -129,6 +135,23 @@ Describe images replaces each IMAGE block with a TEXT block that holds its descr
 position, in document order. An image the describer drops (not relevant, or no usable description) is counted as a
 `describe` RunFailure. If the document has no text and no image could be described, the run fails retryable. The
 `Document` is not changed, so every attempt of a run describes its images again (ADR 0020).
+
+**Article fetch** (Phase 17; only when `mindforge.articles.fetch-external-articles` is true, ADR 0024):
+```
+IngestionService.ingest inserts a new document → DomainEvent.DocumentAccepted in the upload transaction
+AFTER_COMMIT → ArticleFetchTriggers → ArticleFetcher.fetchFor on the run executor (no transaction open)
+    ↓  only API and file-watcher documents (the `cli` profile registers no listener); ARTICLE and CONVERSATION documents fetch nothing (no recursion)
+    ↓  distinct http(s) URLs of TEXT and HEADING blocks, in document order, at most max-per-document
+ArticleSource (HttpArticleSource) per URL: EgressPolicy on every hop → HTML → HtmlArticleConverter → blocks + title
+    ↓  IngestionService.ingestArticle: same dedup and lesson rule; Document (ARTICLE) + QUEUED run + IngestRunQueued
+The article's own Ingest Run: create-only (Resolve drops a claim that reaches a live page), no Supersede
+```
+
+`DocumentAccepted` is published only for a newly inserted document, never for an `ARTICLE`, a duplicate or a retry.
+Its consumer is best-effort: a crash or shutdown after the upload commits loses that upload's articles, and nothing
+repairs this (ADR 0015, ADR 0024). An article that fails a check, cannot be fetched, has no usable title or whose
+lesson already exists is skipped and logged with a fixed reason; the parent upload and its run do not change. The
+`cli` profile does not register the listener, so the CLI never fetches articles.
 
 **Query:**
 ```
@@ -231,7 +254,8 @@ There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
   drained.
 - **Throttling:** one global permit pool for every background model call, across knowledge bases.
 - **No outbox table.** `IngestRunQueued` is published in the transaction that queues a run; its listener runs
-  `AFTER_COMMIT`, and a missed one waits for the sweep. **Progress is not a domain event** — a best-effort
+  `AFTER_COMMIT`, and a missed one waits for the sweep. `DocumentAccepted` (article fetch) is published the same way;
+  a missed one is not repaired. **Progress is not a domain event** — a best-effort
   `ProgressNotifier` port streams it per knowledge base.
 - **Ceiling:** one live instance. During a deploy's overlap fencing keeps runs correct; permanently multiple instances
   need a heartbeat lease.
@@ -274,7 +298,11 @@ There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
 - **Tenancy is structural**: ownership is checked once per request in the controller;
   every tenant-scoped port scopes every call by `kbId`; every table carries `knowledge_base_id`.
 - **Untrusted input**: filenames and external URLs are validated via `UploadSanitizer` and
-  `EgressPolicy`. Fetched articles (Phase 17, off by default) may only create pages and never supersede.
+  `EgressPolicy`. Outbound HTTP to a URL taken from content or a user goes through `EgressPolicy`.
+  Operator-configured endpoints (`OPENROUTER_BASE_URL`, `LANGFUSE_HOST`, OAuth2 provider URIs) are trusted
+  configuration and are not checked (ADR 0023). The policy allows only `http`/`https` on ports 80/443 to public unicast
+  addresses, checks every redirect hop, and the client connects only to the checked addresses (ADR 0022, ADR 0025).
+  Fetched articles (Phase 17, off by default) may only create pages and never supersede.
 - **Rendering**: page bodies render with raw HTML escaped; external links carry `rel="noopener noreferrer nofollow"`.
 - **Lesson identity**: deterministic resolution against one identifier grammar; an explicit id is never rewritten;
   hard reject if no valid identifier.
@@ -290,6 +318,7 @@ There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
 | PostgreSQL | The only data store | No |
 | Caffeine | In-memory quiz session cache | No |
 | Langfuse Cloud | LLM tracing + cost accounting via OTEL | Yes (falls back to logging) |
+| Article hosts (any public http/https host) | Linked articles fetched as `ARTICLE` documents | Yes (off by default) |
 
 ## Deployment Architecture
 

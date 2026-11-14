@@ -5,13 +5,19 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.endpoint.RestClientAuthorizationCodeTokenResponseClient;
+import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
+import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.web.client.RestClient;
 
 import dev.mindforge.application.service.AccountService;
 import dev.mindforge.infrastructure.security.JwtService;
@@ -52,9 +58,26 @@ public class SecurityConfig {
             .oauth2Login(login -> login
                 // the SPA owns /login; without this, Spring answers a direct visit with its generated sign-in page
                 .loginPage("/login")
+                .tokenEndpoint(token -> token.accessTokenResponseClient(authorizationCodeTokenClient()))
                 .successHandler(new OAuthLoginSuccessHandler(accountService, jwtService)))
             .logout(logout -> logout.disable())
             .addFilterBefore(new JwtFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    /**
+     * Spring Security's default token client, but on the JDK transport: its own {@code RestClient.builder()} would
+     * pick Apache HttpClient 5, which is on the classpath only for the article fetcher (ADR 0025, D04).
+     */
+    static RestClientAuthorizationCodeTokenResponseClient authorizationCodeTokenClient() {
+        RestClientAuthorizationCodeTokenResponseClient client = new RestClientAuthorizationCodeTokenResponseClient();
+        client.setRestClient(RestClient.builder()
+            .requestFactory(new JdkClientHttpRequestFactory())
+            .configureMessageConverters(converters -> converters
+                .addCustomConverter(new FormHttpMessageConverter())
+                .addCustomConverter(new OAuth2AccessTokenResponseHttpMessageConverter()))
+            .defaultStatusHandler(new OAuth2ErrorResponseErrorHandler())
+            .build());
+        return client;
     }
 }

@@ -123,7 +123,7 @@ class FlashcardServiceTest {
         ProcessingSettings defaults = ProcessingSettings.defaults();
         ProcessingSettings settings = new ProcessingSettings(defaults.chunkSizeTokens(),
             defaults.maxClaimsPerExtractCall(), defaults.maxPageTasksPerRun(), defaults.writerSourceTokens(),
-            defaults.supersessionContextTokens(), cardPagesPerSession, Map.of(), Map.of());
+            defaults.supersessionContextTokens(), cardPagesPerSession, false, Map.of(), Map.of());
         return new FlashcardService(wiki, study, new FlashcardGenerator(gateway, new PromptLoader("en")), settings);
     }
 

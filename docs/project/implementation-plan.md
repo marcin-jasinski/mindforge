@@ -1511,7 +1511,7 @@ content reaches the wiki.
 
 ---
 
-## [ ] Phase 17 — Article Fetcher
+## [x] Phase 17 — Article Fetcher
 
 > **Changed in v3.0:** a fetched article is a source of its own — a `Document` ingested as its own run —
 > so it gets dedup, provenance and revert unchanged.
@@ -1520,10 +1520,15 @@ content reaches the wiki.
 
 ### Tasks
 
-- [ ] **17.1 — `EgressPolicy`** (`dev.mindforge.infrastructure.security`)
+- [x] **17.1 — `EgressPolicy`** (`dev.mindforge.infrastructure.security`)
   - Allowlist-based URL validator; rejects private IP ranges, `file://`, `data:`.
+  - *As built:* the allowlist is schemes, ports and addresses, with no host list and no egress setting (ADR 0022):
+    `http`/`https` only, port 80 or 443 only, no userinfo, and every address the host resolves to must be public
+    unicast (`isPublicUnicast`, a positive predicate that fails closed). `check(url)` returns the parsed `URI` or
+    throws `EgressDeniedException` with a fixed reason; `resolve(host)` returns only checked addresses. The policy
+    guards URLs from content or users; operator-configured endpoints are trusted configuration (ADR 0023).
 
-- [ ] **17.2 — `ArticleFetcher`** (no LLM)
+- [x] **17.2 — `ArticleFetcher`** (no LLM)
   - Extracts URLs from a document's blocks; validates via `EgressPolicy`; fetches with a timeout; HTML → text.
   - Each article becomes a `Document` (`UploadSource.ARTICLE`, lesson identity from the article title) in the
     same knowledge base, with a `QUEUED` run like any upload. An article whose lesson id already exists is skipped and
@@ -1531,15 +1536,32 @@ content reaches the wiki.
   - Third-party content is untrusted (T28): an `ARTICLE` run is create-only — Resolve drops claims that resolve to a
     live page — and Supersede does not run for it (`supersession_skipped`, reason `"article"`).
   - Disabled unless `ProcessingSettings.fetchExternalArticles` is true.
+  - *As built:* `IngestionService.ingest` publishes `DomainEvent.DocumentAccepted` when it inserts a new document;
+    `ArticleFetchTriggers` (`AFTER_COMMIT`, not in the `cli` profile) hands it to the run executor, and
+    `ArticleFetcher` (application, no transaction) takes the distinct http(s) URLs of the TEXT and HEADING blocks of an
+    API or file-watcher document, fetches at most `max-per-document` of them through the `ArticleSource` port and
+    queues each through `IngestionService.ingestArticle` as an `ARTICLE` document with its own `QUEUED` run (ADR 0024).
+    `HttpArticleSource` (`infrastructure.web`) uses HttpClient 5 with a DNS resolver that returns only addresses
+    `EgressPolicy` checked, follows at most 5 redirects in code and checks each hop again (ADR 0025).
+    `HtmlArticleConverter` (jsoup, not a `ParserRegistry` parser) turns the page into plain HEADING, TEXT and CODE
+    blocks and a title (ADR 0026). A skipped article is logged with a fixed reason and nothing else is stored.
+    Settings: `mindforge.articles.*` (see `deployment.md`).
 
-- [ ] **17.3 — Unit tests**
+- [x] **17.3 — Unit tests**
   - `EgressPolicyTest`; `ArticleFetcherTest` with a mock HTTP server, including a policy violation.
   - An `ARTICLE` run whose claims target a live page creates nothing there and inserts no supersession.
+  - *As built:* `EgressPolicyTest`, `TestEgressPoliciesTest`, `HtmlArticleConverterTest`, `ArticleFetcherTest`
+    (fetch, skip and cap rules with a mocked `ArticleSource`), `HttpArticleSourceTest` (a mock HTTP server on loopback,
+    reached through the test resolver seam of `EgressPolicy`, with a policy violation, redirects, timeouts and size
+    caps), `ArticleFetchTriggersTest`, `ProcessingSettingsBindingTest`, `OutboundHttpGuardTest` (a source scan that
+    allows HTTP-client code only in the article fetch adapter, ADR 0023) and the integration test
+    `IngestRunTest.anArticleRunWritesNothingToALivePageAndSkipsSupersede`.
 
 ### Completion Checklist
 
-- [ ] All outbound HTTP goes through `EgressPolicy`.
-- [ ] Article fetching is disabled by default.
+- [x] All outbound HTTP to content- or user-derived URLs goes through `EgressPolicy` (operator-configured endpoints are
+  trusted config; ADR 0023). (`OutboundHttpGuardTest`)
+- [x] Article fetching is disabled by default. (`ProcessingSettingsBindingTest`; `FETCH_EXTERNAL_ARTICLES=false`)
 
 ---
 
