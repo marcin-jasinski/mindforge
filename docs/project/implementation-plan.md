@@ -1539,7 +1539,7 @@ content reaches the wiki.
   - *As built:* `IngestionService.ingest` publishes `DomainEvent.DocumentAccepted` when it inserts a new document;
     `ArticleFetchTriggers` (`AFTER_COMMIT`, not in the `cli` profile) hands it to the run executor, and
     `ArticleFetcher` (application, no transaction) takes the distinct http(s) URLs of the TEXT and HEADING blocks of an
-    API, CLI or file-watcher document, fetches at most `max-per-document` of them through the `ArticleSource` port and
+    API or file-watcher document, fetches at most `max-per-document` of them through the `ArticleSource` port and
     queues each through `IngestionService.ingestArticle` as an `ARTICLE` document with its own `QUEUED` run (ADR 0024).
     `HttpArticleSource` (`infrastructure.web`) uses HttpClient 5 with a DNS resolver that returns only addresses
     `EgressPolicy` checked, follows at most 5 redirects in code and checks each hop again (ADR 0025).

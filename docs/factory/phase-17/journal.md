@@ -56,3 +56,6 @@
 2026-11-14T12:48:55Z P17-08 commit 8ba6b0d done
 2026-11-14T12:53:21Z P17-10 implement@inherit DONE (docs only; scope.md DoD line updated per D03, accepted)
 2026-11-14T12:58:46Z P17-10 gate r1 PASS (test@sonnet PASS, correctness@opus approve, standards@sonnet approve, spec-security@opus approve)
+2026-11-14T12:58:51Z P17-10 commit 26caab8 done
+2026-11-14T13:00:53Z - holistic@opus approve (3 minor docs findings, deferred to report)
+2026-11-14T13:01:54Z - scribe@sonnet REPORT.md written; H1,H3 doc wording fixed; H2 deferred

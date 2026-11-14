@@ -70,7 +70,7 @@ composition roots.
 - `event/` — `SpringEventPublisher`, `SseProgressNotifier` (in-memory emitters per knowledge base),
   `RunWorkerTriggers`, `ArticleFetchTriggers`
 - `web/` — the article fetch adapter: `HttpArticleSource` (the `ArticleSource` port; HttpClient 5 pinned to the
-  addresses `EgressPolicy` checked, ADR 0025) and `HtmlArticleConverter` (jsoup, ADR 0026). It is the only place in
+  addresses `EgressPolicy` checked, ADR 0025) and `HtmlArticleConverter` (jsoup, ADR 0026). Apart from operator-configured endpoints allowed by exact path in the guard test (today the OAuth2 token client in `SecurityConfig`), it is the only place in
   `src/main` with HTTP-client code (`OutboundHttpGuardTest`)
 - `export/` — `BundleExporter` (zip, SnakeYAML frontmatter), `BundleConformanceValidator`
 - `security/` — upload sanitizer, egress policy
@@ -140,7 +140,7 @@ position, in document order. An image the describer drops (not relevant, or no u
 ```
 IngestionService.ingest inserts a new document → DomainEvent.DocumentAccepted in the upload transaction
 AFTER_COMMIT → ArticleFetchTriggers → ArticleFetcher.fetchFor on the run executor (no transaction open)
-    ↓  only API, CLI and file-watcher documents; ARTICLE and CONVERSATION documents fetch nothing (no recursion)
+    ↓  only API and file-watcher documents (the `cli` profile registers no listener); ARTICLE and CONVERSATION documents fetch nothing (no recursion)
     ↓  distinct http(s) URLs of TEXT and HEADING blocks, in document order, at most max-per-document
 ArticleSource (HttpArticleSource) per URL: EgressPolicy on every hop → HTML → HtmlArticleConverter → blocks + title
     ↓  IngestionService.ingestArticle: same dedup and lesson rule; Document (ARTICLE) + QUEUED run + IngestRunQueued

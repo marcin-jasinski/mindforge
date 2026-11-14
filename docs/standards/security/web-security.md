@@ -72,7 +72,7 @@ OAuth `state` parameter must be validated on **every** OAuth callback to prevent
 
 All uploaded filenames, external URLs, and image URLs are **untrusted**. Always use the security helpers — never write ad-hoc filesystem or HTTP handling.
 
-Outbound HTTP to a URL taken from content or a user goes through `EgressPolicy`; operator-configured endpoints (`OPENROUTER_BASE_URL`, `LANGFUSE_HOST`, OAuth2 provider URIs) are trusted configuration and are not checked (ADR 0023). HTTP-client code in `src/main` lives only in the article fetch adapter (`infrastructure.web`), which checks every redirect hop and connects only to the addresses the policy checked (ADR 0025); `OutboundHttpGuardTest` fails on any other HTTP-client code.
+Outbound HTTP to a URL taken from content or a user goes through `EgressPolicy`; operator-configured endpoints (`OPENROUTER_BASE_URL`, `LANGFUSE_HOST`, OAuth2 provider URIs) are trusted configuration and are not checked (ADR 0023). HTTP-client code in `src/main` lives only in the article fetch adapter (`infrastructure.web`), except operator-configured endpoints allowed by exact path in the guard test (today the OAuth2 token client in `SecurityConfig`). The adapter checks every redirect hop and connects only to the addresses the policy checked (ADR 0025); `OutboundHttpGuardTest` fails on any other HTTP-client code.
 
 ```java
 // CORRECT
