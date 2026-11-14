@@ -1,7 +1,7 @@
 ---
 id: P17-10
 title: Record the article fetch flow, the egress scope and the new settings in the docs, and close Phase 17
-status: ready
+status: done
 plan_tasks: [17.1, 17.2, 17.3]
 decisions: [D03, D01]
 depends_on: [P17-01, P17-02, P17-03, P17-04, P17-05, P17-06, P17-07, P17-08, P17-09]
@@ -53,19 +53,19 @@ across up to 5 redirects). State that only http/https on ports 80/443 to public 
 there is no host allowlist and no egress setting, and that skipped articles show only in logs (D08).
 
 ## Acceptance criteria
-- [ ] AC1: Plan Phase 17: tasks 17.1–17.3, both checklist lines (with the D03 wording) and the heading are `[x]`, each
+- [x] AC1: Plan Phase 17: tasks 17.1–17.3, both checklist lines (with the D03 wording) and the heading are `[x]`, each
   task with a short "As built" note naming the classes and ADRs 0022–0026.
-- [ ] AC2: `docs/project/architecture.md` describes the article data flow (upload commit -> `DocumentAccepted` ->
+- [x] AC2: `docs/project/architecture.md` describes the article data flow (upload commit -> `DocumentAccepted` ->
   `ArticleFetcher` -> `ArticleSource` -> `ingestArticle` -> own ARTICLE run, create-only, no Supersede) and has the
   D03 trust-model sentence; `web-security.md` has the matching sentence.
-- [ ] AC3: `docs/project/deployment.md` lists the five settings with defaults, the egress rules, and the `cli`
+- [x] AC3: `docs/project/deployment.md` lists the five settings with defaults, the egress rules, and the `cli`
   behaviour.
-- [ ] AC4: `hexagonal.md` § Domain Events lists `DocumentAccepted` and its consumer.
-- [ ] AC5: `docs/project/tech-stack.md` has rows for jsoup (ADR 0026) and httpclient5 (ADR 0025).
-- [ ] AC6: `docs/project/roadmap.md` marks Phase 17 done and names the next phase; CLAUDE.md "Project State" (only that
+- [x] AC4: `hexagonal.md` § Domain Events lists `DocumentAccepted` and its consumer.
+- [x] AC5: `docs/project/tech-stack.md` has rows for jsoup (ADR 0026) and httpclient5 (ADR 0025).
+- [x] AC6: `docs/project/roadmap.md` marks Phase 17 done and names the next phase; CLAUDE.md "Project State" (only that
   paragraph) says where work resumes; `docs/INDEX.md` is updated only where a listed description changed (and lists
   ADRs 0022–0026 if it lists ADRs).
-- [ ] AC7: No code changes; the gate still passes.
+- [x] AC7: No code changes; the gate still passes.
 
 ## Test plan
 - Docs only; verify by review and by `mvn -B verify -DskipFrontend=true` (no regressions beyond the baseline
@@ -82,3 +82,6 @@ there is no host allowlist and no egress setting, and that skipped articles show
 - Rewriting ADRs 0022–0026.
 
 ## Notes
+- Decided: added the five `ARTICLES_*`/`FETCH_EXTERNAL_ARTICLES` variables to `env.example`, because `deployment.md` says every variable is listed there; no code changed.
+- Decided: the roadmap "Next" line and CLAUDE.md "Project State" name Phase 14 (manual Langfuse check open), then Phase 18, because Phase 14 is still open and Phase 18 is the next unchecked phase in the plan.
+- Decided: no new ADR, because no P17-01..P17-09 Note records a load-bearing choice outside ADRs 0022–0026 (the OAuth2 token client JDK pin in `SecurityConfig` applies ADR 0025 and is recorded in `tech-stack.md`).

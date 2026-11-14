@@ -58,6 +58,31 @@ settings:
 Each run attempt, including a retry, pays the vision calls again. Extracted image bytes are stored in
 `documents.content_blocks`, so they count toward the database size.
 
+### Articles
+
+The server can fetch the web articles that an upload links to and ingest each one as a document of its own
+(`ARTICLE`), with its own Ingest Run. The setting is global and off by default (`mindforge.articles.*`):
+
+| Variable | Default | Notes |
+|---|---|---|
+| `FETCH_EXTERNAL_ARTICLES` | `false` | Turns on the fetch of linked articles for new uploads, for all knowledge bases |
+| `ARTICLES_MAX_PER_DOCUMENT` | `10` | The first N distinct article URLs of a document are fetched; the remainder are skipped and logged |
+| `ARTICLES_MAX_BODY_SIZE` | `2MB` | A larger response is not read and the article is skipped |
+| `ARTICLES_CONNECT_TIMEOUT` | `5s` | Per connection |
+| `ARTICLES_REQUEST_TIMEOUT` | `15s` | Total per article URL, across up to 5 redirects |
+
+- The server fetches after the upload commits, on a background thread; the upload does not wait. A crash or a
+  shutdown before the fetch completes loses that upload's articles. A retry of the run does not fetch again.
+- The server takes URLs only from the text and headings of an uploaded document (not from a fetched article and not
+  from a chat turn). It fetches only `http` and `https` URLs on port 80 or 443 whose host resolves only to public
+  addresses, and it checks each redirect again ([ADR-0022](../adr/0022-egress-allowlist-schemes-ports-public-addresses.md)).
+  There is no host allowlist and no egress setting: when the fetch is on, any public host is reachable.
+- The response must be HTML (`text/html` or `application/xhtml+xml`).
+- An article run may only create pages. It does not change a live page and it does not run Supersede.
+- A skipped article (refused URL, host not reachable, timeout, error status, not HTML, too large, too many
+  redirects, no text, no usable title, duplicate, or a lesson that already exists) shows only in the server log, with
+  a fixed reason. Nothing shows in the UI or on the parent run.
+
 ## Railway
 
 1. Create a project from the repository; Railway builds the `Dockerfile` (see `railway.json`).
@@ -71,7 +96,9 @@ checks `/health`, which now answers 404: set its health check path to `/actuator
 
 ## CLI
 
-The same JAR has two command-line entry points. The `cli` profile starts no web server and no run sweep. The CLI
+The same JAR has two command-line entry points. The `cli` profile starts no web server, no run sweep and no article
+fetch: the process exits after its own run, so it does not register the listener that fetches linked articles, even
+when `FETCH_EXTERNAL_ARTICLES` is true. The CLI
 reads the same configuration as the server (`DATABASE_*`, `OPENROUTER_API_KEY` and `JWT_SECRET`); Flyway migrates
 the schema at startup. Set `JWT_SECRET` to at least 32 bytes also for the CLI. The CLI issues no tokens, but it does
 not start with a shorter secret. Stop the server first (see [One live instance](#one-live-instance)). Give each option value in the

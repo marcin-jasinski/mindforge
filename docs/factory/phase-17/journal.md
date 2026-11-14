@@ -53,3 +53,6 @@
 2026-11-14T12:37:28Z P17-07 commit b3b0d6f done
 2026-11-14T12:43:00Z P17-08 implement@inherit DONE
 2026-11-14T12:48:43Z P17-08 gate r1 PASS (test@sonnet PASS +1 test, correctness@opus approve, standards@sonnet approve, spec-security@opus approve)
+2026-11-14T12:48:55Z P17-08 commit 8ba6b0d done
+2026-11-14T12:53:21Z P17-10 implement@inherit DONE (docs only; scope.md DoD line updated per D03, accepted)
+2026-11-14T12:58:46Z P17-10 gate r1 PASS (test@sonnet PASS, correctness@opus approve, standards@sonnet approve, spec-security@opus approve)

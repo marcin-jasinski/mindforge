@@ -123,7 +123,8 @@ From `CLAUDE.md` (Non-Negotiable Rules) unless stated otherwise:
 
 Plan completion checklist (Phase 17):
 
-- [ ] All outbound HTTP goes through `EgressPolicy` (with the scope Q03 decides).
+- [ ] All outbound HTTP to content- or user-derived URLs goes through `EgressPolicy` (operator-configured endpoints are
+  trusted config; ADR 0023).
 - [ ] Article fetching is disabled by default.
 
 Plus: tasks 17.1–17.3 are `[x]` in the plan and the phase heading is `[x]`; roadmap, deployment, architecture,

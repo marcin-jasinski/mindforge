@@ -27,13 +27,13 @@ Complete phase-by-phase breakdown of all development work: phases 0–21, each w
 
 ### Deployment (`project/deployment.md`)
 How MindForge is built and run: the multi-stage Dockerfile, `compose.yml` with PostgreSQL, the local override, the
-configuration a deployment must set, the vision model and image limits, Railway and Render, graceful shutdown, the one-live-instance ceiling, and the CLI commands (`pipeline`, `quiz`) with their exit codes and trust model.
+configuration a deployment must set, the vision model and image limits, the article fetch settings and egress rules, Railway and Render, graceful shutdown, the one-live-instance ceiling, and the CLI commands (`pipeline`, `quiz`) with their exit codes and trust model.
 
 ### Tech Stack (`project/tech-stack.md`)
 Technology choices with rationale. Covers backend (Java 21, Spring Boot 4.1, Spring AI, Spring Data JPA/Hibernate, PostgreSQL as the only data store, Caffeine), frontend (Angular standalone SPA), bundle export, infrastructure (Docker, Flyway, Maven), and what was removed (Neo4j, pgvector, object storage). Read before introducing new dependencies or proposing technology changes.
 
 ### Architecture (`project/architecture.md`)
-Navigable summary of the hexagonal architecture — layers, model services, the ingest/query/study/revert/export data flows, the wiki model, history and revert, idempotency and the ingest lease, retrieval, and the guard table ("every rule stated in the prompt and enforced in code"). Read before touching layer boundaries, adding adapters, or working on ingest.
+Navigable summary of the hexagonal architecture — layers, model services, the ingest/article-fetch/query/study/revert/export data flows, the wiki model, history and revert, idempotency and the ingest lease, retrieval, and the guard table ("every rule stated in the prompt and enforced in code"). Read before touching layer boundaries, adding adapters, or working on ingest.
 
 ---
 
@@ -43,7 +43,7 @@ Navigable summary of the hexagonal architecture — layers, model services, the 
 The ubiquitous language: Knowledge Base, Page, Page Path, Page Type, Concept, Source Summary, Section, Ingest Run, Page Revision, Tombstone, Revert, Supersession, Index, Bundle, Flashcard, Study Scope, Weak Page, and the operations Ingest (including the Conversation Edit), Query and Lint — with terms to avoid. Use these names in code, docs and conversation.
 
 ### Architecture Decision Records (`adr/`)
-One file per load-bearing decision. 0001–0009 cover the original stack; 0010–0018 record the wiki re-cut (knowledge model, taxonomy and path identity, automatic revisions and revert, typed ingest pipeline, Postgres-only wiki storage, runs/lease/no outbox, index retrieval, Lint link insertions, flashcard identity); 0019 records the CLI trust model (a named user, no password); 0020 records that images are described inside the ingest run and their bytes are kept in the content blocks; 0021 records the `AIGateway` image overload (VISION tier only). 0005 and 0006 are superseded by 0016.
+One file per load-bearing decision. 0001–0009 cover the original stack; 0010–0018 record the wiki re-cut (knowledge model, taxonomy and path identity, automatic revisions and revert, typed ingest pipeline, Postgres-only wiki storage, runs/lease/no outbox, index retrieval, Lint link insertions, flashcard identity); 0019 records the CLI trust model (a named user, no password); 0020 records that images are described inside the ingest run and their bytes are kept in the content blocks; 0021 records the `AIGateway` image overload (VISION tier only); 0022–0026 record the article fetcher (the egress allowlist of schemes, ports and public addresses; `EgressPolicy` for content- and user-derived URLs only; the fetch after the upload commits from `DocumentAccepted`; HttpClient 5 pinned to checked addresses; jsoup HTML conversion). 0005 and 0006 are superseded by 0016.
 
 ### Wiki Re-cut Map (`wayfinder/okf-wiki-map.md`)
 The decision map that produced the wiki re-cut: destination, every decision with a link to the ticket holding its full reasoning (`wayfinder/tickets/`), and what was ruled out of scope. Read a ticket's `## Answer` when you need the *why* behind an ADR.
@@ -155,7 +155,7 @@ Non-negotiable rules for MindForge's Hexagonal Architecture (Ports and Adapters)
 - ingest runs and idempotency (lease; generate outside, commit in one transaction);
 - retrieval cost discipline (rendered index first, lexical prefilter past 20K tokens, no vector store);
 - model-service communication (no service calls another);
-- domain events after commit, with no outbox.
+- domain events after commit, with no outbox (`IngestRunQueued`, and the best-effort `DocumentAccepted`).
 
 ---
 
@@ -164,7 +164,7 @@ Non-negotiable rules for MindForge's Hexagonal Architecture (Ports and Adapters)
 Located in `docs/standards/security/`
 
 #### Web Security (`standards/security/web-security.md`)
-MindForge-specific security rules: server-authoritative state (fields forbidden in API responses: `reference_answer`, `grounding_context`, `raw_prompt`, `raw_completion`, `cost`), bcrypt password hashing via Spring Security's `BCryptPasswordEncoder` at cost ≥ 12, JWT in HttpOnly/Secure/SameSite=Lax cookies (never response body), OAuth CSRF handled by Spring Security OAuth2 client (never disabled), uploaded filename and URL sanitization, and resource ownership checks in every `@RestController` method. Read before any auth, file upload, or API response work.
+MindForge-specific security rules: server-authoritative state (fields forbidden in API responses: `reference_answer`, `grounding_context`, `raw_prompt`, `raw_completion`, `cost`), bcrypt password hashing via Spring Security's `BCryptPasswordEncoder` at cost ≥ 12, JWT in HttpOnly/Secure/SameSite=Lax cookies (never response body), OAuth CSRF handled by Spring Security OAuth2 client (never disabled), uploaded filename and URL sanitization (`EgressPolicy` for every content- or user-derived URL; operator-configured endpoints are trusted), and resource ownership checks in every `@RestController` method. Read before any auth, file upload, or API response work.
 
 ---
 

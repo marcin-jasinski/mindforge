@@ -166,5 +166,6 @@ List<LinkInsertion> links = linkChecker.check(bodies, index);
 There is no outbox table (ADR 0015). State changes and their domain events are published in the **same** `@Transactional` boundary through `EventPublisher`; listeners use `@TransactionalEventListener(phase = AFTER_COMMIT)`.
 
 - The run domain event is `IngestRunQueued`. Its listener wakes the worker. A missed event waits for the periodic sweep, never for redelivery, so listeners **must tolerate missing an event**.
+- The document event is `DocumentAccepted`, published only when an upload inserts a new document (never for an `ARTICLE` or a conversation turn). Its consumer is best-effort: `ArticleFetchTriggers` hands it, after commit, to `ArticleFetcher` on the `runExecutor`, which fetches with no transaction open. A crash or shutdown after the commit loses that upload's articles by design; nothing repairs it (ADR 0015, ADR 0024). The listener is not registered in the `cli` profile.
 - **Progress is not a domain event.** Services that run work call the best-effort `ProgressNotifier` port directly: at each step boundary, and for a status change only **after** its transaction returns, so no client sees a state that rolled back. Never set `fallbackExecution = true` to push progress through the event bus.
 - `DomainEvent` requires only `occurredAt()`; each event record carries its own ids.
