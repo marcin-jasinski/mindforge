@@ -2,6 +2,7 @@ package dev.mindforge.infrastructure.config;
 
 import dev.mindforge.domain.port.BundleQuery;
 import dev.mindforge.domain.port.DocumentRepository;
+import dev.mindforge.domain.port.ExternalIdentityRepository;
 import dev.mindforge.domain.port.IngestRunRepository;
 import dev.mindforge.domain.port.InteractionStore;
 import dev.mindforge.domain.port.KnowledgeBaseRepository;
@@ -14,6 +15,7 @@ import dev.mindforge.domain.port.WikiHealthQuery;
 import dev.mindforge.domain.port.WikiStore;
 import dev.mindforge.infrastructure.persistence.adapter.BundleQueryAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.DocumentRepositoryAdapter;
+import dev.mindforge.infrastructure.persistence.adapter.ExternalIdentityRepositoryAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.IngestRunRepositoryAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.InteractionStoreAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.KnowledgeBaseRepositoryAdapter;
@@ -25,6 +27,7 @@ import dev.mindforge.infrastructure.persistence.adapter.UserRepositoryAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.WikiHealthQueryAdapter;
 import dev.mindforge.infrastructure.persistence.adapter.WikiStoreAdapter;
 import dev.mindforge.infrastructure.persistence.jpa.DocumentJpaRepository;
+import dev.mindforge.infrastructure.persistence.jpa.ExternalIdentityJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.FlashcardJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.IngestRunJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.InteractionJpaRepository;
@@ -41,6 +44,7 @@ import dev.mindforge.infrastructure.persistence.jpa.UserJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.WikiHealthJpaRepository;
 import dev.mindforge.infrastructure.persistence.jpa.WikiPageJpaRepository;
 import dev.mindforge.infrastructure.persistence.mapper.DocumentEntityMapper;
+import dev.mindforge.infrastructure.persistence.mapper.ExternalIdentityEntityMapper;
 import dev.mindforge.infrastructure.persistence.mapper.IngestRunEntityMapper;
 import dev.mindforge.infrastructure.persistence.mapper.InteractionEntityMapper;
 import dev.mindforge.infrastructure.persistence.mapper.KnowledgeBaseEntityMapper;
@@ -114,6 +118,14 @@ public class PersistenceConfig {
     @Bean
     UserRepository userRepository(UserJpaRepository users, UserEntityMapper mapper) {
         return new UserRepositoryAdapter(users, mapper);
+    }
+
+    @Bean
+    ExternalIdentityRepository externalIdentityRepository(ExternalIdentityJpaRepository identities,
+                                                          UserJpaRepository users,
+                                                          ExternalIdentityEntityMapper mapper,
+                                                          UserEntityMapper userMapper) {
+        return new ExternalIdentityRepositoryAdapter(identities, users, mapper, userMapper);
     }
 
     @Bean

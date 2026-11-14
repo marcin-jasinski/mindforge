@@ -1,7 +1,7 @@
 ---
 id: P18-01
 title: Store external identity links with an ExternalIdentityRepository port and the V8 external_identities table
-status: ready
+status: in_progress
 plan_tasks: [18.1]
 decisions: [D02]
 depends_on: []
@@ -56,17 +56,17 @@ exception, e.g. `ExternalIdentityConflictException` in `dev.mindforge.domain.mod
 `RuntimeException`), so the application layer can catch it without importing `org.springframework.dao`.
 
 ## Acceptance criteria
-- [ ] AC1: `ExternalPlatform` enum (`DISCORD` only), `ExternalIdentity` record, `ExternalIdentityConflictException` and
+- [x] AC1: `ExternalPlatform` enum (`DISCORD` only), `ExternalIdentity` record, `ExternalIdentityConflictException` and
   the `ExternalIdentityRepository` port exist in the domain and import JDK types only.
-- [ ] AC2: `V8__create_external_identities.sql` creates the table above with the composite primary key, the
+- [x] AC2: `V8__create_external_identities.sql` creates the table above with the composite primary key, the
   `ON DELETE CASCADE` foreign key and an index on `user_id`; Flyway migrates a fresh database.
-- [ ] AC3: `createUserAndLink` inserts the user and the link; `findUserId` then returns that user id; an unknown
+- [x] AC3: `createUserAndLink` inserts the user and the link; `findUserId` then returns that user id; an unknown
   `(platform, externalId)` returns empty.
-- [ ] AC4: A second `createUserAndLink` for the same `(platform, externalId)` (with a new user) throws
+- [x] AC4: A second `createUserAndLink` for the same `(platform, externalId)` (with a new user) throws
   `ExternalIdentityConflictException` and leaves no new `users` row; the same holds for a user whose email already exists.
-- [ ] AC5: `findByPlatform(DISCORD)` returns every Discord link with its user id.
-- [ ] AC6: Deleting the `users` row removes its link (cascade).
-- [ ] AC7: The port, the adapter and the tests have no `link` method or reference.
+- [x] AC5: `findByPlatform(DISCORD)` returns every Discord link with its user id.
+- [x] AC6: Deleting the `users` row removes its link (cascade).
+- [x] AC7: The port, the adapter and the tests have no `link` method or reference.
 
 ## Test plan
 - Integration (Testcontainers, real PostgreSQL): `src/test/java/dev/mindforge/integration/persistence/ExternalIdentityRepositoryAdapterTest.java`
@@ -92,3 +92,12 @@ exception, e.g. `ExternalIdentityConflictException` in `dev.mindforge.domain.mod
 - Any change to the `users` schema.
 
 ## Notes
+Decided: the V8 foreign key references `users (user_id)`, not `users(id)`, because the `users` primary key column in V1 is `user_id`.
+Decided: `ExternalIdentityConflictException` extends `IllegalStateException` and carries only the platform, because that matches `LessonAlreadyExistsException` and keeps external ids out of messages.
+Decided: `ExternalIdentityEntity` does not map `created_at`, because the database default sets it and no port method reads it.
+
+### Deferred findings
+- correctness/C1 minor 0.6 src/main/java/dev/mindforge/infrastructure/persistence/adapter/ExternalIdentityRepositoryAdapter.java:54: The catch of the broad DataIntegrityViolationException reports every integrity or data failure (NOT NULL, value too long) as an "identity already linked or email taken" conflict, not only unique violations.
+- spec-security/S1 major 0.6 src/main/java/dev/mindforge/infrastructure/persistence/adapter/ExternalIdentityRepositoryAdapter.java:47: createUserAndLink does not guarantee an insert of the users row; for a User whose userId already exists it silently overwrites that existing account and links the external identity to it, which is the "link to an existing account" path D02 forbids.
+- spec-security/S2 minor 0.5 src/main/java/dev/mindforge/infrastructure/persistence/adapter/ExternalIdentityRepositoryAdapter.java:54: Every DataIntegrityViolationException is reported as an identity/email conflict, not only unique violations as the ticket's lost-race contract specifies.
+Tester r1 AC map: AC1/AC7 review (no `link` in port/adapter/tests); AC2 -> ExternalIdentityRepositoryAdapterTest.migration_createsTheTableWithItsKeyCascadeAndUserIndex; AC3 -> createUserAndLink_insertsBothRows_andFindUserIdReturnsTheUser + findUserId_returnsEmpty_forAnUnknownIdentity; AC4 -> createUserAndLink_forAnIdentityAlreadyLinked_throwsAndWritesNoUser + createUserAndLink_forAnEmailAlreadyTaken_throwsAndWritesNoUserOrIdentity; AC5 -> findByPlatform_returnsEveryIdentityWithItsUserId; AC6 -> deletingTheUser_removesItsIdentity.
