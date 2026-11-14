@@ -1,7 +1,7 @@
 ---
 id: P18-03
 title: Resolve a chat-platform user to a MindForge user, provisioning the account and a default knowledge base on first contact
-status: ready
+status: in_progress
 plan_tasks: [18.1, 18.2, 18.4]
 decisions: [D01, D03]
 depends_on: [P18-01, P18-02]
@@ -60,18 +60,18 @@ Implementation notes:
   creates none; two concurrent first contacts -> one user, one knowledge base (Testcontainers).
 
 ## Acceptance criteria
-- [ ] AC1: First contact with an unknown `(DISCORD, id)` returns a new user id; the stored user has email
+- [x] AC1: First contact with an unknown `(DISCORD, id)` returns a new user id; the stored user has email
   `discord-<id>@users.invalid`, a null password hash and the cleaned display name; one knowledge base named "Discord"
   is owned by it.
-- [ ] AC2: A second call with the same `(DISCORD, id)` returns the same user id and inserts no user and no knowledge base.
-- [ ] AC3: A blank display name falls back to the external id; a multi-line or over-long name is made single-line and
+- [x] AC2: A second call with the same `(DISCORD, id)` returns the same user id and inserts no user and no knowledge base.
+- [x] AC3: A blank display name falls back to the external id; a multi-line or over-long name is made single-line and
   cut to 255 chars.
-- [ ] AC4: When `createUserAndLink` throws `ExternalIdentityConflictException`, the service re-reads `findUserId` once,
+- [x] AC4: When `createUserAndLink` throws `ExternalIdentityConflictException`, the service re-reads `findUserId` once,
   outside the failed transaction, returns that id and inserts no knowledge base.
-- [ ] AC5: Two threads resolving the same new identity at once against a real database end with exactly one user, one
+- [x] AC5: Two threads resolving the same new identity at once against a real database end with exactly one user, one
   link and one knowledge base, and both get the same user id.
-- [ ] AC6: The service makes no model call and imports nothing outside the application layer's allowed list.
-- [ ] AC7: The service is a Spring bean wired in a `@Configuration` (constructor injection).
+- [x] AC6: The service makes no model call and imports nothing outside the application layer's allowed list.
+- [x] AC7: The service is a Spring bean wired in a `@Configuration` (constructor injection).
 
 ## Test plan
 - Unit (plain Mockito, no Spring context): `src/test/java/dev/mindforge/unit/application/ExternalIdentityServiceTest.java`
@@ -93,3 +93,11 @@ Implementation notes:
 - Resolving a user by email.
 
 ## Notes
+Decided: the knowledge base name comes from a display label on `ExternalPlatform` (`DISCORD("Discord")`), because Phase 19 then adds `SLACK("Slack")` with no change to the service.
+Decided: when `createUserAndLink` throws a conflict and the re-read still finds no linked user, the service rethrows that conflict, because the adapter maps every integrity failure to a conflict (P18-01 deferred C1/S2) and a miss must not look like success.
+Decided: the service always passes a fresh random user id to `createUserAndLink`, so the adapter's merge on an existing id (P18-01 deferred S1) cannot be reached from this path.
+Decided: the display name cut to 255 chars steps back one char when it would split a surrogate pair, because a half pair is not valid text.
+AC map (tester r1): AC1 -> ExternalIdentityServiceTest.firstContact_provisions... + ExternalIdentityProvisioningTest.firstContact_provisions...; AC2 -> secondContact_returnsTheLinkedUserAndInsertsNothing (unit + integration); AC3 -> blankDisplayName_/nullDisplayName_/multiLineOverLongDisplayName_ (unit); AC4 -> lostRace_reReadsTheLinkedUserOnceAndInsertsNoKnowledgeBase + conflictWithNoLinkedUser_isRethrown; AC5 -> twoConcurrentFirstContacts_endWithOneUserOneLinkAndOneKnowledgeBase; AC6 -> imports checked by inspection; AC7 -> AccountConfig bean, exercised by the integration test context.
+
+### Deferred findings
+- correctness/C1 minor 0.6 src/main/java/dev/mindforge/application/service/ExternalIdentityService.java:68: The 255-char cut runs after `TextRules.singleLine`, so the stored display name can end in a space, which breaks the trimmed single-line form that `singleLine` produces.

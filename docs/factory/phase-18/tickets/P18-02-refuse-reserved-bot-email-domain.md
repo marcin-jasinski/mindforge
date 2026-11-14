@@ -1,13 +1,13 @@
 ---
 id: P18-02
 title: Reserve the users.invalid email domain for bot accounts and refuse it on registration and provider sign-in
-status: in_progress
+status: done
 plan_tasks: [18.1]
 decisions: [D01]
 depends_on: [P18-01]
 size: S
 issue: 34
-commit:
+commit: 6529963
 fix_rounds: 0
 ---
 ## Goal
