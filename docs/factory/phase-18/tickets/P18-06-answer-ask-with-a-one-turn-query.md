@@ -1,13 +1,13 @@
 ---
 id: P18-06
 title: Answer /ask in Discord with a one-turn Query interaction over QueryService
-status: in_progress
+status: done
 plan_tasks: [18.2]
 decisions: [D06]
 depends_on: [P18-05]
 size: S
 issue: 38
-commit:
+commit: 83cf3af
 fix_rounds: 0
 ---
 ## Goal

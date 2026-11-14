@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import dev.mindforge.application.service.ExternalIdentityService;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.QueryService;
+import dev.mindforge.application.service.QuizService;
 import dev.mindforge.infrastructure.config.AppProperties;
 
 /**
@@ -72,6 +73,17 @@ public class DiscordConfig {
     @Bean
     AskCommand askCommand(QueryService queryService, DiscordKnowledgeBases knowledgeBases) {
         return new AskCommand(queryService, knowledgeBases);
+    }
+
+    @Bean
+    QuizCommand quizCommand(QuizService quizService, DiscordKnowledgeBases knowledgeBases,
+                            DiscordQuizSessions quizSessions) {
+        return new QuizCommand(quizService, knowledgeBases, quizSessions);
+    }
+
+    @Bean
+    DiscordQuizSessions discordQuizSessions(AppProperties properties) {
+        return new DiscordQuizSessions(properties.getStudy().getQuizSessionTtl());
     }
 
     @Bean

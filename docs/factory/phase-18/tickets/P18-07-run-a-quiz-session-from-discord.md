@@ -1,7 +1,7 @@
 ---
 id: P18-07
 title: Run a Quiz Session from Discord with /quiz start and /quiz answer over QuizService
-status: ready
+status: in_progress
 plan_tasks: [18.2, 18.4]
 decisions: [D05]
 depends_on: [P18-05]
@@ -59,18 +59,18 @@ Implementation notes:
   cleared on `finished`; reply text contains no reference answer.
 
 ## Acceptance criteria
-- [ ] AC1: `/quiz` is registered with subcommands `start` (required autocompleted `kb`) and `answer` (required `text`).
-- [ ] AC2: `/quiz start` on an owned knowledge base calls `QuizService.start(kbId, userId, new
+- [x] AC1: `/quiz` is registered with subcommands `start` (required autocompleted `kb`) and `answer` (required `text`).
+- [x] AC2: `/quiz start` on an owned knowledge base calls `QuizService.start(kbId, userId, new
   StudyScope.WholeKnowledgeBase())`, stores `(kbId, sessionId)` for the user, and replies with "Question i/n: ...".
-- [ ] AC3: A second `/quiz start` replaces the stored entry.
-- [ ] AC4: `/quiz answer` with an entry calls `answer(kbId, userId, sessionId, text)` and replies with score and
+- [x] AC3: A second `/quiz start` replaces the stored entry.
+- [x] AC4: `/quiz answer` with an entry calls `answer(kbId, userId, sessionId, text)` and replies with score and
   feedback, plus the next question when not finished; on `finished` the entry is cleared.
-- [ ] AC5: `/quiz answer` with no entry replies "No active quiz. Run /quiz start." and calls no service.
-- [ ] AC6 (18.4): user B whose entry points at user A's session gets the "No active quiz. Run /quiz start." reply via
+- [x] AC5: `/quiz answer` with no entry replies "No active quiz. Run /quiz start." and calls no service.
+- [x] AC6 (18.4): user B whose entry points at user A's session gets the "No active quiz. Run /quiz start." reply via
   the real `QuizService` ownership check (`NotOwnerException`), the entry is cleared, and nothing of A's session is shown.
-- [ ] AC7: No reply text contains the session's reference answer; `NotFoundException` from `start` and model-side
+- [x] AC7: No reply text contains the session's reference answer; `NotFoundException` from `start` and model-side
   failures map to fixed replies without exception messages.
-- [ ] AC8: Both subcommands reply ephemerally; `begin`/`isPreparing` are never called; no domain port changes.
+- [x] AC8: Both subcommands reply ephemerally; `begin`/`isPreparing` are never called; no domain port changes.
 
 ## Test plan
 - Unit (plain Mockito, no Spring context, AssertJ): `src/test/java/dev/mindforge/unit/discord/QuizCommandTest.java`
@@ -90,3 +90,11 @@ Implementation notes:
 - Lesson or page scope options; flashcard review in Discord.
 
 ## Notes
+- Decided: `start` with nothing to ask about replies "This knowledge base has nothing to quiz on yet." because the ticket asks only for a fixed reply without the exception message.
+- Decided: model failures (`AIGatewayUnavailableException`, `DeadlineExceededException`, `ModelOutputException`) reuse `AskCommand.MODEL_UNAVAILABLE` and keep the entry on `/quiz answer`, because the session is still valid and the user can answer again.
+- Decided: `QuizFinishedException` on `/quiz answer` is handled like `NotFoundException`/`NotOwnerException` (clear + "No active quiz. Run /quiz start.") because a finished session has nothing left to answer.
+- Decided: a finished quiz appends "Quiz finished." after score and feedback, and the `text` option has max length 4000, the same as the web's `AnswerRequest`, because both match existing behaviour.
+- Tester r1 AC map (QuizCommandTest unless noted): AC1 definition_hasAStartSubcommand...; AC2 start_onAnOwnedKnowledgeBase_...; AC3 aSecondStart_replacesTheStoredEntry (+DiscordQuizSessionsTest); AC4 answer_withAnEntry_... and answer_toTheLastQuestion_...; AC5 answer_withNoEntry_...; AC6 answer_whoseEntryPointsAtAnotherUsersSession_... (real QuizService); AC7 answer_throughTheRealService_repliesWithoutTheReferenceAnswer, start_withNothingToAskAbout_..., aModelFailureOnStart/Answer_...; AC8 throughTheGate_bothSubcommandsAreDeferredEphemerally...
+
+### Deferred findings
+- correctness/C1 minor 0.5 src/main/java/dev/mindforge/discord/QuizCommand.java:117: A `NotFoundException` from the follow-up `next(...)` call after a successful `answer(...)` is caught by the same catch as the grading call, so a graded and recorded answer is reported as "No active quiz. Run /quiz start." and its score and feedback are lost.
