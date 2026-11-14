@@ -60,3 +60,4 @@
 2026-11-14T13:00:53Z - holistic@opus approve (3 minor docs findings, deferred to report)
 2026-11-14T13:01:54Z - scribe@sonnet REPORT.md written; H1,H3 doc wording fixed; H2 deferred
 2026-11-14T13:12:23Z - integration gate green (only baseline ApiFlowTest.theLoginRouteIsTheSinglePageApp; with it excluded: 558 unit + 661 IT pass, coverage met)
+2026-11-14T13:12:41Z - merged into develop ac2851d; pushed develop and factory/phase-17; tracker closed #21; status done
