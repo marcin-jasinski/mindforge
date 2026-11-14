@@ -1,7 +1,7 @@
 ---
 id: P18-06
 title: Answer /ask in Discord with a one-turn Query interaction over QueryService
-status: ready
+status: in_progress
 plan_tasks: [18.2]
 decisions: [D06]
 depends_on: [P18-05]
@@ -40,15 +40,15 @@ Implementation notes:
 - Document that each `/ask` is a one-turn interaction with no follow-up context (P18-10).
 
 ## Acceptance criteria
-- [ ] AC1: `/ask` is registered with a required autocompleted `kb` option and a required `question` string option.
-- [ ] AC2: For an owned knowledge base, the command calls `QueryService.start(kbId, userId)` then
+- [x] AC1: `/ask` is registered with a required autocompleted `kb` option and a required `question` string option.
+- [x] AC2: For an owned knowledge base, the command calls `QueryService.start(kbId, userId)` then
   `ask(kbId, userId, interaction.id(), question)` and sends one reply with the answer text followed by the cited page
   paths (a "Sources:" list; none when empty).
-- [ ] AC3: Two `/ask` calls call `start` twice; the adapter holds no interaction state.
-- [ ] AC4: A non-UUID or not-owned `kb` replies "Unknown knowledge base." and `QueryService` is never called.
-- [ ] AC5: `NotOwnerException`/`NotFoundException` from `QueryService` and model-side failures map to fixed replies
+- [x] AC3: Two `/ask` calls call `start` twice; the adapter holds no interaction state.
+- [x] AC4: A non-UUID or not-owned `kb` replies "Unknown knowledge base." and `QueryService` is never called.
+- [x] AC5: `NotOwnerException`/`NotFoundException` from `QueryService` and model-side failures map to fixed replies
   without the exception message.
-- [ ] AC6: The reply path is ephemeral (deferred ephemerally through the seam) and the text contains only the answer
+- [x] AC6: The reply path is ephemeral (deferred ephemerally through the seam) and the text contains only the answer
   and cited paths.
 
 ## Test plan
@@ -66,3 +66,8 @@ Implementation notes:
 - Conversation edits from Discord.
 
 ## Notes
+Decided: the `question` option has max length 4000 because the web's `QuestionRequest` uses `@Size(max = 4000)`.
+Decided: `NotOwnerException`/`NotFoundException` from `QueryService` reply "Unknown knowledge base." (the D03 text) because to the caller both mean the knowledge base is not theirs or is gone.
+Decided: `AIGatewayUnavailableException`, `DeadlineExceededException` and `ModelOutputException` share one reply "The model is not available now. Try again later." because the web maps all three to one MODEL_UNAVAILABLE code; other failures fall to the gate's generic reply.
+Decided: the one-turn note is in the `AskCommand` Javadoc; the Discord user docs are P18-10's.
+Tester r1 AC map (AskCommandTest): AC1 definition_hasARequiredAutocompletedKbOptionAndARequiredQuestion; AC2 anOwnedKnowledgeBase_startsAnInteractionAsksOnceAndRepliesWithAnswerAndSources + anAnswerWithoutCitedPaths_hasNoSourcesList; AC3 twoAsks_startTwoInteractions; AC4 aKbValueThatIsNotAUuid_*, anotherUsersKnowledgeBase_*; AC5 anOwnershipFailureFromTheQuery_*, aModelFailure_*; AC6 throughTheGate_theReplyIsDeferredThroughTheEphemeralSeamThenCarriesOnlyTheAnswerAndPaths.

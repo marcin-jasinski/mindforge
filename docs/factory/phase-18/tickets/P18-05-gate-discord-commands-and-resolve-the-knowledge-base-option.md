@@ -1,13 +1,13 @@
 ---
 id: P18-05
 title: Gate every Discord slash command through the allowlist, rate limit and identity resolution, reply ephemerally, and resolve the kb option
-status: in_progress
+status: done
 plan_tasks: [18.2, 18.4]
 decisions: [D14, D03]
 depends_on: [P18-03, P18-04]
 size: L
 issue: 37
-commit:
+commit: a92a162
 fix_rounds: 1
 ---
 ## Goal

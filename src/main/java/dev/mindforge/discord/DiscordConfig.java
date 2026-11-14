@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 
 import dev.mindforge.application.service.ExternalIdentityService;
 import dev.mindforge.application.service.KnowledgeBaseService;
+import dev.mindforge.application.service.QueryService;
 import dev.mindforge.infrastructure.config.AppProperties;
 
 /**
@@ -66,6 +67,11 @@ public class DiscordConfig {
     DiscordKnowledgeBases discordKnowledgeBases(DiscordAllowlist allowlist, ExternalIdentityService identities,
                                                 KnowledgeBaseService knowledgeBases) {
         return new DiscordKnowledgeBases(allowlist, identities, knowledgeBases);
+    }
+
+    @Bean
+    AskCommand askCommand(QueryService queryService, DiscordKnowledgeBases knowledgeBases) {
+        return new AskCommand(queryService, knowledgeBases);
     }
 
     @Bean
