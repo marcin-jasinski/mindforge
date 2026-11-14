@@ -1,7 +1,7 @@
 ---
 id: P17-03
 title: Add IngestionService.ingestArticle that queues a fetched article as an ARTICLE document through the upload transaction
-status: ready
+status: done
 plan_tasks: [17.2]
 decisions: [D07]
 depends_on: [P17-02]
@@ -61,24 +61,24 @@ so `ingestArticle` returns a small public record `IngestionService.ArticleAccept
 distinguishes the branches (its `Accepted` result has a null run for an identical document).
 
 ## Acceptance criteria
-- [ ] AC1: `ingestArticle` inserts a `Document` with `uploadSource == ARTICLE`, `mimeType == "text/html"`,
+- [x] AC1: `ingestArticle` inserts a `Document` with `uploadSource == ARTICLE`, `mimeType == "text/html"`,
   `sourceFilename == finalUrl.toString()`, `uploadedBy == userId`, `knowledgeBaseId == kbId`, the given text and
   blocks, and a hash over the UTF-8 text; it queues one `QUEUED` run and publishes `IngestRunQueued`; returns
   `duplicate == false`.
-- [ ] AC2: The lesson title comes from `title`; with `title == null` it comes from the last non-empty URL path
+- [x] AC2: The lesson title comes from `title`; with `title == null` it comes from the last non-empty URL path
   segment's stem (`https://h.example/a/intro-to-cells.html` -> lesson from `intro-to-cells`), and with no path
   segment from the host.
-- [ ] AC3: When neither resolves (`LessonIdentity.resolve` throws), `LessonIdentityException` propagates and nothing
+- [x] AC3: When neither resolves (`LessonIdentity.resolve` throws), `LessonIdentityException` propagates and nothing
   is inserted.
-- [ ] AC4: Identical text already in the knowledge base -> returns that document's id with `duplicate == true`, no
+- [x] AC4: Identical text already in the knowledge base -> returns that document's id with `duplicate == true`, no
   insert, no run.
-- [ ] AC5: Lesson id already present -> `LessonAlreadyExistsException`, no insert (never a new version).
-- [ ] AC6: A new lesson whose title is taken by another lesson gets `distinctTitle` (same as uploads).
-- [ ] AC7: A final URL longer than 1000 chars is stored cut to 1000 chars without splitting a surrogate pair.
-- [ ] AC8: `ingestArticle` publishes no `DocumentAccepted`; `ingest()` still publishes it on its insert branch, and all
+- [x] AC5: Lesson id already present -> `LessonAlreadyExistsException`, no insert (never a new version).
+- [x] AC6: A new lesson whose title is taken by another lesson gets `distinctTitle` (same as uploads).
+- [x] AC7: A final URL longer than 1000 chars is stored cut to 1000 chars without splitting a surrogate pair.
+- [x] AC8: `ingestArticle` publishes no `DocumentAccepted`; `ingest()` still publishes it on its insert branch, and all
   existing `ingest()` behaviour and tests are unchanged.
-- [ ] AC9: `uploadPolicy` and `parser` are never called by `ingestArticle`.
-- [ ] AC10: `LessonIdentity.KEY_FRONTMATTER_TITLE` is public; the literal `"title"` is not repeated in `IngestionService`.
+- [x] AC9: `uploadPolicy` and `parser` are never called by `ingestArticle`.
+- [x] AC10: `LessonIdentity.KEY_FRONTMATTER_TITLE` is public; the literal `"title"` is not repeated in `IngestionService`.
 
 ## Test plan
 - Unit (Mockito ports, inline `TransactionOperations`, AssertJ, `make*` factories such as `makeArticleBlocks()`):
@@ -96,3 +96,8 @@ distinguishes the branches (its `Accepted` result has a null run for an identica
 - A new-version path for articles; auto-suffixing lesson ids.
 
 ## Notes
+- Decided: the shared body skips `DocumentAccepted` when `source == ARTICLE` instead of taking an extra flag, because the source already says the document is an article and D01 ties the rule to it.
+- Decided: `sourceFilename` is cut to at most 1000 UTF-16 chars, one fewer when char 1000 would be a lone high surrogate, because that fits VARCHAR(1000) under any counting and never splits a pair.
+- Decided: the host fallback goes through `LessonIdentity.resolve` as the filename, so its stem is used (`example.org` -> `example`), because the ticket forbids a second resolve path.
+- Kept the ticket-writer choice: `ingestArticle` returns `IngestionService.ArticleAccepted(documentId, duplicate)`.
+- Tester AC map (IngestionServiceTest): AC1 shouldQueueAnArticleAsAnArticleDocumentWithoutAnnouncingIt; AC2 shouldNameAnUntitledArticleAfterItsLastPathSegmentElseItsHost (+ title case in AC1 test); AC3 shouldRejectAnArticleWithNoTitleAndNoUsableUrlBeforeTouchingTheKnowledgeBase; AC4 shouldReturnTheExistingDocumentAsADuplicateForAnIdenticalArticle; AC5 shouldRejectAnArticleWhoseLessonAlreadyExistsInsteadOfMakingANewVersion; AC6 shouldGiveANewArticleLessonADistinctTitleWhenItsTitleIsTaken; AC7 shouldCutALongArticleUrl...SurrogatePair + shouldCutALongAsciiArticleUrl...; AC8 AC1 test (no DocumentAccepted) + existing ingest tests; AC9 verifyNoInteractions(policy, parser) in AC1 test; AC10 grep/compile.

@@ -1,5 +1,6 @@
 package dev.mindforge.application.service;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Comparator;
@@ -51,6 +52,9 @@ public class IngestionService {
     private static final LessonIdentity CONVERSATION_LESSON = new LessonIdentity("conversation", "Conversation");
     private static final String CONVERSATION_FILENAME = "conversation";
     private static final String CONVERSATION_MIME_TYPE = "text/plain";
+    private static final String ARTICLE_MIME_TYPE = "text/html";
+    /** Length of {@code documents.source_filename}. */
+    private static final int MAX_SOURCE_FILENAME_LENGTH = 1000;
 
     private final UploadPolicy uploadPolicy;
     private final DocumentParser parser;
@@ -85,7 +89,42 @@ public class IngestionService {
         ParsedDocument parsed = parser.parse(upload.mimeType(), upload.content());
         LessonIdentity lesson = LessonIdentity.resolve(withLessonId(parsed.metadata(), upload.lessonId()), filename);
         ContentHash hash = ContentHash.compute(upload.content());
+        return accept(kbId, lesson, hash, filename, upload.mimeType(), parsed.text(), parsed.blocks(),
+            upload.source(), upload.uploadedBy(), upload.newVersion()).documentId();
+    }
 
+    /**
+     * Queues a fetched article exactly as a new upload: an {@code ARTICLE} document under the same lock, dedup,
+     * lesson rule and distinct title, but never a new version and never announced by
+     * {@link DomainEvent.DocumentAccepted}, so an article is not itself scanned for references. The article is
+     * neither admitted nor parsed: HTML is not an upload format, the fetcher has already converted it.
+     *
+     * @param userId the uploader of the document that referenced the article
+     * @param finalUrl the article's URL after redirects; stored as the source filename
+     * @param title the article's own title, or null
+     * @throws LessonIdentityException when neither the title nor the URL yields a lesson identity
+     * @throws LessonAlreadyExistsException when the lesson already has a document
+     */
+    public ArticleAccepted ingestArticle(UUID kbId, UUID userId, URI finalUrl, String title, String text,
+                                         List<ContentBlock> blocks) {
+        LessonIdentity lesson = LessonIdentity.resolve(
+            title == null ? Map.of() : Map.of(LessonIdentity.KEY_FRONTMATTER_TITLE, title), lastPathSegment(finalUrl));
+        ContentHash hash = ContentHash.compute(text.getBytes(StandardCharsets.UTF_8));
+        Accepted accepted = accept(kbId, lesson, hash, sourceFilename(finalUrl), ARTICLE_MIME_TYPE, text, blocks,
+            UploadSource.ARTICLE, userId, false);
+        return new ArticleAccepted(accepted.documentId(), accepted.run() == null);
+    }
+
+    /** The document an article became; {@code duplicate} when identical content was already in the knowledge base. */
+    public record ArticleAccepted(UUID documentId, boolean duplicate) {}
+
+    /**
+     * One transaction, opened by the knowledge base's row lock: returns an identical document (with no run), applies
+     * the lesson rule, or inserts the document with its {@code QUEUED} run; notifies the run after commit.
+     */
+    private Accepted accept(UUID kbId, LessonIdentity lesson, ContentHash hash, String filename, String mimeType,
+                            String text, List<ContentBlock> blocks, UploadSource source, UUID uploadedBy,
+                            boolean newVersion) {
         Accepted accepted = transactions.execute(status -> {
             documents.lockKnowledgeBase(kbId);
             Optional<Document> identical = documents.findByContentHash(kbId, hash);
@@ -93,10 +132,10 @@ public class IngestionService {
                 return new Accepted(identical.get().documentId(), null);
             }
             Optional<String> existingTitle = documents.findLessonTitle(kbId, lesson.lessonId());
-            if (existingTitle.isPresent() && !upload.newVersion()) {
+            if (existingTitle.isPresent() && !newVersion) {
                 throw new LessonAlreadyExistsException(new LessonIdentity(lesson.lessonId(), existingTitle.get()));
             }
-            if (existingTitle.isEmpty() && upload.newVersion()) {
+            if (existingTitle.isEmpty() && newVersion) {
                 throw new UnknownLessonException(lesson.lessonId());
             }
 
@@ -106,16 +145,45 @@ public class IngestionService {
                 ? new LessonIdentity(lesson.lessonId(), distinctTitle(lesson))
                 : lesson;
             Document document = documents.insert(kbId, new Document(
-                UUID.randomUUID(), kbId, placed, hash, filename, upload.mimeType(), parsed.text(), parsed.blocks(),
-                upload.source(), upload.uploadedBy(), null, null));
-            events.publish(new DomainEvent.DocumentAccepted(
-                document.documentId(), kbId, upload.uploadedBy(), upload.source(), Instant.now()));
+                UUID.randomUUID(), kbId, placed, hash, filename, mimeType, text, blocks, source, uploadedBy,
+                null, null));
+            // an article is not scanned for references, so a fetch never fetches again (D01)
+            if (source != UploadSource.ARTICLE) {
+                events.publish(new DomainEvent.DocumentAccepted(
+                    document.documentId(), kbId, uploadedBy, source, Instant.now()));
+            }
             return new Accepted(document.documentId(), enqueue(kbId, document.documentId()));
         });
         if (accepted.run() != null) {
             progress.notify(kbId, RunProgress.status(accepted.run(), RunStatus.QUEUED));
         }
-        return accepted.documentId();
+        return accepted;
+    }
+
+    /** The last non-empty path segment, else the host: the lesson's fallback when the article has no title. */
+    private static String lastPathSegment(URI url) {
+        String path = url.getPath();
+        if (path != null) {
+            String[] segments = path.split("/");
+            for (int i = segments.length - 1; i >= 0; i--) {
+                if (!segments[i].isBlank()) {
+                    return segments[i];
+                }
+            }
+        }
+        return url.getHost();
+    }
+
+    /** The URL cut to the column's length, never between the two halves of a surrogate pair. */
+    private static String sourceFilename(URI url) {
+        String full = url.toString();
+        if (full.length() <= MAX_SOURCE_FILENAME_LENGTH) {
+            return full;
+        }
+        int end = Character.isHighSurrogate(full.charAt(MAX_SOURCE_FILENAME_LENGTH - 1))
+            ? MAX_SOURCE_FILENAME_LENGTH - 1
+            : MAX_SOURCE_FILENAME_LENGTH;
+        return full.substring(0, end);
     }
 
     /**
