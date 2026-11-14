@@ -209,6 +209,7 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 | `pdfbox` | PDF text + metadata extraction |
 | `poi-ooxml` | DOCX parsing |
 | `jsoup` | HTML → text for fetched articles (ADR 0026) |
+| `httpclient5` | Article fetcher only; its DNS resolver pins the addresses `EgressPolicy` checked (ADR 0025) |
 | `cytoscape` (npm) | Interactive page-link graph visualization |
 | `openapi-typescript` (npm) | Frontend type generation from OpenAPI spec |
 

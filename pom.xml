@@ -210,6 +210,11 @@
             <artifactId>jsoup</artifactId>
             <version>${jsoup.version}</version>
         </dependency>
+        <!-- SSRF: DnsResolver pins checked addresses (ADR 0025, Q04) -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+        </dependency>
 
         <!-- Test Dependencies -->
         <dependency>

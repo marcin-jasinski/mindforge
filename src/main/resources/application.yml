@@ -53,6 +53,14 @@ spring:
     retry:
       max-attempts: 1
 
+  # Spring's RestClient and other HTTP clients stay on the JDK transport; only the article fetcher uses
+  # Apache HttpClient 5, built privately with checked DNS (ADR 0025). The pin covers Boot's builders only; the OAuth2
+  # token client builds its own RestClient, so SecurityConfig sets the JDK request factory on it.
+  http:
+    clients:
+      imperative:
+        factory: jdk
+
   lifecycle:
     timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
 
@@ -96,6 +104,12 @@ mindforge:
     secure-cookies: ${AUTH_SECURE_COOKIES:true}
   upload:
     max-size: ${UPLOAD_MAX_SIZE:50MB}
+  articles:
+    max-per-document: ${ARTICLES_MAX_PER_DOCUMENT:10}
+    max-body-size: ${ARTICLES_MAX_BODY_SIZE:2MB}
+    connect-timeout: ${ARTICLES_CONNECT_TIMEOUT:5s}
+    # Total per article URL, across all its redirects.
+    request-timeout: ${ARTICLES_REQUEST_TIMEOUT:15s}
   rate-limits:
     # Per user, across Query turns and edits, Quiz start, upload and retry, and Lint.
     requests: ${RATE_LIMIT_REQUESTS:30}

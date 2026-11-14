@@ -1,14 +1,14 @@
 ---
 id: P17-05
 title: Fetch one article URL through the ArticleSource port with HttpClient 5 pinned to EgressPolicy-checked addresses
-status: ready
+status: done
 plan_tasks: [17.1, 17.2, 17.3]
 decisions: [D04, D09]
 depends_on: [P17-01, P17-04]
 size: L
 issue: 27
 commit:
-fix_rounds: 0
+fix_rounds: 1
 ---
 ## Goal
 A domain port `ArticleSource` fetches one URL and returns a `FetchedArticle`, or throws `ArticleFetchException` with a
@@ -104,28 +104,28 @@ the refused target); 6th hop fails; timeout; non-HTML content type; over-size bo
   exceeding it gives TIMEOUT. The test may set the request timeout to e.g. 300 ms with a handler that sleeps 2 s.
 
 ## Acceptance criteria
-- [ ] AC1: `ArticleSource`, `FetchedArticle` and `ArticleFetchException` (with `Reason`) exist in the domain with JDK
+- [x] AC1: `ArticleSource`, `FetchedArticle` and `ArticleFetchException` (with `Reason`) exist in the domain with JDK
   imports only; `FetchedArticle` copies `blocks`.
-- [ ] AC2: `pom.xml` has `httpclient5` without a version and with the ADR 0025 comment; `tech-stack.md` has the row;
+- [x] AC2: `pom.xml` has `httpclient5` without a version and with the ADR 0025 comment; `tech-stack.md` has the row;
   `application.yml` sets `spring.http.clients.imperative.factory: jdk`.
-- [ ] AC3: `AppProperties.Articles` binds `max-per-document`, `max-body-size`, `connect-timeout`, `request-timeout`
+- [x] AC3: `AppProperties.Articles` binds `max-per-document`, `max-body-size`, `connect-timeout`, `request-timeout`
   with defaults 10 / 2MB / 5s / 15s and rejects non-positive values at startup.
-- [ ] AC4: An admitted fetch of an HTML page returns `FetchedArticle` with the final URL, converted title, text and
+- [x] AC4: An admitted fetch of an HTML page returns `FetchedArticle` with the final URL, converted title, text and
   blocks.
-- [ ] AC5: With `strictAddresses("articles.test", 127.0.0.1, port)` the fetch fails with POLICY and the mock server
+- [x] AC5: With `strictAddresses("articles.test", 127.0.0.1, port)` the fetch fails with POLICY and the mock server
   records zero requests (the refusal happens in DNS resolution through `CheckedDnsResolver`, via the real client).
-- [ ] AC6: A 302 to `http://169.254.169.254/` and a 302 to `http://127.0.0.2:<port>/` each fail with POLICY; the server
+- [x] AC6: A 302 to `http://169.254.169.254/` and a 302 to `http://127.0.0.2:<port>/` each fail with POLICY; the server
   saw only the first request.
-- [ ] AC7: A chain of 6 redirects fails with REDIRECTS; a chain of up to 5 to an admitted URL succeeds and
+- [x] AC7: A chain of 6 redirects fails with REDIRECTS; a chain of up to 5 to an admitted URL succeeds and
   `finalUrl` is the last URL; a relative `Location` is resolved against the current URI.
-- [ ] AC8: A response slower than the request timeout fails with TIMEOUT.
-- [ ] AC9: `application/pdf` and a missing Content-Type fail with CONTENT_TYPE; `text/html; charset=UTF-8` and
+- [x] AC8: A response slower than the request timeout fails with TIMEOUT.
+- [x] AC9: `application/pdf` and a missing Content-Type fail with CONTENT_TYPE; `text/html; charset=UTF-8` and
   `application/xhtml+xml` are accepted.
-- [ ] AC10: A body over the cap fails with TOO_LARGE both with and without `Content-Length`.
-- [ ] AC11: A 404/500 fails with HTTP_STATUS; a refused connection fails with UNREACHABLE; a page that converts to no
+- [x] AC10: A body over the cap fails with TOO_LARGE both with and without `Content-Length`.
+- [x] AC11: A 404/500 fails with HTTP_STATUS; a refused connection fails with UNREACHABLE; a page that converts to no
   text fails with EMPTY.
-- [ ] AC12: No `ArticleFetchException` message contains the response body or the URL query.
-- [ ] AC13: The application context still starts with Spring AI and OAuth2 clients on the JDK transport (existing
+- [x] AC12: No `ArticleFetchException` message contains the response body or the URL query.
+- [x] AC13: The application context still starts with Spring AI and OAuth2 clients on the JDK transport (existing
   integration tests pass in the gate).
 
 ## Test plan
@@ -158,3 +158,15 @@ the refused target); 6th hop fails; timeout; non-HTML content type; over-size bo
 - Wrapping Spring AI, OTLP or OAuth2 clients.
 
 ## Notes
+- Decided: kept the three extra `Reason` values (REDIRECTS, UNREACHABLE, EMPTY) as the ticket proposed; `ArticleFetchException` extends `RuntimeException` (as `DeadlineExceededException`) and carries no cause, because a cause message may hold the host or remote text.
+- Decided: `max-body-size`, `connect-timeout` and `request-timeout` are checked positive by one `@AssertTrue isLimitsPositive()` on `AppProperties.Articles`, because `@Positive` does not apply to `DataSize` or `Duration`.
+- Decided: a `Location` that is not a valid URI fails with POLICY, because `EgressPolicy.check` refuses an unparsable URL the same way.
+- Decided: the client also disables automatic retries, cookies and auth caching, and each request is cancelled after its response is handled, because a retry would break the one-request/one-deadline rule, cookies would cross between fetches, and closing an unread body in HC5 drains it to the end.
+- Decided: any 2xx is a success; the deadline is also checked after each 8 KB read of the body, so a slow trickle cannot outlive the total timeout by more than one read.
+- Decided (fix r1): the deadline is enforced from outside the blocking call: a per-source daemon watchdog cancels the request at the deadline, `DeadlineConnectionOperator` caps each connect at the time left and tries no further address after it, and every timeout is rounded up to at least 1 ms (also closes deferred C3). Any IOException after the deadline maps to TIMEOUT.
+- Decided (fix r1): response header lines are capped at 8192 characters and headers at 100; exceeding either fails with TOO_LARGE.
+- Decided (fix r1): the OAuth2 authorization-code token client gets a JDK-backed `RestClient` in `SecurityConfig`, because Spring Security builds it with the plain `RestClient.builder()`, which ignores the Boot property pin and picks HC5. User-info and JWK calls use `RestTemplate` (JDK `HttpURLConnection`) and need no change.
+- Tester r1 AC map: AC1 FetchedArticleTest; AC2 review; AC3 ArticlePropertiesTest; AC4 HttpArticleSourceTest.anAdmittedHtmlPage_*; AC5 aHostResolvingToLoopback_*; AC6 aRedirectToANonPublicAddress_*; AC7 aSixthRedirect_*, fiveRedirects_*; AC8 aResponseSlowerThanTheRequestTimeout_*; AC9 aNonHtmlContentType_*, aMissingContentType_*, anHtmlContentType_*; AC10 aBodyOverTheCapWithContentLength_*, aChunkedBodyOverTheCap_*; AC11 anErrorStatus_*, aRefusedConnection_*, aPageWithNoText_*; AC12 aFailureMessage_*; AC13 full gate (only baseline failure).
+
+### Deferred findings
+- correctness/C3 minor 0.6 src/main/java/dev/mindforge/infrastructure/web/HttpArticleSource.java:88: When less than 1 ms is left on the deadline at the start of a hop, the response timeout becomes 0 ms, which HC5 and the socket treat as "no timeout", so that hop can block with no limit.
