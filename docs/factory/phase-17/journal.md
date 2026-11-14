@@ -20,3 +20,9 @@
 2026-11-14T07:57:45Z Q13 r1 ballots A,A,B
 2026-11-14T07:59:28Z Q13 decided unanimous(merged) votes=A,A,B -> JDK HttpServer + package-private EgressPolicy(resolver, addressPredicate, portPredicate) test seam
 2026-11-14T08:06:25Z - tickets@opus 10 tickets: P17-01,02,04,09,03,05,06,07,08,10
+2026-11-14T08:07:16Z - tracker tickets #22-#31
+2026-11-14T08:13:36Z P17-01 implement@inherit DONE
+2026-11-14T08:18:52Z P17-01 test@sonnet r1 PASS
+2026-11-14T08:20:50Z P17-01 review r1 correctness@opus changes(1 major) standards@sonnet approve spec-security@opus changes(1 major)
+2026-11-14T08:23:01Z P17-01 fix@inherit r1 C1,S1 FIXED
+2026-11-14T08:28:50Z P17-01 gate r2 PASS (test@sonnet PASS, correctness@opus approve, spec-security@opus approve)
