@@ -32,3 +32,6 @@
 2026-11-14T08:37:37Z P17-02 commit 65457ca done
 2026-11-14T08:41:28Z P17-04 implement@inherit DONE
 2026-11-14T08:47:03Z P17-04 gate r1 PASS (test@sonnet PASS, correctness@opus approve, standards@sonnet approve, spec-security@opus approve; 2 deferred)
+2026-11-14T08:47:11Z P17-04 commit 0f127cf done
+2026-11-14T08:50:53Z P17-09 implement@inherit DONE
+2026-11-14T08:56:01Z P17-09 gate r1 PASS (test@sonnet PASS, correctness@opus approve, standards@sonnet approve, spec-security@opus approve; 1 deferred)

@@ -335,6 +335,37 @@ class IngestRunTest extends TestContainerBase {
             .containsExactly(tuple("phase", "concepts/meiosis"));
     }
 
+    @Test
+    void anArticleRunWritesNothingToALivePageAndSkipsSupersede() {
+        UUID kbId = insertKnowledgeBase();
+        givenTheNotesAnswers(MITOSIS_BODY, MEIOSIS_BODY, NO_LINKS);
+        awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.COMPLETED);
+        WikiPage mitosis = wiki.findByPath(kbId, "concepts/mitosis").orElseThrow();
+        int revisionsBefore = revisionCount(mitosis.pageId());
+
+        gateway.reset();
+        gateway.answer(Prompts.GUARD, Prompts.RELEVANT);
+        gateway.answer(Prompts.EXTRACT, extraction(
+            claim("Mitosis has four phases.", "Mitosis", "concepts/mitosis", 0, 1)));
+        gateway.answer(Prompts.writing("concepts/mitosis"), draft("Cell division.", "# Phases\n\nFour phases.\n"));
+        gateway.answer(Prompts.writing("sources/phases"), draft("Phases article.", SUMMARY_BODY));
+        gateway.answer(Prompts.LINKS, NO_LINKS);
+        gateway.answer(Prompts.SUPERSEDE, Prompts.json(Map.of("proposals", List.of(Map.of(
+            "supersededPath", "concepts/mitosis", "sectionAnchor", "course", "supersedingPath", "concepts/mitosis")))));
+
+        IngestRun run = awaitRun(kbId, articleUpload(kbId, "phases.md", "# Mitosis\n\nMitosis has four phases.\n"),
+            RunStatus.COMPLETED);
+
+        assertThat(revisionCount(mitosis.pageId())).isEqualTo(revisionsBefore);
+        assertThat(wiki.findByPath(kbId, "concepts/mitosis")).map(WikiPage::markdownBody)
+            .contains(mitosis.markdownBody());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM page_supersessions WHERE ingest_run_id = ?",
+            Integer.class, run.runId())).isZero();
+        assertThat(run.supersessionSkipped()).isTrue();
+        assertThat(run.failures()).contains(RunFailure.of("supersede", "article"),
+            RunFailure.ofItem("resolve", "claim", "concepts/mitosis", "an article may only create pages"));
+    }
+
     // ---------------------------------------------------------------------------
     // Conversation edits
     // ---------------------------------------------------------------------------
@@ -500,6 +531,15 @@ class IngestRunTest extends TestContainerBase {
     private UUID cliUpload(UUID kbId, String filename) {
         return ingestion.ingest(new DocumentUpload(kbId, ownerOf(kbId), UploadSource.CLI, filename,
             MarkdownParser.MIME_TYPE, NOTES.getBytes(StandardCharsets.UTF_8), null, false));
+    }
+
+    private UUID articleUpload(UUID kbId, String filename, String markdown) {
+        return ingestion.ingest(new DocumentUpload(kbId, ownerOf(kbId), UploadSource.ARTICLE, filename,
+            MarkdownParser.MIME_TYPE, markdown.getBytes(StandardCharsets.UTF_8), null, false));
+    }
+
+    private int revisionCount(UUID pageId) {
+        return jdbc.queryForObject("SELECT count(*) FROM page_revisions WHERE page_id = ?", Integer.class, pageId);
     }
 
     /** A conversation turn queued exactly as an upload is. */
