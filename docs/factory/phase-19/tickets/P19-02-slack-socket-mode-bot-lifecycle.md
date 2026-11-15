@@ -1,12 +1,12 @@
 ---
 id: P19-02
 title: Add Bolt with the Java-WebSocket Socket Mode backend and start the Slack bot only when both tokens are set
-status: in_progress
+status: done
 plan_tasks: [19.2]
 decisions: [D06, D16]
 depends_on: []
 size: M
-commit:
+commit: 5dbc2b7
 fix_rounds: 0
 issue: 46
 ---
@@ -67,22 +67,22 @@ command handler responds (unit tests). Record a live smoke test against a real S
 - Never log or commit `SLACK_BOT_TOKEN` / `SLACK_APP_TOKEN`; use placeholder values in tests.
 
 ## Acceptance criteria
-- [ ] AC1: `pom.xml` declares `bolt` and `bolt-socket-mode` (one `slack-bolt.version` property) and `Java-WebSocket`
+- [x] AC1: `pom.xml` declares `bolt` and `bolt-socket-mode` (one `slack-bolt.version` property) and `Java-WebSocket`
   (`java-websocket.version`) after JDA and before Spring AI, with a comment naming ADR 0037 and the OkHttp order;
   `mvn dependency:tree` shows no `javax.websocket-api` and no `tyrus-*`, and `okhttp-jvm` 5 before `okhttp` 4.
-- [ ] AC2: `AppProperties.Slack` has `botToken` and `appToken` (secrets, never logged), bound from
+- [x] AC2: `AppProperties.Slack` has `botToken` and `appToken` (secrets, never logged), bound from
   `mindforge.slack.bot-token` = `${SLACK_BOT_TOKEN:}` and `mindforge.slack.app-token` = `${SLACK_APP_TOKEN:}` in
   `application.yml`; validation fails with a field-specific message when exactly one of the two is set, and passes when
   both or neither are set.
-- [ ] AC3: Without either token, or in the `cli` profile even with both tokens, the context starts and contains no Slack
+- [x] AC3: Without either token, or in the `cli` profile even with both tokens, the context starts and contains no Slack
   bean (`SlackConfig` beans, `SlackBot`, Bolt `App`, `SocketModeApp`) and opens no socket.
-- [ ] AC4: With both tokens, `SlackConfig` builds the Socket Mode app with the app-level token and backend
+- [x] AC4: With both tokens, `SlackConfig` builds the Socket Mode app with the app-level token and backend
   `SocketModeClient.Backend.JavaWebSocket` through a seam that a test can replace with a fake (no network).
-- [ ] AC5: `SlackBot` starts the Socket Mode app on application start and stops it on close; a failure to start is
+- [x] AC5: `SlackBot` starts the Socket Mode app on application start and stops it on close; a failure to start is
   logged without any token value.
-- [ ] AC6: Reconnect after the socket closes is covered by a test or by a documented smoke check in Notes (Bolt's
+- [x] AC6: Reconnect after the socket closes is covered by a test or by a documented smoke check in Notes (Bolt's
   Socket Mode client reconnects by itself; state which).
-- [ ] AC7: `OutboundHttpGuardTest` stays green; no `dev.mindforge.slack` class imports `dev.mindforge.discord`.
+- [x] AC7: `OutboundHttpGuardTest` stays green; no `dev.mindforge.slack` class imports `dev.mindforge.discord`.
 
 ## Test plan
 - AC1: run `mvn dependency:tree` and record the result in Notes; the gate build proves the classpath.
