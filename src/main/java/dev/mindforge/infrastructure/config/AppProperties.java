@@ -46,8 +46,14 @@ public class AppProperties {
     @Valid
     private Discord discord = new Discord();
 
+    @Valid
+    private Slack slack = new Slack();
+
     public Discord getDiscord() { return discord; }
     public void setDiscord(Discord discord) { this.discord = discord; }
+
+    public Slack getSlack() { return slack; }
+    public void setSlack(Slack slack) { this.slack = slack; }
 
     public Articles getArticles() { return articles; }
     public void setArticles(Articles articles) { this.articles = articles; }
@@ -99,6 +105,47 @@ public class AppProperties {
 
         public Set<Long> getAllowedRoleIds() { return allowedRoleIds; }
         public void setAllowedRoleIds(Set<Long> allowedRoleIds) { this.allowedRoleIds = allowedRoleIds; }
+    }
+
+    /** The Slack bot adapter (Socket Mode); off unless both tokens are set, and one without the other fails closed. */
+    public static class Slack {
+
+        /** Secret: never logged. The bot token ({@code xoxb-}) for Web API calls. */
+        private String botToken;
+
+        /** Secret: never logged. The app-level token ({@code xapp-}) that opens the Socket Mode connection. */
+        private String appToken;
+
+        /** Teams whose workspace and members may use the bot (ADR 0034); required with the token (fail closed). */
+        private Set<String> allowedTeamIds = Set.of();
+
+        @AssertTrue(message = "app-token must be set when bot-token is set")
+        public boolean isAppTokenSetWithBotToken() {
+            return !hasText(botToken) || hasText(appToken);
+        }
+
+        @AssertTrue(message = "bot-token must be set when app-token is set")
+        public boolean isBotTokenSetWithAppToken() {
+            return !hasText(appToken) || hasText(botToken);
+        }
+
+        @AssertTrue(message = "allowed-team-ids must not be empty when bot-token is set")
+        public boolean isTeamAllowlistSetWhenEnabled() {
+            return !hasText(botToken) || !allowedTeamIds.isEmpty();
+        }
+
+        private static boolean hasText(String value) {
+            return value != null && !value.isBlank();
+        }
+
+        public String getBotToken() { return botToken; }
+        public void setBotToken(String botToken) { this.botToken = botToken; }
+
+        public String getAppToken() { return appToken; }
+        public void setAppToken(String appToken) { this.appToken = appToken; }
+
+        public Set<String> getAllowedTeamIds() { return allowedTeamIds; }
+        public void setAllowedTeamIds(Set<String> allowedTeamIds) { this.allowedTeamIds = allowedTeamIds; }
     }
 
     /** Limits on fetching the web articles a document links to (ADR 0025). */

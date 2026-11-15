@@ -1639,25 +1639,67 @@ SR reminders via DM.
 
 ---
 
-## [ ] Phase 19 — Slack Bot
+## [x] Phase 19 — Slack Bot
 
 > **Changed in v3.0:** `/mf-ask` (Query) replaces `/mf-search`.
+> **As built:** a driving adapter, `dev.mindforge.slack` (Bolt 1.55.0 with `bolt-socket-mode` and the Java-WebSocket
+> backend, ADR 0037), wired by `SlackConfig` and off unless both `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` are set; it
+> never runs in the `cli` profile. Every slash command and every DM upload passes one gate: the fail-closed team
+> allowlist on the workspace and the caller's own team (ADR 0034), a per-user rate limit, then resolve-or-provision of
+> the caller keyed by home team and user id (ADR 0027, ADR 0033), then the work over the same application services as
+> the web. Commands act on the caller's only knowledge base (ADR 0036), command replies are ephemeral (ADR 0032), and an
+> upload is one file sent to the bot in a DM (ADR 0035). The adapter does not import `dev.mindforge.discord` (D07).
+> No reminders for Slack users. Decisions: `docs/factory/phase-19/decisions/` D01–D07, D16. A live smoke test against
+> real Slack is a human follow-up. See issue #53.
 
 **Goal:** Slack bot using Slack Bolt for Java with ask, quiz and upload handlers; workspace security;
 identity resolution.
 
 ### Tasks
 
-- [ ] **19.1 — Add `UploadSource.SLACK`**.
-- [ ] **19.2 — `SlackBot`** (`dev.mindforge.slack`)
+- [x] **19.1 — Add `UploadSource.SLACK`**.
+  - *As built:* `UploadSource.SLACK` is in the set of sources that `ArticleFetcher` scans. `ExternalPlatform.SLACK`
+    ("Slack") reuses the V8 `external_identities` table with no migration. `ExternalAccounts.slackExternalId` builds the
+    key `<home team id>-<user id>` (ADR 0033), and `syntheticEmail` admits the hyphen form for Slack only:
+    `slack-<team>-<user>@users.invalid`, lowercased (ADR 0027). Provisioning creates one knowledge base named "Slack".
+- [x] **19.2 — `SlackBot`** (`dev.mindforge.slack`)
   - Socket Mode; commands `/mf-ask`, `/mf-quiz`, file upload handler; workspace allowlist; identity via
     `ExternalIdentityRepository`.
-- [ ] **19.3 — Unit tests**: allowlist enforcement, identity resolution, ownership check.
+  - *As built:* `SlackConfig` (only when both tokens are set; `AppProperties.Slack` fails startup when one token is set
+    without the other, or when `mindforge.slack.allowed-team-ids` is empty with the token) builds the Bolt `SlackApp`
+    and the `SocketModeApp` with the app-level token and `SocketModeClient.Backend.JavaWebSocket` (through
+    `SocketModeAppFactory`). `SlackBot` starts it without blocking and closes it on shutdown; a failure to start is
+    logged with the exception class only. `SlackCommandListener` maps a Bolt request to a `SlackCall`;
+    `SlackCommandHandler` runs `SlackAllowlist` (D02, ADR 0034), `SlackRateLimiter` (`mindforge.rate-limits.*`, its
+    own counter), the ack, then on a virtual-thread executor `ExternalIdentityService.resolve` (D01) and the
+    `SlackCommand`. `SlackKnowledgeBases` resolves the caller's only knowledge base with `requireOwner` (D03, ADR
+    0036). `SlackAskCommand` runs one Query turn per `/mf-ask`. `SlackQuizCommand` runs `/mf-quiz start` and
+    `/mf-quiz answer <text>` and keeps the current quiz in `SlackQuizSessions` (Caffeine, keyed by user,
+    `mindforge.study.quiz-session-ttl`; lost on restart, D05). `BoltSlackReply` sends ephemeral text, split at 4000
+    characters. `SlackMessageListener` (a Bolt middleware) passes each `message` event to `SlackUploadHandler`, which
+    acts only on a user's `file_share` in an `im` channel (D04, ADR 0035), parses the text with `SlackUploadText`
+    (`lesson_id=<value>`, `new_version`), reads the file through `SlackFiles` (https on `files.slack.com` only, with the
+    bot token, no redirects, at most `UPLOAD_MAX_SIZE`; ADR 0029), calls `IngestionService.ingest` with
+    `UploadSource.SLACK`, and replies in the same DM through `BoltSlackDirectMessageReply`.
+- [x] **19.3 — Unit tests**: allowlist enforcement, identity resolution, ownership check.
+  - *As built:* unit tests `ExternalAccountsTest`, `ExternalIdentityServiceTest`, `ArticleFetcherTest`,
+    `OutboundHttpGuardTest` and, in `unit/slack`, `SlackPropertiesTest`, `SlackAllowlistTest`, `SlackRateLimiterTest`,
+    `SlackCommandHandlerTest`, `SlackCommandListenerTest`, `SlackBotTest`, `SlackAppTest`, `SlackKnowledgeBasesTest`
+    (ownership check), `SlackAskCommandTest`, `SlackQuizCommandTest`, `SlackQuizSessionsTest`, `BoltSlackReplyTest`,
+    `SlackMessageListenerTest`, `SlackUploadHandlerTest`, `SlackUploadTextTest`, `SlackFilesTest`,
+    `BoltSlackDirectMessageReplyTest`, `SlackAdapterBoundaryTest`; integration tests
+    `ExternalIdentityRepositoryAdapterTest`, `ExternalIdentityProvisioningTest` (Slack first contact once per home
+    team and user), `SlackConfigTest` and `SocketModeReconnectTest` (a local WebSocket server). A live smoke test
+    against real Slack is a human follow-up (issue #53).
 
 ### Completion Checklist
 
-- [ ] Bot connects via Socket Mode and responds to commands.
-- [ ] Identity resolution reuses the same `ExternalIdentityRepository` as Discord.
+- [x] Bot connects via Socket Mode and responds to commands. (`SlackConfigTest` builds and starts the Socket Mode app
+  with the app-level token and the Java-WebSocket backend through a fake factory, no network; `SocketModeReconnectTest`;
+  `SlackCommandHandlerTest`, `SlackAskCommandTest`, `SlackQuizCommandTest`, `SlackUploadHandlerTest`. D16: the real
+  handshake against Slack is issue #53.)
+- [x] Identity resolution reuses the same `ExternalIdentityRepository` as Discord. (`ExternalIdentityServiceTest`,
+  `ExternalIdentityRepositoryAdapterTest`, `ExternalIdentityProvisioningTest`)
 
 ---
 

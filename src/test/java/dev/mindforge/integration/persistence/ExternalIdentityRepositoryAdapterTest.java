@@ -106,6 +106,19 @@ class ExternalIdentityRepositoryAdapterTest extends TestContainerBase {
     }
 
     @Test
+    void slackAndDiscordLinksWithTheSameRawId_coexistAndAreFoundByTheirOwnPlatform() {
+        User discordUser = makeUser(null, "discord-same@example.com");
+        User slackUser = makeUser(null, "slack-same@example.com");
+        adapter.createUserAndLink(ExternalPlatform.DISCORD, "T1-U1", discordUser);
+        adapter.createUserAndLink(ExternalPlatform.SLACK, "T1-U1", slackUser);
+
+        assertThat(adapter.findUserId(ExternalPlatform.DISCORD, "T1-U1")).contains(discordUser.userId());
+        assertThat(adapter.findUserId(ExternalPlatform.SLACK, "T1-U1")).contains(slackUser.userId());
+        assertThat(adapter.findByPlatform(ExternalPlatform.SLACK))
+            .containsExactly(new ExternalIdentity(ExternalPlatform.SLACK, "T1-U1", slackUser.userId()));
+    }
+
+    @Test
     void deletingTheUser_removesItsIdentity() {
         User user = makeUser(null, "gone@example.com");
         adapter.createUserAndLink(ExternalPlatform.DISCORD, "1001", user);

@@ -29,7 +29,7 @@ composition roots.
 | **Application** | `dev.mindforge.application` | Use-case orchestration; imports only `domain` and Spring's transaction API |
 | **Infrastructure** | `dev.mindforge.infrastructure` | All I/O: JPA, Spring AI, parsers, export |
 | **Model services** | `dev.mindforge.agent` | Stateless services that call `AIGateway`; no shared interface |
-| **Adapters** | `dev.mindforge.api`, `dev.mindforge.cli`, `dev.mindforge.discord` | Thin; no business logic |
+| **Adapters** | `dev.mindforge.api`, `dev.mindforge.cli`, `dev.mindforge.discord`, `dev.mindforge.slack` | Thin; no business logic |
 
 ## System Structure
 
@@ -77,7 +77,7 @@ composition roots.
   `RunWorkerTriggers`, `ArticleFetchTriggers`, `DueReminderTrigger` (the daily reminder cron; only with the Discord
   bot token)
 - `web/` — the article fetch adapter: `HttpArticleSource` (the `ArticleSource` port; HttpClient 5 pinned to the
-  addresses `EgressPolicy` checked, ADR 0025) and `HtmlArticleConverter` (jsoup, ADR 0026). Apart from operator-configured endpoints allowed by exact path in the guard test (today the OAuth2 token client in `SecurityConfig` and the Discord attachment download in `DiscordAttachments`, ADR 0029), it is the only place in
+  addresses `EgressPolicy` checked, ADR 0025) and `HtmlArticleConverter` (jsoup, ADR 0026). Apart from operator-configured endpoints allowed by exact path in the guard test (today the OAuth2 token client in `SecurityConfig` the Discord attachment download in `DiscordAttachments` and the Slack file download in `SlackFiles`, ADR 0029), it is the only place in
   `src/main` with HTTP-client code (`OutboundHttpGuardTest`)
 - `export/` — `BundleExporter` (zip, SnakeYAML frontmatter), `BundleConformanceValidator`
 - `security/` — upload sanitizer, egress policy
@@ -110,7 +110,7 @@ each declares a `VERSION` that is recorded on every run it takes part in. Determ
 | Angular SPA | `frontend/src/app/` | Standalone components; lazy-loaded routes |
 | CLI | `dev.mindforge.cli` (Phase 15) | Pipeline runner, quiz runner |
 | Discord bot | `dev.mindforge.discord` (Phase 18) | JDA; `/ask`, `/quiz start`, `/quiz answer`, `/upload` over the same services; reminder DMs. Off unless `DISCORD_BOT_TOKEN` is set; never in the `cli` profile |
-| Slack | Phase 19 | `/mf-ask`, `/mf-quiz`, file upload over the same services |
+| Slack bot | `dev.mindforge.slack` (Phase 19) | Bolt over Socket Mode (Java-WebSocket, ADR 0037); `/mf-ask`, `/mf-quiz start`, `/mf-quiz answer`, and a file sent to the bot in a DM, over the same services. Off unless `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` are set; never in the `cli` profile |
 
 ## Data Flow
 
@@ -148,7 +148,7 @@ position, in document order. An image the describer drops (not relevant, or no u
 ```
 IngestionService.ingest inserts a new document → DomainEvent.DocumentAccepted in the upload transaction
 AFTER_COMMIT → ArticleFetchTriggers → ArticleFetcher.fetchFor on the run executor (no transaction open)
-    ↓  only API, file-watcher and Discord documents (the `cli` profile registers no listener); ARTICLE and CONVERSATION documents fetch nothing (no recursion)
+    ↓  only API, file-watcher, Discord and Slack documents (the `cli` profile registers no listener); ARTICLE and CONVERSATION documents fetch nothing (no recursion)
     ↓  distinct http(s) URLs of TEXT and HEADING blocks, in document order, at most max-per-document
 ArticleSource (HttpArticleSource) per URL: EgressPolicy on every hop → HTML → HtmlArticleConverter → blocks + title
     ↓  IngestionService.ingestArticle: same dedup and lesson rule; Document (ARTICLE) + QUEUED run + IngestRunQueued
@@ -180,6 +180,25 @@ one user is logged and the job continues.
 
 A Discord document is ingested like any upload; when `mindforge.articles.fetch-external-articles` is on, its article
 URLs are fetched like those of an API upload.
+
+**Slack command and upload** (Phase 19; only when `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` are set):
+```
+Slack ──Socket Mode (app-level token)──▶ Bolt SlackApp
+slash command → SlackCommandListener → SlackCommandHandler
+    ↓  SlackAllowlist: the workspace and the caller's own team both listed; else a fixed reply (ADR 0034)
+    ↓  SlackRateLimiter: mindforge.rate-limits.* per Slack user, a counter of its own → "try again in N s"
+    ↓  ack; then on a virtual thread: ExternalIdentityService.resolve, key <home team>-<user> (ADR 0027, ADR 0033)
+    ↓  SlackKnowledgeBases: the caller's only knowledge base → KnowledgeBaseService.requireOwner (ADR 0036)
+/mf-ask → QueryService.start + ask (one turn) │ /mf-quiz → QuizService (current quiz in SlackQuizSessions, Caffeine)
+    ↓  ephemeral reply to the response_url, split at 4000 characters (ADR 0032)
+message event → SlackMessageListener → SlackUploadHandler: only a user's file_share in an im channel (ADR 0035)
+    ↓  ack; then on a virtual thread: the same allowlist, rate limit, identity and knowledge base; SlackUploadText
+    ↓  SlackFiles (https on files.slack.com, bot token, no redirects, UPLOAD_MAX_SIZE) → IngestionService.ingest (UploadSource.SLACK)
+    ↓  one reply in the same DM; a failure gets a fixed text and a WARN with the exception class only
+```
+
+A Slack document is ingested like any upload; when `mindforge.articles.fetch-external-articles` is on, its article URLs
+are fetched like those of an API upload. There are no reminders for Slack users.
 
 **Query:**
 ```
@@ -223,8 +242,8 @@ run cannot be reverted. Removing one supersession is a `REVERT` run scoped to th
 
 ### Caffeine (In-Memory Cache)
 
-- Quiz sessions (Phase 10), and in the Discord adapter the caller's current quiz and the bot's rate-limit counter
-  (Phase 18; lost on restart). There is no cache in front of the wiki: the index is one
+- Quiz sessions (Phase 10), and in the Discord and Slack adapters the caller's current quiz and the bot's rate-limit
+  counter (Phases 18 and 19; lost on restart). There is no cache in front of the wiki: the index is one
   indexed query and bodies are primary-key reads.
 
 There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
@@ -337,6 +356,14 @@ There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
   by a fail-closed guild and role allowlist (ADR 0028), the `kb` option is untrusted and checked by `requireOwner`
   (ADR 0030), and replies are ephemeral (ADR 0032). A Discord user has a separate account with a reserved
   `users.invalid` email that the web refuses (ADR 0027); there is no link to a web account (issue #43).
+- **Slack** (Phase 19): the bot opens an outbound Socket Mode connection to Slack with the app-level token, so no
+  inbound endpoint is exposed. Slack's API and `files.slack.com` are the platform endpoint (ADR 0023 trust tier); the
+  payloads are untrusted input. An upload is read only over https from `files.slack.com`, with the bot token, no
+  redirects and at most the upload size (ADR 0029). Commands and uploads are admitted only when the workspace and the
+  caller's own team are on a fail-closed allowlist (ADR 0034); they act on the caller's only knowledge base, checked by
+  `requireOwner` (ADR 0036); uploads are accepted only in a DM to the bot (ADR 0035) and command replies are ephemeral
+  (ADR 0032). A Slack user has a separate account keyed by home team and user id (ADR 0033), with a reserved
+  `users.invalid` email that the web refuses (ADR 0027).
 - **Rendering**: page bodies render with raw HTML escaped; external links carry `rel="noopener noreferrer nofollow"`.
 - **Lesson identity**: deterministic resolution against one identifier grammar; an explicit id is never rewritten;
   hard reject if no valid identifier.
@@ -354,6 +381,7 @@ There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
 | Langfuse Cloud | LLM tracing + cost accounting via OTEL | Yes (falls back to logging) |
 | Article hosts (any public http/https host) | Linked articles fetched as `ARTICLE` documents | Yes (off by default) |
 | Discord (gateway, API, attachment CDN) | Bot commands, uploads and reminder DMs | Yes (off unless the token is set) |
+| Slack (Socket Mode, Web API, `files.slack.com`) | Bot commands and DM uploads | Yes (off unless both tokens are set) |
 
 ## Deployment Architecture
 

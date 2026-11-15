@@ -106,7 +106,7 @@ class ArticleFetcherTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = UploadSource.class, names = {"API", "CLI", "FILE_WATCHER", "DISCORD"})
+    @EnumSource(value = UploadSource.class, names = {"API", "CLI", "FILE_WATCHER", "DISCORD", "SLACK"})
     void fetchFor_anUploadedParent_fetchesItsUrls(UploadSource source) {
         givenDocument(source, ContentBlock.text("https://example.org/a", 0));
 

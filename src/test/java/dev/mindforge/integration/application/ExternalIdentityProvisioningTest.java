@@ -71,6 +71,23 @@ class ExternalIdentityProvisioningTest extends TestContainerBase {
     }
 
     @Test
+    void slackContacts_provisionASlackUserOncePerHomeTeamAndUser() {
+        UUID first = service.resolve(ExternalPlatform.SLACK, "T1-U1", "Ada");
+        UUID again = service.resolve(ExternalPlatform.SLACK, "T1-U1", "Ada");
+        UUID otherTeam = service.resolve(ExternalPlatform.SLACK, "T2-U1", "Ada");
+
+        assertThat(again).isEqualTo(first);
+        assertThat(otherTeam).isNotEqualTo(first);
+        assertThat(jdbcTemplate.queryForObject("SELECT email FROM users WHERE user_id = ?", String.class, first))
+            .isEqualTo("slack-t1-u1@users.invalid");
+        assertThat(jdbcTemplate.queryForList("SELECT name FROM knowledge_bases WHERE owner_id = ?", String.class,
+            first)).containsExactly("Slack");
+        assertThat(count("users")).isEqualTo(2);
+        assertThat(count("external_identities")).isEqualTo(2);
+        assertThat(count("knowledge_bases")).isEqualTo(2);
+    }
+
+    @Test
     void twoConcurrentFirstContacts_endWithOneUserOneLinkAndOneKnowledgeBase() throws Exception {
         List<UUID> userIds = resolveConcurrently(2);
 

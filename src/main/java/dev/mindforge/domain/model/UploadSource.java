@@ -10,5 +10,6 @@ public enum UploadSource {
     FILE_WATCHER,
     CONVERSATION,
     ARTICLE,
-    DISCORD
+    DISCORD,
+    SLACK
 }
