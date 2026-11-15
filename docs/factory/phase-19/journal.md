@@ -1,0 +1,14 @@
+# Journal — phase-19
+2026-11-15T17:39:30+01:00 - start preflight ok; baseline failures: ApiFlowTest.theLoginRouteIsTheSinglePageApp
+2026-11-15T17:39:43+01:00 - tracker start #44
+2026-11-15T17:44:53+01:00 - plan@opus 8 work items; 16 questions (8 answered, 7 open, 1 blocker Q16)
+2026-11-15T17:47:25+01:00 Q05 decided unanimous@opus-judge/sonnet-panel votes=A,A,A changes=0 -> text subcommands /mf-quiz start|answer, ephemeral replies
+2026-11-15T17:49:11+01:00 Q01 decided majority@opus votes=B,C,C changes=0 -> SLACK external_id = <home team id>-<user id>; ADR 0033
+2026-11-15T17:49:11+01:00 Q02 decided unanimous@opus votes=B,B,B changes=0 -> fail-closed allowed-team-ids; payload team and caller team both checked; DMs admitted; ADR 0034
+2026-11-15T17:49:11+01:00 Q03 decided unanimous@opus votes=E,E,E changes=0 -> act on caller's only knowledge base, fixed refusal otherwise; ADR 0036
+2026-11-15T17:49:11+01:00 Q04 decided unanimous@opus votes=A,A,A changes=0 -> upload = file sent to bot in DM; ADR 0035
+2026-11-15T17:49:11+01:00 Q06 decided unanimous@sonnet-panel votes=B,B,B changes=0 -> bolt-socket-mode + Java-WebSocket backend; ADR 0037 (renumbered from duplicate 0033 by orchestrator)
+2026-11-15T17:49:11+01:00 Q07 decided majority@sonnet-panel votes=A,B,A changes=0 -> copy rate limiter and quiz sessions into dev.mindforge.slack
+2026-11-15T17:49:11+01:00 Q16 re-opened as low-impact question for fast-path consensus (planner blocker covers only the live check)
+2026-11-15T17:50:03+01:00 Q16 decided judge@opus votes=A changes=0 -> tick Socket Mode item on fake-driven tests; live smoke test is a human follow-up
+2026-11-15T17:55:37+01:00 - tickets@opus 8 tickets P19-01..P19-08 (W03 dropped per D07)
