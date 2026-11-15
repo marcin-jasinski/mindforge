@@ -6,9 +6,9 @@ plan_tasks: [19.2]
 decisions: [D06, D16]
 depends_on: []
 size: M
-issue:
 commit:
 fix_rounds: 0
+issue: 46
 ---
 ## Goal
 The build carries Slack Bolt and Socket Mode with the Java-WebSocket backend. `AppProperties.Slack` holds the bot

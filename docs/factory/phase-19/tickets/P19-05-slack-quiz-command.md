@@ -6,9 +6,9 @@ plan_tasks: [19.2, 19.3]
 decisions: [D05, D07]
 depends_on: [P19-04]
 size: M
-issue:
 commit:
 fix_rounds: 0
+issue: 49
 ---
 ## Goal
 `/mf-quiz start` starts a Quiz Session on the caller's only knowledge base and replies with the first question;

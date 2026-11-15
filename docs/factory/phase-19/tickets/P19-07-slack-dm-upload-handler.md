@@ -6,9 +6,9 @@ plan_tasks: [19.1, 19.2, 19.3]
 decisions: [D04]
 depends_on: [P19-04, P19-06]
 size: L
-issue:
 commit:
 fix_rounds: 0
+issue: 51
 ---
 ## Goal
 A Slack user uploads a document by sending one file to the bot in a direct message. The handler admits the event

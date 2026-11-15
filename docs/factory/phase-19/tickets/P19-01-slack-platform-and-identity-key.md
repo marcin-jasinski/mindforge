@@ -1,14 +1,14 @@
 ---
 id: P19-01
 title: Add the Slack external platform and its home-team-and-user identity key
-status: ready
+status: in_progress
 plan_tasks: [19.2, 19.3]
 decisions: [D01]
 depends_on: []
 size: S
-issue:
 commit:
 fix_rounds: 0
+issue: 45
 ---
 ## Goal
 `ExternalPlatform.SLACK("Slack")` exists. `ExternalAccounts.slackExternalId(teamId, userId)` builds the Slack
@@ -89,3 +89,12 @@ SLACK only; the Discord rule and its test do not change.
 - A new ADR (ADR 0033 exists); changes to the Discord id rule.
 
 ## Notes
+- Decided: CONTEXT.md is not changed because it does not define external identity (no "identity"/"Discord" term).
+- Decided: syntheticEmail gives a Slack-specific error message for a bad Slack id because the letters-and-digits message is wrong for the hyphen form.
+- AC1 -> ExternalAccountsTest.shouldKeepDiscordUnchangedAndAddSlack
+- AC2 -> ExternalAccountsTest.shouldBuildTheSlackExternalIdFromTheHomeTeamAndTheUser, shouldRefuseABlankNullOrNonAlphanumericSlackIdPart
+- AC3 -> ExternalAccountsTest.shouldDeriveTheSyntheticEmailOfASlackUser, shouldRefuseASlackIdWithoutExactlyOneTeamAndOneUser (Discord "12-34" rejection: existing test)
+- AC4 -> ExternalIdentityServiceTest.firstSlackContact_..., secondSlackContact_...; ExternalIdentityProvisioningTest.slackContacts_...
+- AC5 -> ExternalIdentityServiceTest.sameSlackUserIdUnderTwoTeams_...; ExternalIdentityProvisioningTest.slackContacts_...
+- AC6 -> ExternalIdentityRepositoryAdapterTest.slackAndDiscordLinksWithTheSameRawId_...
+- AC7 -> no migration in git status; domain change is JDK only; gate green except baseline

@@ -6,9 +6,9 @@ plan_tasks: [19.1, 19.2, 19.3]
 decisions: [D16, D06]
 depends_on: [P19-01, P19-02, P19-03, P19-04, P19-05, P19-06, P19-07]
 size: S
-issue:
 commit:
 fix_rounds: 0
+issue: 52
 ---
 ## Goal
 The docs describe the Slack bot as built: the plan's Phase 19 tasks and checklist are `[x]` with "As built" notes, the

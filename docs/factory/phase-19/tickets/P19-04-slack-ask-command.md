@@ -6,9 +6,9 @@ plan_tasks: [19.2, 19.3]
 decisions: [D03]
 depends_on: [P19-03]
 size: M
-issue:
 commit:
 fix_rounds: 0
+issue: 48
 ---
 ## Goal
 `/mf-ask <question>` runs a one-turn Query on the caller's only knowledge base and replies (ephemeral) with the answer

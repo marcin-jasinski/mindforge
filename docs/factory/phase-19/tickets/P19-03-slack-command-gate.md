@@ -6,9 +6,9 @@ plan_tasks: [19.2, 19.3]
 decisions: [D02, D07]
 depends_on: [P19-01, P19-02]
 size: L
-issue:
 commit:
 fix_rounds: 0
+issue: 47
 ---
 ## Goal
 A Slack slash command passes one gate: team allowlist (workspace and caller team) → per-user rate limit → ack →

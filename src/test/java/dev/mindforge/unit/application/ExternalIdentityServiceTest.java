@@ -155,6 +155,49 @@ class ExternalIdentityServiceTest {
         verifyNoInteractions(knowledgeBases);
     }
 
+    @Test
+    void firstSlackContact_provisionsAUserWithTheSlackSyntheticEmailAndASlackKnowledgeBase() {
+        when(identities.findUserId(ExternalPlatform.SLACK, "T1-U1")).thenReturn(Optional.empty());
+        when(identities.createUserAndLink(eq(ExternalPlatform.SLACK), eq("T1-U1"), any()))
+            .thenAnswer(invocation -> invocation.getArgument(2));
+
+        UUID userId = makeService().resolve(ExternalPlatform.SLACK, "T1-U1", "Ada");
+
+        ArgumentCaptor<User> user = ArgumentCaptor.forClass(User.class);
+        verify(identities).createUserAndLink(eq(ExternalPlatform.SLACK), eq("T1-U1"), user.capture());
+        assertThat(user.getValue().userId()).isEqualTo(userId);
+        assertThat(user.getValue().email()).isEqualTo("slack-t1-u1@users.invalid");
+        assertThat(user.getValue().passwordHash()).isNull();
+        ArgumentCaptor<KnowledgeBase> knowledgeBase = ArgumentCaptor.forClass(KnowledgeBase.class);
+        verify(knowledgeBases).insert(knowledgeBase.capture());
+        assertThat(knowledgeBase.getValue().ownerId()).isEqualTo(userId);
+        assertThat(knowledgeBase.getValue().name()).isEqualTo("Slack");
+    }
+
+    @Test
+    void secondSlackContact_returnsTheLinkedUser() {
+        UUID linked = UUID.randomUUID();
+        when(identities.findUserId(ExternalPlatform.SLACK, "T1-U1")).thenReturn(Optional.of(linked));
+
+        assertThat(makeService().resolve(ExternalPlatform.SLACK, "T1-U1", "Ada")).isEqualTo(linked);
+        verify(identities, never()).createUserAndLink(any(), any(), any());
+        verifyNoInteractions(knowledgeBases);
+    }
+
+    @Test
+    void sameSlackUserIdUnderTwoTeams_resolvesToTwoUsers() {
+        when(identities.findUserId(eq(ExternalPlatform.SLACK), any())).thenReturn(Optional.empty());
+        when(identities.createUserAndLink(eq(ExternalPlatform.SLACK), any(), any()))
+            .thenAnswer(invocation -> invocation.getArgument(2));
+
+        UUID first = makeService().resolve(ExternalPlatform.SLACK, "T1-U1", "Ada");
+        UUID second = makeService().resolve(ExternalPlatform.SLACK, "T2-U1", "Ada");
+
+        assertThat(second).isNotEqualTo(first);
+        verify(identities).createUserAndLink(eq(ExternalPlatform.SLACK), eq("T1-U1"), any());
+        verify(identities).createUserAndLink(eq(ExternalPlatform.SLACK), eq("T2-U1"), any());
+    }
+
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
