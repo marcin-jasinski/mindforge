@@ -23,6 +23,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.StringUtils;
 
 import dev.mindforge.application.service.ExternalIdentityService;
+import dev.mindforge.application.service.IngestionService;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.QueryService;
 import dev.mindforge.application.service.QuizService;
@@ -44,13 +45,29 @@ public class SlackConfig {
 
     /**
      * Built without a network call; Bolt checks the bot token when {@link SlackBot} starts the Socket Mode app. Every
-     * {@link SlackCommand} is routed by its name through the one gate.
+     * {@link SlackCommand} is routed by its name through the one gate; every {@code message} event goes to the upload
+     * handler (ADR 0035).
      */
     @Bean
-    App slackApp(AppProperties properties, SlackCommandListener listener, ObjectProvider<SlackCommand> commands) {
-        App app = new App(AppConfig.builder().singleTeamBotToken(properties.getSlack().getBotToken()).build());
+    App slackApp(AppProperties properties, SlackCommandListener listener, ObjectProvider<SlackCommand> commands,
+                 SlackMessageListener messageListener) {
+        App app = new SlackApp(AppConfig.builder().singleTeamBotToken(properties.getSlack().getBotToken()).build(),
+            messageListener);
         commands.orderedStream().forEach(command -> app.command(command.name(), listener));
         return app;
+    }
+
+    @Bean
+    SlackMessageListener slackMessageListener(SlackUploadHandler handler) {
+        return new SlackMessageListener(handler);
+    }
+
+    @Bean
+    SlackUploadHandler slackUploadHandler(SlackAllowlist allowlist, SlackRateLimiter rateLimiter,
+                                          ExternalIdentityService identities, SlackKnowledgeBases knowledgeBases,
+                                          SlackFiles files, IngestionService ingestion,
+                                          @Qualifier(COMMAND_EXECUTOR) Executor executor) {
+        return new SlackUploadHandler(allowlist, rateLimiter, identities, knowledgeBases, files, ingestion, executor);
     }
 
     @Bean
@@ -68,8 +85,9 @@ public class SlackConfig {
     }
 
     /**
-     * Identity resolution and the command run here, after the ack, because they block on the database and the model.
-     * Not a default candidate, so no other {@code Executor} injection point sees it; closed after the socket closes.
+     * Identity resolution and the command or upload run here, after the ack, because they block on the database, the
+     * model and the file download. Not a default candidate, so no other {@code Executor} injection point sees it;
+     * closed after the socket closes.
      */
     @Bean(name = COMMAND_EXECUTOR, destroyMethod = "close", defaultCandidate = false)
     ExecutorService slackCommandExecutor() {

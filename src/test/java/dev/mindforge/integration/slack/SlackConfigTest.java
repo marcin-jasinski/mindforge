@@ -22,11 +22,13 @@ import com.slack.api.bolt.handler.builtin.SlashCommandHandler;
 import com.slack.api.bolt.socket_mode.SocketModeApp;
 import com.slack.api.socket_mode.SocketModeClient;
 import dev.mindforge.application.service.ExternalIdentityService;
+import dev.mindforge.application.service.IngestionService;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.QueryService;
 import dev.mindforge.application.service.QuizService;
 import dev.mindforge.infrastructure.config.AppProperties;
 import dev.mindforge.slack.SlackAllowlist;
+import dev.mindforge.slack.SlackApp;
 import dev.mindforge.slack.SlackAskCommand;
 import dev.mindforge.slack.SlackBot;
 import dev.mindforge.slack.SlackCall;
@@ -36,10 +38,12 @@ import dev.mindforge.slack.SlackCommandListener;
 import dev.mindforge.slack.SlackConfig;
 import dev.mindforge.slack.SlackFiles;
 import dev.mindforge.slack.SlackKnowledgeBases;
+import dev.mindforge.slack.SlackMessageListener;
 import dev.mindforge.slack.SlackQuizCommand;
 import dev.mindforge.slack.SlackQuizSessions;
 import dev.mindforge.slack.SlackRateLimiter;
 import dev.mindforge.slack.SlackReply;
+import dev.mindforge.slack.SlackUploadHandler;
 import dev.mindforge.slack.SocketModeAppFactory;
 
 /**
@@ -56,6 +60,7 @@ class SlackConfigTest {
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
         .withUserConfiguration(SlackConfig.class, PropertiesConfig.class)
         .withBean(ExternalIdentityService.class, () -> mock(ExternalIdentityService.class))
+        .withBean(IngestionService.class, () -> mock(IngestionService.class))
         .withBean(KnowledgeBaseService.class, () -> mock(KnowledgeBaseService.class))
         .withBean(QueryService.class, () -> mock(QueryService.class))
         .withBean(QuizService.class, () -> mock(QuizService.class))
@@ -79,6 +84,8 @@ class SlackConfigTest {
                 .doesNotHaveBean(SlackQuizCommand.class)
                 .doesNotHaveBean(SlackQuizSessions.class)
                 .doesNotHaveBean(SlackFiles.class)
+                .doesNotHaveBean(SlackUploadHandler.class)
+                .doesNotHaveBean(SlackMessageListener.class)
                 .doesNotHaveBean(COMMAND_EXECUTOR));
     }
 
@@ -98,6 +105,8 @@ class SlackConfigTest {
                 .doesNotHaveBean(SlackQuizCommand.class)
                 .doesNotHaveBean(SlackQuizSessions.class)
                 .doesNotHaveBean(SlackFiles.class)
+                .doesNotHaveBean(SlackUploadHandler.class)
+                .doesNotHaveBean(SlackMessageListener.class)
                 .doesNotHaveBean(COMMAND_EXECUTOR));
     }
 
@@ -220,6 +229,21 @@ class SlackConfigTest {
                 SlackFiles files = ctx.getBean(SlackFiles.class);
                 assertThat(ReflectionTestUtils.getField(files, "botToken")).isEqualTo("xoxb-placeholder");
                 assertThat(ReflectionTestUtils.getField(files, "maxBytes")).isEqualTo(2L * 1024 * 1024);
+            });
+    }
+
+    // P19-07 AC10
+
+    @Test
+    void bothTokensRegisterTheMessageListenerOnTheAppForTheUploadHandler() {
+        runner.withPropertyValues(BOT_TOKEN, APP_TOKEN)
+            .run(ctx -> {
+                assertThat(ctx).hasNotFailed()
+                    .hasSingleBean(SlackUploadHandler.class)
+                    .hasSingleBean(SlackMessageListener.class);
+                assertThat(ctx.getBean(App.class)).isInstanceOf(SlackApp.class);
+                assertThat(ReflectionTestUtils.getField(ctx.getBean(App.class), "messageListener"))
+                    .isSameAs(ctx.getBean(SlackMessageListener.class));
             });
     }
 

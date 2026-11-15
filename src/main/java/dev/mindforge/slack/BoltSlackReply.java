@@ -1,6 +1,8 @@
 package dev.mindforge.slack;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -43,15 +45,22 @@ public class BoltSlackReply implements SlackReply {
 
     @Override
     public void send(String text) {
+        parts(text).forEach(this::sendPart);
+    }
+
+    /** The text in ordered parts of at most the message limit, never splitting a surrogate pair. */
+    static List<String> parts(String text) {
+        List<String> parts = new ArrayList<>();
         int start = 0;
         do {
             int end = Math.min(text.length(), start + MAX_MESSAGE_LENGTH);
             if (end < text.length() && Character.isHighSurrogate(text.charAt(end - 1))) {
                 end--;
             }
-            sendPart(text.substring(start, end));
+            parts.add(text.substring(start, end));
             start = end;
         } while (start < text.length());
+        return parts;
     }
 
     /** The body to acknowledge the command with; empty when no text was sent before the ack. */

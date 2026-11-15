@@ -1,7 +1,7 @@
 ---
 id: P19-07
 title: Ingest a file sent to the bot in a direct message as a Slack upload
-status: ready
+status: in_progress
 plan_tasks: [19.1, 19.2, 19.3]
 decisions: [D04]
 depends_on: [P19-04, P19-06]
@@ -119,3 +119,14 @@ DM.
 - Deployment docs for scopes (P19-08).
 
 ## Notes
+- Finding: `documents.upload_source` is `VARCHAR(50) NOT NULL` with no CHECK constraint (V1); the mapper stores `name()` and reads `valueOf`. `SLACK` needs no migration.
+- Decided: `SlackMessageListener` is a Bolt middleware for every `message` event, not a typed event handler, because Bolt's `MessageFileShareEvent` drops `team`, `user_team` and `bot_id`; it reads them from the JSON body like `SlackCommandListener` and returns the ack.
+- Decided: the middleware is added in `SlackApp.buildDefaultMiddlewareList` (a small `App` subclass), because `App.use` builds Bolt's middleware at once and calls `auth.test` at bean creation (it broke `SlackConfigTest`).
+- Decided: per D02 the caller team of an event is `user_team` only (no `team_id` fallback, unlike slash commands); a missing `user_team` is rejected as not available.
+- Decided: the whole gate (allowlist included) runs on the command executor after the ack, because every refusal is a `chat.postMessage` call that must not delay the 3 s ack.
+- Decided: file count and text grammar are checked after the rate limit and before identity resolution, so every admitted upload attempt counts once and nothing is resolved for a malformed one.
+- Decided: zero files in a `file_share` message also gets "Send one file per message."; a repeated `lesson_id=` or `new_version` token is refused with the grammar text.
+- Decided: the display name passed to `ExternalIdentityService.resolve` is null (a message event has no user name), so a first-contact user is named by the external id.
+- Decided: `SlackUploadText` and its `parse` are public (not package-private), because the tests live in `dev.mindforge.unit.slack`; `parse` returns `Optional.empty()` for a refused text.
+- Decided: the DM reply is `BoltSlackDirectMessageReply` (`chat.postMessage` into the event channel); the split loop moved to `BoltSlackReply.parts` so both replies share it.
+- AC map: AC1 ArticleFetcherTest (SLACK in EnumSource; ARTICLE/CONVERSATION not scanned); AC2 SlackUploadHandlerTest channel/bot/no-file ignored + SlackMessageListenerTest; AC3 ...unlistedWorkspaceOrCallerTeam; AC4 overTheRateLimit + countsOnce; AC5 zeroOrSeveralKnowledgeBases + aForeignKnowledgeBase; AC6 twoFiles + textOutsideGrammar + SlackUploadTextTest; AC7 aValidUpload + aMimeTypeWithParameters; AC8 aFailure_givesItsFixedReply (9 cases); AC9 aRedeliveredEvent; AC10 SlackConfigTest.bothTokensRegisterTheMessageListener + doesNotHaveBean checks.
