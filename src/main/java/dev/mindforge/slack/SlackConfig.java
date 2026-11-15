@@ -10,6 +10,7 @@ import com.slack.api.bolt.App;
 import com.slack.api.bolt.AppConfig;
 import com.slack.api.bolt.socket_mode.SocketModeApp;
 import com.slack.api.socket_mode.SocketModeClient;
+import com.slack.api.util.http.SlackHttpClient;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -94,6 +95,13 @@ public class SlackConfig {
     @Bean
     SlackQuizSessions slackQuizSessions(AppProperties properties) {
         return new SlackQuizSessions(properties.getStudy().getQuizSessionTtl());
+    }
+
+    /** The Slack SDK's own OkHttp client; the download rules are in {@link SlackFiles} (ADR 0029). */
+    @Bean
+    SlackFiles slackFiles(AppProperties properties) {
+        return new SlackFiles(SlackHttpClient.buildOkHttpClient(com.slack.api.SlackConfig.DEFAULT),
+            properties.getSlack().getBotToken(), properties.getUpload().getMaxSize().toBytes());
     }
 
     @Bean

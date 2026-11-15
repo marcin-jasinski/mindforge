@@ -37,7 +37,10 @@ class OutboundHttpGuardTest {
         // OAuth2 token endpoint of the operator-configured provider, called through a JDK-transport RestClient.
         "dev/mindforge/api/config/SecurityConfig.java",
         // Discord attachment download through JDA's client, from a fixed CDN host list and size-capped (ADR 0029).
-        "dev/mindforge/discord/DiscordAttachments.java");
+        "dev/mindforge/discord/DiscordAttachments.java",
+        // Slack file download through the Slack SDK's OkHttp client with the bot token, from a fixed host list and
+        // size-capped (ADR 0029).
+        "dev/mindforge/slack/SlackFiles.java");
 
     private static final Pattern EGRESS_POLICY_FIELD = Pattern.compile("\\bEgressPolicy\\s+(\\w+)\\s*;");
 
@@ -78,6 +81,18 @@ class OutboundHttpGuardTest {
 
         assertThat(offenders(root))
             .containsExactly("dev/mindforge/discord/Other.java", "dev/mindforge/discord/UploadCommand.java");
+    }
+
+    @Test
+    void shouldReportAnotherSlackFileThatUsesOkHttpAndIgnoreTheAllowedDownloader(@TempDir Path root)
+        throws IOException {
+        write(root, "dev/mindforge/slack/SlackUploadListener.java",
+            "import okhttp3.OkHttpClient; class SlackUploadListener {}");
+        write(root, "dev/mindforge/slack/sub/SlackFiles.java", "import okhttp3.Request; class SlackFiles {}");
+        write(root, "dev/mindforge/slack/SlackFiles.java", "import okhttp3.Request; class SlackFiles {}");
+
+        assertThat(offenders(root))
+            .containsExactly("dev/mindforge/slack/SlackUploadListener.java", "dev/mindforge/slack/sub/SlackFiles.java");
     }
 
     @Test

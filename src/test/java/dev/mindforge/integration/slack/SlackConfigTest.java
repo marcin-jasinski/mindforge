@@ -34,6 +34,7 @@ import dev.mindforge.slack.SlackCommand;
 import dev.mindforge.slack.SlackCommandHandler;
 import dev.mindforge.slack.SlackCommandListener;
 import dev.mindforge.slack.SlackConfig;
+import dev.mindforge.slack.SlackFiles;
 import dev.mindforge.slack.SlackKnowledgeBases;
 import dev.mindforge.slack.SlackQuizCommand;
 import dev.mindforge.slack.SlackQuizSessions;
@@ -77,6 +78,7 @@ class SlackConfigTest {
                 .doesNotHaveBean(SlackAskCommand.class)
                 .doesNotHaveBean(SlackQuizCommand.class)
                 .doesNotHaveBean(SlackQuizSessions.class)
+                .doesNotHaveBean(SlackFiles.class)
                 .doesNotHaveBean(COMMAND_EXECUTOR));
     }
 
@@ -95,6 +97,7 @@ class SlackConfigTest {
                 .doesNotHaveBean(SlackAskCommand.class)
                 .doesNotHaveBean(SlackQuizCommand.class)
                 .doesNotHaveBean(SlackQuizSessions.class)
+                .doesNotHaveBean(SlackFiles.class)
                 .doesNotHaveBean(COMMAND_EXECUTOR));
     }
 
@@ -204,6 +207,19 @@ class SlackConfigTest {
                     assertThat(pattern.matcher("/mf-quiz").matches()).isTrue();
                     assertThat(listener).isSameAs(ctx.getBean(SlackCommandListener.class));
                 });
+            });
+    }
+
+    // P19-06 AC7
+
+    @Test
+    void bothTokensBuildTheFileDownloaderWithTheBotTokenAndTheUploadMaxSize() {
+        runner.withPropertyValues(BOT_TOKEN, APP_TOKEN, "mindforge.upload.max-size=2MB")
+            .run(ctx -> {
+                assertThat(ctx).hasNotFailed().hasSingleBean(SlackFiles.class);
+                SlackFiles files = ctx.getBean(SlackFiles.class);
+                assertThat(ReflectionTestUtils.getField(files, "botToken")).isEqualTo("xoxb-placeholder");
+                assertThat(ReflectionTestUtils.getField(files, "maxBytes")).isEqualTo(2L * 1024 * 1024);
             });
     }
 

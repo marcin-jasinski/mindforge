@@ -1,7 +1,7 @@
 ---
 id: P19-06
 title: Download a Slack file only from files.slack.com with the bot token and a capped read
-status: ready
+status: in_progress
 plan_tasks: [19.2]
 decisions: []
 depends_on: [P19-02]
@@ -74,3 +74,11 @@ None of D01–D07/D16 directly. Binding answered question Q08 (ADR 0029 § Conse
 - Hosts other than `files.slack.com`; a new ADR.
 
 ## Notes
+- Decided: redirects are disabled in `SlackFiles` (followRedirects and followSslRedirects false, set on the client it is given) and a 3xx is a download failure, because then the token can never leave `files.slack.com`; `SlackFilesTest.aRedirectToAnotherHost_isNotFollowedAndIsADownloadFailure` proves only one request is made.
+- Decided: no `MockWebServer` (not a test dependency); tests inject an OkHttp application interceptor as the network seam, and the redirect test rewrites to a loopback JDK `HttpServer`, because neither touches a Slack host.
+- Decided: the URL is checked with both `java.net.URI` and OkHttp's `HttpUrl` (host, https, port 443 must agree), because the host that receives the token must be the host that was checked.
+- Decided: API is `new SlackFiles(OkHttpClient, botToken, maxBytes)` and `read(url, declaredSize)`; `SlackConfig` passes `SlackHttpClient.buildOkHttpClient(com.slack.api.SlackConfig.DEFAULT)`, because P19-07 then needs only the file's URL and size.
+- Test map r1: AC1 SlackFilesTest.aUrlOffTheFileHostRule_isRefusedWithoutARequest; AC2 aDeclaredSizeOverTheCap_isTooLargeWithoutARequest + aBodyLongerThanTheCap_isTooLargeAndNotTruncated; AC3 aGoodUrl_isRequestedWithTheBotTokenAsBearerAndReturnsTheBytes; AC4 aNon2xxStatus/aNetworkError/aTimeout (+host-only log asserts); AC5 aRedirectToAnotherHost_isNotFollowedAndIsADownloadFailure; AC6 OutboundHttpGuardTest.shouldReportAnotherSlackFileThatUsesOkHttpAndIgnoreTheAllowedDownloader; AC7 SlackConfigTest.bothTokensBuildTheFileDownloaderWithTheBotTokenAndTheUploadMaxSize.
+
+### Deferred findings
+- correctness/C1 minor 0.6 src/test/java/dev/mindforge/unit/slack/SlackFilesTest.java:150: aTimeout_isADownloadFailure does not prove that SlackFiles sets a call timeout; it only proves that an InterruptedIOException thrown by the fake interceptor is mapped to DOWNLOAD_FAILED, which the network-error test already covers.
