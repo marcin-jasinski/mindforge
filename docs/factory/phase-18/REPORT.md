@@ -1,7 +1,7 @@
 # Factory run report — Phase 18 (Discord Bot)
 
-- **Run:** phase-18 · started 2026-11-14T20:44Z · finished: pending
-- **Outcome:** merge pending. All 10 tickets are done. The integration gate and the merge into `develop` are still to come.
+- **Run:** phase-18 · started 2026-11-14T20:44Z · finished: 2026-11-15T10:31:35Z
+- **Outcome:** merged into `develop` (1ac485f). All 10 tickets are done. The integration gate was green except the baseline failure ApiFlowTest.theLoginRouteIsTheSinglePageApp.
 - **Branch:** `factory/phase-18` · base ac2851dfb2183a90b238b72accab71aa94fed52e
 
 ## Audit first
