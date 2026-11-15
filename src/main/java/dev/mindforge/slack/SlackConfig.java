@@ -22,6 +22,8 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.StringUtils;
 
 import dev.mindforge.application.service.ExternalIdentityService;
+import dev.mindforge.application.service.KnowledgeBaseService;
+import dev.mindforge.application.service.QueryService;
 import dev.mindforge.infrastructure.config.AppProperties;
 
 /**
@@ -70,6 +72,16 @@ public class SlackConfig {
     @Bean(name = COMMAND_EXECUTOR, destroyMethod = "close", defaultCandidate = false)
     ExecutorService slackCommandExecutor() {
         return Executors.newVirtualThreadPerTaskExecutor();
+    }
+
+    @Bean
+    SlackKnowledgeBases slackKnowledgeBases(KnowledgeBaseService knowledgeBases) {
+        return new SlackKnowledgeBases(knowledgeBases);
+    }
+
+    @Bean
+    SlackAskCommand slackAskCommand(QueryService queryService, SlackKnowledgeBases knowledgeBases) {
+        return new SlackAskCommand(queryService, knowledgeBases);
     }
 
     @Bean

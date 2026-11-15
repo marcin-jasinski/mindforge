@@ -22,14 +22,18 @@ import com.slack.api.bolt.handler.builtin.SlashCommandHandler;
 import com.slack.api.bolt.socket_mode.SocketModeApp;
 import com.slack.api.socket_mode.SocketModeClient;
 import dev.mindforge.application.service.ExternalIdentityService;
+import dev.mindforge.application.service.KnowledgeBaseService;
+import dev.mindforge.application.service.QueryService;
 import dev.mindforge.infrastructure.config.AppProperties;
 import dev.mindforge.slack.SlackAllowlist;
+import dev.mindforge.slack.SlackAskCommand;
 import dev.mindforge.slack.SlackBot;
 import dev.mindforge.slack.SlackCall;
 import dev.mindforge.slack.SlackCommand;
 import dev.mindforge.slack.SlackCommandHandler;
 import dev.mindforge.slack.SlackCommandListener;
 import dev.mindforge.slack.SlackConfig;
+import dev.mindforge.slack.SlackKnowledgeBases;
 import dev.mindforge.slack.SlackRateLimiter;
 import dev.mindforge.slack.SlackReply;
 import dev.mindforge.slack.SocketModeAppFactory;
@@ -48,6 +52,8 @@ class SlackConfigTest {
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
         .withUserConfiguration(SlackConfig.class, PropertiesConfig.class)
         .withBean(ExternalIdentityService.class, () -> mock(ExternalIdentityService.class))
+        .withBean(KnowledgeBaseService.class, () -> mock(KnowledgeBaseService.class))
+        .withBean(QueryService.class, () -> mock(QueryService.class))
         .withPropertyValues("mindforge.security.jwt-secret=test-secret", "mindforge.slack.allowed-team-ids=T0HOME");
 
     // AC3
@@ -63,6 +69,8 @@ class SlackConfigTest {
                 .doesNotHaveBean(SlackAllowlist.class)
                 .doesNotHaveBean(SlackRateLimiter.class)
                 .doesNotHaveBean(SlackCommandHandler.class)
+                .doesNotHaveBean(SlackKnowledgeBases.class)
+                .doesNotHaveBean(SlackAskCommand.class)
                 .doesNotHaveBean(COMMAND_EXECUTOR));
     }
 
@@ -77,6 +85,8 @@ class SlackConfigTest {
                 .doesNotHaveBean(SlackAllowlist.class)
                 .doesNotHaveBean(SlackRateLimiter.class)
                 .doesNotHaveBean(SlackCommandHandler.class)
+                .doesNotHaveBean(SlackKnowledgeBases.class)
+                .doesNotHaveBean(SlackAskCommand.class)
                 .doesNotHaveBean(COMMAND_EXECUTOR));
     }
 
@@ -142,8 +152,28 @@ class SlackConfigTest {
                 @SuppressWarnings("unchecked")
                 Map<Pattern, SlashCommandHandler> routes = (Map<Pattern, SlashCommandHandler>)
                     ReflectionTestUtils.getField(ctx.getBean(App.class), "slashCommandHandlers");
+                assertThat(routes).hasSize(2)
+                    .allSatisfy((pattern, listener) ->
+                        assertThat(listener).isSameAs(ctx.getBean(SlackCommandListener.class)));
+                assertThat(routes.keySet()).anySatisfy(
+                    pattern -> assertThat(pattern.matcher(FakeCommand.NAME).matches()).isTrue());
+            });
+    }
+
+    // P19-04 AC6
+
+    @Test
+    void bothTokensRegisterTheAskCommandAndTheKnowledgeBaseResolver() {
+        runner.withPropertyValues(BOT_TOKEN, APP_TOKEN)
+            .run(ctx -> {
+                assertThat(ctx).hasNotFailed()
+                    .hasSingleBean(SlackKnowledgeBases.class)
+                    .hasSingleBean(SlackAskCommand.class);
+                @SuppressWarnings("unchecked")
+                Map<Pattern, SlashCommandHandler> routes = (Map<Pattern, SlashCommandHandler>)
+                    ReflectionTestUtils.getField(ctx.getBean(App.class), "slashCommandHandlers");
                 assertThat(routes.entrySet()).singleElement().satisfies(route -> {
-                    assertThat(route.getKey().matcher(FakeCommand.NAME).matches()).isTrue();
+                    assertThat(route.getKey().matcher("/mf-ask").matches()).isTrue();
                     assertThat(route.getValue()).isSameAs(ctx.getBean(SlackCommandListener.class));
                 });
             });

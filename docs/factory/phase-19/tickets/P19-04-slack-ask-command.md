@@ -1,7 +1,7 @@
 ---
 id: P19-04
 title: Answer /mf-ask as a one-turn Query on the caller's only knowledge base
-status: ready
+status: in_progress
 plan_tasks: [19.2, 19.3]
 decisions: [D03]
 depends_on: [P19-03]
@@ -90,3 +90,7 @@ parsing, no stored selection. The Slack selection (Block Kit select, value = id)
 - `/mf-search` (replaced by `/mf-ask` in v3.0).
 
 ## Notes
+- Decided: `/mf-ask` strips the text and checks it (blank or over 4000 characters -> "Usage: /mf-ask <question> (at most 4000 characters).") before the knowledge-base lookup, because a bad question then costs no database call.
+- Decided: a `NotOwnerException`/`NotFoundException` from the Query replies with the same `SlackKnowledgeBases` fixed text, because the ticket names one fixed knowledge-base text.
+- Decided: the P19-03 routing test in `SlackConfigTest` now expects two routes (the fake command and `/mf-ask`), because `/mf-ask` is now always registered.
+- Tester r1 AC map: AC1 SlackKnowledgeBasesTest; AC2 SlackAskCommandTest.theOnlyKnowledgeBase_*, anAnswerWithoutCitedPaths_*; AC3 twoAsks_startTwoInteractions; AC4 aModelFailure_*, anOwnershipFailureFromTheQuery_*; AC5 anEmptyOrTooLongQuestion_*, aQuestionOfExactly4000Characters_isAsked; AC6 SlackConfigTest (bothTokensRegisterTheAskCommand*, no-bean tests); AC7 failure tests assert fixed text only (no message leak).
