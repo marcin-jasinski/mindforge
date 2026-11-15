@@ -1,7 +1,7 @@
 ---
 id: P19-08
 title: Record the Slack bot, its settings and its ADRs in the docs, open the live-check follow-up, and close Phase 19
-status: ready
+status: in_progress
 plan_tasks: [19.1, 19.2, 19.3]
 decisions: [D16, D06]
 depends_on: [P19-01, P19-02, P19-03, P19-04, P19-05, P19-06, P19-07]
@@ -108,3 +108,12 @@ Also from D01: link ADR 0033 from `docs/INDEX.md`; from D03: link 0033–0037 in
 - Code changes.
 
 ## Notes
+- Decided: the live Socket Mode smoke test is issue #53 (labels factory, ready-for-human), because D16 asks for a human follow-up issue.
+- Decided: the INDEX.md ADR paragraph names 0033–0037 as plain numbers, not Markdown links, because the rest of that paragraph uses plain numbers.
+- Decided: deployment.md says a Slack connect failure is logged and the server keeps running (not "stops startup" as for Discord), because `SlackBot.run` catches the failure; only a missing token pair or an empty team list stops startup.
+- Decided: no CONTEXT.md change, because CONTEXT.md defines no external-identity or Discord term.
+- Found: no doc or code comment names the Socket Mode ADR as 0033; every remaining "ADR 0033" means the Slack identity key.
+- Human task: add `dev.mindforge.discord` and `dev.mindforge.slack` to the CLAUDE.md layer table (Adapters row).
+
+### Deferred findings
+- correctness/C1 nit 0.9 docs/project/architecture.md:1: The edited sentence on guard-test exceptions lost a comma, so the list of three endpoints reads as one run-on item.

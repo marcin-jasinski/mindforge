@@ -82,8 +82,8 @@ The server can fetch the web articles that an upload links to and ingest each on
 - A skipped article (refused URL, host not reachable, timeout, error status, not HTML, too large, too many
   redirects, no text, no usable title, duplicate, or a lesson that already exists) shows only in the server log, with
   a fixed reason. Nothing shows in the UI or on the parent run.
-- A document uploaded with the Discord `/upload` command is scanned for article URLs like an API, CLI or file-watcher
-  upload, only when `FETCH_EXTERNAL_ARTICLES` is true.
+- A document uploaded with the Discord `/upload` command or sent to the Slack bot in a DM is scanned for article URLs
+  like an API, CLI or file-watcher upload, only when `FETCH_EXTERNAL_ARTICLES` is true.
 
 ### Discord bot
 
@@ -123,6 +123,57 @@ daily direct message about due flashcards. The bot is off unless the token is se
   with an email in the `users.invalid` domain.
 - A live test against real Discord is not automated: it needs a bot token and a test guild.
 
+### Slack bot
+
+The server can run a Slack bot with the slash commands `/mf-ask` and `/mf-quiz`, and it ingests a file sent to the bot
+in a direct message. The bot connects over Socket Mode, so it needs no public URL. It is off unless both tokens are set
+(`mindforge.slack.*`):
+
+| Variable | Default | Notes |
+|---|---|---|
+| `SLACK_BOT_TOKEN` | empty | **Secret.** The bot token (`xoxb-`). Set it together with `SLACK_APP_TOKEN`: when only one of the two is set, the server does not start. When both are blank, the bot does not start |
+| `SLACK_APP_TOKEN` | empty | **Secret.** The app-level token (`xapp-`) that opens the Socket Mode connection |
+| `SLACK_ALLOWED_TEAM_IDS` | empty | Required when the tokens are set: comma-separated team (workspace) ids. When it is empty, the server does not start ([ADR-0034](../adr/0034-slack-commands-admitted-when-workspace-and-caller-team-are-allowed.md)) |
+
+**Slack app setup** (at api.slack.com/apps):
+
+1. Turn on **Socket Mode**. Make an app-level token with the `connections:write` scope: this is `SLACK_APP_TOKEN`.
+2. Give the bot token these scopes: `commands`, `chat:write`, `im:history`, `files:read`. Install the app in the
+   workspace: the bot token is `SLACK_BOT_TOKEN`.
+3. Subscribe to the bot event `message.im`.
+4. In **App Home**, enable the **Messages** tab, so that users can send files to the bot.
+5. Make the slash commands `/mf-ask` and `/mf-quiz`.
+
+- The bot never runs in the `cli` profile. A failure to connect (for example, an invalid token) is logged, and the rest
+  of the server continues to run. After a connection is lost, the bot connects again by itself. The WebSocket client is
+  Java-WebSocket ([ADR-0037](../adr/0037-slack-socket-mode-uses-the-java-websocket-backend.md)).
+- The bot admits a caller only when the workspace of the request and the caller's own team are both in
+  `SLACK_ALLOWED_TEAM_IDS`. Other callers get a fixed "not available" reply.
+- The bot uses the same rate limit as the web (`RATE_LIMIT_REQUESTS` per `RATE_LIMIT_WINDOW`, default 30 per minute)
+  per Slack user, with a counter of its own. Every command and every upload counts.
+- Every command reply is ephemeral: only the caller sees it
+  ([ADR-0032](../adr/0032-discord-replies-are-ephemeral.md)).
+- The commands and the upload act on the caller's only knowledge base and name no knowledge base
+  ([ADR-0036](../adr/0036-slack-commands-act-on-the-callers-only-knowledge-base.md)).
+- `/mf-ask <question>` is a one-turn Query interaction: a second `/mf-ask` does not see the first one.
+- `/mf-quiz start` starts a quiz; `/mf-quiz answer <text>` answers the caller's current quiz. The server keeps this
+  pointer in memory: after a restart, run `/mf-quiz start` again.
+- **Upload.** Send one file to the bot in a direct message
+  ([ADR-0035](../adr/0035-slack-uploads-are-files-sent-to-the-bot-in-a-direct-message.md)). The message text may hold
+  only `lesson_id=<value>` and `new_version`, each one time at most. The bot replies in the same direct message. The
+  bot ignores files in channels. It reads the file only over https from `files.slack.com`, with the bot token, and
+  only up to `UPLOAD_MAX_SIZE`
+  ([ADR-0029](../adr/0029-discord-attachments-downloaded-by-the-platform-client-from-a-fixed-cdn-host-list.md)).
+- There are no reminder DMs for Slack users.
+- **Accounts.** On first contact, a Slack user gets a separate account with the email
+  `slack-<team>-<user>@users.invalid` and one knowledge base named "Slack"
+  ([ADR-0027](../adr/0027-bot-users-provisioned-with-a-reserved-invalid-email.md),
+  [ADR-0033](../adr/0033-slack-identity-keyed-by-home-team-and-user-id.md)). The key is the caller's home team and user
+  id, so one user id in two teams gives two accounts. This account is separate from a Discord account and from a web
+  account, and it cannot sign in to the web.
+- A live test against real Slack is not automated: it needs a Slack app, a bot token, an app-level token and a test
+  workspace ([#53](https://github.com/marcin-jasinski/mindforge/issues/53)).
+
 ## Railway
 
 1. Create a project from the repository; Railway builds the `Dockerfile` (see `railway.json`).
@@ -136,7 +187,7 @@ checks `/health`, which now answers 404: set its health check path to `/actuator
 
 ## CLI
 
-The same JAR has two command-line entry points. The `cli` profile starts no web server, no run sweep, no Discord bot
+The same JAR has two command-line entry points. The `cli` profile starts no web server, no run sweep, no Discord or Slack bot
 and no article fetch: the process exits after its own run, so it does not register the listener that fetches linked articles, even
 when `FETCH_EXTERNAL_ARTICLES` is true. The CLI
 reads the same configuration as the server (`DATABASE_*`, `OPENROUTER_API_KEY` and `JWT_SECRET`); Flyway migrates

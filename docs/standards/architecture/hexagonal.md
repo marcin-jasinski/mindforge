@@ -12,7 +12,7 @@ Dependencies always point inward: adapters → application → domain. Never cro
 | Application | `dev.mindforge.application` | `dev.mindforge.domain.*`, `dev.mindforge.agent.*` (the model services a use case sequences), plus Spring's transaction API (`org.springframework.transaction.*`) and the SLF4J logging facade (`org.slf4j.*`) — transaction boundaries are part of a use case; SLF4J is allowed because it is a facade with no I/O binding, not a precedent for other third-party facades |
 | Infrastructure | `dev.mindforge.infrastructure` | `dev.mindforge.domain.*`, `dev.mindforge.application.*`, any third-party |
 | Model services | `dev.mindforge.agent` | `dev.mindforge.domain.*`, `dev.mindforge.infrastructure.ai.*` |
-| Adapters | `dev.mindforge.api`, `dev.mindforge.cli`, `dev.mindforge.discord` | All layers (thin; no business logic) |
+| Adapters | `dev.mindforge.api`, `dev.mindforge.cli`, `dev.mindforge.discord`, `dev.mindforge.slack` | All layers (thin; no business logic) |
 
 `dev.mindforge.agent` holds the concrete services that call a model (`ClaimExtractor`, `PageWriter`, …). There is no `Agent` interface (ADR 0013).
 
