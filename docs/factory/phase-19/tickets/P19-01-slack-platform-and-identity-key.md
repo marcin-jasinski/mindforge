@@ -1,12 +1,12 @@
 ---
 id: P19-01
 title: Add the Slack external platform and its home-team-and-user identity key
-status: in_progress
+status: done
 plan_tasks: [19.2, 19.3]
 decisions: [D01]
 depends_on: []
 size: S
-commit:
+commit: f446463
 fix_rounds: 0
 issue: 45
 ---
@@ -53,17 +53,17 @@ SLACK only; the Discord rule and its test do not change.
   `slackExternalId` is P19-03; the `docs/INDEX.md` link is P19-08.)
 
 ## Acceptance criteria
-- [ ] AC1: `ExternalPlatform.SLACK` exists with label `"Slack"`; `DISCORD` is unchanged.
-- [ ] AC2: `ExternalAccounts.slackExternalId("T0123", "U0456")` returns `"T0123-U0456"`; a blank, null or
+- [x] AC1: `ExternalPlatform.SLACK` exists with label `"Slack"`; `DISCORD` is unchanged.
+- [x] AC2: `ExternalAccounts.slackExternalId("T0123", "U0456")` returns `"T0123-U0456"`; a blank, null or
   non-alphanumeric part throws `IllegalArgumentException`.
-- [ ] AC3: `syntheticEmail(SLACK, "T0123-U0456")` returns `slack-t0123-u0456@users.invalid`; SLACK rejects `"T0123-"`,
+- [x] AC3: `syntheticEmail(SLACK, "T0123-U0456")` returns `slack-t0123-u0456@users.invalid`; SLACK rejects `"T0123-"`,
   `"-U1"`, `"T1-U2-U3"`, `"T1:U2"` and `"U0456"`; DISCORD still rejects `"12-34"` and still accepts its digit ids.
-- [ ] AC4: `ExternalIdentityService.resolve(SLACK, "T1-U1", name)` on first contact provisions a user with the Slack
+- [x] AC4: `ExternalIdentityService.resolve(SLACK, "T1-U1", name)` on first contact provisions a user with the Slack
   synthetic email, a `SLACK` link and one knowledge base named "Slack"; a second call returns the same user.
-- [ ] AC5: The same Slack user id under two team ids (`T1-U1`, `T2-U1`) resolves to two different users.
-- [ ] AC6: A `SLACK` link and a `DISCORD` link with the same raw id coexist in `external_identities` and each is found
+- [x] AC5: The same Slack user id under two team ids (`T1-U1`, `T2-U1`) resolves to two different users.
+- [x] AC6: A `SLACK` link and a `DISCORD` link with the same raw id coexist in `external_identities` and each is found
   by its own platform.
-- [ ] AC7: No Flyway migration is added; `dev.mindforge.domain` imports stay JDK only.
+- [x] AC7: No Flyway migration is added; `dev.mindforge.domain` imports stay JDK only.
 
 ## Test plan
 - AC1–AC3: unit, `src/test/java/dev/mindforge/unit/domain/ExternalAccountsTest.java` (extend; keep existing cases).

@@ -15,3 +15,4 @@
 2026-11-15T18:00:16+01:00 P19-01 implement@inherit DONE
 2026-11-15T18:06:01+01:00 P19-01 test@sonnet r1 PASS; test-guard clean
 2026-11-15T18:06:38+01:00 P19-01 review r1 correctness@opus,standards@sonnet,spec-security@opus approve; triage accepted=0 -> PASS
+2026-11-15T18:06:38+01:00 P19-01 commit f446463
