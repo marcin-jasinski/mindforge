@@ -8,7 +8,7 @@ P19-05 and P19-07 can run in parallel after their dependencies.
 | [P19-01](P19-01-slack-platform-and-identity-key.md) | Add the Slack external platform and its home-team-and-user identity key | — | S | done |
 | [P19-02](P19-02-slack-socket-mode-bot-lifecycle.md) | Add Bolt with the Java-WebSocket Socket Mode backend and start the Slack bot only when both tokens are set | — | M | done |
 | [P19-03](P19-03-slack-command-gate.md) | Gate every Slack slash command through the team allowlist, the rate limit and identity resolution | P19-01, P19-02 | L | done |
-| [P19-04](P19-04-slack-ask-command.md) | Answer /mf-ask as a one-turn Query on the caller's only knowledge base | P19-03 | M | ready |
+| [P19-04](P19-04-slack-ask-command.md) | Answer /mf-ask as a one-turn Query on the caller's only knowledge base | P19-03 | M | done |
 | [P19-05](P19-05-slack-quiz-command.md) | Run a Quiz Session through /mf-quiz start and /mf-quiz answer | P19-04 | M | ready |
 | [P19-06](P19-06-slack-file-downloader.md) | Download a Slack file only from files.slack.com with the bot token and a capped read | P19-02 | S | ready |
 | [P19-07](P19-07-slack-dm-upload-handler.md) | Ingest a file sent to the bot in a direct message as a Slack upload | P19-04, P19-06 | L | ready |

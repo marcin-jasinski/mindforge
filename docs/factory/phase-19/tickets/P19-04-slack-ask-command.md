@@ -1,12 +1,12 @@
 ---
 id: P19-04
 title: Answer /mf-ask as a one-turn Query on the caller's only knowledge base
-status: in_progress
+status: done
 plan_tasks: [19.2, 19.3]
 decisions: [D03]
 depends_on: [P19-03]
 size: M
-commit:
+commit: 804be1b
 fix_rounds: 0
 issue: 48
 ---
@@ -55,20 +55,20 @@ parsing, no stored selection. The Slack selection (Block Kit select, value = id)
   throws `NotFoundException` (deleted between list and check) -> refusal.
 
 ## Acceptance criteria
-- [ ] AC1: `SlackKnowledgeBases` returns the id of the caller's only knowledge base after `requireOwner(id, userId)`;
+- [x] AC1: `SlackKnowledgeBases` returns the id of the caller's only knowledge base after `requireOwner(id, userId)`;
   with zero or two knowledge bases, or when `requireOwner` throws `NotFoundException` or `NotOwnerException`, it
   returns empty and sends exactly one fixed reply; with two, `requireOwner` is not called.
-- [ ] AC2: `/mf-ask <question>` calls `QueryService.start(kbId, userId)` then `ask(kbId, userId, interactionId,
+- [x] AC2: `/mf-ask <question>` calls `QueryService.start(kbId, userId)` then `ask(kbId, userId, interactionId,
   question)` once with the resolved user and knowledge base, and replies with the answer followed by the cited page
   paths (no "Sources" block when there are none).
-- [ ] AC3: Two `/mf-ask` calls start two interactions; the command keeps no interaction state.
-- [ ] AC4: A model failure (`AIGatewayUnavailableException`, `DeadlineExceededException`, `ModelOutputException`)
+- [x] AC3: Two `/mf-ask` calls start two interactions; the command keeps no interaction state.
+- [x] AC4: A model failure (`AIGatewayUnavailableException`, `DeadlineExceededException`, `ModelOutputException`)
   replies "The model is not available now. Try again later."; `NotOwnerException`/`NotFoundException` reply with the
   fixed knowledge-base text; no exception message is sent.
-- [ ] AC5: Empty question text, or text over 4000 characters, gets a fixed usage reply and no Query call.
-- [ ] AC6: `SlackConfig` registers the `/mf-ask` command and the `SlackKnowledgeBases` bean; `SlackConfigTest` still
+- [x] AC5: Empty question text, or text over 4000 characters, gets a fixed usage reply and no Query call.
+- [x] AC6: `SlackConfig` registers the `/mf-ask` command and the `SlackKnowledgeBases` bean; `SlackConfigTest` still
   shows no Slack bean without tokens or in `cli`.
-- [ ] AC7: No reply contains grounding context or any field listed as never-returned in CLAUDE.md.
+- [x] AC7: No reply contains grounding context or any field listed as never-returned in CLAUDE.md.
 
 ## Test plan
 - AC1: unit `src/test/java/dev/mindforge/unit/slack/SlackKnowledgeBasesTest.java` (Mockito `KnowledgeBaseService`).
