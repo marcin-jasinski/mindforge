@@ -24,6 +24,7 @@ import com.slack.api.socket_mode.SocketModeClient;
 import dev.mindforge.application.service.ExternalIdentityService;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.QueryService;
+import dev.mindforge.application.service.QuizService;
 import dev.mindforge.infrastructure.config.AppProperties;
 import dev.mindforge.slack.SlackAllowlist;
 import dev.mindforge.slack.SlackAskCommand;
@@ -34,6 +35,8 @@ import dev.mindforge.slack.SlackCommandHandler;
 import dev.mindforge.slack.SlackCommandListener;
 import dev.mindforge.slack.SlackConfig;
 import dev.mindforge.slack.SlackKnowledgeBases;
+import dev.mindforge.slack.SlackQuizCommand;
+import dev.mindforge.slack.SlackQuizSessions;
 import dev.mindforge.slack.SlackRateLimiter;
 import dev.mindforge.slack.SlackReply;
 import dev.mindforge.slack.SocketModeAppFactory;
@@ -54,6 +57,7 @@ class SlackConfigTest {
         .withBean(ExternalIdentityService.class, () -> mock(ExternalIdentityService.class))
         .withBean(KnowledgeBaseService.class, () -> mock(KnowledgeBaseService.class))
         .withBean(QueryService.class, () -> mock(QueryService.class))
+        .withBean(QuizService.class, () -> mock(QuizService.class))
         .withPropertyValues("mindforge.security.jwt-secret=test-secret", "mindforge.slack.allowed-team-ids=T0HOME");
 
     // AC3
@@ -71,6 +75,8 @@ class SlackConfigTest {
                 .doesNotHaveBean(SlackCommandHandler.class)
                 .doesNotHaveBean(SlackKnowledgeBases.class)
                 .doesNotHaveBean(SlackAskCommand.class)
+                .doesNotHaveBean(SlackQuizCommand.class)
+                .doesNotHaveBean(SlackQuizSessions.class)
                 .doesNotHaveBean(COMMAND_EXECUTOR));
     }
 
@@ -87,6 +93,8 @@ class SlackConfigTest {
                 .doesNotHaveBean(SlackCommandHandler.class)
                 .doesNotHaveBean(SlackKnowledgeBases.class)
                 .doesNotHaveBean(SlackAskCommand.class)
+                .doesNotHaveBean(SlackQuizCommand.class)
+                .doesNotHaveBean(SlackQuizSessions.class)
                 .doesNotHaveBean(COMMAND_EXECUTOR));
     }
 
@@ -152,7 +160,7 @@ class SlackConfigTest {
                 @SuppressWarnings("unchecked")
                 Map<Pattern, SlashCommandHandler> routes = (Map<Pattern, SlashCommandHandler>)
                     ReflectionTestUtils.getField(ctx.getBean(App.class), "slashCommandHandlers");
-                assertThat(routes).hasSize(2)
+                assertThat(routes).hasSize(3)
                     .allSatisfy((pattern, listener) ->
                         assertThat(listener).isSameAs(ctx.getBean(SlackCommandListener.class)));
                 assertThat(routes.keySet()).anySatisfy(
@@ -172,9 +180,29 @@ class SlackConfigTest {
                 @SuppressWarnings("unchecked")
                 Map<Pattern, SlashCommandHandler> routes = (Map<Pattern, SlashCommandHandler>)
                     ReflectionTestUtils.getField(ctx.getBean(App.class), "slashCommandHandlers");
-                assertThat(routes.entrySet()).singleElement().satisfies(route -> {
-                    assertThat(route.getKey().matcher("/mf-ask").matches()).isTrue();
-                    assertThat(route.getValue()).isSameAs(ctx.getBean(SlackCommandListener.class));
+                assertThat(routes).hasSize(2)
+                    .allSatisfy((pattern, listener) ->
+                        assertThat(listener).isSameAs(ctx.getBean(SlackCommandListener.class)));
+                assertThat(routes.keySet()).anySatisfy(
+                    pattern -> assertThat(pattern.matcher("/mf-ask").matches()).isTrue());
+            });
+    }
+
+    // P19-05 AC8
+
+    @Test
+    void bothTokensRegisterTheQuizCommandAndItsSessions() {
+        runner.withPropertyValues(BOT_TOKEN, APP_TOKEN)
+            .run(ctx -> {
+                assertThat(ctx).hasNotFailed()
+                    .hasSingleBean(SlackQuizCommand.class)
+                    .hasSingleBean(SlackQuizSessions.class);
+                @SuppressWarnings("unchecked")
+                Map<Pattern, SlashCommandHandler> routes = (Map<Pattern, SlashCommandHandler>)
+                    ReflectionTestUtils.getField(ctx.getBean(App.class), "slashCommandHandlers");
+                assertThat(routes).anySatisfy((pattern, listener) -> {
+                    assertThat(pattern.matcher("/mf-quiz").matches()).isTrue();
+                    assertThat(listener).isSameAs(ctx.getBean(SlackCommandListener.class));
                 });
             });
     }

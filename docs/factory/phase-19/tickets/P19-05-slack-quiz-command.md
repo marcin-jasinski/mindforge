@@ -1,7 +1,7 @@
 ---
 id: P19-05
 title: Run a Quiz Session through /mf-quiz start and /mf-quiz answer
-status: ready
+status: in_progress
 plan_tasks: [19.2, 19.3]
 decisions: [D05, D07]
 depends_on: [P19-04]
@@ -110,3 +110,7 @@ test. Do not import `dev.mindforge.discord` from `dev.mindforge.slack`.
 - Persisting the quiz pointer; a shared quiz-session class with Discord.
 
 ## Notes
+- Decided: `/mf-quiz answer` checks the answer text (empty or over 4000 characters -> usage line) before it looks up the current quiz, because input checks come first in `SlackAskCommand` and a bad input needs no state.
+- Decided: texts are "Usage: /mf-quiz start, or /mf-quiz answer <text> (at most 4000 characters)." and "No active quiz. Run /mf-quiz start.", because they mirror `/mf-ask` usage and the Discord no-quiz text.
+- Decided: AC1 expiry is tested with a zero TTL (Caffeine evicts at once), because the constructor takes only a `Duration` (D07) and no clock seam is wanted.
+- AC map (tester r1): AC1 SlackQuizSessionsTest (put/replace/clear/zero-TTL expiry); AC2 SlackQuizCommandTest start_* (case-insensitive, nothing-to-quiz); AC3 answer_withAnEntry_*, answer_toTheLastQuestion_*; AC4 answer_withNoEntry_*, answer_withEmptyOrTooLongText_*, anEmptyOrUnknownVerb_*; AC5 answer_whoseEntryPointsAtAnotherUsersSession_* (real QuizService); AC6 aModelFailureOnStart/OnAnswer_*; AC7 answer_throughTheRealService_*; AC8 SlackConfigTest (route count + no-bean cases).

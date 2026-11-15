@@ -24,6 +24,7 @@ import org.springframework.util.StringUtils;
 import dev.mindforge.application.service.ExternalIdentityService;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.QueryService;
+import dev.mindforge.application.service.QuizService;
 import dev.mindforge.infrastructure.config.AppProperties;
 
 /**
@@ -82,6 +83,17 @@ public class SlackConfig {
     @Bean
     SlackAskCommand slackAskCommand(QueryService queryService, SlackKnowledgeBases knowledgeBases) {
         return new SlackAskCommand(queryService, knowledgeBases);
+    }
+
+    @Bean
+    SlackQuizCommand slackQuizCommand(QuizService quizService, SlackKnowledgeBases knowledgeBases,
+                                      SlackQuizSessions quizSessions) {
+        return new SlackQuizCommand(quizService, knowledgeBases, quizSessions);
+    }
+
+    @Bean
+    SlackQuizSessions slackQuizSessions(AppProperties properties) {
+        return new SlackQuizSessions(properties.getStudy().getQuizSessionTtl());
     }
 
     @Bean
