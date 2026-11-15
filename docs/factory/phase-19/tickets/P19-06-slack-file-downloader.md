@@ -1,12 +1,12 @@
 ---
 id: P19-06
 title: Download a Slack file only from files.slack.com with the bot token and a capped read
-status: in_progress
+status: done
 plan_tasks: [19.2]
 decisions: []
 depends_on: [P19-02]
 size: S
-commit:
+commit: 3c027aa
 fix_rounds: 0
 issue: 50
 ---
@@ -42,17 +42,17 @@ one file by exact path. The upload handler (P19-07) uses it.
 None of D01–D07/D16 directly. Binding answered question Q08 (ADR 0029 § Consequences), copied in Context.
 
 ## Acceptance criteria
-- [ ] AC1: A URL that is not https, has userinfo, a non-default port, or a host outside `files.slack.com` is refused
+- [x] AC1: A URL that is not https, has userinfo, a non-default port, or a host outside `files.slack.com` is refused
   with reason "not from Slack" before any request is made (no token sent).
-- [ ] AC2: A declared size over the max is refused as too large before any request; a body longer than the max is
+- [x] AC2: A declared size over the max is refused as too large before any request; a body longer than the max is
   refused as too large after reading at most max+1 bytes.
-- [ ] AC3: A good URL is requested with `Authorization: Bearer <bot token>` and returns the bytes.
-- [ ] AC4: A network error, a non-2xx status or a timeout is refused as a download failure; the log line has the host
+- [x] AC3: A good URL is requested with `Authorization: Bearer <bot token>` and returns the bytes.
+- [x] AC4: A network error, a non-2xx status or a timeout is refused as a download failure; the log line has the host
   only, never the token or the query.
-- [ ] AC5: A redirect to another host never carries the bot token (test, or redirects disabled and refused).
-- [ ] AC6: `OutboundHttpGuardTest` allows `dev/mindforge/slack/SlackFiles.java` by exact path and still fails for any
+- [x] AC5: A redirect to another host never carries the bot token (test, or redirects disabled and refused).
+- [x] AC6: `OutboundHttpGuardTest` allows `dev/mindforge/slack/SlackFiles.java` by exact path and still fails for any
   other file under `dev/mindforge/slack` that holds an HTTP marker (add a case or reuse the generic one).
-- [ ] AC7: `SlackFiles` is built in `SlackConfig` with the bot token and the upload max size.
+- [x] AC7: `SlackFiles` is built in `SlackConfig` with the bot token and the upload max size.
 
 ## Test plan
 - AC1–AC5: unit `src/test/java/dev/mindforge/unit/slack/SlackFilesTest.java` (no network to Slack; local fake server or
