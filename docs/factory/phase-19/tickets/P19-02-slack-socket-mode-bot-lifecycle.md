@@ -1,7 +1,7 @@
 ---
 id: P19-02
 title: Add Bolt with the Java-WebSocket Socket Mode backend and start the Slack bot only when both tokens are set
-status: ready
+status: in_progress
 plan_tasks: [19.2]
 decisions: [D06, D16]
 depends_on: []
@@ -109,3 +109,12 @@ command handler responds (unit tests). Record a live smoke test against a real S
 - Tyrus, `javax.websocket`, `bolt-jakarta-socket-mode`, an HTTP (Events API) endpoint or a signing secret.
 
 ## Notes
+- AC1 dependency:tree (bolt 1.55.0, Java-WebSocket 1.6.0, the version Bolt 1.55.0 builds against): no `javax.websocket-api`, no `tyrus-*` (Bolt declares both `provided`, so no exclusion is needed); `okhttp-jvm` 5.5.0 (under JDA) comes before `okhttp` 4.12.0 (now under `slack-api-client`); `slf4j-api` resolves to Boot's 2.0.18.
+- AC6: covered by a test, `integration/slack/SocketModeReconnectTest` (local Web API + local Java-WebSocket server; the server closes the socket and Bolt's session monitor opens a new one within its 5 s check).
+- Decided: the seam is a public `SocketModeAppFactory` in `dev.mindforge.slack`, looked up with `ObjectProvider.getIfAvailable(() -> SocketModeApp::new)`, because then production defines no bean of it and a test replaces it without bean-order rules.
+- Decided: `SlackBot` uses `startAsync()` and a start failure is logged at ERROR with only the exception type (no message, no stack trace) and the app keeps running, because Bolt's messages may echo request data and AC5 forbids any token value in the log.
+- Decided: `AppProperties.Slack` validation uses two `@AssertTrue` checks ("app-token must be set when bot-token is set", "bot-token must be set when app-token is set"), because each names the missing field.
+- Tester r1 AC map: AC1 -> Notes dependency:tree + gate build; AC2 -> unit/slack/SlackPropertiesTest (bound, neither, one-of-two both ways), integration/slack/SlackConfigTest.onlyOneTokenFailsStartup; AC3 -> SlackConfigTest (no tokens, cli profile, no socket client opened); AC4 -> SlackConfigTest (fake SocketModeAppFactory gets app token + JavaWebSocket); AC5 -> unit/slack/SlackBotTest + SlackConfigTest start/close; AC6 -> SocketModeReconnectTest; AC7 -> OutboundHttpGuardTest, grep shows no discord import in slack package.
+
+### Deferred findings
+- correctness/C1 minor 0.7 src/main/java/dev/mindforge/slack/SlackBot.java:27: A transient failure during the first Socket Mode connect leaves the bot off until the process restarts, because Bolt's auto-reconnect is only enabled after the first connect succeeds and SlackBot does not retry.
