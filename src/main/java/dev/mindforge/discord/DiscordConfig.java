@@ -19,11 +19,15 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.StringUtils;
 
 import dev.mindforge.application.service.ExternalIdentityService;
+import dev.mindforge.application.service.FlashcardService;
 import dev.mindforge.application.service.IngestionService;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.QueryService;
 import dev.mindforge.application.service.QuizService;
+import dev.mindforge.application.service.ReminderService;
+import dev.mindforge.domain.port.ExternalIdentityRepository;
 import dev.mindforge.infrastructure.config.AppProperties;
+import dev.mindforge.infrastructure.event.DueReminderTrigger;
 
 /**
  * Wires the Discord bot adapter. Nothing here exists without {@code mindforge.discord.bot-token}, and nothing in the
@@ -104,6 +108,13 @@ public class DiscordConfig {
     DiscordRateLimiter discordRateLimiter(AppProperties properties) {
         AppProperties.RateLimits limits = properties.getRateLimits();
         return new DiscordRateLimiter(limits.getRequests(), limits.getWindow(), Clock.systemUTC());
+    }
+
+    @Bean
+    DueReminderTrigger dueReminderTrigger(ExternalIdentityRepository identities, KnowledgeBaseService knowledgeBases,
+                                          FlashcardService flashcards, JDA jda) {
+        return new DueReminderTrigger(new ReminderService(identities, knowledgeBases, flashcards,
+            new JdaReminderSender(jda)));
     }
 
     static class BotTokenSet implements Condition {

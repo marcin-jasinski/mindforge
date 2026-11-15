@@ -11,6 +11,7 @@ import dev.mindforge.discord.DiscordBot;
 import dev.mindforge.discord.DiscordConfig;
 import dev.mindforge.discord.DiscordRateLimiter;
 import dev.mindforge.infrastructure.config.AppProperties;
+import dev.mindforge.infrastructure.event.DueReminderTrigger;
 import net.dv8tion.jda.api.JDA;
 
 /** Without a bot token, or in the {@code cli} profile, nothing Discord-related is built and no login is tried. */
@@ -30,7 +31,8 @@ class DiscordConfigTest {
                 .doesNotHaveBean(JDA.class)
                 .doesNotHaveBean(DiscordBot.class)
                 .doesNotHaveBean(DiscordAllowlist.class)
-                .doesNotHaveBean(DiscordRateLimiter.class));
+                .doesNotHaveBean(DiscordRateLimiter.class)
+                .doesNotHaveBean(DueReminderTrigger.class));
     }
 
     @Test
@@ -38,6 +40,7 @@ class DiscordConfigTest {
         runner.withPropertyValues("spring.profiles.active=cli", "mindforge.discord.bot-token=token")
             .run(ctx -> assertThat(ctx).hasNotFailed()
                 .doesNotHaveBean(JDA.class)
-                .doesNotHaveBean(DiscordBot.class));
+                .doesNotHaveBean(DiscordBot.class)
+                .doesNotHaveBean(DueReminderTrigger.class));
     }
 }

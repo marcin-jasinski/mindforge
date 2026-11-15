@@ -1,13 +1,13 @@
 ---
 id: P18-08
 title: Upload a Document from Discord with /upload, downloading the attachment only from Discord's CDN hosts
-status: in_progress
+status: done
 plan_tasks: [18.2]
 decisions: [D07, D12]
 depends_on: [P18-05]
 size: M
 issue: 40
-commit:
+commit: c5afdc9
 fix_rounds: 1
 ---
 ## Goal

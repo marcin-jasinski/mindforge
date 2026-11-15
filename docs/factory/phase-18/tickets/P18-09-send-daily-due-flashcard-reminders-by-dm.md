@@ -1,7 +1,7 @@
 ---
 id: P18-09
 title: Send a daily DM to each Discord-linked user who has due Flashcards
-status: ready
+status: in_progress
 plan_tasks: [18.3]
 decisions: [D10]
 depends_on: [P18-01, P18-04]
@@ -55,19 +55,19 @@ Implementation notes:
   `StubAIGateway` untouched); message contains no card front text; long list truncated to <= 2000 chars.
 
 ## Acceptance criteria
-- [ ] AC1: `ReminderSender` port (domain, JDK only) and `ReminderService` (application) exist; the service lists
+- [x] AC1: `ReminderSender` port (domain, JDK only) and `ReminderService` (application) exist; the service lists
   `findByPlatform(DISCORD)`, each user's knowledge bases, and `due(kbId, new StudyScope.WholeKnowledgeBase())` per base.
-- [ ] AC2: A user with due cards in two knowledge bases gets exactly one DM with one line per base ("You have N
+- [x] AC2: A user with due cards in two knowledge bases gets exactly one DM with one line per base ("You have N
   flashcards due in *Name*"), ordered by name; bases with zero are omitted.
-- [ ] AC3: A user with zero due cards gets no DM.
-- [ ] AC4: When sending (or counting) fails for user 1, user 2 still gets a DM, and one WARN line with user 1's id and the
+- [x] AC3: A user with zero due cards gets no DM.
+- [x] AC4: When sending (or counting) fails for user 1, user 2 still gets a DM, and one WARN line with user 1's id and the
   exception class name is logged.
-- [ ] AC5: `FlashcardService.deck`/`refresh` and the AI gateway are never called; the DM contains no card front text.
-- [ ] AC6: A DM over 2000 chars is truncated to <= 2000 chars ending with "…and N more".
-- [ ] AC7: The trigger has `@Scheduled(cron = "${mindforge.discord.reminder-cron:0 0 9 * * *}", zone =
+- [x] AC5: `FlashcardService.deck`/`refresh` and the AI gateway are never called; the DM contains no card front text.
+- [x] AC6: A DM over 2000 chars is truncated to <= 2000 chars ending with "…and N more".
+- [x] AC7: The trigger has `@Scheduled(cron = "${mindforge.discord.reminder-cron:0 0 9 * * *}", zone =
   "${mindforge.discord.reminder-zone:UTC}")`, exists only as a bean of `DiscordConfig` (no token or `cli` profile -> no
   trigger), and only delegates; `application.yml` has `reminder-cron` and `reminder-zone` with env overrides.
-- [ ] AC8: The JDA sender sends a DM to the given external user id with blocking calls and imports JDA only inside
+- [x] AC8: The JDA sender sends a DM to the given external user id with blocking calls and imports JDA only inside
   `dev.mindforge.discord`.
 
 ## Test plan
@@ -95,3 +95,7 @@ Implementation notes:
 - Reminders for users without a Discord link.
 
 ## Notes
+- Decided: `ReminderService` is built inline inside the `DueReminderTrigger` bean in `DiscordConfig` (not a separate bean) because only the trigger uses it, and it must not exist without the bot token.
+- Decided: knowledge bases are ordered by name case-insensitively, and the line always says "flashcards" (also for 1) because that is the exact text in D10/AC2.
+- Decided: one identity whose list, count or send throws is caught as `RuntimeException`, and the job continues, because D10 treats a failed count and a failed DM the same way.
+- Tester r1 AC map: AC1/AC2 ReminderServiceTest.aUserWithDueCardsInTwoKnowledgeBases...; AC3 ...aUserWithZeroDueCards_getsNoDm; AC4 ...aFailedSendForUser1... and aFailedCountForUser1...; AC5 ...neverGeneratesCards_andTheDmContainsNoCardFront; AC6 ...aDmOver2000Chars...; AC7 DueReminderTriggerTest (both) + DiscordConfigTest doesNotHaveBean(DueReminderTrigger); AC8 JdaReminderSenderTest.send_opensTheUsersPrivateChannel...
