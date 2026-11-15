@@ -1,12 +1,12 @@
 ---
 id: P19-05
 title: Run a Quiz Session through /mf-quiz start and /mf-quiz answer
-status: in_progress
+status: done
 plan_tasks: [19.2, 19.3]
 decisions: [D05, D07]
 depends_on: [P19-04]
 size: M
-commit:
+commit: 3339b7e
 fix_rounds: 0
 issue: 49
 ---
@@ -69,21 +69,21 @@ test. Do not import `dev.mindforge.discord` from `dev.mindforge.slack`.
   replaces earlier quiz; clear removes it; current is empty for an unknown user.
 
 ## Acceptance criteria
-- [ ] AC1: `SlackQuizSessions` stores one `ActiveQuiz` per internal user id; `put` replaces, `clear` removes; entries
+- [x] AC1: `SlackQuizSessions` stores one `ActiveQuiz` per internal user id; `put` replaces, `clear` removes; entries
   expire after the quiz-session TTL.
-- [ ] AC2: `/mf-quiz start` (verb case-insensitive) resolves the only knowledge base via `SlackKnowledgeBases`, starts a
+- [x] AC2: `/mf-quiz start` (verb case-insensitive) resolves the only knowledge base via `SlackKnowledgeBases`, starts a
   whole-knowledge-base Quiz Session, stores `(kbId, sessionId)` and replies "Question i/n: …"; an empty knowledge base
   replies "This knowledge base has nothing to quiz on yet.".
-- [ ] AC3: `/mf-quiz answer <text>` calls `QuizService.answer(kbId, userId, sessionId, text)` with the stored session
+- [x] AC3: `/mf-quiz answer <text>` calls `QuizService.answer(kbId, userId, sessionId, text)` with the stored session
   and replies "Score: s/5", the feedback and the next question, or "Quiz finished." (and clears the stored quiz).
-- [ ] AC4: `answer` with no current quiz replies with a hint to run `/mf-quiz start`; `answer` with empty text replies
+- [x] AC4: `answer` with no current quiz replies with a hint to run `/mf-quiz start`; `answer` with empty text replies
   with a usage line; an empty or unknown verb replies with a usage line and never starts a quiz. Answers over 4000
   characters get the usage line.
-- [ ] AC5: When user A's stored pointer names user B's session, the real `QuizService` ownership check refuses it; the
+- [x] AC5: When user A's stored pointer names user B's session, the real `QuizService` ownership check refuses it; the
   reply is the no-active-quiz text and B's session is unchanged.
-- [ ] AC6: A model failure replies "The model is not available now. Try again later."; no exception message is sent.
-- [ ] AC7: No reply contains the reference answer or grounding context.
-- [ ] AC8: `SlackConfig` registers `/mf-quiz` and builds `SlackQuizSessions`; `SlackConfigTest` still shows no Slack
+- [x] AC6: A model failure replies "The model is not available now. Try again later."; no exception message is sent.
+- [x] AC7: No reply contains the reference answer or grounding context.
+- [x] AC8: `SlackConfig` registers `/mf-quiz` and builds `SlackQuizSessions`; `SlackConfigTest` still shows no Slack
   bean without tokens or in `cli`.
 
 ## Test plan
