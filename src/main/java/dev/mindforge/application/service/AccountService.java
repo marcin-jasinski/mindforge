@@ -5,6 +5,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 import dev.mindforge.domain.model.AccountException;
+import dev.mindforge.domain.model.ExternalAccounts;
 import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.TextRules;
 import dev.mindforge.domain.model.User;
@@ -22,9 +23,9 @@ public class AccountService {
         this.hasher = hasher;
     }
 
-    /** @throws AccountException when the email already has an account */
+    /** @throws AccountException when the email already has an account or is in the reserved domain */
     public User register(String displayName, String email, String password) {
-        String normalised = normalise(email);
+        String normalised = unreserved(normalise(email));
         if (users.findByEmail(normalised).isPresent()) {
             throw AccountException.emailTaken();
         }
@@ -49,9 +50,11 @@ public class AccountService {
     /**
      * Signs in with an email an identity provider verified, creating the account on first sign-in. An existing
      * account with that email is the same person, so it is signed in rather than duplicated.
+     *
+     * @throws AccountException when the email is in the reserved domain
      */
     public User signInWithProvider(String email, String displayName, String avatarUrl) {
-        String normalised = normalise(email);
+        String normalised = unreserved(normalise(email));
         User user = users.findByEmail(normalised).orElseGet(() -> users.insert(new User(UUID.randomUUID(),
             TextRules.singleLine(displayName == null || displayName.isBlank() ? normalised : displayName),
             normalised, null, avatarUrl, null, null)));
@@ -78,5 +81,12 @@ public class AccountService {
 
     private static String normalise(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static String unreserved(String normalisedEmail) {
+        if (ExternalAccounts.isReserved(normalisedEmail)) {
+            throw AccountException.reservedEmail();
+        }
+        return normalisedEmail;
     }
 }

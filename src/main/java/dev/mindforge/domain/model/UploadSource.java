@@ -9,5 +9,6 @@ public enum UploadSource {
     CLI,
     FILE_WATCHER,
     CONVERSATION,
-    ARTICLE
+    ARTICLE,
+    DISCORD
 }

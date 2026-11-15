@@ -1,6 +1,7 @@
 package dev.mindforge.infrastructure.config;
 
 import java.time.Duration;
+import java.util.Set;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -42,6 +43,12 @@ public class AppProperties {
     @Valid
     private Articles articles = new Articles();
 
+    @Valid
+    private Discord discord = new Discord();
+
+    public Discord getDiscord() { return discord; }
+    public void setDiscord(Discord discord) { this.discord = discord; }
+
     public Articles getArticles() { return articles; }
     public void setArticles(Articles articles) { this.articles = articles; }
 
@@ -66,6 +73,33 @@ public class AppProperties {
     // ---------------------------------------------------------------------------
     // Nested configuration types
     // ---------------------------------------------------------------------------
+
+    /** The Discord bot adapter; off unless the bot token is set (ADR 0028). */
+    public static class Discord {
+
+        /** Secret: never logged. */
+        private String botToken;
+
+        /** Guilds whose members may use the bot; required with the token (fail closed). */
+        private Set<Long> allowedGuildIds = Set.of();
+
+        /** Empty: any member of an allowed guild; otherwise the member needs at least one of these roles. */
+        private Set<Long> allowedRoleIds = Set.of();
+
+        @AssertTrue(message = "allowed-guild-ids must not be empty when bot-token is set")
+        public boolean isGuildAllowlistSetWhenEnabled() {
+            return botToken == null || botToken.isBlank() || !allowedGuildIds.isEmpty();
+        }
+
+        public String getBotToken() { return botToken; }
+        public void setBotToken(String botToken) { this.botToken = botToken; }
+
+        public Set<Long> getAllowedGuildIds() { return allowedGuildIds; }
+        public void setAllowedGuildIds(Set<Long> allowedGuildIds) { this.allowedGuildIds = allowedGuildIds; }
+
+        public Set<Long> getAllowedRoleIds() { return allowedRoleIds; }
+        public void setAllowedRoleIds(Set<Long> allowedRoleIds) { this.allowedRoleIds = allowedRoleIds; }
+    }
 
     /** Limits on fetching the web articles a document links to (ADR 0025). */
     public static class Articles {

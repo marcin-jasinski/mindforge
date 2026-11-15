@@ -28,6 +28,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <springdoc.version>3.0.0</springdoc.version>
         <resilience4j.version>2.4.0</resilience4j.version>
+        <jda.version>6.7.0</jda.version>
         <skipFrontend>true</skipFrontend>
     </properties>
 
@@ -97,6 +98,25 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Discord bot adapter; JDA types stay in dev.mindforge.discord. No voice: audio libraries excluded.
+             Declared before Spring AI: JDA's okhttp-jvm 5 must precede Spring AI's okhttp 4 on the classpath, as the
+             OTLP exporter's okhttp-jvm 5 did before; both jars hold package okhttp3 (ADR 0025). -->
+        <dependency>
+            <groupId>net.dv8tion</groupId>
+            <artifactId>JDA</artifactId>
+            <version>${jda.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>club.minnced</groupId>
+                    <artifactId>opus-java</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.crypto.tink</groupId>
+                    <artifactId>tink</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Spring AI -->

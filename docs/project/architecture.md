@@ -29,7 +29,7 @@ composition roots.
 | **Application** | `dev.mindforge.application` | Use-case orchestration; imports only `domain` and Spring's transaction API |
 | **Infrastructure** | `dev.mindforge.infrastructure` | All I/O: JPA, Spring AI, parsers, export |
 | **Model services** | `dev.mindforge.agent` | Stateless services that call `AIGateway`; no shared interface |
-| **Adapters** | `dev.mindforge.api`, `dev.mindforge.cli` | Thin; no business logic |
+| **Adapters** | `dev.mindforge.api`, `dev.mindforge.cli`, `dev.mindforge.discord` | Thin; no business logic |
 
 ## System Structure
 
@@ -45,9 +45,11 @@ composition roots.
 - **Study**: `Flashcard`, `StudyScope`, `ReviewResult`
 - **Ports**: `WikiStore`, `RunReportQuery`, `WikiHealthQuery`, `BundleQuery`, `IngestRunRepository`,
   `DocumentRepository`, `DocumentParser`, `UploadPolicy`, `AIGateway`, `EventPublisher`, `ProgressNotifier`,
-  `StudyProgressStore`, `QuizSessionStore`, `InteractionStore`, `ArticleSource`
+  `StudyProgressStore`, `QuizSessionStore`, `InteractionStore`, `ArticleSource`, `ExternalIdentityRepository`,
+  `ReminderSender`
 - **Constraint**: every tenant-scoped port method takes `kbId` as its first argument; the sweep's two system methods and
-  the quiz-session cleanup's `deleteExpired` are the only exceptions
+  the quiz-session cleanup's `deleteExpired` are the only exceptions. `ExternalIdentityRepository` is not tenant-scoped:
+  an identity belongs to a user, not a knowledge base
 
 ### Application (`dev.mindforge.application`)
 
@@ -59,6 +61,10 @@ composition roots.
 - `IngestPipeline` — Describe images, Preprocess, Extract, Resolve, fan-out, draft checks, commit, Supersede
   (`Preprocessor` and the `HeadingChunker` are plain code in `application.ingest`)
 - `RevertService`, `LintService`, `HealthService`, `QueryService`, `FlashcardService`, `QuizService`, `KnowledgeBaseService`
+- `ExternalIdentityService` — resolve a chat-platform caller to a user, or provision the user, its identity link and
+  one default knowledge base in one transaction (Phase 18, ADR 0027, ADR 0030)
+- `ReminderService` — no model: count due flashcards per knowledge base for each Discord-linked user and send one
+  DM through `ReminderSender` (Phase 18)
 - `IndexRenderer`, `LogRenderer` — pure renderers shared by the model prompts and export
 
 ### Infrastructure (`dev.mindforge.infrastructure`)
@@ -68,9 +74,10 @@ composition roots.
 - `parsing/` — `ParserRegistry` (the `DocumentParser` port) + MIME-dispatch `FormatParser`s (Markdown, PDF, DOCX, TXT);
   `ImageExtractor` filters the images that PDF and DOCX emit as IMAGE blocks
 - `event/` — `SpringEventPublisher`, `SseProgressNotifier` (in-memory emitters per knowledge base),
-  `RunWorkerTriggers`, `ArticleFetchTriggers`
+  `RunWorkerTriggers`, `ArticleFetchTriggers`, `DueReminderTrigger` (the daily reminder cron; only with the Discord
+  bot token)
 - `web/` — the article fetch adapter: `HttpArticleSource` (the `ArticleSource` port; HttpClient 5 pinned to the
-  addresses `EgressPolicy` checked, ADR 0025) and `HtmlArticleConverter` (jsoup, ADR 0026). Apart from operator-configured endpoints allowed by exact path in the guard test (today the OAuth2 token client in `SecurityConfig`), it is the only place in
+  addresses `EgressPolicy` checked, ADR 0025) and `HtmlArticleConverter` (jsoup, ADR 0026). Apart from operator-configured endpoints allowed by exact path in the guard test (today the OAuth2 token client in `SecurityConfig` and the Discord attachment download in `DiscordAttachments`, ADR 0029), it is the only place in
   `src/main` with HTTP-client code (`OutboundHttpGuardTest`)
 - `export/` — `BundleExporter` (zip, SnakeYAML frontmatter), `BundleConformanceValidator`
 - `security/` — upload sanitizer, egress policy
@@ -102,7 +109,8 @@ each declares a `VERSION` that is recorded on every run it takes part in. Determ
 | REST API | `dev.mindforge.api` | Spring MVC; JWT + OAuth2 via Spring Security |
 | Angular SPA | `frontend/src/app/` | Standalone components; lazy-loaded routes |
 | CLI | `dev.mindforge.cli` (Phase 15) | Pipeline runner, quiz runner |
-| Discord / Slack | Phases 18–19 | `/ask`, `/quiz`, `/upload` over the same services |
+| Discord bot | `dev.mindforge.discord` (Phase 18) | JDA; `/ask`, `/quiz start`, `/quiz answer`, `/upload` over the same services; reminder DMs. Off unless `DISCORD_BOT_TOKEN` is set; never in the `cli` profile |
+| Slack | Phase 19 | `/mf-ask`, `/mf-quiz`, file upload over the same services |
 
 ## Data Flow
 
@@ -140,7 +148,7 @@ position, in document order. An image the describer drops (not relevant, or no u
 ```
 IngestionService.ingest inserts a new document → DomainEvent.DocumentAccepted in the upload transaction
 AFTER_COMMIT → ArticleFetchTriggers → ArticleFetcher.fetchFor on the run executor (no transaction open)
-    ↓  only API and file-watcher documents (the `cli` profile registers no listener); ARTICLE and CONVERSATION documents fetch nothing (no recursion)
+    ↓  only API, file-watcher and Discord documents (the `cli` profile registers no listener); ARTICLE and CONVERSATION documents fetch nothing (no recursion)
     ↓  distinct http(s) URLs of TEXT and HEADING blocks, in document order, at most max-per-document
 ArticleSource (HttpArticleSource) per URL: EgressPolicy on every hop → HTML → HtmlArticleConverter → blocks + title
     ↓  IngestionService.ingestArticle: same dedup and lesson rule; Document (ARTICLE) + QUEUED run + IngestRunQueued
@@ -152,6 +160,26 @@ Its consumer is best-effort: a crash or shutdown after the upload commits loses 
 repairs this (ADR 0015, ADR 0024). An article that fails a check, cannot be fetched, has no usable title or whose
 lesson already exists is skipped and logged with a fixed reason; the parent upload and its run do not change. The
 `cli` profile does not register the listener, so the CLI never fetches articles.
+
+**Discord command** (Phase 18; only when `DISCORD_BOT_TOKEN` is set):
+```
+slash event (guild only) → DiscordListener → DiscordCommandHandler, on a virtual thread
+    ↓  DiscordAllowlist: allowed guild, and an allowed role when roles are set; a DM or another guild → fixed reply (ADR 0028)
+    ↓  DiscordRateLimiter: mindforge.rate-limits.* per Discord user, a counter of its own → "try again in N s"
+    ↓  ephemeral defer (ADR 0032) → ExternalIdentityService.resolve: linked user, or provision on first contact (ADR 0027)
+    ↓  the command: kb option → KnowledgeBaseService.requireOwner (ADR 0030)
+/ask → QueryService.start + ask (one turn) │ /quiz → QuizService (current quiz in DiscordQuizSessions, Caffeine)
+/upload → DiscordAttachments (Discord CDN hosts only, ADR 0029) → IngestionService.ingest (UploadSource.DISCORD)
+    ↓  ephemeral reply, split at 2000 characters; a failure gets a fixed text and a WARN with the exception class only
+```
+
+**Reminders** (Phase 18): `DueReminderTrigger` on `mindforge.discord.reminder-cron` → `ReminderService`: for each
+Discord identity, `FlashcardService.due` per owned knowledge base (no model call) → one DM with counts and knowledge
+base names, never card text, through `ReminderSender` (`JdaReminderSender`). No DM when nothing is due; a failure for
+one user is logged and the job continues.
+
+A Discord document is ingested like any upload; when `mindforge.articles.fetch-external-articles` is on, its article
+URLs are fetched like those of an API upload.
 
 **Query:**
 ```
@@ -177,7 +205,7 @@ run cannot be reverted. Removing one supersession is a `REVERT` run scoped to th
 
 | Group | Tables |
 |---|---|
-| Accounts | `users`, `knowledge_bases` (+ `active_run_id` lease) |
+| Accounts | `users`, `knowledge_bases` (+ `active_run_id` lease), `external_identities` (chat-platform links, V8) |
 | Sources | `documents` (one row per uploaded version of a lesson, or per conversation turn) |
 | Wiki | `wiki_pages`, `page_links`, `page_revisions`, `page_sources`, `page_supersessions` |
 | History | `ingest_runs` (also the queue) |
@@ -195,7 +223,8 @@ run cannot be reverted. Removing one supersession is a `REVERT` run scoped to th
 
 ### Caffeine (In-Memory Cache)
 
-- Quiz sessions only (Phase 10). There is no cache in front of the wiki: the index is one
+- Quiz sessions (Phase 10), and in the Discord adapter the caller's current quiz and the bot's rate-limit counter
+  (Phase 18; lost on restart). There is no cache in front of the wiki: the index is one
   indexed query and bodies are primary-key reads.
 
 There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
@@ -303,6 +332,11 @@ There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
   configuration and are not checked (ADR 0023). The policy allows only `http`/`https` on ports 80/443 to public unicast
   addresses, checks every redirect hop, and the client connects only to the checked addresses (ADR 0022, ADR 0025).
   Fetched articles (Phase 17, off by default) may only create pages and never supersede.
+- **Discord** (Phase 18): Discord's API and its attachment CDN are the platform endpoint (ADR 0023 trust tier);
+  `/upload` reads only https URLs on `cdn.discordapp.com` or `media.discordapp.net` (ADR 0029). Commands are admitted
+  by a fail-closed guild and role allowlist (ADR 0028), the `kb` option is untrusted and checked by `requireOwner`
+  (ADR 0030), and replies are ephemeral (ADR 0032). A Discord user has a separate account with a reserved
+  `users.invalid` email that the web refuses (ADR 0027); there is no link to a web account (issue #43).
 - **Rendering**: page bodies render with raw HTML escaped; external links carry `rel="noopener noreferrer nofollow"`.
 - **Lesson identity**: deterministic resolution against one identifier grammar; an explicit id is never rewritten;
   hard reject if no valid identifier.
@@ -319,6 +353,7 @@ There is no Neo4j, no pgvector and no object storage (ADR 0016, ADR 0014).
 | Caffeine | In-memory quiz session cache | No |
 | Langfuse Cloud | LLM tracing + cost accounting via OTEL | Yes (falls back to logging) |
 | Article hosts (any public http/https host) | Linked articles fetched as `ARTICLE` documents | Yes (off by default) |
+| Discord (gateway, API, attachment CDN) | Bot commands, uploads and reminder DMs | Yes (off unless the token is set) |
 
 ## Deployment Architecture
 

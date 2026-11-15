@@ -82,6 +82,46 @@ The server can fetch the web articles that an upload links to and ingest each on
 - A skipped article (refused URL, host not reachable, timeout, error status, not HTML, too large, too many
   redirects, no text, no usable title, duplicate, or a lesson that already exists) shows only in the server log, with
   a fixed reason. Nothing shows in the UI or on the parent run.
+- A document uploaded with the Discord `/upload` command is scanned for article URLs like an API, CLI or file-watcher
+  upload, only when `FETCH_EXTERNAL_ARTICLES` is true.
+
+### Discord bot
+
+The server can run a Discord bot with the slash commands `/ask`, `/quiz start`, `/quiz answer` and `/upload`, and a
+daily direct message about due flashcards. The bot is off unless the token is set (`mindforge.discord.*`):
+
+| Variable | Default | Notes |
+|---|---|---|
+| `DISCORD_BOT_TOKEN` | empty | **Secret.** The bot token from the Discord developer portal. When it is blank, the bot does not start |
+| `MINDFORGE_DISCORD_ALLOWED_GUILD_IDS` | empty | Required when the token is set: comma-separated guild (server) ids. When it is empty, the server does not start ([ADR-0028](../adr/0028-discord-commands-admitted-by-a-fail-closed-guild-and-role-allowlist.md)) |
+| `MINDFORGE_DISCORD_ALLOWED_ROLE_IDS` | empty | Optional: comma-separated role ids. Empty admits any member of an allowed guild; otherwise the member needs at least one listed role |
+| `MINDFORGE_DISCORD_REMINDER_CRON` | `0 0 9 * * *` | `mindforge.discord.reminder-cron`: when the due-flashcard reminders go out (Spring cron, six fields) |
+| `MINDFORGE_DISCORD_REMINDER_ZONE` | `UTC` | `mindforge.discord.reminder-zone`: the time zone of the cron |
+
+- An invalid token stops the startup. The bot never runs in the `cli` profile.
+- The commands work only in an allowed guild. A command in a DM, in another guild or from a member without an
+  allowed role gets a fixed "not available" reply. The bot sends DMs only for the reminders.
+- The bot uses the same rate limit as the web (`RATE_LIMIT_REQUESTS` per `RATE_LIMIT_WINDOW`, default 30 per minute)
+  per Discord user, with a counter of its own. Every command counts.
+- Every reply is ephemeral: only the caller sees it
+  ([ADR-0032](../adr/0032-discord-replies-are-ephemeral.md)). The Discord account cannot sign in to the web (see
+  **Accounts** below), so the ephemeral reply is the only copy the user sees until account linking
+  ([#43](https://github.com/marcin-jasinski/mindforge/issues/43)) exists.
+- `/ask`, `/quiz start` and `/upload` take a `kb` option with the caller's knowledge bases
+  ([ADR-0030](../adr/0030-discord-commands-name-the-knowledge-base-and-provisioning-creates-a-default-one.md)).
+- Each `/ask` is a one-turn Query interaction: a second `/ask` does not see the first one.
+- `/quiz answer` answers the caller's current quiz. The server keeps this pointer in memory: after a restart, run
+  `/quiz start` again.
+- `/upload` reads the attachment only over https from `cdn.discordapp.com` or `media.discordapp.net`, and only up to
+  `UPLOAD_MAX_SIZE` ([ADR-0029](../adr/0029-discord-attachments-downloaded-by-the-platform-client-from-a-fixed-cdn-host-list.md)).
+- The reminder DM gives the number of due flashcards per knowledge base, and only for knowledge bases with due cards. It
+  never contains card text. A user with no due cards gets no DM. A failed DM is logged, and the job continues.
+- **Accounts.** On first contact, a Discord user gets a separate account with the email
+  `discord-<id>@users.invalid` and one knowledge base named "Discord"
+  ([ADR-0027](../adr/0027-bot-users-provisioned-with-a-reserved-invalid-email.md)). This account cannot see the
+  knowledge bases of a web account, and there is no link between the two. Nobody can register or sign in on the web
+  with an email in the `users.invalid` domain.
+- A live test against real Discord is not automated: it needs a bot token and a test guild.
 
 ## Railway
 
@@ -96,8 +136,8 @@ checks `/health`, which now answers 404: set its health check path to `/actuator
 
 ## CLI
 
-The same JAR has two command-line entry points. The `cli` profile starts no web server, no run sweep and no article
-fetch: the process exits after its own run, so it does not register the listener that fetches linked articles, even
+The same JAR has two command-line entry points. The `cli` profile starts no web server, no run sweep, no Discord bot
+and no article fetch: the process exits after its own run, so it does not register the listener that fetches linked articles, even
 when `FETCH_EXTERNAL_ARTICLES` is true. The CLI
 reads the same configuration as the server (`DATABASE_*`, `OPENROUTER_API_KEY` and `JWT_SECRET`); Flyway migrates
 the schema at startup. Set `JWT_SECRET` to at least 32 bytes also for the CLI. The CLI issues no tokens, but it does

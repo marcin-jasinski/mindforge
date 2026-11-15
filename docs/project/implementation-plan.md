@@ -1565,33 +1565,77 @@ content reaches the wiki.
 
 ---
 
-## [ ] Phase 18 — Discord Bot
+## [x] Phase 18 — Discord Bot
 
 > **Changed in v3.0:** `/ask` (Query) replaces `/search`.
+> **As built:** a driving adapter, `dev.mindforge.discord` (JDA 6.7.0, no voice), wired by `DiscordConfig` and off
+> unless `DISCORD_BOT_TOKEN` is set; it never runs in the `cli` profile. Every slash command passes one gate
+> (`DiscordCommandHandler`): the fail-closed guild and role allowlist (ADR 0028), a per-user rate limit, then
+> resolve-or-provision of the caller (ADR 0027), then the command over the same application services as the web.
+> Commands are guild-only, every reply is ephemeral (ADR 0032), and each `/ask`, `/quiz start` and `/upload` names its
+> knowledge base with an autocompleted `kb` option checked by `requireOwner` (ADR 0030). Attachments are read only
+> from Discord's CDN hosts (ADR 0029). Decisions: `docs/factory/phase-18/decisions/` D01–D07, D10–D12, D14.
 
 **Goal:** Discord bot with ask, quiz and upload slash commands; guild allowlists; identity resolution;
 SR reminders via DM.
 
 ### Tasks
 
-- [ ] **18.1 — Domain additions**
+- [x] **18.1 — Domain additions**
   - `ExternalIdentityRepository`: `findUserId(platform, externalId)`, `link(...)`, `createUserAndLink(...)`.
   - `UploadSource.DISCORD`.
+  - *As built:* `ExternalIdentityRepository` has `findUserId`, `createUserAndLink` (user row and link in one
+    transaction; `ExternalIdentityConflictException` when the identity is linked or the email is taken) and
+    `findByPlatform` (for the reminder job); `ExternalPlatform` (`DISCORD`), `ExternalIdentity` and
+    `ExternalAccounts` (the synthetic email `discord-<id>@users.invalid` and the reserved `users.invalid` domain, which
+    `AccountService` refuses on registration and provider sign-in) are in the domain. The V8 migration
+    (`V8__create_external_identities.sql`) adds `external_identities`, keyed by `(platform, external_id)`, with a
+    cascading FK to `users`. `ExternalIdentityService` (application) resolves a caller or provisions a user, its link
+    and one knowledge base named "Discord" in one transaction, and re-reads once after a lost race (D01, D03; ADR 0027,
+    ADR 0030). `UploadSource.DISCORD` is in the set of sources that `ArticleFetcher` scans (D12).
+    `link(...)` not built: no Phase 18 command calls it (minimal-implementation.md). A Discord user has a separate
+    account (ADR 0027). Linking to a web account needs a verified flow and a data policy for the provisioned account;
+    see issue #43.
 
-- [ ] **18.2 — `DiscordBot`** (`dev.mindforge.discord`)
+- [x] **18.2 — `DiscordBot`** (`dev.mindforge.discord`)
   - JDA as a Spring-managed `ApplicationRunner`. Slash commands: `/ask`, `/quiz start`, `/quiz answer`, `/upload`.
   - Guild and role allowlist via `AppProperties.discord.*`; identity resolution auto-provisions on first contact.
+  - *As built:* `DiscordBot` attaches `DiscordListener`, waits for ready and registers the commands for guilds only;
+    JDA events run on virtual threads. `DiscordAllowlist` (D04, ADR 0028) admits a guild on
+    `mindforge.discord.allowed-guild-ids` (required with the token; startup fails when empty) and, when
+    `allowed-role-ids` is set, a member with one listed role; a DM is rejected. `DiscordRateLimiter` (D11) uses
+    `mindforge.rate-limits.*` with its own counter. `DiscordKnowledgeBases` resolves and autocompletes the `kb` option.
+    `JdaDiscordReply` defers ephemerally and splits text at 2000 characters (D14, ADR 0032). `AskCommand` starts one
+    Query interaction per `/ask` (D06). `QuizCommand` keeps the caller's current quiz in `DiscordQuizSessions`
+    (Caffeine, keyed by user, `mindforge.study.quiz-session-ttl`; lost on restart, D05). `UploadCommand` reads the
+    attachment through `DiscordAttachments` (https on `cdn.discordapp.com` or `media.discordapp.net` only, at most
+    `UPLOAD_MAX_SIZE`; D07, ADR 0029) and calls `IngestionService.ingest` with `UploadSource.DISCORD`.
 
-- [ ] **18.3 — SR reminder job**
+- [x] **18.3 — SR reminder job**
   - `@Scheduled` daily: DM each Discord-linked user with due cards.
+  - *As built:* `DueReminderTrigger` (`infrastructure.event`, only with the bot token) runs on
+    `mindforge.discord.reminder-cron` (default `0 0 9 * * *`) in `mindforge.discord.reminder-zone` (default `UTC`).
+    `ReminderService` (application) counts due cards per owned knowledge base with `FlashcardService.due` (no model
+    call) for each Discord identity and sends one DM with counts and knowledge base names only, never card text, through
+    the `ReminderSender` port (`JdaReminderSender`). No DM when nothing is due; a failure for one user is logged and the
+    job continues (D10).
 
-- [ ] **18.4 — Unit tests**
+- [x] **18.4 — Unit tests**
   - First contact auto-provisions; non-allowed guilds rejected; user A cannot reach user B's sessions.
+  - *As built:* unit tests `ExternalAccountsTest`, `ExternalIdentityServiceTest`, `ReminderServiceTest`,
+    `DiscordPropertiesTest`, `DueReminderTriggerTest`, `DiscordConfigWiringTest` and, in `unit/discord`,
+    `DiscordAllowlistTest`, `DiscordRateLimiterTest`, `DiscordCommandHandlerTest`, `DiscordListenerTest`, `DiscordBotTest`,
+    `DiscordKnowledgeBasesTest`, `JdaDiscordReplyTest`, `AskCommandTest`, `QuizCommandTest` (another user's session is
+    refused by the real `QuizService`), `DiscordQuizSessionsTest`, `UploadCommandTest`, `DiscordAttachmentsTest`,
+    `JdaReminderSenderTest`; integration tests `ExternalIdentityRepositoryAdapterTest`,
+    `ExternalIdentityProvisioningTest` (first contact, second contact, two concurrent first contacts) and
+    `DiscordConfigTest`. A live smoke test against real Discord is a human follow-up (it needs a token and a test guild).
 
 ### Completion Checklist
 
-- [ ] Commands delegate to the same application services as the web UI.
-- [ ] SR reminder DMs sent to users with due cards.
+- [x] Commands delegate to the same application services as the web UI. (`AskCommandTest`, `QuizCommandTest`,
+  `UploadCommandTest`)
+- [x] SR reminder DMs sent to users with due cards. (`ReminderServiceTest`, `JdaReminderSenderTest`)
 
 ---
 

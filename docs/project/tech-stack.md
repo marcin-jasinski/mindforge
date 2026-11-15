@@ -210,10 +210,11 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 | `poi-ooxml` | DOCX parsing |
 | `jsoup` | HTML → text for fetched articles (ADR 0026) |
 | `httpclient5` | Article fetcher only; its DNS resolver pins the addresses `EgressPolicy` checked (ADR 0025). Other Spring HTTP clients stay on the JDK transport (`spring.http.clients.imperative.factory: jdk`; the OAuth2 token client in `SecurityConfig`) |
+| `JDA` (`net.dv8tion`, 6.7.0) | Discord bot (Phase 18): gateway, slash commands, attachment download and DMs; its types stay in `dev.mindforge.discord`. No voice: `opus-java` and `tink` are excluded. Declared before Spring AI so that its `okhttp-jvm` 5 (also used by the OTLP exporter) comes before Spring AI's `okhttp` 4 on the classpath; both hold package `okhttp3`. It brings Jackson 2 (Boot's managed version) next to the app's Jackson 3 |
 | `cytoscape` (npm) | Interactive page-link graph visualization |
 | `openapi-typescript` (npm) | Frontend type generation from OpenAPI spec |
 
 ---
 
-*Last Updated*: 2026-11-14
+*Last Updated*: 2026-11-15
 *Stack*: Java 21 / Spring Boot 4.1 / Angular 21 / PostgreSQL / Spring AI

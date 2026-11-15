@@ -84,6 +84,15 @@ class ArticleFetcherTest {
         verifyNoInteractions(documents, articles, ingestion);
     }
 
+    @Test
+    void fetchFor_aDiscordDocumentWithTheSwitchOff_fetchesNothing() {
+        givenDocument(UploadSource.DISCORD, ContentBlock.text("https://example.org/a", 0));
+
+        makeFetcher(false, 10).fetchFor(KB, DOCUMENT, USER);
+
+        verifyNoInteractions(documents, articles, ingestion);
+    }
+
     // AC3
 
     @ParameterizedTest
@@ -97,7 +106,7 @@ class ArticleFetcherTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = UploadSource.class, names = {"API", "CLI", "FILE_WATCHER"})
+    @EnumSource(value = UploadSource.class, names = {"API", "CLI", "FILE_WATCHER", "DISCORD"})
     void fetchFor_anUploadedParent_fetchesItsUrls(UploadSource source) {
         givenDocument(source, ContentBlock.text("https://example.org/a", 0));
 

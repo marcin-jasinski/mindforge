@@ -23,17 +23,17 @@ What MindForge is and why it exists: a learning platform where uploaded document
 Development phase status overview. Documents which phases (0–21, including 2b, 3b and 9b) are complete, in progress or planned, with brief summaries of what each delivers, and states plainly which phases the wiki re-cut changed, reused or removed. References the full detail in `project/implementation-plan.md`.
 
 ### Implementation Plan (`project/implementation-plan.md`)
-Complete phase-by-phase breakdown of all development work: phases 0–21, each with detailed task lists, dependencies, completion checklists and rationale. This is the **source of truth** for structuring development work. Phase 14 (observability and tracing) is where work resumes.
+Complete phase-by-phase breakdown of all development work: phases 0–21, each with detailed task lists, dependencies, completion checklists and rationale. This is the **source of truth** for structuring development work. Phase 19 (Slack bot) is where work resumes; Phase 14 (observability and tracing) has only its manual Langfuse check open.
 
 ### Deployment (`project/deployment.md`)
 How MindForge is built and run: the multi-stage Dockerfile, `compose.yml` with PostgreSQL, the local override, the
-configuration a deployment must set, the vision model and image limits, the article fetch settings and egress rules, Railway and Render, graceful shutdown, the one-live-instance ceiling, and the CLI commands (`pipeline`, `quiz`) with their exit codes and trust model.
+configuration a deployment must set, the vision model and image limits, the article fetch settings and egress rules, the Discord bot settings and its separate-account model, Railway and Render, graceful shutdown, the one-live-instance ceiling, and the CLI commands (`pipeline`, `quiz`) with their exit codes and trust model.
 
 ### Tech Stack (`project/tech-stack.md`)
 Technology choices with rationale. Covers backend (Java 21, Spring Boot 4.1, Spring AI, Spring Data JPA/Hibernate, PostgreSQL as the only data store, Caffeine), frontend (Angular standalone SPA), bundle export, infrastructure (Docker, Flyway, Maven), and what was removed (Neo4j, pgvector, object storage). Read before introducing new dependencies or proposing technology changes.
 
 ### Architecture (`project/architecture.md`)
-Navigable summary of the hexagonal architecture — layers, model services, the ingest/article-fetch/query/study/revert/export data flows, the wiki model, history and revert, idempotency and the ingest lease, retrieval, and the guard table ("every rule stated in the prompt and enforced in code"). Read before touching layer boundaries, adding adapters, or working on ingest.
+Navigable summary of the hexagonal architecture — layers, model services, the ingest/article-fetch/Discord-command/reminder/query/study/revert/export data flows, the wiki model, history and revert, idempotency and the ingest lease, retrieval, and the guard table ("every rule stated in the prompt and enforced in code"). Read before touching layer boundaries, adding adapters, or working on ingest.
 
 ---
 
@@ -43,7 +43,7 @@ Navigable summary of the hexagonal architecture — layers, model services, the 
 The ubiquitous language: Knowledge Base, Page, Page Path, Page Type, Concept, Source Summary, Section, Ingest Run, Page Revision, Tombstone, Revert, Supersession, Index, Bundle, Flashcard, Study Scope, Weak Page, and the operations Ingest (including the Conversation Edit), Query and Lint — with terms to avoid. Use these names in code, docs and conversation.
 
 ### Architecture Decision Records (`adr/`)
-One file per load-bearing decision. 0001–0009 cover the original stack; 0010–0018 record the wiki re-cut (knowledge model, taxonomy and path identity, automatic revisions and revert, typed ingest pipeline, Postgres-only wiki storage, runs/lease/no outbox, index retrieval, Lint link insertions, flashcard identity); 0019 records the CLI trust model (a named user, no password); 0020 records that images are described inside the ingest run and their bytes are kept in the content blocks; 0021 records the `AIGateway` image overload (VISION tier only); 0022–0026 record the article fetcher (the egress allowlist of schemes, ports and public addresses; `EgressPolicy` for content- and user-derived URLs only; the fetch after the upload commits from `DocumentAccepted`; HttpClient 5 pinned to checked addresses; jsoup HTML conversion). 0005 and 0006 are superseded by 0016.
+One file per load-bearing decision. 0001–0009 cover the original stack; 0010–0018 record the wiki re-cut (knowledge model, taxonomy and path identity, automatic revisions and revert, typed ingest pipeline, Postgres-only wiki storage, runs/lease/no outbox, index retrieval, Lint link insertions, flashcard identity); 0019 records the CLI trust model (a named user, no password); 0020 records that images are described inside the ingest run and their bytes are kept in the content blocks; 0021 records the `AIGateway` image overload (VISION tier only); 0022–0026 record the article fetcher (the egress allowlist of schemes, ports and public addresses; `EgressPolicy` for content- and user-derived URLs only; the fetch after the upload commits from `DocumentAccepted`; HttpClient 5 pinned to checked addresses; jsoup HTML conversion); 0027–0030 and 0032 record the Discord bot (bot users provisioned with a reserved `.invalid` email; the fail-closed guild and role allowlist; attachments downloaded only from Discord's CDN hosts; the `kb` option and the default knowledge base; ephemeral replies). 0005 and 0006 are superseded by 0016.
 
 ### Wiki Re-cut Map (`wayfinder/okf-wiki-map.md`)
 The decision map that produced the wiki re-cut: destination, every decision with a link to the ticket holding its full reasoning (`wayfinder/tickets/`), and what was ruled out of scope. Read a ticket's `## Answer` when you need the *why* behind an ADR.

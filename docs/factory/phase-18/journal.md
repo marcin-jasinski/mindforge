@@ -1,0 +1,55 @@
+# Journal — phase-18
+
+2026-11-14T20:44:03Z start phase-18 base=ac2851dfb2183a90b238b72accab71aa94fed52e baseline_failures=ApiFlowTest.theLoginRouteIsTheSinglePageApp (gate run without frontend)
+2026-11-14T20:44:13Z tracker start #32
+2026-11-14T20:50:22Z plan planner@opus 11 items, 15 questions (11 open, 0 blockers)
+2026-11-14T20:53:38Z Q01 decided unanimous votes={ pragmatist: A, architect: A, skeptic: A } -> Use A: on first contact, provision a `users` row with the synthetic, non-deliverable email `<platform>-<externalId>@users.invalid` (lowercased platform, e.g. `discord-123456789012345678@users.invalid`), a null password and a null avatar, and link it to the external identity in one transaction. Do not change the `users` schema. `AccountService.register` and `AccountService.signInWithProvider` must 
+2026-11-14T20:53:39Z Q04 decided unanimous votes={ pragmatist: A, architect: A, skeptic: A } -> Use A: fail closed. When the bot token is set, `mindforge.discord.allowed-guild-ids` must be non-empty, or startup fails. `allowed-role-ids` is optional and flat: empty means any member of an allowed guild; non-empty means the member needs at least one listed role. A command from a DM (no guild) is rejected. A command from a guild that is not on the list is rejected with a fixed reply; the bot doe
+2026-11-14T20:55:46Z Q07 decided majority votes={ pragmatist: A, architect: A, skeptic: C } -> Use A: treat Discord's API and its attachment CDN as the operator-configured platform endpoint (ADR 0023 trust tier), and download `/upload` attachment bytes with JDA's own client. Before any byte is read, require the attachment URL to be `https`, default port, no userinfo, with a host in the fixed set `cdn.discordapp.com`, `media.discordapp.net`, and require the declared `Attachment.getSize()` to
+2026-11-14T20:57:20Z Q02 decided unanimous votes={ pragmatist: A, architect: A, skeptic: A } -> Use A: Phase 18 does not link a Discord user to an existing web account. Build `ExternalIdentityRepository` with `findUserId`, `createUserAndLink` and the reminder job's listing method (per Q13/Q10) only. Do not add `link(...)` to the port, the adapter or any command. Record the omission in plan 18.1 "As built" and open a follow-up GitHub issue for a verified linking flow. A Discord user has a sep
+2026-11-14T20:57:21Z Q06 decided judge votes={ pragmatist: A } -> Use A: each `/ask` starts a new Query interaction. The handler calls `QueryService.start(kbId, userId)`, then `QueryService.ask(kbId, userId, interaction.id(), question)` once, and replies with the answer and its cited paths. The Discord adapter keeps no interaction state. 
+2026-11-14T20:57:22Z Q12 decided judge votes={ pragmatist: A } -> Use A: add `UploadSource.DISCORD` to `ArticleFetcher.SCANNED_SOURCES`, so a document uploaded through Discord fetches the external articles it links to exactly like an API, CLI or file-watcher upload, and only when `mindforge.articles.fetch-external-articles` is on (default `false`). `ARTICLE` and `CONVERSATION` stay out of the set. 
+2026-11-14T20:58:58Z Q03 decided majority votes={ pragmatist: A, architect: A, skeptic: E } -> Use A: `/ask`, `/quiz start` and `/upload` each take a required `kb` string option with Discord autocomplete over the caller's own knowledge bases (name shown, `kbId` as value). The handler parses the value as a UUID and calls `KnowledgeBaseService.requireOwner(kbId, userId)` before any work. Provisioning a new bot user (D01) also creates one knowledge base named after the platform ("Discord"), in
+2026-11-14T20:59:29Z Q05 decided unanimous votes={ pragmatist: A, architect: A, skeptic: A } -> Use A: the Discord adapter keeps the caller's current quiz in an in-process Caffeine cache keyed by the resolved internal `userId`, value `(kbId, sessionId)`, `expireAfterWrite(mindforge.study.quiz-session-ttl)`. `/quiz start` acknowledges with `deferReply(true)`, calls `QuizService.start(kbId, userId, scope)` synchronously on the virtual thread, stores the entry (a new start replaces the old one)
+2026-11-14T20:59:30Z Q14 decided unanimous votes={ pragmatist: A, architect: A, skeptic: A } -> Use A: every Discord reply is ephemeral. This includes Query answers, quiz questions and grades, upload results, error and rejection replies, and deferred replies (the ephemeral flag is set on the defer, because it cannot change after the first response). There is no `public` option. Replies never carry reference answers or grounding excerpts. 
+2026-11-14T21:00:49Z Q10 decided unanimous votes={ pragmatist: A1+B1+C1+D1, architect: A1+B1+C1+D1, skeptic: A1+B1+C1+D1 } -> Use A1+B1+C1+D1: run the reminder on a cron `mindforge.discord.reminder-cron` (default `0 0 9 * * *`) in zone `mindforge.discord.reminder-zone` (default `UTC`). For each user with a Discord identity link, list every knowledge base the user owns, count due cards per knowledge base with `FlashcardService.due(kbId, new StudyScope.WholeKnowledgeBase())`, and send one DM that lists only the knowledge b
+2026-11-14T21:00:50Z Q11 decided unanimous votes={ pragmatist: A, architect: A, skeptic: A } -> Use A: limit the bot's model-spending commands (`/ask`, `/quiz start`, `/quiz answer`, `/upload`) per Discord user in the Discord adapter, with a small in-process Caffeine window that copies the `RateLimitInterceptor` counter logic. Use the same settings `mindforge.rate-limits.requests` and `mindforge.rate-limits.window` (default 30 per minute), with a counter separate from the web. Key the counte
+2026-11-14T21:07:51Z tickets ticket-writer@opus 10 tickets P18-01..P18-10, none blocked
+2026-11-14T21:08:20Z tracker tickets #33-#42
+2026-11-14T21:13:02Z P18-01 implement implementer@inherit DONE
+2026-11-14T21:18:49Z P18-01 gate r1 tester@sonnet PASS; review correctness@opus standards@sonnet spec-security@opus; triage accepted=0 deferred=3 -> PASS
+2026-11-14T21:18:49Z P18-01 commit 547afed
+2026-11-14T21:21:52Z P18-02 implement implementer@inherit DONE
+2026-11-14T21:27:14Z P18-02 gate r1 tester@sonnet PASS; reviews 3 approve; triage accepted=0 -> PASS
+2026-11-14T21:27:14Z P18-02 commit 6529963
+2026-11-14T21:32:08Z P18-03 implement implementer@inherit DONE
+2026-11-14T21:37:27Z P18-03 gate r1 tester@sonnet PASS; reviews 3 approve; triage accepted=0 deferred=1 -> PASS
+2026-11-14T21:37:27Z P18-03 commit d5f4ef5
+2026-11-14T21:46:08Z P18-04 implement implementer@inherit DONE
+2026-11-14T21:51:57Z P18-04 gate r1 tester@sonnet PASS (+DiscordBotTest); reviews approve/minor; triage accepted=0 deferred=2 -> PASS
+2026-11-14T21:51:57Z P18-04 commit ae61629
+2026-11-14T21:59:47Z P18-05 implement implementer@inherit DONE
+2026-11-14T22:05:32Z P18-05 gate r1 tester@sonnet PASS; review correctness@opus 1 blocker; triage accepted=1 -> fix
+2026-11-14T22:09:40Z P18-05 fix r1 fixer@inherit C1 DISPUTED; judge@opus ruling invalid; no code change, nothing open -> PASS
+2026-11-14T22:09:40Z P18-05 commit a92a162
+2026-11-14T22:13:25Z P18-06 implement implementer@inherit DONE
+2026-11-14T22:18:52Z P18-06 gate r1 tester@sonnet PASS; reviews 3 approve; accepted=0 -> PASS
+2026-11-14T22:18:52Z P18-06 commit 83cf3af
+2026-11-14T22:23:52Z P18-07 implement implementer@inherit DONE
+2026-11-14T22:29:24Z P18-07 gate r1 tester@sonnet PASS; reviews approve; accepted=0 deferred=1 -> PASS
+2026-11-14T22:29:24Z P18-07 commit b744a71
+2026-11-14T22:37:38Z P18-08 implement implementer@inherit DONE
+2026-11-14T22:43:28Z P18-08 gate r1 tester@sonnet PASS; triage accepted=1 (correctness C1 major) -> fix
+2026-11-14T22:45:56Z P18-08 fix r1 fixer@inherit C1 FIXED
+2026-11-14T22:51:08Z P18-08 gate r2 tester@sonnet PASS; correctness@opus approve; accepted=0 -> PASS
+2026-11-14T22:51:08Z P18-08 commit c5afdc9
+2026-11-15T10:01:09Z P18-09 implement implementer@inherit DONE
+2026-11-15T10:06:43Z P18-09 gate r1 tester@sonnet PASS; reviews 3 approve; accepted=0 -> PASS
+2026-11-15T10:06:43Z P18-09 commit 46a8ebb
+2026-11-15T10:13:20Z P18-10 implement implementer@inherit DONE (docs only; issue #43 opened)
+2026-11-15T10:19:02Z P18-10 gate r1 tester@sonnet PASS; reviews approve; accepted=0 deferred=1 -> PASS
+2026-11-15T10:19:07Z P18-10 commit fe129f5
+2026-11-15T10:22:10Z close holistic reviewer@opus 1 major 1 minor 1 nit
+2026-11-15T10:24:03Z close holistic fix r1 fixer@inherit H1 FIXED, H2 FIXED (docs only); H3 deferred
+2026-11-15T10:25:55Z close scribe@sonnet docs verified (no edits), REPORT.md written
+2026-11-15T10:31:04Z close integration-gate PASS (only baseline ApiFlowTest.theLoginRouteIsTheSinglePageApp failed; 116 IT)
