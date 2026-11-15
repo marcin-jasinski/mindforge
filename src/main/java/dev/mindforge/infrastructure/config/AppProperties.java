@@ -116,6 +116,9 @@ public class AppProperties {
         /** Secret: never logged. The app-level token ({@code xapp-}) that opens the Socket Mode connection. */
         private String appToken;
 
+        /** Teams whose workspace and members may use the bot (ADR 0034); required with the token (fail closed). */
+        private Set<String> allowedTeamIds = Set.of();
+
         @AssertTrue(message = "app-token must be set when bot-token is set")
         public boolean isAppTokenSetWithBotToken() {
             return !hasText(botToken) || hasText(appToken);
@@ -124,6 +127,11 @@ public class AppProperties {
         @AssertTrue(message = "bot-token must be set when app-token is set")
         public boolean isBotTokenSetWithAppToken() {
             return !hasText(appToken) || hasText(botToken);
+        }
+
+        @AssertTrue(message = "allowed-team-ids must not be empty when bot-token is set")
+        public boolean isTeamAllowlistSetWhenEnabled() {
+            return !hasText(botToken) || !allowedTeamIds.isEmpty();
         }
 
         private static boolean hasText(String value) {
@@ -135,6 +143,9 @@ public class AppProperties {
 
         public String getAppToken() { return appToken; }
         public void setAppToken(String appToken) { this.appToken = appToken; }
+
+        public Set<String> getAllowedTeamIds() { return allowedTeamIds; }
+        public void setAllowedTeamIds(Set<String> allowedTeamIds) { this.allowedTeamIds = allowedTeamIds; }
     }
 
     /** Limits on fetching the web articles a document links to (ADR 0025). */

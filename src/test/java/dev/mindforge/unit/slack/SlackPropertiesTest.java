@@ -32,7 +32,8 @@ class SlackPropertiesTest {
     void bothTokens_areBoundAndPass() {
         AppProperties.Slack slack = bind(Map.of(
             "mindforge.slack.bot-token", "xoxb-placeholder",
-            "mindforge.slack.app-token", "xapp-placeholder")).getSlack();
+            "mindforge.slack.app-token", "xapp-placeholder",
+            "mindforge.slack.allowed-team-ids", "T0HOME")).getSlack();
 
         assertThat(slack.getBotToken()).isEqualTo("xoxb-placeholder");
         assertThat(slack.getAppToken()).isEqualTo("xapp-placeholder");
@@ -51,7 +52,9 @@ class SlackPropertiesTest {
     @Test
     void aBotTokenWithoutAnAppToken_failsValidation() {
         assertThatExceptionOfType(BindException.class)
-            .isThrownBy(() -> bind(Map.of("mindforge.slack.bot-token", "xoxb-placeholder")))
+            .isThrownBy(() -> bind(Map.of(
+                "mindforge.slack.bot-token", "xoxb-placeholder",
+                "mindforge.slack.allowed-team-ids", "T0HOME")))
             .satisfies(e -> assertThat(e).rootCause()
                 .hasMessageContaining("app-token must be set when bot-token is set")
                 .hasMessageNotContaining("xoxb-placeholder"));
@@ -66,6 +69,37 @@ class SlackPropertiesTest {
             .satisfies(e -> assertThat(e).rootCause()
                 .hasMessageContaining("bot-token must be set when app-token is set")
                 .hasMessageNotContaining("xapp-placeholder"));
+    }
+
+    // P19-03 AC2
+
+    @Test
+    void allowedTeamIds_bindFromACommaSeparatedList() {
+        AppProperties.Slack slack = bind(Map.of(
+            "mindforge.slack.bot-token", "xoxb-placeholder",
+            "mindforge.slack.app-token", "xapp-placeholder",
+            "mindforge.slack.allowed-team-ids", "T0HOME,T0PARTNER")).getSlack();
+
+        assertThat(slack.getAllowedTeamIds()).containsExactlyInAnyOrder("T0HOME", "T0PARTNER");
+    }
+
+    @Test
+    void tokensWithAnEmptyTeamList_failValidation() {
+        assertThatExceptionOfType(BindException.class)
+            .isThrownBy(() -> bind(Map.of(
+                "mindforge.slack.bot-token", "xoxb-placeholder",
+                "mindforge.slack.app-token", "xapp-placeholder",
+                "mindforge.slack.allowed-team-ids", "")))
+            .satisfies(e -> assertThat(e).rootCause()
+                .hasMessageContaining("allowed-team-ids must not be empty when bot-token is set")
+                .hasMessageNotContaining("xoxb-placeholder"));
+    }
+
+    @Test
+    void noTokenAndNoTeamList_passes() {
+        AppProperties.Slack slack = bind(Map.of("mindforge.slack.allowed-team-ids", "")).getSlack();
+
+        assertThat(slack.getAllowedTeamIds()).isEmpty();
     }
 
     private static AppProperties bind(Map<String, String> properties) {

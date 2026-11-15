@@ -1,7 +1,7 @@
 ---
 id: P19-03
 title: Gate every Slack slash command through the team allowlist, the rate limit and identity resolution
-status: ready
+status: in_progress
 plan_tasks: [19.2, 19.3]
 decisions: [D02, D07]
 depends_on: [P19-01, P19-02]
@@ -143,3 +143,10 @@ adapter as `SlackRateLimiter` (keyed by the Slack user id `String`) and `SlackQu
 - A shared rate-limiter package or any change to Discord code or tests (D07).
 
 ## Notes
+- Decided: reply part limit `BoltSlackReply.MAX_MESSAGE_LENGTH = 4000` chars (Slack's recommended maximum for a message `text`; the hard truncation is 40,000) because it keeps parts readable and leaves room under the `response_url` cap of 5 messages within 30 minutes per command (about 20,000 chars after the ack); the seam does not enforce the 5-message cap.
+- Decided: a text sent before the ack becomes the ephemeral ack body (first part; any further parts go to `response_url`), and after `ack()` every part is posted to `response_url` with `response_type: ephemeral`, because this keeps all rejections inside the 3 s ack and gives one seam for both paths.
+- Decided: `user_team` is read from the Socket Mode JSON body with Gson (Bolt's `SlashCommandPayload` has no such field); absent or JSON null -> `team_id`; present but not a string -> null, which the allowlist rejects, because a malformed caller team must fail closed.
+- Decided: the command executor is a `defaultCandidate = false` bean named `slackCommandExecutor` (`destroyMethod = "close"`) because a plain `ExecutorService` bean would add a second candidate for the existing `Executor runExecutor` injection points.
+- Decided: the rejection log line is `reason=team_not_allowed command=<name>` with no team ids, and a failed `response_url` post is logged (class or status only) and dropped, because no one else can be told.
+- Decided: `SlackCommand.name()` returns the slash-command name with its slash (`/mf-ask`), the form Slack sends in `command` and Bolt routes on.
+- Tester r1 AC map: AC1 SlackAllowlistTest; AC2 SlackPropertiesTest (allowedTeamIds_bind, tokensWithAnEmptyTeamList_fail, noTokenAndNoTeamList_passes); AC3 SlackRateLimiterTest; AC4 SlackCommandHandlerTest (rejection tests); AC5 aCallOverTheRateLimit...; AC6 anAdmittedCall...; AC7 theSameSlackUserFromTwoAllowedTeams...; AC8 unknownCommand/exception tests; AC9 BoltSlackReplyTest; AC10 SlackConfigTest; AC11 SlackAdapterBoundaryTest.

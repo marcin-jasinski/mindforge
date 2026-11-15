@@ -6,18 +6,32 @@ import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.slack.api.bolt.App;
+import com.slack.api.bolt.handler.builtin.SlashCommandHandler;
 import com.slack.api.bolt.socket_mode.SocketModeApp;
 import com.slack.api.socket_mode.SocketModeClient;
+import dev.mindforge.application.service.ExternalIdentityService;
 import dev.mindforge.infrastructure.config.AppProperties;
+import dev.mindforge.slack.SlackAllowlist;
 import dev.mindforge.slack.SlackBot;
+import dev.mindforge.slack.SlackCall;
+import dev.mindforge.slack.SlackCommand;
+import dev.mindforge.slack.SlackCommandHandler;
+import dev.mindforge.slack.SlackCommandListener;
 import dev.mindforge.slack.SlackConfig;
+import dev.mindforge.slack.SlackRateLimiter;
+import dev.mindforge.slack.SlackReply;
 import dev.mindforge.slack.SocketModeAppFactory;
 
 /**
@@ -29,10 +43,12 @@ class SlackConfigTest {
 
     private static final String BOT_TOKEN = "mindforge.slack.bot-token=xoxb-placeholder";
     private static final String APP_TOKEN = "mindforge.slack.app-token=xapp-placeholder";
+    private static final String COMMAND_EXECUTOR = "slackCommandExecutor";
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
         .withUserConfiguration(SlackConfig.class, PropertiesConfig.class)
-        .withPropertyValues("mindforge.security.jwt-secret=test-secret");
+        .withBean(ExternalIdentityService.class, () -> mock(ExternalIdentityService.class))
+        .withPropertyValues("mindforge.security.jwt-secret=test-secret", "mindforge.slack.allowed-team-ids=T0HOME");
 
     // AC3
 
@@ -43,7 +59,11 @@ class SlackConfigTest {
                 .doesNotHaveBean(SlackConfig.class)
                 .doesNotHaveBean(SlackBot.class)
                 .doesNotHaveBean(App.class)
-                .doesNotHaveBean(SocketModeApp.class));
+                .doesNotHaveBean(SocketModeApp.class)
+                .doesNotHaveBean(SlackAllowlist.class)
+                .doesNotHaveBean(SlackRateLimiter.class)
+                .doesNotHaveBean(SlackCommandHandler.class)
+                .doesNotHaveBean(COMMAND_EXECUTOR));
     }
 
     @Test
@@ -53,7 +73,11 @@ class SlackConfigTest {
                 .doesNotHaveBean(SlackConfig.class)
                 .doesNotHaveBean(SlackBot.class)
                 .doesNotHaveBean(App.class)
-                .doesNotHaveBean(SocketModeApp.class));
+                .doesNotHaveBean(SocketModeApp.class)
+                .doesNotHaveBean(SlackAllowlist.class)
+                .doesNotHaveBean(SlackRateLimiter.class)
+                .doesNotHaveBean(SlackCommandHandler.class)
+                .doesNotHaveBean(COMMAND_EXECUTOR));
     }
 
     @Test
@@ -100,6 +124,54 @@ class SlackConfigTest {
                 verify(fake).startAsync();
             });
         verify(fake).close();
+    }
+
+    // P19-03 AC10
+
+    @Test
+    void bothTokensBuildTheGate_andRouteEachSlackCommandByItsName() {
+        runner.withPropertyValues(BOT_TOKEN, APP_TOKEN)
+            .withBean(SlackCommand.class, FakeCommand::new)
+            .run(ctx -> {
+                assertThat(ctx).hasNotFailed()
+                    .hasSingleBean(SlackAllowlist.class)
+                    .hasSingleBean(SlackRateLimiter.class)
+                    .hasSingleBean(SlackCommandHandler.class)
+                    .hasBean(COMMAND_EXECUTOR);
+                assertThat(ctx.getBean(SlackAllowlist.class).teamIds()).containsExactly("T0HOME");
+                @SuppressWarnings("unchecked")
+                Map<Pattern, SlashCommandHandler> routes = (Map<Pattern, SlashCommandHandler>)
+                    ReflectionTestUtils.getField(ctx.getBean(App.class), "slashCommandHandlers");
+                assertThat(routes.entrySet()).singleElement().satisfies(route -> {
+                    assertThat(route.getKey().matcher(FakeCommand.NAME).matches()).isTrue();
+                    assertThat(route.getValue()).isSameAs(ctx.getBean(SlackCommandListener.class));
+                });
+            });
+    }
+
+    @Test
+    void theCommandExecutor_runsOnVirtualThreadsAndIsClosedOnShutdown() throws Exception {
+        ExecutorService[] executor = new ExecutorService[1];
+        runner.withPropertyValues(BOT_TOKEN, APP_TOKEN)
+            .run(ctx -> {
+                executor[0] = ctx.getBean(COMMAND_EXECUTOR, ExecutorService.class);
+                assertThat(executor[0].submit(() -> Thread.currentThread().isVirtual()).get()).isTrue();
+            });
+        assertThat(executor[0].isShutdown()).isTrue();
+    }
+
+    private static final class FakeCommand implements SlackCommand {
+
+        static final String NAME = "/mf-fake";
+
+        @Override
+        public String name() {
+            return NAME;
+        }
+
+        @Override
+        public void handle(SlackCall call, UUID userId, SlackReply reply) {
+        }
     }
 
     @EnableConfigurationProperties(AppProperties.class)

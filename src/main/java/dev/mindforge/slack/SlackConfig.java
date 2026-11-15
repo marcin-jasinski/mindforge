@@ -1,12 +1,17 @@
 package dev.mindforge.slack;
 
 import java.io.IOException;
+import java.time.Clock;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.slack.api.bolt.App;
 import com.slack.api.bolt.AppConfig;
 import com.slack.api.bolt.socket_mode.SocketModeApp;
 import com.slack.api.socket_mode.SocketModeClient;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
@@ -16,6 +21,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.StringUtils;
 
+import dev.mindforge.application.service.ExternalIdentityService;
 import dev.mindforge.infrastructure.config.AppProperties;
 
 /**
@@ -30,11 +36,51 @@ public class SlackConfig {
 
     private static final String BOT_TOKEN = "mindforge.slack.bot-token";
     private static final String APP_TOKEN = "mindforge.slack.app-token";
+    private static final String COMMAND_EXECUTOR = "slackCommandExecutor";
 
-    /** Built without a network call; Bolt checks the bot token when {@link SlackBot} starts the Socket Mode app. */
+    /**
+     * Built without a network call; Bolt checks the bot token when {@link SlackBot} starts the Socket Mode app. Every
+     * {@link SlackCommand} is routed by its name through the one gate.
+     */
     @Bean
-    App slackApp(AppProperties properties) {
-        return new App(AppConfig.builder().singleTeamBotToken(properties.getSlack().getBotToken()).build());
+    App slackApp(AppProperties properties, SlackCommandListener listener, ObjectProvider<SlackCommand> commands) {
+        App app = new App(AppConfig.builder().singleTeamBotToken(properties.getSlack().getBotToken()).build());
+        commands.orderedStream().forEach(command -> app.command(command.name(), listener));
+        return app;
+    }
+
+    @Bean
+    SlackCommandListener slackCommandListener(SlackCommandHandler handler) {
+        return new SlackCommandListener(handler);
+    }
+
+    @Bean
+    SlackCommandHandler slackCommandHandler(SlackAllowlist allowlist, SlackRateLimiter rateLimiter,
+                                            ExternalIdentityService identities,
+                                            ObjectProvider<SlackCommand> commands,
+                                            @Qualifier(COMMAND_EXECUTOR) Executor executor) {
+        return new SlackCommandHandler(allowlist, rateLimiter, identities, commands.orderedStream().toList(),
+            executor);
+    }
+
+    /**
+     * Identity resolution and the command run here, after the ack, because they block on the database and the model.
+     * Not a default candidate, so no other {@code Executor} injection point sees it; closed after the socket closes.
+     */
+    @Bean(name = COMMAND_EXECUTOR, destroyMethod = "close", defaultCandidate = false)
+    ExecutorService slackCommandExecutor() {
+        return Executors.newVirtualThreadPerTaskExecutor();
+    }
+
+    @Bean
+    SlackAllowlist slackAllowlist(AppProperties properties) {
+        return new SlackAllowlist(properties.getSlack().getAllowedTeamIds());
+    }
+
+    @Bean
+    SlackRateLimiter slackRateLimiter(AppProperties properties) {
+        AppProperties.RateLimits limits = properties.getRateLimits();
+        return new SlackRateLimiter(limits.getRequests(), limits.getWindow(), Clock.systemUTC());
     }
 
     /** {@link SlackBot} starts and closes it. */
