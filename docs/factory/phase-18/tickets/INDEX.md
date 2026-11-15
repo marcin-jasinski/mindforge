@@ -11,7 +11,7 @@
 | P18-07 | Run a Quiz Session from Discord with /quiz start and /quiz answer over QuizService | P18-05 | M | done |
 | P18-08 | Upload a Document from Discord with /upload, downloading the attachment only from Discord's CDN hosts | P18-05 | M | done |
 | P18-09 | Send a daily DM to each Discord-linked user who has due Flashcards | P18-01, P18-04 | M | done |
-| P18-10 | Record the Discord bot, its settings and the account model in the docs, open the linking follow-up, and close Phase 18 | P18-01..P18-09 | S | ready |
+| P18-10 | Record the Discord bot, its settings and the account model in the docs, open the linking follow-up, and close Phase 18 | P18-01..P18-09 | S | done |
 
 Parallel after their dependencies: P18-04 with P18-01..P18-03; P18-06, P18-07, P18-08 and P18-09 with each other.
 

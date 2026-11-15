@@ -103,8 +103,10 @@ daily direct message about due flashcards. The bot is off unless the token is se
   allowed role gets a fixed "not available" reply. The bot sends DMs only for the reminders.
 - The bot uses the same rate limit as the web (`RATE_LIMIT_REQUESTS` per `RATE_LIMIT_WINDOW`, default 30 per minute)
   per Discord user, with a counter of its own. Every command counts.
-- Every reply is ephemeral: only the caller sees it. The history is in the web app
-  ([ADR-0032](../adr/0032-discord-replies-are-ephemeral.md)).
+- Every reply is ephemeral: only the caller sees it
+  ([ADR-0032](../adr/0032-discord-replies-are-ephemeral.md)). The Discord account cannot sign in to the web (see
+  **Accounts** below), so the ephemeral reply is the only copy the user sees until account linking
+  ([#43](https://github.com/marcin-jasinski/mindforge/issues/43)) exists.
 - `/ask`, `/quiz start` and `/upload` take a `kb` option with the caller's knowledge bases
   ([ADR-0030](../adr/0030-discord-commands-name-the-knowledge-base-and-provisioning-creates-a-default-one.md)).
 - Each `/ask` is a one-turn Query interaction: a second `/ask` does not see the first one.

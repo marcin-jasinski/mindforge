@@ -18,8 +18,11 @@ a posted message cannot be recalled. Replies never carry reference answers or gr
 
 ## Consequences
 
-- Replies are not in the channel history; each `/ask` is a Query interaction (D06), so the answer stays in the web
-  Query history.
+- Replies are not in the channel history. Each `/ask` is a Query interaction (D06), but it belongs to the Discord
+  user's own account (ADR 0027), which cannot sign in to the web. Until account linking
+  ([#43](https://github.com/marcin-jasinski/mindforge/issues/43)) exists, the ephemeral reply is the only copy the
+  Discord user sees. D14 says the loss of channel history "costs little" because the web history keeps the answer;
+  that trade-off is true only after #43.
 - One reply helper in the Discord adapter sets the flag; handlers do not reply through JDA directly.
 - A later need for shared answers is a new decision with an explicit per-use opt-in, never a public default.
 - Platform bots in Phase 19 (Slack) follow the same rule with the platform's equivalent of an ephemeral reply.

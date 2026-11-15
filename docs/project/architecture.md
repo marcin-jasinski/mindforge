@@ -77,7 +77,7 @@ composition roots.
   `RunWorkerTriggers`, `ArticleFetchTriggers`, `DueReminderTrigger` (the daily reminder cron; only with the Discord
   bot token)
 - `web/` — the article fetch adapter: `HttpArticleSource` (the `ArticleSource` port; HttpClient 5 pinned to the
-  addresses `EgressPolicy` checked, ADR 0025) and `HtmlArticleConverter` (jsoup, ADR 0026). Apart from operator-configured endpoints allowed by exact path in the guard test (today the OAuth2 token client in `SecurityConfig`), it is the only place in
+  addresses `EgressPolicy` checked, ADR 0025) and `HtmlArticleConverter` (jsoup, ADR 0026). Apart from operator-configured endpoints allowed by exact path in the guard test (today the OAuth2 token client in `SecurityConfig` and the Discord attachment download in `DiscordAttachments`, ADR 0029), it is the only place in
   `src/main` with HTTP-client code (`OutboundHttpGuardTest`)
 - `export/` — `BundleExporter` (zip, SnakeYAML frontmatter), `BundleConformanceValidator`
 - `security/` — upload sanitizer, egress policy

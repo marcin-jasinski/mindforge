@@ -1,13 +1,13 @@
 ---
 id: P18-10
 title: Record the Discord bot, its settings and the account model in the docs, open the linking follow-up, and close Phase 18
-status: in_progress
+status: done
 plan_tasks: [18.1, 18.2, 18.3, 18.4]
 decisions: [D02, D12]
 depends_on: [P18-01, P18-02, P18-03, P18-04, P18-05, P18-06, P18-07, P18-08, P18-09]
 size: S
 issue: 42
-commit:
+commit: fe129f5
 fix_rounds: 0
 ---
 ## Goal
