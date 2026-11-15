@@ -1,7 +1,7 @@
 ---
 id: P18-10
 title: Record the Discord bot, its settings and the account model in the docs, open the linking follow-up, and close Phase 18
-status: ready
+status: in_progress
 plan_tasks: [18.1, 18.2, 18.3, 18.4]
 decisions: [D02, D12]
 depends_on: [P18-01, P18-02, P18-03, P18-04, P18-05, P18-06, P18-07, P18-08, P18-09]
@@ -59,16 +59,16 @@ Implementation notes:
 `mindforge.articles.fetch-external-articles` is on.
 
 ## Acceptance criteria
-- [ ] AC1: Plan tasks 18.1–18.4 and the Phase 18 heading are `[x]` with "As built" notes naming the real classes, the
+- [x] AC1: Plan tasks 18.1–18.4 and the Phase 18 heading are `[x]` with "As built" notes naming the real classes, the
   V8 migration, the decisions/ADRs, and the D02 omission text with the issue number (or placeholder).
-- [ ] AC2: `roadmap.md` marks Phase 18 done, sets "Next" to Phase 19, and lists account linking as an open follow-up and
+- [x] AC2: `roadmap.md` marks Phase 18 done, sets "Next" to Phase 19, and lists account linking as an open follow-up and
   the live Discord smoke test as a human follow-up.
-- [ ] AC3: `deployment.md` and `env.example` list every setting above with defaults and the behaviour notes above,
+- [x] AC3: `deployment.md` and `env.example` list every setting above with defaults and the behaviour notes above,
   including the separate-account note; the token is marked secret.
-- [ ] AC4: `architecture.md` describes the Discord driving adapter and its data flow; `tech-stack.md` lists JDA;
+- [x] AC4: `architecture.md` describes the Discord driving adapter and its data flow; `tech-stack.md` lists JDA;
   `hexagonal.md` lists `dev.mindforge.discord` as an adapter package; the article-fetch docs mention Discord uploads.
-- [ ] AC5: CLAUDE.md "Project State" says work resumes at Phase 19; no other CLAUDE.md line changes.
-- [ ] AC6: `docs/INDEX.md` is updated only if a listed file's description changed; all links resolve.
+- [x] AC5: CLAUDE.md "Project State" says work resumes at Phase 19; no other CLAUDE.md line changes.
+- [x] AC6: `docs/INDEX.md` is updated only if a listed file's description changed; all links resolve.
 
 ## Test plan
 - Docs only: review. The full gate (`mvn -B verify -DskipFrontend=true`) must stay green (no code change).
@@ -82,3 +82,9 @@ Implementation notes:
 - CLAUDE.md's layer table (human edit). New ADRs (already written). Any code change.
 
 ## Notes
+Decided: the D02 follow-up is issue #43 ("Link a chat-platform identity to an existing web account"); the repo had no `needs-triage` label, so the implementer created it (the canonical string of `docs/agents/triage-labels.md`) before it opened the issue.
+Decided: roadmap "Next" is Phase 19 and keeps Phase 14's open manual Langfuse check as a note, because Phase 14 is still `[ ]`; CLAUDE.md "Project State" and the INDEX plan entry say the same.
+Decided: `env.example` quotes the cron value (`"0 0 9 * * *"`) because an unquoted value with spaces breaks a shell `source` of `.env`.
+
+### Deferred findings
+- correctness/C1 minor 0.7 docs/project/deployment.md:85: The new bullet says a Discord upload is scanned for article URLs "like an API, CLI or file-watcher upload", but a CLI upload is never scanned, so the comparison is wrong for CLI.

@@ -8,9 +8,12 @@
 - **Version**: 1.1.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete; 15 (CLI Entry Points), 16 (Image Analysis), 17 (Article Fetcher)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete; 15 (CLI Entry Points), 16 (Image Analysis), 17 (Article Fetcher), 18 (Discord Bot)
 - **In Progress**: None
-- **Next**: Phase 14 (Observability & Tracing; only its manual Langfuse check is open), then Phase 18 (Discord Bot)
+- **Next**: Phase 19 (Slack Bot); Phase 14 (Observability & Tracing) has only its manual Langfuse check open
+- **Open follow-ups**: account linking (bot ↔ web; a Discord user has a separate account, ADR 0027,
+  [#43](https://github.com/marcin-jasinski/mindforge/issues/43))
+- **Human follow-ups**: a live smoke test of the Discord bot against real Discord (needs a bot token and a test guild)
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -114,7 +117,7 @@ Query, the Angular SPA and Docker deployment.
 
 ### Delivery Channels (Phases 18–19)
 
-- [ ] **Phase 18 — Discord Bot** *(changed)* — `/ask`, `/quiz`, `/upload`; guild allowlist; identity
+- [x] **Phase 18 — Discord Bot** *(changed)* — `/ask`, `/quiz`, `/upload`; guild allowlist; identity
   resolution; SR reminder DMs. `[Effort: M]`
 - [ ] **Phase 19 — Slack Bot** *(changed)* — `/mf-ask`, `/mf-quiz`, file upload; workspace allowlist.
   `[Effort: M]`
@@ -149,6 +152,6 @@ Query, the Angular SPA and Docker deployment.
 
 ---
 
-*Last Updated*: 2026-11-14
+*Last Updated*: 2026-11-15
 *Effort Scale*: `S` 2–3 days | `M` 1 week | `L` 2+ weeks
 *Reference*: [implementation-plan.md](./implementation-plan.md)

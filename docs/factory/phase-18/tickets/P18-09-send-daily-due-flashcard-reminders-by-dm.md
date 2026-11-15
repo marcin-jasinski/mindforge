@@ -1,13 +1,13 @@
 ---
 id: P18-09
 title: Send a daily DM to each Discord-linked user who has due Flashcards
-status: in_progress
+status: done
 plan_tasks: [18.3]
 decisions: [D10]
 depends_on: [P18-01, P18-04]
 size: M
 issue: 41
-commit:
+commit: 46a8ebb
 fix_rounds: 0
 ---
 ## Goal
