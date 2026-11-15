@@ -1,12 +1,12 @@
 ---
 id: P19-07
 title: Ingest a file sent to the bot in a direct message as a Slack upload
-status: in_progress
+status: done
 plan_tasks: [19.1, 19.2, 19.3]
 decisions: [D04]
 depends_on: [P19-04, P19-06]
 size: L
-commit:
+commit: 2bf02ec
 fix_rounds: 0
 issue: 51
 ---
@@ -70,27 +70,27 @@ DM.
   knowledge base refused; a redelivered event gives no second run (ingest dedup).
 
 ## Acceptance criteria
-- [ ] AC1: `UploadSource.SLACK` is appended after `DISCORD`; `ArticleFetcher.SCANNED_SOURCES` contains `SLACK`;
+- [x] AC1: `UploadSource.SLACK` is appended after `DISCORD`; `ArticleFetcher.SCANNED_SOURCES` contains `SLACK`;
   `ARTICLE` and `CONVERSATION` stay out.
-- [ ] AC2: Only a `message` event with `channel_type == "im"`, subtype `file_share` and no `bot_id` is handled; a
+- [x] AC2: Only a `message` event with `channel_type == "im"`, subtype `file_share` and no `bot_id` is handled; a
   channel file, a bot message and a DM without a file are ignored silently (no reply, no service call).
-- [ ] AC3: The event is admitted only when `SlackAllowlist.admits(event team, event user_team)`; otherwise the DM reply
+- [x] AC3: The event is admitted only when `SlackAllowlist.admits(event team, event user_team)`; otherwise the DM reply
   is "This bot is not available here." and neither the rate limiter, `ExternalIdentityService`, `SlackFiles` nor
   `IngestionService` is called.
-- [ ] AC4: Over the rate limit, the reply is "Rate limit reached. Try again in N s." and nothing is resolved or
+- [x] AC4: Over the rate limit, the reply is "Rate limit reached. Try again in N s." and nothing is resolved or
   downloaded; each upload counts once.
-- [ ] AC5: Identity resolution uses `slackExternalId(user_team, user)`; with zero or several knowledge bases, or a
+- [x] AC5: Identity resolution uses `slackExternalId(user_team, user)`; with zero or several knowledge bases, or a
   failed `requireOwner`, the fixed knowledge-base refusal is sent and nothing is downloaded.
-- [ ] AC6: Two or more files → "Send one file per message."; `SlackUploadText.parse` accepts `lesson_id=<value>` and
+- [x] AC6: Two or more files → "Send one file per message."; `SlackUploadText.parse` accepts `lesson_id=<value>` and
   `new_version` (case-insensitive keys) and refuses an unknown token or an empty `lesson_id=` with a fixed text naming
   the grammar.
-- [ ] AC7: A valid upload calls `IngestionService.ingest(new DocumentUpload(kbId, userId, UploadSource.SLACK, name,
+- [x] AC7: A valid upload calls `IngestionService.ingest(new DocumentUpload(kbId, userId, UploadSource.SLACK, name,
   mediaType, bytes, lessonId, newVersion))` with the bare media type, and replies with the queued text.
-- [ ] AC8: Too large (declared or read), not from Slack, download failure, lesson exists, unknown lesson, bad lesson
+- [x] AC8: Too large (declared or read), not from Slack, download failure, lesson exists, unknown lesson, bad lesson
   identity, rejected upload and busy knowledge base each get their fixed text; no exception message is sent.
-- [ ] AC9: A redelivered event for the same file returns the existing document and starts no second ingest run
+- [x] AC9: A redelivered event for the same file returns the existing document and starts no second ingest run
   (ingest dedup), and the handler does not fail.
-- [ ] AC10: `SlackConfig` registers the message handler; `SlackConfigTest` still shows no Slack bean without tokens or
+- [x] AC10: `SlackConfig` registers the message handler; `SlackConfigTest` still shows no Slack bean without tokens or
   in `cli`; `OutboundHttpGuardTest` stays green.
 
 ## Test plan
