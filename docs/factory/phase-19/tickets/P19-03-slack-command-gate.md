@@ -1,12 +1,12 @@
 ---
 id: P19-03
 title: Gate every Slack slash command through the team allowlist, the rate limit and identity resolution
-status: in_progress
+status: done
 plan_tasks: [19.2, 19.3]
 decisions: [D02, D07]
 depends_on: [P19-01, P19-02]
 size: L
-commit:
+commit: 712abae
 fix_rounds: 0
 issue: 47
 ---
@@ -85,31 +85,31 @@ adapter as `SlackRateLimiter` (keyed by the Slack user id `String`) and `SlackQu
 - No import of `dev.mindforge.discord` anywhere under `dev.mindforge.slack` (main or test).
 
 ## Acceptance criteria
-- [ ] AC1: `SlackAllowlist.admits(workspace, caller)` is true only when both ids are non-blank and listed; a DM (same
+- [x] AC1: `SlackAllowlist.admits(workspace, caller)` is true only when both ids are non-blank and listed; a DM (same
   team in both) is admitted; a foreign caller team, a null or blank caller team, or an unlisted workspace is rejected.
-- [ ] AC2: `AppProperties.Slack.allowedTeamIds` binds from `mindforge.slack.allowed-team-ids`
+- [x] AC2: `AppProperties.Slack.allowedTeamIds` binds from `mindforge.slack.allowed-team-ids`
   (`${SLACK_ALLOWED_TEAM_IDS:}` in `application.yml`); validation fails with "allowed-team-ids must not be empty when
   bot-token is set" when the bot token is set and the list is empty; passes without a token.
-- [ ] AC3: `SlackRateLimiter` allows up to the limit per Slack user id per window, then returns retry seconds >= 1
+- [x] AC3: `SlackRateLimiter` allows up to the limit per Slack user id per window, then returns retry seconds >= 1
   (rounded up); a new window resets; two users have separate counters.
-- [ ] AC4: `SlackCommandHandler` rejects a non-admitted call with the fixed text "This bot is not available here." and
+- [x] AC4: `SlackCommandHandler` rejects a non-admitted call with the fixed text "This bot is not available here." and
   then calls neither the rate limiter nor `ExternalIdentityService` (nothing is provisioned); the log line has a reason
   code and the reply names no team.
-- [ ] AC5: Over the rate limit, the reply is "Rate limit reached. Try again in N s." and `ExternalIdentityService` is
+- [x] AC5: Over the rate limit, the reply is "Rate limit reached. Try again in N s." and `ExternalIdentityService` is
   not called.
-- [ ] AC6: An admitted call is acknowledged before identity resolution; identity resolution calls
+- [x] AC6: An admitted call is acknowledged before identity resolution; identity resolution calls
   `resolve(ExternalPlatform.SLACK, ExternalAccounts.slackExternalId(callerTeam, userId), displayName)` with the caller
   team the allowlist checked (`user_team` when present, else `team_id`); then the matching `SlackCommand` runs with the
   resolved internal user id. First contact provisions (through the real service contract).
-- [ ] AC7: The same Slack user id from two allowed caller teams resolves with two different external ids.
-- [ ] AC8: An unknown command name, or an unexpected exception from resolution or a command, gets the fixed text
+- [x] AC7: The same Slack user id from two allowed caller teams resolves with two different external ids.
+- [x] AC8: An unknown command name, or an unexpected exception from resolution or a command, gets the fixed text
   "Something went wrong. Try again later." and no exception message reaches Slack.
-- [ ] AC9: Every reply goes through the one `SlackReply` seam and is ephemeral (`response_type: ephemeral` or the
+- [x] AC9: Every reply goes through the one `SlackReply` seam and is ephemeral (`response_type: ephemeral` or the
   ack body); long text is split into ordered parts under the fixed limit.
-- [ ] AC10: `SlackConfig` builds `SlackAllowlist`, `SlackRateLimiter`, `SlackCommandHandler` and registers each
+- [x] AC10: `SlackConfig` builds `SlackAllowlist`, `SlackRateLimiter`, `SlackCommandHandler` and registers each
   `SlackCommand` bean on the Bolt `App` by its slash-command name; slow work runs on a virtual-thread executor closed
   on shutdown. Without tokens or in `cli`, none of these beans exists (extend `SlackConfigTest`).
-- [ ] AC11: No class under `dev.mindforge.slack` (main or test) imports `dev.mindforge.discord`; no Bolt type is used
+- [x] AC11: No class under `dev.mindforge.slack` (main or test) imports `dev.mindforge.discord`; no Bolt type is used
   in `SlackAllowlist`, `SlackRateLimiter` or the call record.
 
 ## Test plan
