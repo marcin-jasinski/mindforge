@@ -12,7 +12,7 @@ P19-05 and P19-07 can run in parallel after their dependencies.
 | [P19-05](P19-05-slack-quiz-command.md) | Run a Quiz Session through /mf-quiz start and /mf-quiz answer | P19-04 | M | done |
 | [P19-06](P19-06-slack-file-downloader.md) | Download a Slack file only from files.slack.com with the bot token and a capped read | P19-02 | S | done |
 | [P19-07](P19-07-slack-dm-upload-handler.md) | Ingest a file sent to the bot in a direct message as a Slack upload | P19-04, P19-06 | L | done |
-| [P19-08](P19-08-slack-docs-and-close-out.md) | Record the Slack bot, its settings and its ADRs in the docs, open the live-check follow-up, and close Phase 19 | P19-01..P19-07 | S | ready |
+| [P19-08](P19-08-slack-docs-and-close-out.md) | Record the Slack bot, its settings and its ADRs in the docs, open the live-check follow-up, and close Phase 19 | P19-01..P19-07 | S | done |
 
 ## Coverage
 

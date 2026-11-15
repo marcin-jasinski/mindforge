@@ -1,12 +1,12 @@
 ---
 id: P19-08
 title: Record the Slack bot, its settings and its ADRs in the docs, open the live-check follow-up, and close Phase 19
-status: in_progress
+status: done
 plan_tasks: [19.1, 19.2, 19.3]
 decisions: [D16, D06]
 depends_on: [P19-01, P19-02, P19-03, P19-04, P19-05, P19-06, P19-07]
 size: S
-commit:
+commit: f776810
 fix_rounds: 0
 issue: 52
 ---
@@ -72,23 +72,23 @@ in the implementation-plan.md Phase 19 "As built" notes, in deployment.md, and a
 Also from D01: link ADR 0033 from `docs/INDEX.md`; from D03: link 0033–0037 in `docs/INDEX.md`.
 
 ## Acceptance criteria
-- [ ] AC1: `implementation-plan.md` Phase 19 heading, tasks 19.1–19.3 and both checklist items are `[x]`, each task
+- [x] AC1: `implementation-plan.md` Phase 19 heading, tasks 19.1–19.3 and both checklist items are `[x]`, each task
   with an "As built" note that names the classes and tests, and the note "A live smoke test against real Slack is a
   human follow-up." with the issue number.
-- [ ] AC2: `roadmap.md` marks Phase 19 done and its "Next" line names Phase 20; CLAUDE.md "Project State" says work
+- [x] AC2: `roadmap.md` marks Phase 19 done and its "Next" line names Phase 20; CLAUDE.md "Project State" says work
   resumes at Phase 20 (no other CLAUDE.md change).
-- [ ] AC3: `docs/INDEX.md` ADR paragraph links 0033–0037 with one-phrase summaries; no doc names the Socket Mode ADR
+- [x] AC3: `docs/INDEX.md` ADR paragraph links 0033–0037 with one-phrase summaries; no doc names the Socket Mode ADR
   as 0033.
-- [ ] AC4: `deployment.md` has a "Slack bot" section with the settings table (`SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`,
+- [x] AC4: `deployment.md` has a "Slack bot" section with the settings table (`SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`,
   `SLACK_ALLOWED_TEAM_IDS`), the Slack app setup (Socket Mode, scopes, event, App Home), commands, upload grammar,
   account model, rate limit, ephemeral replies and the "live test is not automated" sentence; `env.example` has the
   matching Slack block with blank secrets and SECRET markers.
-- [ ] AC5: `architecture.md` has the as-built Slack adapter row, the command data flow, the trust boundary and the
+- [x] AC5: `architecture.md` has the as-built Slack adapter row, the command data flow, the trust boundary and the
   external systems row; `hexagonal.md` and `architecture.md` adapter lists include `slack`; `tech-stack.md` has the Bolt
   row citing ADR 0037.
-- [ ] AC6: A GitHub issue for the live Socket Mode smoke test exists with label `ready-for-human`, and its number is in
+- [x] AC6: A GitHub issue for the live Socket Mode smoke test exists with label `ready-for-human`, and its number is in
   the plan's As built note.
-- [ ] AC7: No new ADR file is added; the gate `mvn -B verify -DskipFrontend=true` passes (known baseline failure
+- [x] AC7: No new ADR file is added; the gate `mvn -B verify -DskipFrontend=true` passes (known baseline failure
   `ApiFlowTest.theLoginRouteIsTheSinglePageApp` excepted).
 
 ## Test plan
