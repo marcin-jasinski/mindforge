@@ -108,7 +108,7 @@ These apply to every code change regardless of scope.
 
 ## Project State
 
-See `docs/project/roadmap.md` for which phases (0–21, including 2b, 3b and 9b) are complete and what work remains. Phases 15 (CLI entry points), 16 (image analysis), 17 (article fetcher), 18 (Discord bot) and 19 (Slack bot) are complete. Work resumes at Phase 20 (security hardening); Phase 14 (observability and tracing) has only its manual Langfuse check open.
+See `docs/project/roadmap.md` for which phases (0–21, including 2b, 3b and 9b) are complete and what work remains. Phases 15 (CLI entry points), 16 (image analysis), 17 (article fetcher), 18 (Discord bot), 19 (Slack bot) and 20 (security hardening) are complete. Work resumes at Phase 21 (end-to-end testing and CI/CD); Phase 14 (observability and tracing) has only its manual Langfuse check open.
 See `docs/project/implementation-plan.md` for the full phase-by-phase task breakdown.
 
 ---

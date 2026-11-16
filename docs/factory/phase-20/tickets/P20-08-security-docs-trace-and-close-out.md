@@ -1,7 +1,7 @@
 ---
 id: P20-08
 title: Trace every web-security requirement to code and tests, document the new settings and ADRs, and close Phase 20
-status: ready
+status: in_progress
 plan_tasks: [20.1, 20.2, 20.3, 20.4]
 decisions: [D11]
 depends_on: [P20-01, P20-02, P20-03, P20-04, P20-05, P20-06, P20-07]
@@ -127,3 +127,14 @@ change `docs/INDEX.md` for the trace.
 - Any production code change.
 
 ## Notes
+- Decided: the client address section's "Enforced by:" line names the setting `server.forward-headers-strategy: native` next to `AuthRateLimitInterceptor`, because Tomcat's `RemoteIpValve` is not a class in `src/` (AC1 needs every named class in `src/`).
+- Decided: `web-security.md` gains three sections (Auth Rate Limit, Client Address, Account Enumeration) and one tenancy paragraph in API Authorization (kbId binding, foreign id `404`, dedup per knowledge base), because 20.1 names these requirements and D11 asks for a trace of each.
+- Decided: `docs/INDEX.md` also moves the "where work resumes" line to Phase 21 and adds the new deployment topics to the Deployment entry, as the P19-08 close-out did; the trace itself adds nothing to INDEX.
+- Decided: issue #63 (Phase 21 scheduled dependency-check job) has label `ready-for-human` next to `factory`, because it needs a human to set the `NVD_API_KEY` repository secret.
+- Follow-up issues: #63 (Phase 21 scheduled + `workflow_dispatch` dependency-check job, `NVD_API_KEY` secret), #64 (distributed per-account password guessing, `ready-for-human`).
+- Open human item (not decided, not edited): supersede ADR 0008 (Vercel). `architecture.md` and `tech-stack.md` keep their Vercel text until then.
+- Trace check: every class and test method named in an "Enforced by:" line was matched against `src/` with grep (none missing). Fast check `mvn -q -o test -DskipFrontend=true -Djacoco.skip=true`: exit 0.
+
+### Deferred findings
+- correctness/C1 nit 0.7 docs/standards/security/web-security.md:434: The doc says "the fixed `files.slack.com` hosts" (plural), but `SlackFiles` admits exactly one host.
+- correctness/C2 nit 0.6 docs/standards/security/web-security.md:430: The doc lists `DiscordAttachments` and `SlackFiles` among the "operator-configured endpoints" in the guard-test allowlist, but these download from fixed vendor hosts, not from operator configuration.

@@ -8,11 +8,14 @@
 - **Version**: 1.1.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete; 15 (CLI Entry Points), 16 (Image Analysis), 17 (Article Fetcher), 18 (Discord Bot), 19 (Slack Bot)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete; 15 (CLI Entry Points), 16 (Image Analysis), 17 (Article Fetcher), 18 (Discord Bot), 19 (Slack Bot), 20 (Security Hardening)
 - **In Progress**: None
-- **Next**: Phase 20 (Security Hardening); Phase 14 (Observability & Tracing) has only its manual Langfuse check open
+- **Next**: Phase 21 (E2E Testing & CI/CD); Phase 14 (Observability & Tracing) has only its manual Langfuse check open
 - **Open follow-ups**: account linking (bot ↔ web; a Discord user has a separate account, ADR 0027,
-  [#43](https://github.com/marcin-jasinski/mindforge/issues/43))
+  [#43](https://github.com/marcin-jasinski/mindforge/issues/43)); a scheduled OWASP dependency-check job with an
+  `NVD_API_KEY` secret ([#63](https://github.com/marcin-jasinski/mindforge/issues/63)); per-account password guessing
+  from many addresses is not slowed by the per-address sign-in limit
+  ([#64](https://github.com/marcin-jasinski/mindforge/issues/64))
 - **Human follow-ups**: a live smoke test of the Discord bot against real Discord (needs a bot token and a test guild);
   a live Socket Mode smoke test of the Slack bot against a real Slack workspace
   ([#53](https://github.com/marcin-jasinski/mindforge/issues/53))
@@ -126,7 +129,7 @@ Query, the Angular SPA and Docker deployment.
 
 ### Quality Gates (Phases 20–21)
 
-- [ ] **Phase 20 — Security Hardening** — Checklist pass against `web-security.md` (now including
+- [x] **Phase 20 — Security Hardening** — Checklist pass against `web-security.md` (now including
   export and tenancy rules), OWASP dependency check, auth rate limiting. `[Effort: S]`
 - [ ] **Phase 21 — E2E Testing & CI/CD** *(changed)* — GitHub Actions, JaCoCo gate, a Playwright journey
   from upload through pages, study and export, and ArchUnit layer rules. `[Effort: M]`

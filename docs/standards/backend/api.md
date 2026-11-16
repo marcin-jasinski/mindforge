@@ -24,6 +24,8 @@ Return appropriate HTTP status codes (200, 201, 400, 404, 500).
 ### Rate Limit Headers
 Endpoints that spend model calls (Query turns and edits, Quiz start, upload and retry, Lint) are limited per user, configured under `mindforge.rate-limits`. They return `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`; an exhausted allowance is `429` with `Retry-After` and code `RATE_LIMITED`.
 
+Sign-in and sign-up (`POST /api/v1/auth/login` and `POST /api/v1/auth/register`) share one allowance per client address, not per user, configured under `mindforge.rate-limits.auth` (`requests`, `window`; ADR 0038). They return the same `RateLimit-*` headers, and an exhausted allowance is the same `429` with `Retry-After` and code `RATE_LIMITED`.
+
 ---
 
 ## Spring MVC Conventions

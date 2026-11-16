@@ -1703,31 +1703,70 @@ identity resolution.
 
 ---
 
-## [ ] Phase 20 — Security Hardening
+## [x] Phase 20 — Security Hardening
+
+> **As built:** sign-in and sign-up have their own rate limit per client address (ADR 0038), the client address comes
+> from Tomcat's remote IP valve with private-range proxies (ADR 0039), password sign-in always runs one hash
+> comparison (ADR 0040), and CORS admits one origin from the environment and none by default (ADR 0041). Every
+> `web-security.md` section ends with an "Enforced by:" line that names the classes and the tests. The OWASP
+> dependency check is declared in `pom.xml` and runs only by its goal. Decisions: `docs/factory/phase-20/decisions/`
+> D01–D07, D11, D14. Follow-ups: a scheduled dependency-check job for Phase 21
+> ([#63](https://github.com/marcin-jasinski/mindforge/issues/63)); per-account guessing from many addresses
+> ([#64](https://github.com/marcin-jasinski/mindforge/issues/64)). Open for the human: superseding ADR 0008 (Vercel).
 
 **Goal:** Systematic security checklist pass against `web-security.md`, OWASP dependency audit, and rate limiting.
 
 ### Tasks
 
-- [ ] **20.1 — Security checklist pass**
+- [x] **20.1 — Security checklist pass**
   - Verify each requirement in `docs/standards/security/web-security.md`, including: the exporter never
     reads study tables or run internals; every `WikiStore` query binds `kbId`; dedup is per knowledge base.
   - Fix any gaps found.
+  - *As built:* the trace is in `web-security.md`: one "Enforced by:" line per section (D11); a requirement with no
+    test says "no test" (the BCrypt cost of 12, OAuth state validation). `WikiStoreAdapterTest` proves that every read
+    with another knowledge base's id returns nothing and that the owner's id returns the rows;
+    `ExportReadsNoStudyDataGuardTest` proves that the export code names no study or interaction type and that the run
+    log query selects no run internal; `DocumentRepositoryAdapterTest.sameHashInTwoKnowledgeBases_isNotADuplicateAcrossThem`
+    covers dedup. Gaps fixed: `AccountService` now compares one hash on every sign-in (D04, ADR 0040);
+    `SecurityConfig.corsConfigurationSource` admits only `CORS_ALLOWED_ORIGIN`, none when blank, and refuses `*` or a
+    list (D05, ADR 0041); `RevertService.revert` answers `404` for a run id that the knowledge base does not have
+    (D14). `web-security.md` now has the Slack downloader (`SlackFiles`), the auth rate limit, the client address and
+    the account enumeration text.
 
-- [ ] **20.2 — OWASP dependency check**
+- [x] **20.2 — OWASP dependency check**
   - `dependency-check-maven`; fix or suppress any `CVSS >= 7.0` findings.
+  - *As built:* `dependency-check-maven` 12.2.2 in `pom.xml` with `failBuildOnCVSS` 7, `dependency-check-suppressions.xml`,
+    the key from `NVD_API_KEY` when it is set, the CISA known-exploited list from its GitHub copy, and the OSS Index and
+    Node analyzers off (D06, D07). No execution is bound to a phase. The first run found 10 libraries with CVSS 7.0 or
+    higher. The Spring Boot parent 4.1.0 → 4.1.2 and Spring AI 2.0.0 → 2.0.2 fixed all except Kotlin. One suppression:
+    CVE-2026-53914 on the Kotlin runtime jars (a false match on the compiler build cache). `mvn dependency-check:check`
+    passes without a key (first NVD download about 30 minutes). A scheduled job is Phase 21 work (#63).
 
-- [ ] **20.3 — Rate limiting**
+- [x] **20.3 — Rate limiting**
   - Caffeine-backed limiter on `/api/auth/login` and `/api/auth/register`; 429 with `Retry-After`.
+  - *As built:* the paths are `/api/v1/auth/login` and `/api/v1/auth/register` (the task text had `/api/auth/...`).
+    `AuthRateLimitInterceptor` (registered by `RateLimitConfig`) keeps one Caffeine fixed window per client address
+    for both paths: POST only, failed attempts count, the body is never read. Settings
+    `mindforge.rate-limits.auth.requests` (`AUTH_RATE_LIMIT_REQUESTS`, 10) and `mindforge.rate-limits.auth.window`
+    (`AUTH_RATE_LIMIT_WINDOW`, `PT1M`) (D01, D03, ADR 0038). The address is `getRemoteAddr()` after Tomcat's remote IP
+    valve (`server.forward-headers-strategy: native`, D02, ADR 0039). Over the limit: `429` with `Retry-After`,
+    `RateLimit-*` and code `RATE_LIMITED`. Tests: `AuthRateLimitInterceptorTest`, `AuthRateLimitPropertiesTest`,
+    `AuthRateLimitTest`, `ClientAddressTest`, `UntrustedProxyClientAddressTest`. The limit does not slow guessing of
+    one account from many addresses (#64).
 
-- [ ] **20.4 — Security integration tests**
+- [x] **20.4 — Security integration tests**
   - Rate limit triggers; tampered JWT → 401; cross-user access to pages, runs, export → 403.
+  - *As built:* `AuthRateLimitTest` (the limit triggers, sign-in and sign-up share it). `SecurityTest`: a session
+    cookie with an altered signature, and a wrongly signed, expired, unsigned or malformed one, get `401`; another
+    user gets `403` for the owner's run report, revert, page revisions and export; a foreign run id or page path under
+    one's own knowledge base is `404` and shows nothing of the owner. `CorsTest` covers the blank and the set origin.
 
 ### Completion Checklist
 
-- [ ] Every `web-security.md` requirement traced to implementing code.
-- [ ] `mvn dependency-check:check` passes.
-- [ ] Rate limiter active on auth endpoints.
+- [x] Every `web-security.md` requirement traced to implementing code. (The "Enforced by:" line of each section in
+  `docs/standards/security/web-security.md`.)
+- [x] `mvn dependency-check:check` passes. (BUILD SUCCESS without an NVD key; one Kotlin suppression with a reason.)
+- [x] Rate limiter active on auth endpoints. (`AuthRateLimitInterceptorTest`, `AuthRateLimitTest`)
 
 ---
 
