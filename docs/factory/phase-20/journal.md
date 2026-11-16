@@ -32,3 +32,4 @@
 2026-11-16T19:38:42+01:00 Q14 decided unanimous votes=A2,A,A2(opus) changes=- -> RevertService.revert throws NotFoundException("Run") after start() claims the lease when the kb has no such run (404); existing non-revertible run keeps 409
 2026-11-16T19:48:30+01:00 P20-06 implement@inherit NEEDS_DECISION -> Q14/D14 -> implement@inherit DONE
 2026-11-16T19:58:19+01:00 P20-06 test@sonnet r1 PASS; review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
+2026-11-16T19:58:19+01:00 P20-06 commit ede4964

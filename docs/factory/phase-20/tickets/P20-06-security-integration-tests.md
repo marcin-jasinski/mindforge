@@ -1,13 +1,13 @@
 ---
 id: P20-06
 title: Prove that a tampered session token is refused and that another user's pages, runs and export are forbidden
-status: in_progress
+status: done
 plan_tasks: [20.4]
 decisions: [D14, D14]
 depends_on: [P20-01]
 size: M
 issue: 60
-commit:
+commit: ede4964
 fix_rounds: 0
 ---
 ## Goal
@@ -45,14 +45,14 @@ No factory decision binds this ticket. The answered question that applies:
 - D14 (decisions/D14-revert-foreign-run-status.md): change RevertService.revert to throw NotFoundException("Run") after start() claims the lease when runs.findById(kbId, runId) is empty; keep 409 for an existing non-revertible run; add a RevertService unit test. This production change is in scope for this ticket.
 
 ## Acceptance criteria
-- [ ] AC1: A `/api/v1/...` request with a valid user's cookie whose signature is altered gets `401`.
-- [ ] AC2: A cookie signed with a different secret, an expired cookie (signed with the right secret), an `alg: none`
+- [x] AC1: A `/api/v1/...` request with a valid user's cookie whose signature is altered gets `401`.
+- [x] AC2: A cookie signed with a different secret, an expired cookie (signed with the right secret), an `alg: none`
   token and a malformed value each get `401`.
-- [ ] AC3: User B gets `403` for user A's `GET /runs/{runId}`, `POST /runs/{runId}/revert`,
+- [x] AC3: User B gets `403` for user A's `GET /runs/{runId}`, `POST /runs/{runId}/revert`,
   `GET /pages/{directory}/{name}/revisions` and `GET /export`, using a real run id and page path from A.
-- [ ] AC4: User B, under B's own knowledge base, asking for A's run id (`GET /runs/{runId}`, `POST .../revert`) and A's
+- [x] AC4: User B, under B's own knowledge base, asking for A's run id (`GET /runs/{runId}`, `POST .../revert`) and A's
   page path's revisions gets `404`, and the response body contains no id, path or text from A.
-- [ ] AC5: No response in the class carries a forbidden field (`assertNoSensitiveFields` pattern).
+- [x] AC5: No response in the class carries a forbidden field (`assertNoSensitiveFields` pattern).
 
 ## Test plan
 - AC1–AC5: integration, `@SpringBootTest(webEnvironment = RANDOM_PORT)` + `TestContainerBase` + `StubAIGateway`,
