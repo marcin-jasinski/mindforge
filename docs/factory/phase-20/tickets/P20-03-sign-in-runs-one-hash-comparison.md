@@ -1,13 +1,13 @@
 ---
 id: P20-03
 title: Run exactly one password hash comparison on every sign-in attempt
-status: in_progress
+status: done
 plan_tasks: [20.1]
 decisions: [D04]
 depends_on: []
 size: S
 issue: 57
-commit:
+commit: 5b63ddd
 fix_rounds: 0
 ---
 ## Goal
@@ -57,14 +57,14 @@ channel as an accepted risk.
 - (The "Account enumeration" note in `web-security.md` is P20-08.)
 
 ## Acceptance criteria
-- [ ] AC1: For an unknown email, an OAuth-only account and a wrong password, `authenticate` throws
+- [x] AC1: For an unknown email, an OAuth-only account and a wrong password, `authenticate` throws
   `AccountException.invalidCredentials()` (same code and message) and calls `hasher.matches` exactly once.
-- [ ] AC2: For the unknown-email and OAuth-only cases, the hash passed to `matches` is the value `hasher.hash` returned
+- [x] AC2: For the unknown-email and OAuth-only cases, the hash passed to `matches` is the value `hasher.hash` returned
   when the service was constructed.
-- [ ] AC3: `recordLogin` is never called on a failed attempt; a correct password still signs in and records the login.
-- [ ] AC4: The ponytail comment is gone; `AccountService` imports no BCrypt or Spring Security type; no change to
+- [x] AC3: `recordLogin` is never called on a failed attempt; a correct password still signs in and records the login.
+- [x] AC4: The ponytail comment is gone; `AccountService` imports no BCrypt or Spring Security type; no change to
   `AuthController`, the error handler or the OpenAPI contract.
-- [ ] AC5: Every other construction of `AccountService` (tests, configuration) still works with a hasher whose `hash`
+- [x] AC5: Every other construction of `AccountService` (tests, configuration) still works with a hasher whose `hash`
   returns a value.
 
 ## Test plan
