@@ -66,6 +66,7 @@ public class RunController {
     }
 
     @Operation(summary = "Revert a run, synchronously")
+    @ApiResponse(responseCode = "404", description = "No such run")
     @ApiResponse(responseCode = "409", description = "A run is active, or revert is not offered")
     @PostMapping("/runs/{runId}/revert")
     public RunAcceptedResponse revert(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID kbId,

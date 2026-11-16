@@ -1,9 +1,9 @@
 ---
 id: P20-06
 title: Prove that a tampered session token is refused and that another user's pages, runs and export are forbidden
-status: ready
+status: in_progress
 plan_tasks: [20.4]
-decisions: []
+decisions: [D14, D14]
 depends_on: [P20-01]
 size: M
 issue: 60
@@ -42,6 +42,7 @@ No factory decision binds this ticket. The answered question that applies:
   `404` and no foreign data. That is the tenancy rule (tenant-scoped ports `findById(kbId, runId)`,
   `report(kbId, runId)` find nothing), not an ownership failure. New tests add the missing cases: run report by id and
   revert, page revisions, and the id-swap `404`.
+- D14 (decisions/D14-revert-foreign-run-status.md): change RevertService.revert to throw NotFoundException("Run") after start() claims the lease when runs.findById(kbId, runId) is empty; keep 409 for an existing non-revertible run; add a RevertService unit test. This production change is in scope for this ticket.
 
 ## Acceptance criteria
 - [ ] AC1: A `/api/v1/...` request with a valid user's cookie whose signature is altered gets `401`.
@@ -68,3 +69,6 @@ No factory decision binds this ticket. The answered question that applies:
 - Rate-limit tests (P20-01, P20-02); CORS tests (P20-04).
 
 ## Notes
+- Gap found (AC4): `POST /{ownKb}/runs/{foreignRunId}/revert` answers `409 REVERT_NOT_ALLOWED` with detail "Run <id> is not a completed ingest or Lint run", not `404`. `RevertService.revert` calls `start()` and then `isRevertible`, which treats a missing run like a non-revertible one. Report and revisions give `404` as Q10 expects. Needs a decision: fix in production or change AC4.
+- Decided: the revisions `404` detail echoes the page path the caller sent ("Page concepts/mitosis"); the test asserts no foreign knowledge-base id or page text instead of path absence, because the echoed path is the caller's own input and is the same whether or not another knowledge base has that page.
+- Gap fixed (D14): `RevertService.revert` now reads the run after `start()` claims the lease and throws `NotFoundException("Run")` (404) when the knowledge base has no such run; an existing non-revertible run still gets `409`. Unit test `RevertServiceTest.shouldReportARunTheKnowledgeBaseDoesNotHaveAsNotFound`; `RunController.revert` documents `404`.
