@@ -41,3 +41,4 @@
 2026-11-16T21:15:32+01:00 P20-08 commit d616870
 2026-11-16T21:17:21+01:00 - holistic review@opus approve (1 minor) -> no accepted findings; deferred
 2026-11-16T21:18:19+01:00 - scribe@sonnet REPORT.md written; docs verified
+2026-11-16T21:31:43+01:00 - integration gate: only baseline failure; coverage check met (run with test failures ignored)
