@@ -28,3 +28,4 @@
 2026-11-16T19:17:27+01:00 P20-04 commit ebafc64
 2026-11-16T19:22:36+01:00 P20-05 implement@inherit DONE (test-only; audit found no tenancy/export gap)
 2026-11-16T19:32:20+01:00 P20-05 test@sonnet r1 PASS; review r1 correctness@opus(1 minor),standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
+2026-11-16T19:32:30+01:00 P20-05 commit ba5f80a

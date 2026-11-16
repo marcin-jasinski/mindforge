@@ -1,13 +1,13 @@
 ---
 id: P20-05
 title: Guard the wiki store's knowledge-base binding and the exporter's freedom from study data with tests
-status: in_progress
+status: done
 plan_tasks: [20.1]
 decisions: []
 depends_on: []
 size: M
 issue: 59
-commit:
+commit: ba5f80a
 fix_rounds: 0
 ---
 ## Goal
@@ -54,16 +54,16 @@ No factory decision binds this ticket. Answered questions that apply:
   "Every tenant-scoped port method takes `kbId` first".
 
 ## Acceptance criteria
-- [ ] AC1: An integration test writes pages, revisions, sources, links and a supersession into knowledge base A, then
+- [x] AC1: An integration test writes pages, revisions, sources, links and a supersession into knowledge base A, then
   calls every `WikiStore` read method listed above with knowledge base B's id (and A's page ids, paths, run id,
   supersession id) and asserts each returns empty / absent / an empty graph.
-- [ ] AC2: The same test (or a sibling) asserts the reads with A's id do return the rows, so AC1 is not vacuous.
-- [ ] AC3: A source-scan unit test fails if any file under `dev/mindforge/infrastructure/export/`, or
+- [x] AC2: The same test (or a sibling) asserts the reads with A's id do return the rows, so AC1 is not vacuous.
+- [x] AC3: A source-scan unit test fails if any file under `dev/mindforge/infrastructure/export/`, or
   `BundleQueryAdapter.java` / `RunReportQueryAdapter.java`, references a study or interaction type (the JPA
   repositories and entities named above, and the domain study/interaction store ports).
-- [ ] AC4: A source-scan (or query-text) assertion fails if `IngestRunJpaRepository.findLogEntries`' query selects
+- [x] AC4: A source-scan (or query-text) assertion fails if `IngestRunJpaRepository.findLogEntries`' query selects
   `cost`, `step_versions`/`stepVersions`, `failures` or `findings`.
-- [ ] AC5: `OutboundHttpGuardTest` and `DocumentRepositoryAdapterTest` pass unchanged; any gap found in the other
+- [x] AC5: `OutboundHttpGuardTest` and `DocumentRepositoryAdapterTest` pass unchanged; any gap found in the other
   `web-security.md` sections is either fixed here with a test, or — if it needs a decision — recorded in Notes and
   reported, not fixed.
 
