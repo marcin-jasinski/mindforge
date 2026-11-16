@@ -21,3 +21,7 @@
 2026-11-16T18:24:12+01:00 P20-03 implement@inherit DONE
 2026-11-16T18:33:55+01:00 P20-03 test@sonnet r1 PASS; review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
 2026-11-16T18:33:55+01:00 P20-03 commit 5b63ddd
+2026-11-16T18:40:31+01:00 P20-04 implement@inherit DONE
+2026-11-16T18:59:58+01:00 P20-04 test@sonnet r1 FAIL (CliProfileContextTest x7: too many PG clients, likely CorsTest nested contexts); review r1 correctness@opus,standards@sonnet,spec-security@opus approve -> fix
+2026-11-16T19:07:47+01:00 P20-04 fix@inherit r1 FIXED (@DirtiesContext on CorsTest nested classes; fixer gate green except baseline)
+2026-11-16T19:17:18+01:00 P20-04 test@sonnet r2 PASS; review r2 correctness@opus approve; test-guard clean -> PASS

@@ -1,14 +1,14 @@
 ---
 id: P20-04
 title: Register a CORS source that admits one origin from CORS_ALLOWED_ORIGIN and none by default
-status: ready
+status: in_progress
 plan_tasks: [20.1]
 decisions: [D05]
 depends_on: []
 size: S
 issue: 58
 commit:
-fix_rounds: 0
+fix_rounds: 1
 ---
 ## Goal
 `SecurityConfig` registers a `CorsConfigurationSource` and calls `.cors(...)`. With `CORS_ALLOWED_ORIGIN` blank (the
@@ -83,3 +83,6 @@ from `http://localhost:4200` to "none".
 - Any frontend change.
 
 ## Notes
+- Decided: `SecurityConfig.corsConfigurationSource` is `public` because the unit test in `dev.mindforge.unit.api` calls it directly on `new SecurityConfig()`.
+- Decided: `CorsTest` uses two `@Nested` Spring contexts (blank and `https://app.example`) because the test plan asks for both in one file.
+- AC map (r1): AC1 -> review of application.yml; AC2 -> CorsConfigurationTest.aBlankOriginRegistersNoConfigurationForAnyRequest + CorsTest$WithoutAnAllowedOrigin; AC3 -> CorsConfigurationTest.aSetOriginIsTheOnlyAllowedOrigin... + CorsTest$WithOneAllowedOrigin (2 tests); AC4 -> CorsConfigurationTest wildcard/list tests; AC5 -> ApiFlowTest green except baseline.
