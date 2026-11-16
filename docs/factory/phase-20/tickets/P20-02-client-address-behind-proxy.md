@@ -1,13 +1,13 @@
 ---
 id: P20-02
 title: Take the client address from Tomcat's RemoteIpValve trusting only private-range proxies
-status: in_progress
+status: done
 plan_tasks: [20.3]
 decisions: [D02]
 depends_on: [P20-01]
 size: S
 issue: 56
-commit:
+commit: 81678af
 fix_rounds: 0
 ---
 ## Goal
@@ -58,17 +58,17 @@ as the optional operator override. Add no new `TRUSTED_PROXIES` setting.
   self-hosted caveat and the commented `env.example` line are P20-08.)
 
 ## Acceptance criteria
-- [ ] AC1: `application.yml` sets `server.forward-headers-strategy: native` with the one-line comment, and does not set
+- [x] AC1: `application.yml` sets `server.forward-headers-strategy: native` with the one-line comment, and does not set
   `server.tomcat.remoteip.internal-proxies`.
-- [ ] AC2: With the default config, a client on loopback sending `X-Forwarded-For: 1.2.3.4, 5.6.7.8` is limited as
+- [x] AC2: With the default config, a client on loopback sending `X-Forwarded-For: 1.2.3.4, 5.6.7.8` is limited as
   `5.6.7.8`: after `5.6.7.8`'s allowance is spent, a request with `X-Forwarded-For: 9.9.9.9` is not `429`, and another
   request as `5.6.7.8` is `429`.
-- [ ] AC3: With `server.tomcat.remoteip.internal-proxies=^$`, changing the `X-Forwarded-For` value does not give a new
+- [x] AC3: With `server.tomcat.remoteip.internal-proxies=^$`, changing the `X-Forwarded-For` value does not give a new
   bucket: after the allowance is spent, a request with a new `X-Forwarded-For` value still gets `429`.
-- [ ] AC4: With the default config, `X-Forwarded-Proto: https` from the trusted loopback peer makes the request secure
+- [x] AC4: With the default config, `X-Forwarded-Proto: https` from the trusted loopback peer makes the request secure
   (observable effect, for example the scheme of the OAuth authorization redirect, or another effect the implementer
   names in Notes).
-- [ ] AC5: `grep -rn "X-Forwarded-For" src/main/java` finds nothing.
+- [x] AC5: `grep -rn "X-Forwarded-For" src/main/java` finds nothing.
 
 ## Test plan
 - AC2, AC4: integration, `@SpringBootTest(webEnvironment = RANDOM_PORT)` + `TestContainerBase`, a real HTTP client,
