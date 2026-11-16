@@ -9,7 +9,7 @@ import dev.mindforge.infrastructure.config.AppProperties;
 
 /**
  * Rate limits the endpoints that spend model calls: Query turns and edits, Quiz start and grading, upload and retry,
- * Lint.
+ * Lint. Separately limits sign-in and sign-up attempts per client address (ADR 0038).
  */
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -29,5 +29,8 @@ public class RateLimitConfig implements WebMvcConfigurer {
             .addPathPatterns(KB + "/query-sessions/*/messages", KB + "/query-sessions/*/edits",
                 KB + "/quiz-sessions", KB + "/quiz-sessions/*/answers", KB + "/documents", KB + "/documents/*/runs",
                 KB + "/lint-runs");
+        AppProperties.RateLimits.Auth auth = limits.getAuth();
+        registry.addInterceptor(new AuthRateLimitInterceptor(auth.getRequests(), auth.getWindow()))
+            .addPathPatterns("/api/v1/auth/login", "/api/v1/auth/register");
     }
 }

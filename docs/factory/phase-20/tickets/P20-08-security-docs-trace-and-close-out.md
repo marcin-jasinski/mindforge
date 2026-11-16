@@ -6,7 +6,7 @@ plan_tasks: [20.1, 20.2, 20.3, 20.4]
 decisions: [D11]
 depends_on: [P20-01, P20-02, P20-03, P20-04, P20-05, P20-06, P20-07]
 size: M
-issue:
+issue: 62
 commit:
 fix_rounds: 0
 ---

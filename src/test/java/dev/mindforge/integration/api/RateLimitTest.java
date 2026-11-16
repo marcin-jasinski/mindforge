@@ -25,6 +25,7 @@ import dev.mindforge.support.TestContainerBase;
     "mindforge.security.secure-cookies=false",
     "spring.ai.openai.api-key=test-placeholder",
     "spring.jpa.hibernate.ddl-auto=none",
+    "mindforge.rate-limits.auth.requests=1000",
     "mindforge.rate-limits.requests=2",
     "mindforge.rate-limits.window=PT3S"
 })

@@ -131,6 +131,10 @@ mindforge:
     # Per user, across Query turns and edits, Quiz start, upload and retry, and Lint.
     requests: ${RATE_LIMIT_REQUESTS:30}
     window: ${RATE_LIMIT_WINDOW:PT1M}
+    # Per client address, one allowance shared by sign-in and sign-up (ADR 0038).
+    auth:
+      requests: ${AUTH_RATE_LIMIT_REQUESTS:10}
+      window: ${AUTH_RATE_LIMIT_WINDOW:PT1M}
   study:
     quiz-session-ttl: ${QUIZ_SESSION_TTL:PT2H}
   runs:

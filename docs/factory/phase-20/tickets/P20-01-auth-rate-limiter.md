@@ -1,12 +1,12 @@
 ---
 id: P20-01
 title: Limit sign-in and sign-up attempts per client address with a Caffeine fixed window
-status: ready
+status: in_progress
 plan_tasks: [20.3, 20.4]
 decisions: [D01, D03]
 depends_on: []
 size: M
-issue:
+issue: 55
 commit:
 fix_rounds: 0
 ---
@@ -137,3 +137,14 @@ values.
 - Any frontend change.
 
 ## Notes
+- Decided: copy the R09 fixed-window logic into `AuthRateLimitInterceptor` instead of extracting a shared `FixedWindowCounter`, because it leaves `RateLimitInterceptor` untouched (R09 behaviour cannot change) and the copy is ten lines.
+- Decided: Caffeine `maximumSize` of 100,000 tracked addresses, because it bounds memory under an address-spraying attack while far exceeding real client counts in one window.
+- Decided: AC7 null-window check validates the bound `AppProperties` with the bean validator (property path `rateLimits.auth.window`), because a binder cannot set a `Duration` to null from a property string.
+- AC1 -> AuthRateLimitInterceptorTest.thePostAfterTheAllowance...; AuthRateLimitTest (429, Retry-After, RATE_LIMITED)
+- AC2 -> AuthRateLimitTest.failedSignInsSpendTheAllowance...
+- AC3 -> AuthRateLimitInterceptorTest.loginAndRegister...SameBucket; AuthRateLimitTest.signInAndSignUpShareOneAllowance
+- AC4 -> AuthRateLimitInterceptorTest.anAllowedPost_carriesTheRateLimitHeaders
+- AC5 -> AuthRateLimitInterceptorTest (second address, GET, window expiry); AuthRateLimitTest.getRequestsAreNotCounted...
+- AC6 -> AuthRateLimitInterceptorTest.theInterceptor_neverReadsTheRequestBody, aRejectedPost_logsTheAddressAtInfo...
+- AC7 -> AuthRateLimitPropertiesTest (defaults, binding, zero, null window)
+- AC8/AC9 -> RateLimitTest, ApiFlowTest with auth.requests=1000; gate green except baseline failure

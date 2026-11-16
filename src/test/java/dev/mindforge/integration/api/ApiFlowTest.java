@@ -50,6 +50,7 @@ import dev.mindforge.support.TestContainerBase;
     "mindforge.security.secure-cookies=false",
     "spring.ai.openai.api-key=test-placeholder",
     "spring.jpa.hibernate.ddl-auto=none",
+    "mindforge.rate-limits.auth.requests=1000",
     "springdoc.api-docs.enabled=true"
 })
 class ApiFlowTest extends TestContainerBase {
