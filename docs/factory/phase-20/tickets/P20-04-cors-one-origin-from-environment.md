@@ -1,13 +1,13 @@
 ---
 id: P20-04
 title: Register a CORS source that admits one origin from CORS_ALLOWED_ORIGIN and none by default
-status: in_progress
+status: done
 plan_tasks: [20.1]
 decisions: [D05]
 depends_on: []
 size: S
 issue: 58
-commit:
+commit: ebafc64
 fix_rounds: 1
 ---
 ## Goal
@@ -54,14 +54,14 @@ from `http://localhost:4200` to "none".
 - (`env.example`, `deployment.md` and the `web-security.md` § CORS text are P20-08.)
 
 ## Acceptance criteria
-- [ ] AC1: `application.yml` has `mindforge.security.cors-allowed-origin: ${CORS_ALLOWED_ORIGIN:}` with a comment.
-- [ ] AC2: Blank value: the source returns `null` for every request; a preflight `OPTIONS /api/v1/auth/login` with
+- [x] AC1: `application.yml` has `mindforge.security.cors-allowed-origin: ${CORS_ALLOWED_ORIGIN:}` with a comment.
+- [x] AC2: Blank value: the source returns `null` for every request; a preflight `OPTIONS /api/v1/auth/login` with
   `Origin: http://evil.example` gets no `Access-Control-Allow-Origin` header.
-- [ ] AC3: Set to `https://app.example`: a preflight from `https://app.example` gets
+- [x] AC3: Set to `https://app.example`: a preflight from `https://app.example` gets
   `Access-Control-Allow-Origin: https://app.example` and `Access-Control-Allow-Credentials: true`; a preflight from
   another origin gets no `Access-Control-Allow-Origin`.
-- [ ] AC4: A value containing `*` or a comma throws `IllegalStateException` when the bean is created.
-- [ ] AC5: Same-origin flows are unchanged: `ApiFlowTest` stays green with the variable unset.
+- [x] AC4: A value containing `*` or a comma throws `IllegalStateException` when the bean is created.
+- [x] AC5: Same-origin flows are unchanged: `ApiFlowTest` stays green with the variable unset.
 
 ## Test plan
 - AC2 (source), AC3 (source), AC4: unit, plain JUnit, call the bean method directly with `MockHttpServletRequest` —
