@@ -1,7 +1,7 @@
 ---
 id: P20-03
 title: Run exactly one password hash comparison on every sign-in attempt
-status: ready
+status: in_progress
 plan_tasks: [20.1]
 decisions: [D04]
 depends_on: []
@@ -82,3 +82,8 @@ channel as an accepted risk.
 - Docs (`web-security.md` note) — P20-08. ADR 0040 exists.
 
 ## Notes
+- Decided: `makeHasher()` in AccountServiceTest is now a Mockito mock with the same "hashed:" answers (was an anonymous class) because the tests must verify `matches` call counts and stub the construction hash.
+- Test r1 AC1: AccountServiceTest shouldCompareAnUnknownEmailOnce..., shouldCompareAnAccountWithoutAPasswordOnce..., shouldCompareAWrongPasswordOnceAgainstTheStoredHash (times(1) + same message).
+- Test r1 AC2: the unknown-email and no-password tests verify matches("guess","dummy-hash").
+- Test r1 AC3: same three tests verify recordLogin never; existing success test verifies recordLogin.
+- Test r1 AC4/AC5: diff review (comment gone, no BCrypt import; AccountConfig is the only other construction, uses real hasher); gate green except baseline.

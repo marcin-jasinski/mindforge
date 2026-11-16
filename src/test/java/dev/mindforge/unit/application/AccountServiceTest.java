@@ -3,8 +3,11 @@ package dev.mindforge.unit.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -88,6 +91,52 @@ class AccountServiceTest {
     }
 
     @Test
+    void shouldCompareAnUnknownEmailOnceAgainstTheHashMadeAtConstruction() {
+        when(hasher.hash(anyString())).thenReturn("dummy-hash");
+        AccountService accounts = new AccountService(users, hasher);
+
+        assertThatExceptionOfType(AccountException.class)
+            .isThrownBy(() -> accounts.authenticate("nobody@example.com", "guess"))
+            .withMessage(AccountException.invalidCredentials().getMessage())
+            .satisfies(e -> assertThat(e.conflict()).isFalse());
+        verify(hasher, times(1)).matches(eq("guess"), anyString());
+        verify(hasher).matches("guess", "dummy-hash");
+        verify(users, never()).recordLogin(any(), any());
+    }
+
+    @Test
+    void shouldCompareAnAccountWithoutAPasswordOnceAgainstTheHashMadeAtConstruction() {
+        when(hasher.hash(anyString())).thenReturn("dummy-hash");
+        User providerOnly = new User(UUID.randomUUID(), "Olivia", "olivia@example.com", null, null, Instant.EPOCH, null);
+        when(users.findByEmail("olivia@example.com")).thenReturn(Optional.of(providerOnly));
+        AccountService accounts = new AccountService(users, hasher);
+
+        assertThatExceptionOfType(AccountException.class)
+            .isThrownBy(() -> accounts.authenticate("olivia@example.com", "guess"))
+            .withMessage(AccountException.invalidCredentials().getMessage())
+            .satisfies(e -> assertThat(e.conflict()).isFalse());
+        verify(hasher, times(1)).matches(eq("guess"), anyString());
+        verify(hasher).matches("guess", "dummy-hash");
+        verify(users, never()).recordLogin(any(), any());
+    }
+
+    @Test
+    void shouldCompareAWrongPasswordOnceAgainstTheStoredHash() {
+        User withPassword = new User(UUID.randomUUID(), "Alice", "alice@example.com", "hashed:good", null, Instant.EPOCH,
+            null);
+        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(withPassword));
+        AccountService accounts = new AccountService(users, hasher);
+
+        assertThatExceptionOfType(AccountException.class)
+            .isThrownBy(() -> accounts.authenticate("alice@example.com", "wrong"))
+            .withMessage(AccountException.invalidCredentials().getMessage())
+            .satisfies(e -> assertThat(e.conflict()).isFalse());
+        verify(hasher, times(1)).matches(eq("wrong"), anyString());
+        verify(hasher).matches("wrong", "hashed:good");
+        verify(users, never()).recordLogin(any(), any());
+    }
+
+    @Test
     void shouldCreateAProviderAccountOnFirstSignInAndReuseItAfterwards() {
         AccountService accounts = new AccountService(users, hasher);
 
@@ -126,16 +175,10 @@ class AccountServiceTest {
     }
 
     private static PasswordHasher makeHasher() {
-        return new PasswordHasher() {
-            @Override
-            public String hash(String rawPassword) {
-                return "hashed:" + rawPassword;
-            }
-
-            @Override
-            public boolean matches(String rawPassword, String hash) {
-                return hash.equals("hashed:" + rawPassword);
-            }
-        };
+        PasswordHasher hasher = mock(PasswordHasher.class);
+        when(hasher.hash(anyString())).thenAnswer(invocation -> "hashed:" + invocation.getArgument(0));
+        when(hasher.matches(anyString(), anyString()))
+            .thenAnswer(invocation -> invocation.getArgument(1).equals("hashed:" + invocation.getArgument(0)));
+        return hasher;
     }
 }
