@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.0</version>
+        <version>4.1.2</version>
         <relativePath/>
     </parent>
 
@@ -19,7 +19,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <spring-ai.version>2.0.0</spring-ai.version>
+        <spring-ai.version>2.0.2</spring-ai.version>
         <jjwt.version>0.12.6</jjwt.version>
         <commonmark.version>0.30.0</commonmark.version>
         <pdfbox.version>3.0.3</pdfbox.version>
@@ -31,6 +31,7 @@
         <jda.version>6.7.0</jda.version>
         <slack-bolt.version>1.55.0</slack-bolt.version>
         <java-websocket.version>1.6.0</java-websocket.version>
+        <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
         <skipFrontend>true</skipFrontend>
     </properties>
 
@@ -395,6 +396,32 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- OWASP dependency audit of the Maven dependencies. Bound to no phase: run it with
+                 mvn dependency-check:check. The NVD API key is optional and comes only from NVD_API_KEY. -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>${dependency-check-maven.version}</version>
+                <configuration>
+                    <failBuildOnCVSS>7</failBuildOnCVSS>
+                    <suppressionFiles>
+                        <suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
+                    </suppressionFiles>
+                    <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                    <nvdApiDelay>8000</nvdApiDelay>
+                    <nvdMaxRetryCount>20</nvdMaxRetryCount>
+                    <!-- CISA's own GitHub copy of the Known Exploited Vulnerabilities list; www.cisa.gov refuses
+                         non-browser clients with HTTP 403. -->
+                    <knownExploitedUrl>https://raw.githubusercontent.com/cisagov/kev-data/develop/known_exploited_vulnerabilities.json</knownExploitedUrl>
+                    <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
+                    <nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
+                    <nodeAuditAnalyzerEnabled>false</nodeAuditAnalyzerEnabled>
+                    <yarnAuditAnalyzerEnabled>false</yarnAuditAnalyzerEnabled>
+                    <pnpmAuditAnalyzerEnabled>false</pnpmAuditAnalyzerEnabled>
+                    <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+                    <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>

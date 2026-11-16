@@ -1,7 +1,7 @@
 ---
 id: P20-07
 title: Declare the OWASP dependency check and clear every finding with CVSS 7.0 or higher
-status: ready
+status: in_progress
 plan_tasks: [20.2]
 decisions: [D06, D07]
 depends_on: []
@@ -96,3 +96,12 @@ a key.
 - Docs (`deployment.md`, `env.example`) and the Phase 21 follow-up issue — P20-08.
 
 ## Notes
+- Decided: pin dependency-check-maven 12.2.2, not 13.0.0, because 13.0.0 ships `nvd.api.key=` (empty) in its default properties, so with `NVD_API_KEY` unset it sends an empty `apiKey` header and NVD refuses it ("Invalid API Key, length of 0"); 12.2.2 has the same parameters and runs keyless.
+- Decided: OSS Index switch is `ossIndexAnalyzerEnabled` (capital I) because that is the plugin's parameter name; `ossindexAnalyzerEnabled` would be ignored.
+- Decided: `knownExploitedUrl` points to CISA's own GitHub copy (`raw.githubusercontent.com/cisagov/kev-data`) because www.cisa.gov answers HTTP 403 to the plugin and that error aborts the check; the KEV list stays on.
+- Decided: fix by a patch bump of the Spring Boot parent 4.1.0 -> 4.1.2 (tomcat 11.0.27, spring-framework 7.0.10, spring-security 7.1.2, netty 4.2.19, postgresql 42.7.14, httpclient5 5.6.5, httpcore5 5.4.4) and `spring-ai.version` 2.0.0 -> 2.0.2, because 4.1.2 manages fixed versions of all nine flagged libraries at once; this is one change inside the 4.1 line instead of seven property overrides.
+- Proof (AC4), `mvn -B dependency-check:check` with `NVD_API_KEY` unset, plugin 12.2.2: first keyless NVD download 426,117 records in 29:48 min (214 batches, nvdApiDelay 8000); with the cached feed in ~/.m2 a run takes about 1:05 min. Before fixes: 10 libraries with CVSS >= 7.0 (httpclient5, httpcore5, kotlin-stdlib, netty, postgresql, spring-ai-model, spring-core, spring-security-core, spring-security-oauth2-core, tomcat-embed-core; about 60 CVEs). Fixed by upgrade: all except Kotlin. Suppressed: 1 entry, CVE-2026-53914 on kotlin-stdlib/-jdk7/-jdk8/kotlin-reflect 2.3.21 (Kotlin compiler build cache; false CPE match on runtime jars; Boot 4.1.2 still manages 2.3.21). Final run: BUILD SUCCESS, exit 0.
+- Gate (AC5): `mvn -B verify -DskipFrontend=true` -> unit 879/0 failures; integration 145 with 1 failure, the known baseline `ApiFlowTest.theLoginRouteIsTheSinglePageApp`; no dependency-check or NVD line in the gate log. `mvn -q -o test -DskipFrontend=true -Djacoco.skip=true` exits 0 offline. Note: the `dependency-check:check` goal itself refuses Maven offline mode (`-o`).
+
+### Deferred findings
+- spec-security/S1 minor 0.5 dependency-check-suppressions.xml:11: The Kotlin suppression matches every version of four packages (`@.*$`), which is wider than the "narrowest selector" that AC2 asks for.

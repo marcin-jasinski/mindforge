@@ -3,7 +3,7 @@ id: P20-06
 title: Prove that a tampered session token is refused and that another user's pages, runs and export are forbidden
 status: done
 plan_tasks: [20.4]
-decisions: [D14, D14]
+decisions: [D14]
 depends_on: [P20-01]
 size: M
 issue: 60
