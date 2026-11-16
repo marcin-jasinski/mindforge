@@ -38,3 +38,4 @@
 2026-11-16T20:59:37+01:00 P20-07 commit f9f4437
 2026-11-16T21:05:47+01:00 P20-08 implement@inherit DONE (docs only; issues #63 #64 opened)
 2026-11-16T21:15:32+01:00 P20-08 test@sonnet r1 PASS; review r1 correctness@opus(2 nit),standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
+2026-11-16T21:15:32+01:00 P20-08 commit d616870

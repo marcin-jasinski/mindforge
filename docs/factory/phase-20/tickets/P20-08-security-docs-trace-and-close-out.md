@@ -1,13 +1,13 @@
 ---
 id: P20-08
 title: Trace every web-security requirement to code and tests, document the new settings and ADRs, and close Phase 20
-status: in_progress
+status: done
 plan_tasks: [20.1, 20.2, 20.3, 20.4]
 decisions: [D11]
 depends_on: [P20-01, P20-02, P20-03, P20-04, P20-05, P20-06, P20-07]
 size: M
 issue: 62
-commit:
+commit: d616870
 fix_rounds: 0
 ---
 ## Goal
@@ -88,23 +88,23 @@ change `docs/INDEX.md` for the trace.
 - Q08: the plan's 20.3 "As built" records the path correction `/api/auth/...` → `/api/v1/auth/...` (R08).
 
 ## Acceptance criteria
-- [ ] AC1: Every `web-security.md` section ends with one "Enforced by:" line in the D11 format; every class and test
+- [x] AC1: Every `web-security.md` section ends with one "Enforced by:" line in the D11 format; every class and test
   named exists in `src/`; a requirement with no test says "no test".
-- [ ] AC2: `web-security.md` has the Slack downloader paragraph, the auth rate limit and client address text, the
+- [x] AC2: `web-security.md` has the Slack downloader paragraph, the auth rate limit and client address text, the
   "Account enumeration" note, and the no-default CORS example and text.
-- [ ] AC3: `api.md` § Rate Limit Headers names the auth endpoints, their per-address key and their settings.
-- [ ] AC4: `deployment.md` and `env.example` document `AUTH_RATE_LIMIT_REQUESTS`, `AUTH_RATE_LIMIT_WINDOW`,
+- [x] AC3: `api.md` § Rate Limit Headers names the auth endpoints, their per-address key and their settings.
+- [x] AC4: `deployment.md` and `env.example` document `AUTH_RATE_LIMIT_REQUESTS`, `AUTH_RATE_LIMIT_WINDOW`,
   `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` (commented out in `env.example`), `CORS_ALLOWED_ORIGIN` (blank),
   `NVD_API_KEY` (blank), the proxy trust note and self-hosted caveat, and how to run `mvn dependency-check:check`.
-- [ ] AC5: `docs/INDEX.md` ADR paragraph links 0038–0041 with one-phrase summaries ("0038–0041 record security
+- [x] AC5: `docs/INDEX.md` ADR paragraph links 0038–0041 with one-phrase summaries ("0038–0041 record security
   hardening: …"); no other INDEX change for the trace.
-- [ ] AC6: `implementation-plan.md` Phase 20 heading, tasks 20.1–20.4 and the three checklist items are `[x]`, each
+- [x] AC6: `implementation-plan.md` Phase 20 heading, tasks 20.1–20.4 and the three checklist items are `[x]`, each
   task with an "As built" note naming classes and tests (20.1 points to the web-security.md trace; 20.2 records the
   dependency-check result from P20-07's Notes; 20.3 records the `/api/v1/auth` path correction); follow-up issue
   numbers are in the notes.
-- [ ] AC7: `roadmap.md` marks Phase 20 done and its "Next" line names Phase 21 (keep the Phase 14 manual Langfuse
+- [x] AC7: `roadmap.md` marks Phase 20 done and its "Next" line names Phase 21 (keep the Phase 14 manual Langfuse
   note); CLAUDE.md "Project State" says work resumes at Phase 21 (no other CLAUDE.md change).
-- [ ] AC8: Two GitHub issues exist (Phase 21 scheduled dependency-check job; distributed per-account guessing), and the
+- [x] AC8: Two GitHub issues exist (Phase 21 scheduled dependency-check job; distributed per-account guessing), and the
   ADR 0008 supersession question is listed as an open human item in the ticket Notes (not decided, not edited).
 
 ## Test plan
