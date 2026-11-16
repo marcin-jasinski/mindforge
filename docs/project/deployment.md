@@ -17,6 +17,27 @@ The Dockerfile builds the SPA (`npm ci && npm run build`), packages the JAR with
 **requires a running Docker daemon**. `-DskipITs` skips the integration tests (and the Docker need), but the coverage
 gate then measures unit tests only and will fail; pair it with `-Djacoco.skip=true`.
 
+### Dependency check
+
+The OWASP dependency check audits the Maven dependencies against the NVD. No build phase runs it: `mvn verify` does not
+start it. Run the goal by hand:
+
+```bash
+mvn -B dependency-check:check
+```
+
+- The check fails when a dependency has a vulnerability with CVSS 7.0 or higher. Fix a finding with a dependency
+  upgrade. When a finding does not apply or cannot be fixed, add a suppression to `dependency-check-suppressions.xml`
+  (at the repository root): one package and one vulnerability per entry, each with a `<notes>` reason.
+- `NVD_API_KEY` is optional (free from nvd.nist.gov). Set it as an environment variable, never in a committed file.
+  Without it, the first run downloads all NVD data slowly (about 30 minutes) and NVD can throttle it. The data is kept
+  in `~/.m2`, so the next runs take about one minute.
+- The goal needs the network: it does not run with `mvn -o`.
+- The OSS Index analyzer and the Node, npm, Yarn, pnpm and RetireJS analyzers are off: the check covers the Maven
+  dependencies only.
+- No CI job runs the check yet; a scheduled job is Phase 21 work
+  ([#63](https://github.com/marcin-jasinski/mindforge/issues/63)).
+
 ## Run locally
 
 ```bash
@@ -42,6 +63,28 @@ Every variable is listed in `env.example`. The ones a deployment must set:
 | `PORT` | Set by Railway and Render; defaults to 8080 |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Optional. Export model-call traces to Langfuse; with either one unset, nothing is exported |
 | `LANGFUSE_HOST` | Optional. Langfuse base URL; defaults to `https://cloud.langfuse.com` |
+| `AUTH_RATE_LIMIT_REQUESTS`, `AUTH_RATE_LIMIT_WINDOW`, `CORS_ALLOWED_ORIGIN`, `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` | Optional. See **Sign-in limit, client address and CORS** below |
+
+### Sign-in limit, client address and CORS
+
+| Variable | Default | Notes |
+|---|---|---|
+| `AUTH_RATE_LIMIT_REQUESTS` | `10` | `mindforge.rate-limits.auth.requests`: sign-in and sign-up POSTs per client address in one window. Both share one allowance, and failed attempts count. Over the limit: `429` with `Retry-After` ([ADR-0038](../adr/0038-auth-rate-limit-is-keyed-by-client-address.md)) |
+| `AUTH_RATE_LIMIT_WINDOW` | `PT1M` | `mindforge.rate-limits.auth.window`: the window (ISO-8601 duration) |
+| `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` | Spring's private ranges | Optional. The proxies whose `X-Forwarded-*` headers the server trusts: a comma-separated CIDR list or a Java regex. Unset: the private, loopback, link-local, CGNAT and IPv6 ULA ranges ([ADR-0039](../adr/0039-client-address-comes-from-tomcats-remote-ip-valve-with-private-range-proxies.md)) |
+| `CORS_ALLOWED_ORIGIN` | blank | Optional. Blank admits no cross-origin caller. Set it only when the SPA is served from another origin than the API: one exact origin, never a list and never `*` (the server does not start with either) ([ADR-0041](../adr/0041-cors-admits-one-origin-from-the-environment-and-none-by-default.md)) |
+
+- The client address is the direct peer, unless the peer is a trusted proxy: then it is the rightmost
+  `X-Forwarded-For` address that is not a trusted proxy. The server trusts `X-Forwarded-For` and `X-Forwarded-Proto`
+  only from a peer on a private address.
+- **Self-hosted.** A reverse proxy or the Docker userland proxy on a private address is trusted, and so is every other
+  host on that private network. When other hosts can reach the server on a private address, set
+  `SERVER_TOMCAT_REMOTEIP_INTERNAL_PROXIES` to the address of your proxy only. When the proxy is not trusted, every
+  user gets the proxy's address, so all sign-ins share one allowance.
+- The sign-in limit counts in memory: it is correct only with one live instance (see
+  [One live instance](#one-live-instance)).
+- The limit is per address, not per account
+  ([#64](https://github.com/marcin-jasinski/mindforge/issues/64)).
 
 ### Images
 
@@ -181,6 +224,10 @@ in a direct message. The bot connects over Socket Mode, so it needs no public UR
 3. Set `JWT_SECRET`, `OPENROUTER_API_KEY` and the OAuth variables.
 4. Keep **one replica**. The health check is `/actuator/health`.
 
+Railway and Render put a proxy on a private address in front of the app. The server trusts `X-Forwarded-*` only from a
+private-range peer, so it gets the real client address and `https` from that proxy without a setting. A public client
+cannot forge the headers, because it cannot connect from a private address.
+
 On Render, create a Docker web service from the same repository with the same variables and health check path. The
 `Procfile` covers buildpack platforms that run a pre-built JAR. A service created before the actuator moved still
 checks `/health`, which now answers 404: set its health check path to `/actuator/health` in the dashboard.
@@ -249,6 +296,8 @@ Ingest runs are coordinated by an in-process set of executing runs (T17):
 - During a deploy's overlap the old and new instances briefly run side by side. Fenced commits keep the wiki correct,
   and a run the new instance sweeps is re-queued and re-generated once.
 - Running two instances permanently needs a heartbeat lease (`lease_renewed_at`) instead of the in-memory set.
+- The rate limits (`mindforge.rate-limits`, including the sign-in limit) count in memory per instance. With two
+  instances, each one gives its own allowance.
 
 Shutdown is graceful (`server.shutdown: graceful`, 30 s per phase): in-flight requests finish and the worker stops
 claiming new runs as the context closes. A run still generating is swept by the next instance.

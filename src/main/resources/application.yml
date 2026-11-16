@@ -76,6 +76,8 @@ server:
   port: ${PORT:8080}
   # Finish in-flight requests; the run worker stops claiming on ContextClosedEvent.
   shutdown: graceful
+  # X-Forwarded-* trusted only from server.tomcat.remoteip.internal-proxies (Spring default: private ranges)
+  forward-headers-strategy: native
 
 management:
   endpoints:
@@ -102,6 +104,8 @@ mindforge:
     jwt-secret: ${JWT_SECRET:}
     jwt-expiry-seconds: ${JWT_EXPIRY_SECONDS:86400}
     secure-cookies: ${AUTH_SECURE_COOKIES:true}
+    # The one cross-origin caller admitted with credentials; blank admits no cross-origin caller (ADR 0041).
+    cors-allowed-origin: ${CORS_ALLOWED_ORIGIN:}
   upload:
     max-size: ${UPLOAD_MAX_SIZE:50MB}
   articles:
@@ -131,6 +135,10 @@ mindforge:
     # Per user, across Query turns and edits, Quiz start, upload and retry, and Lint.
     requests: ${RATE_LIMIT_REQUESTS:30}
     window: ${RATE_LIMIT_WINDOW:PT1M}
+    # Per client address, one allowance shared by sign-in and sign-up (ADR 0038).
+    auth:
+      requests: ${AUTH_RATE_LIMIT_REQUESTS:10}
+      window: ${AUTH_RATE_LIMIT_WINDOW:PT1M}
   study:
     quiz-session-ttl: ${QUIZ_SESSION_TTL:PT2H}
   runs:

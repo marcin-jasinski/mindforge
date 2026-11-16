@@ -11,6 +11,7 @@ import org.springframework.transaction.support.TransactionOperations;
 
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.KnowledgeBaseBusyException;
+import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.PageRevision;
 import dev.mindforge.domain.model.PageSupersession;
 import dev.mindforge.domain.model.RevertNotAllowedException;
@@ -47,12 +48,14 @@ public class RevertService {
      *
      * @return the id of the {@code REVERT} run
      * @throws KnowledgeBaseBusyException while another run holds the lease
+     * @throws NotFoundException when the knowledge base has no such run
      * @throws RevertNotAllowedException when the run is not a completed ingest or Lint run, or no longer tips a page
      */
     public UUID revert(UUID kbId, UUID runId) {
         UUID revertRunId = transactions.execute(status -> {
             UUID started = start(kbId, runId);
-            if (!isRevertible(kbId, runId)) {
+            IngestRun target = runs.findById(kbId, runId).orElseThrow(() -> new NotFoundException("Run"));
+            if (!isRevertible(target)) {
                 throw new RevertNotAllowedException("Run " + runId + " is not a completed ingest or Lint run");
             }
             List<Restore> restores = restorable(kbId, runId);
@@ -71,7 +74,8 @@ public class RevertService {
 
     /** Whether {@link #revert} would restore something now: a completed ingest or Lint run that still tips a page. */
     public boolean isOffered(UUID kbId, UUID runId) {
-        return isRevertible(kbId, runId) && !restorable(kbId, runId).isEmpty();
+        return runs.findById(kbId, runId).filter(RevertService::isRevertible).isPresent()
+            && !restorable(kbId, runId).isEmpty();
     }
 
     /**
@@ -103,10 +107,8 @@ public class RevertService {
         return new RevertNotAllowedException("No supersession " + supersessionId);
     }
 
-    private boolean isRevertible(UUID kbId, UUID runId) {
-        return runs.findById(kbId, runId)
-            .filter(run -> run.kind() != RunKind.REVERT && run.status() == RunStatus.COMPLETED)
-            .isPresent();
+    private static boolean isRevertible(IngestRun run) {
+        return run.kind() != RunKind.REVERT && run.status() == RunStatus.COMPLETED;
     }
 
     private UUID start(UUID kbId, UUID revertsRunId) {

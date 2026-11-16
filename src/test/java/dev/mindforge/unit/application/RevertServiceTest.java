@@ -26,6 +26,7 @@ import org.springframework.transaction.support.TransactionOperations;
 import dev.mindforge.application.service.RevertService;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.KnowledgeBaseBusyException;
+import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.PageRevision;
 import dev.mindforge.domain.model.PageSupersession;
 import dev.mindforge.domain.model.PageType;
@@ -123,6 +124,15 @@ class RevertServiceTest {
 
         assertThatExceptionOfType(RevertNotAllowedException.class).isThrownBy(() -> makeService().revert(KB, RUN));
         verify(wiki, never()).revisionsByRun(any(), any());
+    }
+
+    @Test
+    void shouldReportARunTheKnowledgeBaseDoesNotHaveAsNotFound() {
+        when(runs.findById(KB, RUN)).thenReturn(Optional.empty());
+
+        assertThatExceptionOfType(NotFoundException.class).isThrownBy(() -> makeService().revert(KB, RUN));
+        verify(wiki, never()).revisionsByRun(any(), any());
+        verify(runs, never()).complete(any(), any(), anyInt(), anyBoolean(), any(), any());
     }
 
     @Test

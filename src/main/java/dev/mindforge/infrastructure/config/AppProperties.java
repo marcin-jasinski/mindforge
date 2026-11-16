@@ -214,11 +214,33 @@ public class AppProperties {
         @NotNull
         private Duration window = Duration.ofMinutes(1);
 
+        @Valid
+        private Auth auth = new Auth();
+
         public int getRequests() { return requests; }
         public void setRequests(int requests) { this.requests = requests; }
 
         public Duration getWindow() { return window; }
         public void setWindow(Duration window) { this.window = window; }
+
+        public Auth getAuth() { return auth; }
+        public void setAuth(Auth auth) { this.auth = auth; }
+
+        /** Per-client-address cap on sign-in and sign-up attempts (ADR 0038). */
+        public static class Auth {
+
+            @Positive
+            private int requests = 10;
+
+            @NotNull
+            private Duration window = Duration.ofMinutes(1);
+
+            public int getRequests() { return requests; }
+            public void setRequests(int requests) { this.requests = requests; }
+
+            public Duration getWindow() { return window; }
+            public void setWindow(Duration window) { this.window = window; }
+        }
     }
 
     public static class Study {

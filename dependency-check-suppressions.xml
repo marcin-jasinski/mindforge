@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Suppressions for mvn dependency-check:check. Each entry names one package and one vulnerability, with the
+     reason the finding does not apply or cannot be fixed inside the Spring Boot 4.1 line. -->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <suppress>
+        <notes><![CDATA[
+        False CPE match: CVE-2026-53914 is unsafe deserialization of the Kotlin compiler's build cache metadata.
+        kotlin-stdlib (with its jdk7/jdk8 parts) and kotlin-reflect are only runtime libraries that okhttp (JDA,
+        Slack Bolt) and the Spring AI OpenAI starter need; the project does not compile Kotlin, so no build cache is
+        read. Spring Boot 4.1 (4.1.2) still manages kotlin.version 2.3.21; the fix is in Kotlin 2.4.20.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-(stdlib|stdlib-jdk7|stdlib-jdk8|reflect)@.*$</packageUrl>
+        <cve>CVE-2026-53914</cve>
+    </suppress>
+</suppressions>

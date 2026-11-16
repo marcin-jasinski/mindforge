@@ -169,9 +169,82 @@ class WikiStoreAdapterTest extends TestContainerBase {
             .extracting(WikiPage::pageId).containsExactlyInAnyOrder(p, summary);
     }
 
+    @Test
+    void everyReadWithAnotherKnowledgeBasesIdReturnsNothing() {
+        UUID userId = insertUser();
+        TenantFixture a = makeTenantFixture(userId);
+        UUID otherKbId = insertKnowledgeBase(userId);
+
+        assertThat(wiki.findByPath(otherKbId, "concepts/p")).isEmpty();
+        assertThat(wiki.findById(otherKbId, a.p())).isEmpty();
+        assertThat(wiki.findByPaths(otherKbId, List.of("concepts/p", "concepts/q"))).isEmpty();
+        assertThat(wiki.listIndex(otherKbId)).isEmpty();
+        assertThat(wiki.listBodies(otherKbId, PageType.CONCEPT)).isEmpty();
+        assertThat(wiki.pageIdsForLesson(otherKbId, a.lessonId())).isEmpty();
+        assertThat(wiki.findSupersession(otherKbId, a.supersessionId())).isEmpty();
+        assertThat(wiki.tipRevisions(otherKbId, List.of(a.p(), a.q()))).isEmpty();
+        assertThat(wiki.revisionsByRun(otherKbId, a.runId())).isEmpty();
+        assertThat(wiki.findRevision(otherKbId, a.p(), 1)).isEmpty();
+        assertThat(wiki.listRevisions(otherKbId, a.p())).isEmpty();
+        assertThat(wiki.outboundLinks(otherKbId, List.of(a.p()))).isEmpty();
+        assertThat(wiki.inboundLinks(otherKbId, List.of("concepts/q"))).isEmpty();
+        PageGraph graph = wiki.graph(otherKbId);
+        assertThat(graph.pages()).isEmpty();
+        assertThat(graph.links()).isEmpty();
+        assertThat(wiki.liveSupersessionsOf(otherKbId, List.of(a.p()))).isEmpty();
+    }
+
+    @Test
+    void everyReadWithTheOwningKnowledgeBasesIdReturnsTheRows() {
+        TenantFixture a = makeTenantFixture(insertUser());
+        UUID kbId = a.kbId();
+
+        assertThat(wiki.findByPath(kbId, "concepts/p")).map(WikiPage::pageId).contains(a.p());
+        assertThat(wiki.findById(kbId, a.p())).map(WikiPage::path).contains("concepts/p");
+        assertThat(wiki.findByPaths(kbId, List.of("concepts/p", "concepts/q")))
+            .extracting(WikiPage::pageId).containsExactlyInAnyOrder(a.p(), a.q());
+        assertThat(wiki.listIndex(kbId)).extracting(IndexEntry::path)
+            .containsExactlyInAnyOrder("concepts/p", "concepts/q");
+        assertThat(wiki.listBodies(kbId, PageType.CONCEPT)).extracting(WikiPage::pageId)
+            .containsExactlyInAnyOrder(a.p(), a.q());
+        assertThat(wiki.pageIdsForLesson(kbId, a.lessonId())).containsExactly(a.p());
+        assertThat(wiki.findSupersession(kbId, a.supersessionId())).map(PageSupersession::supersededPageId)
+            .contains(a.p());
+        assertThat(wiki.tipRevisions(kbId, List.of(a.p(), a.q()))).containsOnlyKeys(a.p(), a.q());
+        assertThat(wiki.revisionsByRun(kbId, a.runId())).extracting(PageRevision::pageId)
+            .containsExactlyInAnyOrder(a.p(), a.q());
+        assertThat(wiki.findRevision(kbId, a.p(), 1)).isPresent();
+        assertThat(wiki.listRevisions(kbId, a.p())).extracting(PageRevision::revision).containsExactly(1);
+        assertThat(wiki.outboundLinks(kbId, List.of(a.p()))).containsExactly(new PageLink(a.p(), "concepts/q", null));
+        assertThat(wiki.inboundLinks(kbId, List.of("concepts/q"))).containsExactly(new PageLink(a.p(), "concepts/q", null));
+        PageGraph graph = wiki.graph(kbId);
+        assertThat(graph.pages()).hasSize(2);
+        assertThat(graph.links()).containsExactly(new PageGraph.Edge("concepts/p", "concepts/q"));
+        assertThat(wiki.liveSupersessionsOf(kbId, List.of(a.p()))).extracting(LiveSupersession::supersessionId)
+            .containsExactly(a.supersessionId());
+    }
+
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------
+
+    /** Knowledge base A with two pages, their revisions, a source, a link from p to q and q superseding p. */
+    private record TenantFixture(UUID kbId, UUID runId, UUID p, UUID q, UUID supersessionId, String lessonId) {}
+
+    private TenantFixture makeTenantFixture(UUID userId) {
+        UUID kbId = insertKnowledgeBase(userId);
+        String lessonId = "bio-" + UUID.randomUUID();
+        UUID documentId = insertDocument(kbId, userId, lessonId);
+        UUID runId = enqueueRun(kbId);
+        UUID p = UUID.randomUUID();
+        UUID q = UUID.randomUUID();
+        UUID supersessionId = UUID.randomUUID();
+        wiki.savePage(kbId, makeWrite(p, "concepts/p", "# Phase\nSee [Q](/concepts/q.md).\n"), runId);
+        wiki.savePage(kbId, makeWrite(q, "concepts/q", "# Phase\n"), runId);
+        wiki.addSources(kbId, List.of(new PageSource(p, documentId, runId)));
+        wiki.addSupersessions(kbId, List.of(new PageSupersession(supersessionId, p, "phase", q, runId, Instant.now())));
+        return new TenantFixture(kbId, runId, p, q, supersessionId, lessonId);
+    }
 
     private UUID enqueueRun(UUID kbId) {
         return runs.enqueue(kbId, IngestRun.queued(kbId, RunKind.INGEST, null, null)).runId();

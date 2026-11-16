@@ -1,12 +1,16 @@
 package dev.mindforge.api.config;
 
+import java.util.List;
+
 import jakarta.servlet.DispatcherType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +22,9 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import dev.mindforge.application.service.AccountService;
 import dev.mindforge.infrastructure.security.JwtService;
@@ -38,6 +45,7 @@ public class SecurityConfig {
         throws Exception {
         http
             .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+            .cors(Customizer.withDefaults())
             // everything the SPA loads is its own: no inline script (so critical-CSS inlining is off in the build), no
             // external font or API origin; Angular Material sets inline styles, hence style-src 'unsafe-inline'
             .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(
@@ -63,6 +71,32 @@ public class SecurityConfig {
             .logout(logout -> logout.disable())
             .addFilterBefore(new JwtFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    /**
+     * Admits the one origin in {@code mindforge.security.cors-allowed-origin}, with credentials (ADR 0041). Blank
+     * registers no configuration at all, so no cross-origin caller is admitted and same-origin requests are untouched;
+     * an empty origin list would instead reject a same-origin request whose {@code Origin} is misread behind a proxy.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(
+        @Value("${mindforge.security.cors-allowed-origin:}") String allowedOrigin) {
+        String origin = allowedOrigin.trim();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        if (origin.isEmpty()) {
+            return source;
+        }
+        if (origin.contains("*") || origin.contains(",")) {
+            throw new IllegalStateException(
+                "mindforge.security.cors-allowed-origin must be one origin without '*' or ',': " + origin);
+        }
+        CorsConfiguration cors = new CorsConfiguration();
+        cors.setAllowedOrigins(List.of(origin));
+        cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        cors.setAllowedHeaders(List.of("*"));
+        cors.setAllowCredentials(true);
+        source.registerCorsConfiguration("/**", cors);
+        return source;
     }
 
     /**

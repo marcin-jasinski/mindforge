@@ -2,6 +2,7 @@ package dev.mindforge.application.service;
 
 import java.time.Instant;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 import dev.mindforge.domain.model.AccountException;
@@ -17,10 +18,13 @@ public class AccountService {
 
     private final UserRepository users;
     private final PasswordHasher hasher;
+    /** Compared against when there is no stored hash, so every sign-in attempt costs one hash comparison. */
+    private final String dummyHash;
 
     public AccountService(UserRepository users, PasswordHasher hasher) {
         this.users = users;
         this.hasher = hasher;
+        this.dummyHash = hasher.hash(UUID.randomUUID().toString());
     }
 
     /** @throws AccountException when the email already has an account or is in the reserved domain */
@@ -39,10 +43,13 @@ public class AccountService {
 
     /** @throws AccountException for an unknown email, an account without a password, or a wrong password */
     public User authenticate(String email, String password) {
-        // ponytail: an unknown email skips the hash comparison, so timing can reveal it; Phase 20 hardens sign-in
-        User user = users.findByEmail(normalise(email))
-            .filter(candidate -> candidate.passwordHash() != null && hasher.matches(password, candidate.passwordHash()))
-            .orElseThrow(AccountException::invalidCredentials);
+        Optional<User> found = users.findByEmail(normalise(email));
+        String hash = found.map(User::passwordHash).orElse(null);
+        boolean matches = hasher.matches(password, hash != null ? hash : dummyHash);
+        if (found.isEmpty() || hash == null || !matches) {
+            throw AccountException.invalidCredentials();
+        }
+        User user = found.get();
         users.recordLogin(user.userId(), Instant.now());
         return user;
     }
