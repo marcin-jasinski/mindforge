@@ -26,3 +26,5 @@
 2026-11-16T19:07:47+01:00 P20-04 fix@inherit r1 FIXED (@DirtiesContext on CorsTest nested classes; fixer gate green except baseline)
 2026-11-16T19:17:18+01:00 P20-04 test@sonnet r2 PASS; review r2 correctness@opus approve; test-guard clean -> PASS
 2026-11-16T19:17:27+01:00 P20-04 commit ebafc64
+2026-11-16T19:22:36+01:00 P20-05 implement@inherit DONE (test-only; audit found no tenancy/export gap)
+2026-11-16T19:32:20+01:00 P20-05 test@sonnet r1 PASS; review r1 correctness@opus(1 minor),standards@sonnet,spec-security@opus approve; test-guard clean -> PASS

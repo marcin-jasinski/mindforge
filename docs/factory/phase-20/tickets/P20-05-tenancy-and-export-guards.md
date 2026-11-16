@@ -1,7 +1,7 @@
 ---
 id: P20-05
 title: Guard the wiki store's knowledge-base binding and the exporter's freedom from study data with tests
-status: ready
+status: in_progress
 plan_tasks: [20.1]
 decisions: []
 depends_on: []
@@ -86,3 +86,12 @@ No factory decision binds this ticket. Answered questions that apply:
 - HTTP-level cross-user tests (P20-06); docs and the `web-security.md` trace lines (P20-08).
 
 ## Notes
+- Decided: AC4 reads the `@Query` text of `findLogEntries` by reflection, not the source file, because the guard then follows the query that actually runs; it matches the internals as whole words, case-insensitive.
+- Decided: the AC3 scan also matches the study table names (`flashcards`, `quiz_sessions`, `study_events`, `interactions`, `interaction_turns`) as whole words, because a native query can read a table without naming its type.
+- Decided: AC1/AC2 share one `makeTenantFixture` (two pages, revisions, a source, a link, a supersession in knowledge base A) because both tests need the same rows.
+- Audit: no WikiStore read leaked across knowledge bases; no production change needed. Dedup per knowledge base is already covered by `DocumentRepositoryAdapterTest.sameHashInTwoKnowledgeBases_isNotADuplicateAcrossThem`.
+- Audit (`web-security.md`, for P20-08, no code gap): "Untrusted Input Handling" names only `SecurityConfig` as an allowed operator endpoint, while `OutboundHttpGuardTest` also allows `DiscordAttachments` (has its own paragraph) and `slack/SlackFiles.java` (Slack paragraph is P20-08). "CORS Configuration" still says the origin defaults to `http://localhost:4200`; P20-04/D05 made the default no origin. Password hashing (cost 12), state validation, cookie flags and `InteractionStore.listForUser` redaction were spot-checked and hold.
+- AC map (tester r1): AC1 -> WikiStoreAdapterTest.everyReadWithAnotherKnowledgeBasesIdReturnsNothing; AC2 -> WikiStoreAdapterTest.everyReadWithTheOwningKnowledgeBasesIdReturnsTheRows; AC3 -> ExportReadsNoStudyDataGuardTest.shouldFindNoStudyOrInteractionTypeInTheExportCode (+ shouldReportAnExportFileOrQueryAdapterThatReferencesStudyData proves the scan bites); AC4 -> ExportReadsNoStudyDataGuardTest.shouldSelectNoRunInternalsInTheRunLogQuery (+ shouldNotAcceptAQueryThatSelectsARunInternal); AC5 -> OutboundHttpGuardTest (6) and DocumentRepositoryAdapterTest (14) pass; gaps recorded in Notes audit.
+
+### Deferred findings
+- correctness/C1 minor 0.6 src/test/java/dev/mindforge/unit/infrastructure/export/ExportReadsNoStudyDataGuardTest.java:44: The AC3 scan does not check that it scanned the export files, so it passes with no result if the export package or the two adapters move or get a new name.
