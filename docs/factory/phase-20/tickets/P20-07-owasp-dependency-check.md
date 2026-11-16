@@ -1,13 +1,13 @@
 ---
 id: P20-07
 title: Declare the OWASP dependency check and clear every finding with CVSS 7.0 or higher
-status: in_progress
+status: done
 plan_tasks: [20.2]
 decisions: [D06, D07]
 depends_on: []
 size: L
 issue: 61
-commit:
+commit: f9f4437
 fix_rounds: 0
 ---
 ## Goal
@@ -67,16 +67,16 @@ a key.
 - (`env.example` `NVD_API_KEY=` and the `deployment.md` text are P20-08.)
 
 ## Acceptance criteria
-- [ ] AC1: `pom.xml` declares the plugin with a pinned version property, `failBuildOnCVSS` 7, the suppression file,
+- [x] AC1: `pom.xml` declares the plugin with a pinned version property, `failBuildOnCVSS` 7, the suppression file,
   the env-only NVD key, the seven analyzers off and keyless throttle settings, and no `<executions>`.
-- [ ] AC2: `dependency-check-suppressions.xml` exists at the repo root; every `<suppress>` has a `<notes>` reason that
+- [x] AC2: `dependency-check-suppressions.xml` exists at the repo root; every `<suppress>` has a `<notes>` reason that
   names why the finding does not apply or cannot be fixed (for example not reachable, no fixed version, false CPE
   match), and suppresses by the narrowest selector (`packageUrl` + `cve`/`vulnerabilityName`).
-- [ ] AC3: Every `CVSS >= 7.0` finding with a fixed version available inside the Spring Boot 4.1 line is fixed by an
+- [x] AC3: Every `CVSS >= 7.0` finding with a fixed version available inside the Spring Boot 4.1 line is fixed by an
   upgrade, not suppressed.
-- [ ] AC4: `mvn dependency-check:check` with `NVD_API_KEY` unset exits 0; the result (duration, findings fixed,
+- [x] AC4: `mvn dependency-check:check` with `NVD_API_KEY` unset exits 0; the result (duration, findings fixed,
   findings suppressed) is recorded in Notes.
-- [ ] AC5: `mvn -B verify -DskipFrontend=true` does not run the dependency check and stays green (except the known
+- [x] AC5: `mvn -B verify -DskipFrontend=true` does not run the dependency check and stays green (except the known
   baseline failure); no NVD key or secret is in any committed file.
 
 ## Test plan
