@@ -1,7 +1,7 @@
 ---
 id: P20-02
 title: Take the client address from Tomcat's RemoteIpValve trusting only private-range proxies
-status: ready
+status: in_progress
 plan_tasks: [20.3]
 decisions: [D02]
 depends_on: [P20-01]
@@ -90,3 +90,6 @@ as the optional operator override. Add no new `TRUSTED_PROXIES` setting.
 - Docs (`deployment.md`, `env.example`) — P20-08. ADR 0039 exists.
 
 ## Notes
+- Decided: AC4's observable effect is the `redirect_uri` in the `/oauth2/authorization/github` redirect (`https://localhost/...`; the valve sets port 443 for https) because the test base already registers the GitHub client.
+- Decided: AC3 lives in a separate class `UntrustedProxyClientAddressTest` (own Spring context) because a nested class with extra properties is harder to read than a sibling file.
+- Test map (r1): AC1 -> application.yml review; AC2 -> ClientAddressTest.aTrustedPeerIsLimitedAsTheRightmostForwardedAddress; AC3 -> UntrustedProxyClientAddressTest.aForgedForwardedAddressFromAnUntrustedPeerDoesNotGiveANewBucket; AC4 -> ClientAddressTest.forwardedHttpsFromATrustedPeerMakesTheOAuthRedirectUriHttps; AC5 -> grep (empty).

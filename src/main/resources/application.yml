@@ -76,6 +76,8 @@ server:
   port: ${PORT:8080}
   # Finish in-flight requests; the run worker stops claiming on ContextClosedEvent.
   shutdown: graceful
+  # X-Forwarded-* trusted only from server.tomcat.remoteip.internal-proxies (Spring default: private ranges)
+  forward-headers-strategy: native
 
 management:
   endpoints:
