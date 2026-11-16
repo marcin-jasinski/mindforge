@@ -1,13 +1,13 @@
 ---
 id: P20-01
 title: Limit sign-in and sign-up attempts per client address with a Caffeine fixed window
-status: in_progress
+status: done
 plan_tasks: [20.3, 20.4]
 decisions: [D01, D03]
 depends_on: []
 size: M
 issue: 55
-commit:
+commit: 5b1ca3b
 fix_rounds: 0
 ---
 ## Goal
@@ -87,22 +87,22 @@ values.
 - (Docs — `env.example`, `deployment.md`, `api.md` — are P20-08.)
 
 ## Acceptance criteria
-- [ ] AC1: With `mindforge.rate-limits.auth.requests=N`, the N+1th POST to `/api/v1/auth/login` from one address in a
+- [x] AC1: With `mindforge.rate-limits.auth.requests=N`, the N+1th POST to `/api/v1/auth/login` from one address in a
   window gets `429`, a `Retry-After` header with the seconds to the window end, and an error body with code
   `RATE_LIMITED` and the fixed message of the existing handler.
-- [ ] AC2: Failed sign-ins (wrong password) count toward the allowance; the request after the allowance is spent gets
+- [x] AC2: Failed sign-ins (wrong password) count toward the allowance; the request after the allowance is spent gets
   `429` even with correct credentials.
-- [ ] AC3: Login and register share one bucket: N mixed POSTs to the two paths spend the allowance and the next POST to
+- [x] AC3: Login and register share one bucket: N mixed POSTs to the two paths spend the allowance and the next POST to
   either path gets `429`.
-- [ ] AC4: Allowed auth POSTs carry `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`.
-- [ ] AC5: A second client address is not affected by the first address's spent allowance (unit); GET requests
+- [x] AC4: Allowed auth POSTs carry `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`.
+- [x] AC5: A second client address is not affected by the first address's spent allowance (unit); GET requests
   (`/api/v1/auth/me`, `/providers`) are not counted; after the window expires, sign-in works again.
-- [ ] AC6: The interceptor never reads the request body and never logs the email or password; a 429 logs the key at
+- [x] AC6: The interceptor never reads the request body and never logs the email or password; a 429 logs the key at
   INFO.
-- [ ] AC7: `mindforge.rate-limits.auth.requests` defaults to 10 and `.window` to PT1M, bound from
+- [x] AC7: `mindforge.rate-limits.auth.requests` defaults to 10 and `.window` to PT1M, bound from
   `AUTH_RATE_LIMIT_REQUESTS` / `AUTH_RATE_LIMIT_WINDOW`; `requests=0` or a null window fails validation.
-- [ ] AC8: The R09 model-call limiter is unchanged: `RateLimitTest` still passes and still limits per user.
-- [ ] AC9: `ApiFlowTest` and `RateLimitTest` set a high auth limit; the full gate stays green (except the known
+- [x] AC8: The R09 model-call limiter is unchanged: `RateLimitTest` still passes and still limits per user.
+- [x] AC9: `ApiFlowTest` and `RateLimitTest` set a high auth limit; the full gate stays green (except the known
   baseline failure `ApiFlowTest.theLoginRouteIsTheSinglePageApp`).
 
 ## Test plan
