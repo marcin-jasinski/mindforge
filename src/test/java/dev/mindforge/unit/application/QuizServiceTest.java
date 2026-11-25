@@ -68,7 +68,8 @@ class QuizServiceTest {
 
         String prompt = gateway.recordedCalls().getFirst().prompt();
         assertThat(List.of("=== concepts/weak", "=== concepts/earlier", "=== concepts/later",
-            "=== concepts/strong")).isSortedAccordingTo((a, b) -> Integer.compare(prompt.indexOf(a), prompt.indexOf(b)));
+            "=== concepts/strong"))
+            .isSortedAccordingTo((a, b) -> Integer.compare(prompt.indexOf(a), prompt.indexOf(b)));
     }
 
     @Test
@@ -79,7 +80,8 @@ class QuizServiceTest {
         givenPages();
         when(wiki.findById(KB, mitosis.pageId())).thenReturn(Optional.of(mitosis));
         when(wiki.outboundLinks(eq(KB), any())).thenAnswer(call -> Stream.of(
-                new PageLink(mitosis.pageId(), chromosome.path(), null), new PageLink(chromosome.pageId(), dna.path(), null))
+                new PageLink(mitosis.pageId(), chromosome.path(), null),
+                new PageLink(chromosome.pageId(), dna.path(), null))
             .filter(link -> call.<Collection<UUID>>getArgument(1).contains(link.pageId())).toList());
         when(wiki.findByPaths(eq(KB), any())).thenAnswer(call -> Stream.of(mitosis, chromosome, dna)
             .filter(page -> call.<Collection<String>>getArgument(1).contains(page.path())).toList());
@@ -95,8 +97,8 @@ class QuizServiceTest {
     void shouldKeepReferenceAnswersInTheSessionAndHandOnlyTheQuestionOut() {
         WikiPage page = makePage("concepts/mitosis", 1);
         givenPages(page);
-        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitosis").replace("]}", ", {\"pagePath\": \"concepts/made-up\","
-            + " \"question\": \"Made up?\", \"referenceAnswer\": \"Yes.\"}]}"));
+        gateway.answer(Prompts.QUIZ, questionAbout("concepts/mitosis").replace("]}",
+            ", {\"pagePath\": \"concepts/made-up\", \"question\": \"Made up?\", \"referenceAnswer\": \"Yes.\"}]}"));
         QuizService service = makeService();
 
         QuizSession session = service.start(KB, USER, new StudyScope.WholeKnowledgeBase());

@@ -18,8 +18,10 @@ class ExternalAccountsTest {
 
     @Test
     void shouldRefuseABlankIdAndAnIdOutsideLettersAndDigits() {
-        assertThatIllegalArgumentException().isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.DISCORD, ""));
-        assertThatIllegalArgumentException().isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.DISCORD, " "));
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.DISCORD, ""));
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.DISCORD, " "));
         assertThatIllegalArgumentException()
             .isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.DISCORD, "12@evil.com"));
         assertThatIllegalArgumentException()
@@ -64,12 +66,16 @@ class ExternalAccountsTest {
 
     @Test
     void shouldRefuseASlackIdWithoutExactlyOneTeamAndOneUser() {
-        assertThatIllegalArgumentException().isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.SLACK, "T0123-"));
-        assertThatIllegalArgumentException().isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.SLACK, "-U1"));
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.SLACK, "T0123-"));
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.SLACK, "-U1"));
         assertThatIllegalArgumentException()
             .isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.SLACK, "T1-U2-U3"));
-        assertThatIllegalArgumentException().isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.SLACK, "T1:U2"));
-        assertThatIllegalArgumentException().isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.SLACK, "U0456"));
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.SLACK, "T1:U2"));
+        assertThatIllegalArgumentException()
+            .isThrownBy(() -> ExternalAccounts.syntheticEmail(ExternalPlatform.SLACK, "U0456"));
     }
 
     @Test

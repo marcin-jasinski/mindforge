@@ -17,6 +17,10 @@ The Dockerfile builds the SPA (`npm ci && npm run build`), packages the JAR with
 **requires a running Docker daemon**. `-DskipITs` skips the integration tests (and the Docker need), but the coverage
 gate then measures unit tests only and will fail; pair it with `-Djacoco.skip=true`.
 
+`mvn test`, `mvn package` and `mvn verify` also run Checkstyle (`checkstyle-check`, bound to the `validate` phase)
+over main and test sources, with the ruleset in `config/checkstyle/checkstyle.xml`. A violation fails the build.
+`-Dcheckstyle.skip` skips the check.
+
 ### Dependency check
 
 The OWASP dependency check audits the Maven dependencies against the NVD. No build phase runs it: `mvn verify` does not

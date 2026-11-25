@@ -30,6 +30,7 @@ public interface IngestRunEntityMapper {
             return null;
         }
         return new LogEntry.RevertedRun(row.getRevertedKind(), row.getRevertedFinishedAt(),
-            CONVERSATION.equals(row.getRevertedUploadSource()), row.getRevertedLessonId(), row.getRevertedLessonTitle());
+            CONVERSATION.equals(row.getRevertedUploadSource()), row.getRevertedLessonId(),
+            row.getRevertedLessonTitle());
     }
 }

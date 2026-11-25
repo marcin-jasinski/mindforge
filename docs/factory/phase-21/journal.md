@@ -16,3 +16,6 @@
 2026-11-25T10:10:11+01:00 P21-01 implement@inherit DONE (test fixture static/index.html)
 2026-11-25T10:21:32+01:00 P21-01 test@sonnet r1 PASS (gate green, baseline failure fixed); review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
 2026-11-25T10:21:32+01:00 P21-01 commit ffe473d
+2026-11-25T10:36:59+01:00 P21-02 implement@inherit DONE (checkstyle in validate, 124 violations fixed in 66 files)
+2026-11-25T10:46:57+01:00 P21-02 test@sonnet r1 PASS (gate green); review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
+2026-11-25T10:46:57+01:00 P21-02 commit 6401696

@@ -423,19 +423,27 @@ public class AppProperties {
                 private int permittedCallsInHalfOpenState = 5;
 
                 public float getFailureRateThreshold() { return failureRateThreshold; }
-                public void setFailureRateThreshold(float failureRateThreshold) { this.failureRateThreshold = failureRateThreshold; }
+                public void setFailureRateThreshold(float failureRateThreshold) {
+                    this.failureRateThreshold = failureRateThreshold;
+                }
 
                 public int getSlidingWindowSize() { return slidingWindowSize; }
                 public void setSlidingWindowSize(int slidingWindowSize) { this.slidingWindowSize = slidingWindowSize; }
 
                 public int getMinimumNumberOfCalls() { return minimumNumberOfCalls; }
-                public void setMinimumNumberOfCalls(int minimumNumberOfCalls) { this.minimumNumberOfCalls = minimumNumberOfCalls; }
+                public void setMinimumNumberOfCalls(int minimumNumberOfCalls) {
+                    this.minimumNumberOfCalls = minimumNumberOfCalls;
+                }
 
                 public Duration getWaitDurationInOpenState() { return waitDurationInOpenState; }
-                public void setWaitDurationInOpenState(Duration waitDurationInOpenState) { this.waitDurationInOpenState = waitDurationInOpenState; }
+                public void setWaitDurationInOpenState(Duration waitDurationInOpenState) {
+                    this.waitDurationInOpenState = waitDurationInOpenState;
+                }
 
                 public int getPermittedCallsInHalfOpenState() { return permittedCallsInHalfOpenState; }
-                public void setPermittedCallsInHalfOpenState(int permittedCallsInHalfOpenState) { this.permittedCallsInHalfOpenState = permittedCallsInHalfOpenState; }
+                public void setPermittedCallsInHalfOpenState(int permittedCallsInHalfOpenState) {
+                    this.permittedCallsInHalfOpenState = permittedCallsInHalfOpenState;
+                }
             }
         }
     }

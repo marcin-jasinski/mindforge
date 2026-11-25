@@ -147,7 +147,8 @@ class SlackConfigTest {
                 assertThat(ctx).hasNotFailed();
                 assertThat(ctx.getBean(SocketModeApp.class)).isSameAs(fake);
                 assertThat(calls).singleElement().satisfies(call -> assertThat(call)
-                    .containsExactly("xapp-placeholder", SocketModeClient.Backend.JavaWebSocket, ctx.getBean(App.class)));
+                    .containsExactly("xapp-placeholder", SocketModeClient.Backend.JavaWebSocket,
+                        ctx.getBean(App.class)));
 
                 ctx.getBean(SlackBot.class).run(null);
 

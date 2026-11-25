@@ -48,10 +48,12 @@ class AccountServiceTest {
 
     @Test
     void shouldRefuseASecondAccountForTheSameEmail() {
-        when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(TestFixtures.makeUser(null, "alice@example.com")));
+        when(users.findByEmail("alice@example.com"))
+            .thenReturn(Optional.of(TestFixtures.makeUser(null, "alice@example.com")));
 
         assertThatExceptionOfType(AccountException.class)
-            .isThrownBy(() -> new AccountService(users, hasher).register("Alice", "ALICE@example.com", "password-password"))
+            .isThrownBy(() -> new AccountService(users, hasher)
+                .register("Alice", "ALICE@example.com", "password-password"))
             .satisfies(e -> assertThat(e.conflict()).isTrue());
         verify(users, never()).insert(any());
     }
@@ -59,7 +61,8 @@ class AccountServiceTest {
     @Test
     void shouldRefuseToRegisterAnEmailInTheReservedDomain() {
         assertThatExceptionOfType(AccountException.class)
-            .isThrownBy(() -> new AccountService(users, hasher).register("Mallory", " X@Users.Invalid", "password-password"))
+            .isThrownBy(() -> new AccountService(users, hasher)
+                .register("Mallory", " X@Users.Invalid", "password-password"))
             .satisfies(e -> assertThat(e.conflict()).isTrue());
         verify(users, never()).insert(any());
         verify(users, never()).recordLogin(any(), any());
@@ -76,16 +79,19 @@ class AccountServiceTest {
 
     @Test
     void shouldRefuseAWrongPasswordAndAnAccountWithoutOneAlike() {
-        User withPassword = new User(UUID.randomUUID(), "Alice", "alice@example.com", "hashed:good", null, Instant.EPOCH,
+        User withPassword = new User(UUID.randomUUID(), "Alice", "alice@example.com", "hashed:good", null,
+            Instant.EPOCH, null);
+        User providerOnly = new User(UUID.randomUUID(), "Olivia", "olivia@example.com", null, null, Instant.EPOCH,
             null);
-        User providerOnly = new User(UUID.randomUUID(), "Olivia", "olivia@example.com", null, null, Instant.EPOCH, null);
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(withPassword));
         when(users.findByEmail("olivia@example.com")).thenReturn(Optional.of(providerOnly));
         AccountService accounts = new AccountService(users, hasher);
 
-        assertThatExceptionOfType(AccountException.class).isThrownBy(() -> accounts.authenticate("alice@example.com", "wrong"))
+        assertThatExceptionOfType(AccountException.class)
+            .isThrownBy(() -> accounts.authenticate("alice@example.com", "wrong"))
             .satisfies(e -> assertThat(e.conflict()).isFalse());
-        assertThatExceptionOfType(AccountException.class).isThrownBy(() -> accounts.authenticate("olivia@example.com", ""));
+        assertThatExceptionOfType(AccountException.class)
+            .isThrownBy(() -> accounts.authenticate("olivia@example.com", ""));
         assertThat(accounts.authenticate("ALICE@example.com", "good")).isEqualTo(withPassword);
         verify(users).recordLogin(any(), any());
     }
@@ -107,7 +113,8 @@ class AccountServiceTest {
     @Test
     void shouldCompareAnAccountWithoutAPasswordOnceAgainstTheHashMadeAtConstruction() {
         when(hasher.hash(anyString())).thenReturn("dummy-hash");
-        User providerOnly = new User(UUID.randomUUID(), "Olivia", "olivia@example.com", null, null, Instant.EPOCH, null);
+        User providerOnly = new User(UUID.randomUUID(), "Olivia", "olivia@example.com", null, null, Instant.EPOCH,
+            null);
         when(users.findByEmail("olivia@example.com")).thenReturn(Optional.of(providerOnly));
         AccountService accounts = new AccountService(users, hasher);
 
@@ -122,8 +129,8 @@ class AccountServiceTest {
 
     @Test
     void shouldCompareAWrongPasswordOnceAgainstTheStoredHash() {
-        User withPassword = new User(UUID.randomUUID(), "Alice", "alice@example.com", "hashed:good", null, Instant.EPOCH,
-            null);
+        User withPassword = new User(UUID.randomUUID(), "Alice", "alice@example.com", "hashed:good", null,
+            Instant.EPOCH, null);
         when(users.findByEmail("alice@example.com")).thenReturn(Optional.of(withPassword));
         AccountService accounts = new AccountService(users, hasher);
 

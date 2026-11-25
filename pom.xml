@@ -32,6 +32,8 @@
         <slack-bolt.version>1.55.0</slack-bolt.version>
         <java-websocket.version>1.6.0</java-websocket.version>
         <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
+        <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+        <checkstyle.version>10.26.1</checkstyle.version>
         <skipFrontend>true</skipFrontend>
     </properties>
 
@@ -304,6 +306,37 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!-- Checkstyle runs in validate, so test/package/verify all fail on a style violation.
+                 -Dcheckstyle.skip skips it. Ruleset: config/checkstyle/checkstyle.xml. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven-checkstyle-plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>config/checkstyle/checkstyle.xml</configLocation>
+                    <suppressionsLocation>config/checkstyle/suppressions.xml</suppressionsLocation>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <consoleOutput>true</consoleOutput>
+                    <failOnViolation>true</failOnViolation>
+                    <violationSeverity>warning</violationSeverity>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle-check</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <!-- mvn test = unit/ only (no Docker). mvn verify also runs integration/ and e2e/ under failsafe;
                  jacoco's prepare-agent argLine covers both, so the 70% gate still sees combined coverage. -->

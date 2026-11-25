@@ -16,7 +16,8 @@ public interface FlashcardJpaRepository extends JpaRepository<FlashcardEntity, F
 
     /** An identical card inserted concurrently wins; this one is dropped (T27). */
     @Modifying(flushAutomatically = true)
-    @Query(value = "INSERT INTO flashcards (knowledge_base_id, card_id, page_id, section_anchor, card_type, front, back,"
+    @Query(value = "INSERT INTO flashcards (knowledge_base_id, card_id, page_id, section_anchor, card_type,"
+        + " front, back,"
         + " source_hash, due_at) VALUES (:knowledgeBaseId, :cardId, :pageId, :sectionAnchor, :cardType, :front, :back,"
         + " :sourceHash, :dueAt) ON CONFLICT (knowledge_base_id, card_id) DO NOTHING", nativeQuery = true)
     int insertIfAbsent(UUID knowledgeBaseId, String cardId, UUID pageId, String sectionAnchor, String cardType,

@@ -204,7 +204,8 @@ class AskCommandTest {
 
         handler.handle(makeCall(kb.kbId().toString()), reply);
 
-        assertThat(reply.events).containsExactly(RecordingDiscordReply.DEFER, "Answer.\n\nSources:\n- concepts/osmosis");
+        assertThat(reply.events)
+            .containsExactly(RecordingDiscordReply.DEFER, "Answer.\n\nSources:\n- concepts/osmosis");
     }
 
     private KnowledgeBase makeOwnedKnowledgeBase() {

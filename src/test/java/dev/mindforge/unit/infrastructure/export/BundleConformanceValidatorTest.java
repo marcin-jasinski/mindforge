@@ -20,7 +20,8 @@ class BundleConformanceValidatorTest {
     void shouldAcceptTheBundleOfAnEmptyKnowledgeBaseAndAWellFormedPage() {
         Map<String, String> files = makeFiles();
         files.put("concepts/mitosis.md", PAGE);
-        files.put("index.md", "---\nokf_version: \"0.1\"\n---\n# Concepts\n\n* [Mitosis \\[x\\]](/concepts/mitosis.md) - Description.\n\n# Sources\n");
+        files.put("index.md", "---\nokf_version: \"0.1\"\n---\n# Concepts\n\n"
+            + "* [Mitosis \\[x\\]](/concepts/mitosis.md) - Description.\n\n# Sources\n");
         files.put("log.md", "# Update Log\n\n## 2026-09-10\n* **Ingest**: [bio](/sources/bio.md) — 1 created.\n");
 
         assertThat(BundleConformanceValidator.violations(makeFiles())).isEmpty();
@@ -42,7 +43,8 @@ class BundleConformanceValidatorTest {
     @Test
     void shouldRejectAPathOutsideTheGrammarOrOnAReservedName() {
         Map<String, String> files = makeFiles();
-        for (String path : List.of("concepts/index.md", "concepts/Mitosis.md", "notes/mitosis.md", "concepts/a--b.md")) {
+        for (String path : List.of("concepts/index.md", "concepts/Mitosis.md", "notes/mitosis.md",
+            "concepts/a--b.md")) {
             files.put(path, PAGE);
         }
 
@@ -61,7 +63,8 @@ class BundleConformanceValidatorTest {
 
         assertThat(BundleConformanceValidator.violations(extraKey)).containsExactly(
             "index.md: frontmatter may hold only okf_version");
-        assertThat(BundleConformanceValidator.violations(strayLine)).containsExactly("index.md: unexpected line 'Mitosis'");
+        assertThat(BundleConformanceValidator.violations(strayLine))
+            .containsExactly("index.md: unexpected line 'Mitosis'");
         assertThat(BundleConformanceValidator.violations(entryBeforeSection)).hasSize(1);
     }
 

@@ -145,7 +145,8 @@ public class FlashcardService {
             log.warn("Could not generate flashcards for page {}; its cards keep serving", pageId, e);
         } finally {
             lock.unlock();
-            // ponytail: a waiter can race this removal into a second lock; the re-check and conflict-ignoring inserts keep that harmless
+            // ponytail: a waiter can race this removal into a second lock; the re-check and conflict-ignoring
+            // inserts keep that harmless
             if (!lock.hasQueuedThreads()) {
                 pageLocks.remove(pageId, lock);
             }

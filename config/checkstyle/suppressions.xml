@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+    <!-- Field @Autowired is the Spring test idiom; main code uses constructor injection. -->
+    <suppress id="AutowiredField" files="[\\/]src[\\/]test[\\/]"/>
+</suppressions>

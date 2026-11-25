@@ -48,7 +48,8 @@ public class FlashcardController {
         return flashcards.due(kbId, StudyScopes.of(lessonId, pageId)).stream().map(mapper::toResponse).toList();
     }
 
-    @Operation(summary = "Cut the missing or stale cards within the session budget, wait for the model, and list the due ones")
+    @Operation(summary = "Cut the missing or stale cards within the session budget, wait for the model,"
+        + " and list the due ones")
     @ApiResponse(responseCode = "404", description = "No such lesson or page")
     @PostMapping("/refresh")
     public List<FlashcardResponse> refresh(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID kbId,

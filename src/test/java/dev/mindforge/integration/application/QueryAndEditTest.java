@@ -87,14 +87,16 @@ class QueryAndEditTest extends TestContainerBase {
         UUID kbId = insertKnowledgeBase();
         UUID owner = ownerOf(kbId);
         UUID other = insertUser();
-        Interaction mine = interactions.createInteraction(kbId, new Interaction(UUID.randomUUID(), kbId, owner, Instant.now()));
-        Interaction theirs = interactions.createInteraction(kbId, new Interaction(UUID.randomUUID(), kbId, other, Instant.now()));
+        Interaction mine = interactions.createInteraction(kbId,
+            new Interaction(UUID.randomUUID(), kbId, owner, Instant.now()));
+        Interaction theirs = interactions.createInteraction(kbId,
+            new Interaction(UUID.randomUUID(), kbId, other, Instant.now()));
         interactions.addTurn(kbId, mine.interactionId(), new InteractionTurn(UUID.randomUUID(), "First?", "Yes.",
             List.of("concepts/mitosis"), Instant.now().minusSeconds(5)));
         interactions.addTurn(kbId, mine.interactionId(), new InteractionTurn(UUID.randomUUID(), "Second?", "No.",
             List.of(), Instant.now()));
-        interactions.addTurn(kbId, theirs.interactionId(), new InteractionTurn(UUID.randomUUID(), "Someone else's?", "Yes.",
-            List.of(), Instant.now()));
+        interactions.addTurn(kbId, theirs.interactionId(), new InteractionTurn(UUID.randomUUID(), "Someone else's?",
+            "Yes.", List.of(), Instant.now()));
 
         assertThat(interactions.listForUser(kbId, owner))
             .containsExactly(new TurnSummary("Second?", "No."), new TurnSummary("First?", "Yes."));
@@ -123,10 +125,12 @@ class QueryAndEditTest extends TestContainerBase {
         UUID otherKb = insertKnowledgeBase();
         completedRun(kbId, runId -> {
             wiki.savePage(kbId, makeWrite("concepts/mitosis", "Mitosis", "Nuclear division.", "Content."), runId);
-            wiki.savePage(kbId, makeWrite("concepts/meiosis", "Meiosis", "Reductive division 100%.", "Gametes."), runId);
+            wiki.savePage(kbId, makeWrite("concepts/meiosis", "Meiosis", "Reductive division 100%.", "Gametes."),
+                runId);
             wiki.savePage(kbId, makeWrite("concepts/dna", "DNA", "Acid.", "Contains chromosomes and genes."), runId);
         });
-        completedRun(otherKb, runId -> wiki.savePage(otherKb, makeWrite("concepts/mitosis", "Mitosis", "Foreign.", "X."), runId));
+        completedRun(otherKb,
+            runId -> wiki.savePage(otherKb, makeWrite("concepts/mitosis", "Mitosis", "Foreign.", "X."), runId));
 
         assertThat(search.search(kbId, "mito")).extracting(IndexEntry::path).containsExactly("concepts/mitosis");
         assertThat(search.search(kbId, "reductive")).extracting(IndexEntry::path).containsExactly("concepts/meiosis");
@@ -138,8 +142,8 @@ class QueryAndEditTest extends TestContainerBase {
     @Test
     void aConversationEditIsAnUndeduplicatedDocumentWhoseRunChangesTheWiki() {
         UUID kbId = insertKnowledgeBase();
-        completedRun(kbId, runId -> wiki.savePage(kbId, makeWrite("concepts/mitosis", "Mitosis", "Description.", "# Phase\n\nA.\n"),
-            runId));
+        completedRun(kbId, runId -> wiki.savePage(kbId,
+            makeWrite("concepts/mitosis", "Mitosis", "Description.", "# Phase\n\nA.\n"), runId));
         gateway.reset();
         gateway.answer(Prompts.EDIT, "{\"items\": [{\"kind\": \"delete\", \"path\": \"concepts/mitosis\"}]}");
 

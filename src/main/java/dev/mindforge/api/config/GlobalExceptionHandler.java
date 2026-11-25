@@ -140,7 +140,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ErrorResponse> unreadable(HttpMessageNotReadableException e) {
         log.warn("Rejected request body: {}", e.getMessage());
-        return ResponseEntity.badRequest().body(ErrorResponse.of("Bad Request", "REQUEST_ERROR", "Malformed request body"));
+        return ResponseEntity.badRequest()
+            .body(ErrorResponse.of("Bad Request", "REQUEST_ERROR", "Malformed request body"));
     }
 
     @ExceptionHandler({DeadlineExceededException.class, AIGatewayUnavailableException.class})
@@ -153,7 +154,8 @@ public class GlobalExceptionHandler {
     ResponseEntity<ErrorResponse> unreadableModelOutput(ModelOutputException e) {
         log.warn("Unreadable model output: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ErrorResponse.of(
-            HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(), "MODEL_UNAVAILABLE", "The model returned unreadable output"));
+            HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(), "MODEL_UNAVAILABLE",
+            "The model returned unreadable output"));
     }
 
     /** A client that navigated away from the progress stream; there is nobody left to answer. */

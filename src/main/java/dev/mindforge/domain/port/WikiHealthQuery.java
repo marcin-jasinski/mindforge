@@ -5,7 +5,9 @@ import java.util.UUID;
 
 import dev.mindforge.domain.model.KnowledgeBaseHealth;
 
-/** Read-only structural checks for the health view (T25). Anchors are matched in Java, over {@code MarkdownStructure}. */
+/**
+ * Read-only structural checks for the health view (T25). Anchors are matched in Java, over {@code MarkdownStructure}.
+ */
 public interface WikiHealthQuery {
 
     List<KnowledgeBaseHealth.LinkFinding> danglingLinks(UUID kbId);
@@ -18,7 +20,10 @@ public interface WikiHealthQuery {
 
     List<KnowledgeBaseHealth.DuplicateTitle> duplicateConceptTitles(UUID kbId);
 
-    /** Supersessions of live pages, each with the superseded body; {@code supersedingPath} is null when that page is gone. */
+    /**
+     * Supersessions of live pages, each with the superseded body; {@code supersedingPath} is null when that page is
+     * gone.
+     */
     List<SupersessionToCheck> supersessionsToCheck(UUID kbId);
 
     record SupersessionToCheck(UUID supersessionId, String supersededPath, String sectionAnchor, String supersededBody,

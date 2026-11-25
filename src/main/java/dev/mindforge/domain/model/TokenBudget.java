@@ -1,6 +1,8 @@
 package dev.mindforge.domain.model;
 
-/** How many tokens of context a prompt may carry, with room kept for the response; counted with {@link TokenEstimate}. */
+/**
+ * How many tokens of context a prompt may carry, with room kept for the response; counted with {@link TokenEstimate}.
+ */
 public record TokenBudget(int totalTokens, int reservedForResponse) {
 
     public TokenBudget {

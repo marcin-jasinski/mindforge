@@ -57,7 +57,8 @@ public class StudyProgressStoreAdapter implements StudyProgressStore {
         if (pageIds != null && pageIds.isEmpty()) {
             return List.of();
         }
-        List<FlashcardEntity> due = pageIds == null ? cards.findDue(kbId, now) : cards.findDueOfPages(kbId, pageIds, now);
+        List<FlashcardEntity> due = pageIds == null
+            ? cards.findDue(kbId, now) : cards.findDueOfPages(kbId, pageIds, now);
         return due.stream().map(mapper::toDomain).toList();
     }
 

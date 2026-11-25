@@ -28,7 +28,8 @@ class SlackAdapterBoundaryTest {
             try (Stream<Path> files = Files.walk(directory)) {
                 assertThat(files.filter(file -> file.toString().endsWith(".java")))
                     .isNotEmpty()
-                    .allSatisfy(file -> assertThat(Files.readString(file)).doesNotContain("dev.mindforge" + ".discord"));
+                    .allSatisfy(file -> assertThat(Files.readString(file))
+                        .doesNotContain("dev.mindforge" + ".discord"));
             }
         }
     }

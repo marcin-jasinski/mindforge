@@ -68,9 +68,11 @@ public class ClaimExtractor {
 
     private EditItem toEditItem(ItemOutput item) {
         return switch (item.kind() == null ? "" : item.kind()) {
-            case "claim" -> toClaim(item.text() == null ? "" : item.text(), item.title(), item.path(), null, null, 0, -1);
+            case "claim" -> toClaim(item.text() == null ? "" : item.text(), item.title(), item.path(), null, null,
+                0, -1);
             case "delete" -> new EditItem.Delete(item.path());
-            case "retitle" -> new EditItem.Retitle(item.path(), item.title() == null ? "" : TextRules.singleLine(item.title()));
+            case "retitle" -> new EditItem.Retitle(item.path(),
+                item.title() == null ? "" : TextRules.singleLine(item.title()));
             default -> throw new ModelOutputException(getClass().getSimpleName(),
                 new IllegalArgumentException("unknown edit item kind '" + item.kind() + "'"));
         };

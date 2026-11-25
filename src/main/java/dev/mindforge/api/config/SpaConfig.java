@@ -9,7 +9,9 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 
-/** Serves the Angular build from {@code classpath:/static/}; a client-side route falls through to {@code index.html}. */
+/**
+ * Serves the Angular build from {@code classpath:/static/}; a client-side route falls through to {@code index.html}.
+ */
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class SpaConfig implements WebMvcConfigurer {

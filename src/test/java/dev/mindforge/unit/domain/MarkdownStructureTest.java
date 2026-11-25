@@ -20,7 +20,8 @@ class MarkdownStructureTest {
 
     @Test
     void shouldNotTreatACommentInsideAFenceAsAHeading() {
-        String body = "# Installation\n\n```bash\n# install the package\napt install x\n```\n\n~~~\n# not this either\n~~~\n";
+        String body = "# Installation\n\n```bash\n# install the package\napt install x\n```\n\n"
+            + "~~~\n# not this either\n~~~\n";
 
         assertThat(MarkdownStructure.sections(body)).extracting(Section::anchor).containsExactly("installation");
     }

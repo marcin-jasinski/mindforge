@@ -1,7 +1,6 @@
 package dev.mindforge.infrastructure.config;
 
 import java.io.IOException;
-import java.time.Duration;
 
 import dev.mindforge.domain.model.DeadlineExceededException;
 import dev.mindforge.domain.port.AIGateway;

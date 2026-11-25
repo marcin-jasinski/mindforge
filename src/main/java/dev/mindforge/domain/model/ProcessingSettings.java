@@ -4,7 +4,8 @@ import java.util.Map;
 
 /**
  * Pipeline tuning: chunk size, the two caps that fail a run loudly, the writer's and Supersede's input budgets,
- * whether an upload's article URLs are fetched, feature flags, and the {@link ModelTier} to model-id mappings recorded on every run. Chunks never overlap —
+ * whether an upload's article URLs are fetched, feature flags, and the {@link ModelTier} to model-id mappings recorded
+ * on every run. Chunks never overlap —
  * Extract is their only consumer, and overlap would duplicate claims.
  */
 public record ProcessingSettings(

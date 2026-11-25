@@ -83,7 +83,8 @@ class WikiStoreAdapterTest extends TestContainerBase {
         UUID runId = enqueueRun(kbId);
         UUID p = UUID.randomUUID();
         UUID q = UUID.randomUUID();
-        String body = "# Phase\nSee [Q](/concepts/q.md#phase), [Q again](/concepts/q.md#phase), [lesson](/sources/bio-1.md)"
+        String body = "# Phase\nSee [Q](/concepts/q.md#phase), [Q again](/concepts/q.md#phase),"
+            + " [lesson](/sources/bio-1.md)"
             + " i [PubMed](https://pubmed.ncbi.nlm.nih.gov/1).\n```\n[X](/concepts/x.md)\n```\n";
 
         wiki.savePage(kbId, makeWrite(p, "concepts/p", body), runId);
@@ -91,7 +92,8 @@ class WikiStoreAdapterTest extends TestContainerBase {
 
         assertThat(wiki.outboundLinks(kbId, List.of(p))).containsExactlyInAnyOrder(
             new PageLink(p, "concepts/q", "phase"), new PageLink(p, "sources/bio-1", null));
-        assertThat(wiki.inboundLinks(kbId, List.of("concepts/q"))).containsExactly(new PageLink(p, "concepts/q", "phase"));
+        assertThat(wiki.inboundLinks(kbId, List.of("concepts/q")))
+            .containsExactly(new PageLink(p, "concepts/q", "phase"));
         PageGraph graph = wiki.graph(kbId);
         assertThat(graph.pages()).extracting(IndexEntry::path).containsExactlyInAnyOrder("concepts/p", "concepts/q");
         assertThat(graph.links()).containsExactlyInAnyOrder(
@@ -216,7 +218,8 @@ class WikiStoreAdapterTest extends TestContainerBase {
         assertThat(wiki.findRevision(kbId, a.p(), 1)).isPresent();
         assertThat(wiki.listRevisions(kbId, a.p())).extracting(PageRevision::revision).containsExactly(1);
         assertThat(wiki.outboundLinks(kbId, List.of(a.p()))).containsExactly(new PageLink(a.p(), "concepts/q", null));
-        assertThat(wiki.inboundLinks(kbId, List.of("concepts/q"))).containsExactly(new PageLink(a.p(), "concepts/q", null));
+        assertThat(wiki.inboundLinks(kbId, List.of("concepts/q")))
+            .containsExactly(new PageLink(a.p(), "concepts/q", null));
         PageGraph graph = wiki.graph(kbId);
         assertThat(graph.pages()).hasSize(2);
         assertThat(graph.links()).containsExactly(new PageGraph.Edge("concepts/p", "concepts/q"));

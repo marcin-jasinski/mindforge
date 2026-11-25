@@ -82,13 +82,15 @@ class BundleExportTest extends TestContainerBase {
                 "# Gametes\n\nGametes.\n"), runId);
             wiki.savePage(kbId, new PageWrite(summary, "sources/bio-1", "First lesson", "Summary.",
                 PageType.SOURCE_SUMMARY, "# Summary\n\nContent.\n"), runId);
-            wiki.addSources(kbId, List.of(new PageSource(mitosis, lesson, runId), new PageSource(summary, lesson, runId)));
+            wiki.addSources(kbId, List.of(new PageSource(mitosis, lesson, runId),
+                new PageSource(summary, lesson, runId)));
             wiki.addSupersessions(kbId, List.of(
                 new PageSupersession(UUID.randomUUID(), mitosis, "phase", meiosis, runId, Instant.now())));
         });
         completedRun(kbId, turn, runId -> wiki.addSources(kbId, List.of(new PageSource(meiosis, turn, runId))));
         jdbc.update("UPDATE ingest_runs SET failures = '[{\"reason\":\"SEKRET-FAILURE\"}]'::jsonb,"
-            + " findings = '[{\"text\":\"SEKRET-FINDING\"}]'::jsonb, step_versions = '{\"PageWriter\":\"SEKRET\"}'::jsonb,"
+            + " findings = '[{\"text\":\"SEKRET-FINDING\"}]'::jsonb,"
+            + " step_versions = '{\"PageWriter\":\"SEKRET\"}'::jsonb,"
             + " cost = 12.5 WHERE run_id = ?", ingest);
 
         Map<String, String> files = ExportedBundle.files(exporter, kbId, "Biology: basics");
@@ -130,8 +132,9 @@ class BundleExportTest extends TestContainerBase {
         Map<String, String> files = snapshot.execute(status -> {
             jdbc.queryForObject("SELECT COUNT(*) FROM wiki_pages WHERE knowledge_base_id = ?", Integer.class, kbId);
             try (ExecutorService other = Executors.newSingleThreadExecutor()) {
-                other.submit(() -> completedRun(kbId, lesson, runId -> wiki.savePage(kbId, new PageWrite(UUID.randomUUID(),
-                    "concepts/mitosis", "Mitosis", "Description.", PageType.CONCEPT, "Content.\n"), runId))).get();
+                other.submit(() -> completedRun(kbId, lesson, runId -> wiki.savePage(kbId,
+                    new PageWrite(UUID.randomUUID(), "concepts/mitosis", "Mitosis", "Description.", PageType.CONCEPT,
+                        "Content.\n"), runId))).get();
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }

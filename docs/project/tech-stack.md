@@ -164,7 +164,12 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 ## Development Tools
 
 ### Linting & Formatting
-- **Checkstyle / Spotless** — Java code style enforcement via Maven plugin
+- **Checkstyle** (`maven-checkstyle-plugin` 3.6.0, Checkstyle 10.26.1) — runs `check` in the `validate` phase, so
+  `mvn test`, `package` and `verify` fail on a violation. The ruleset `config/checkstyle/checkstyle.xml` encodes only
+  rules the project already states: no tabs, no trailing whitespace, a final newline, no star, unused or redundant
+  imports, no field `@Autowired` in main code (constructor injection), loggers named `log`, and lines of at most 120
+  characters. Spotless is not adopted: a formatter rewrites code to a style the project never stated; Checkstyle only
+  reports breaks of the stated rules.
 - **ESLint + Prettier** — Frontend TypeScript formatting
 
 ### Type Safety

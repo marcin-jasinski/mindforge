@@ -50,7 +50,8 @@ import dev.mindforge.support.TestContainerBase;
 })
 class PipelineCommandIntegrationTest extends TestContainerBase {
 
-    private static final String NOTES = "# Mitosis\n\nMitosis is cell division.\n\n# Meiosis\n\nMeiosis makes gametes.\n";
+    private static final String NOTES =
+        "# Mitosis\n\nMitosis is cell division.\n\n# Meiosis\n\nMeiosis makes gametes.\n";
 
     /** The console the run progress is printed to; the context's runner prints to this one console. */
     private static final ByteArrayOutputStream STDOUT = new ByteArrayOutputStream();

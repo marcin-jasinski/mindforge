@@ -122,7 +122,8 @@ public final class BundleConformanceValidator {
             return Optional.empty();
         }
         try {
-            Object parsed = new Yaml(new SafeConstructor(new LoaderOptions())).load(content.substring(FENCE.length(), end));
+            Object parsed = new Yaml(new SafeConstructor(new LoaderOptions()))
+                .load(content.substring(FENCE.length(), end));
             return parsed instanceof Map<?, ?> map ? Optional.of(map) : Optional.empty();
         } catch (YAMLException e) {
             return Optional.empty();

@@ -86,7 +86,8 @@ public class UploadCommand implements DiscordCommand {
         try {
             byte[] content = attachments.read(attachment, maxBytes);
             UUID documentId = ingestion.ingest(new DocumentUpload(kbId, userId, UploadSource.DISCORD,
-                attachment.getFileName(), mediaType(attachment.getContentType()), content, call.options().get(LESSON_ID),
+                attachment.getFileName(), mediaType(attachment.getContentType()), content,
+                call.options().get(LESSON_ID),
                 Boolean.parseBoolean(call.options().get(NEW_VERSION))));
             return "Document " + documentId + " accepted; its ingest run is queued. An identical file already in "
                 + "this knowledge base returns that document and queues no run.";

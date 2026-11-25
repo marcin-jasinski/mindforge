@@ -135,8 +135,8 @@ class QueryServiceTest {
 
     private QueryService makeService() {
         PromptLoader prompts = new PromptLoader("en");
-        return new QueryService(wiki, interactions, new PageSelector(gateway, prompts), new AnswerWriter(gateway, prompts),
-            search);
+        return new QueryService(wiki, interactions, new PageSelector(gateway, prompts),
+            new AnswerWriter(gateway, prompts), search);
     }
 
     private void givenSession() {
@@ -152,7 +152,7 @@ class QueryServiceTest {
     }
 
     private static WikiPage makePage(String path, String body) {
-        return new WikiPage(UUID.randomUUID(), KB, path, path, "Description.", PageType.CONCEPT, body + "\n", 1, Instant.EPOCH,
-            Instant.EPOCH);
+        return new WikiPage(UUID.randomUUID(), KB, path, path, "Description.", PageType.CONCEPT, body + "\n", 1,
+            Instant.EPOCH, Instant.EPOCH);
     }
 }

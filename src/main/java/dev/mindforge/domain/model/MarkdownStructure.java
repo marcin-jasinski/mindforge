@@ -44,7 +44,9 @@ public final class MarkdownStructure {
     private static final Pattern HEADING = Pattern.compile("(#{1,6}) (.*)");
     private static final Pattern CLOSING_HASHES = Pattern.compile("(?:^|\\s+)#+\\s*$");
     private static final Pattern REFERENCE_DEFINITION = Pattern.compile(" {0,3}\\[[^\\]\\n]+\\]:.*");
-    /** One character of link text: an escape, a line break that does not end the paragraph, or anything but a bracket. */
+    /**
+     * One character of link text: an escape, a line break that does not end the paragraph, or anything but a bracket.
+     */
     private static final String LINK_TEXT_CHAR = "(?:\\\\.|[^\\\\\\[\\]\\n]|\\n(?![ \\t]*\\n))";
     /** Link text may hold one level of balanced brackets, as CommonMark allows. */
     private static final Pattern INLINE_LINK = Pattern.compile(
@@ -66,7 +68,8 @@ public final class MarkdownStructure {
         for (int i = 0; i < level1.size(); i++) {
             Heading heading = level1.get(i);
             int end = i + 1 < level1.size() ? level1.get(i + 1).start() : body.length();
-            sections.add(new Section(heading.text(), Identifier.slugify(stripLinks(heading.text())), heading.start(), end));
+            sections.add(new Section(heading.text(), Identifier.slugify(stripLinks(heading.text())),
+                heading.start(), end));
         }
         return sections;
     }

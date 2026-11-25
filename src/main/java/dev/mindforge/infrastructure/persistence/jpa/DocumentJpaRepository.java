@@ -28,7 +28,8 @@ public interface DocumentJpaRepository extends JpaRepository<DocumentEntity, UUI
     Optional<DocumentWithoutBlocks> findWithoutBlocksByContentHash(UUID knowledgeBaseId, String contentHash,
                                                                    String uploadSource);
 
-    @Query(value = "SELECT lesson_title FROM documents WHERE knowledge_base_id = :knowledgeBaseId AND lesson_id = :lessonId"
+    @Query(value = "SELECT lesson_title FROM documents WHERE knowledge_base_id = :knowledgeBaseId"
+        + " AND lesson_id = :lessonId"
         + " ORDER BY created_at DESC LIMIT 1", nativeQuery = true)
     Optional<String> findLessonTitle(UUID knowledgeBaseId, String lessonId);
 

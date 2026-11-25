@@ -49,7 +49,8 @@ public class QuizController {
     public QuizSessionResponse start(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID kbId,
                                      @RequestBody QuizSessionRequest request) {
         knowledgeBases.requireOwner(kbId, user.userId());
-        return mapper.toResponse(quizzes.begin(kbId, user.userId(), StudyScopes.of(request.lessonId(), request.pageId())));
+        return mapper.toResponse(quizzes.begin(kbId, user.userId(),
+            StudyScopes.of(request.lessonId(), request.pageId())));
     }
 
     @Operation(summary = "Get the next question's text")

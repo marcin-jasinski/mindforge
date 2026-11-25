@@ -21,7 +21,9 @@ public class PageWriter {
     public static final ModelTier TIER = ModelTier.LARGE;
 
     private static final String NONE = "(none)";
-    /** What the prompt shows as the existing body of a create; the ingest pipeline reuses it as a planned description. */
+    /**
+     * What the prompt shows as the existing body of a create; the ingest pipeline reuses it as a planned description.
+     */
     public static final String NEW_PAGE = "(new page)";
 
     private final AIGateway gateway;

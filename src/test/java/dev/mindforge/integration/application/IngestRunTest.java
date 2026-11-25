@@ -68,7 +68,8 @@ import dev.mindforge.support.TestContainerBase;
 class IngestRunTest extends TestContainerBase {
 
     /** Blocks 0–3: heading, text, heading, text. */
-    private static final String NOTES = "# Mitosis\n\nMitosis is cell division.\n\n# Meiosis\n\nMeiosis makes gametes.\n";
+    private static final String NOTES =
+        "# Mitosis\n\nMitosis is cell division.\n\n# Meiosis\n\nMeiosis makes gametes.\n";
     private static final String MITOSIS_BODY = "# Course\n\nMitosis precedes meiosis.\n";
     private static final String MEIOSIS_BODY = "# Gametes\n\nMeiosis makes gametes.\n";
     private static final String SUMMARY_BODY = "# Summary\n\nMitosis and meiosis.\n";
@@ -171,10 +172,12 @@ class IngestRunTest extends TestContainerBase {
             MarkdownParser.MIME_TYPE, (NOTES + "\nSecond version.\n").getBytes(StandardCharsets.UTF_8), "mitosis-2",
             false));
 
-        assertThat(documents.findById(kbId, first)).get().extracting(d -> d.lessonIdentity().title()).isEqualTo("mitosis");
+        assertThat(documents.findById(kbId, first)).get().extracting(d -> d.lessonIdentity().title())
+            .isEqualTo("mitosis");
         assertThat(documents.findById(kbId, second)).get().extracting(d -> d.lessonIdentity().title())
             .isEqualTo("mitosis (mitosis-2)");
-        assertThat(documents.findById(kbId, second)).get().extracting(d -> d.lessonIdentity().lessonId()).isEqualTo("mitosis-2");
+        assertThat(documents.findById(kbId, second)).get().extracting(d -> d.lessonIdentity().lessonId())
+            .isEqualTo("mitosis-2");
     }
 
     @Test
@@ -236,8 +239,10 @@ class IngestRunTest extends TestContainerBase {
         assertThat(wiki.listIndex(kbId)).extracting(IndexEntry::path)
             .containsExactlyInAnyOrder("concepts/mitosis", "sources/biology");
         assertThat(wiki.findByPath(kbId, "concepts/mitosis")).map(WikiPage::markdownBody).contains(MITOSIS_BODY);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::path).containsExactly("write", "concepts/meiosis"));
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::dropped).containsExactly("linkCheck", 1));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
+            .extracting(RunFailure::step, RunFailure::path).containsExactly("write", "concepts/meiosis"));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
+            .extracting(RunFailure::step, RunFailure::dropped).containsExactly("linkCheck", 1));
     }
 
     @Test
@@ -314,13 +319,15 @@ class IngestRunTest extends TestContainerBase {
 
         gateway.reset();
         gateway.answer(Prompts.GUARD, Prompts.RELEVANT);
-        gateway.answer(Prompts.EXTRACT, extraction(claim("Prophase takes two hours.", "Meiosis", "concepts/meiosis", 1, 1)));
+        gateway.answer(Prompts.EXTRACT,
+            extraction(claim("Prophase takes two hours.", "Meiosis", "concepts/meiosis", 1, 1)));
         gateway.answer(Prompts.writing("concepts/meiosis"),
             draft("Reductive division.", MEIOSIS_BODY + "\n# Prophase\n\nProphase takes two hours.\n"));
         gateway.answer(Prompts.writing("sources/genetics"), draft("Genetics lesson.", SUMMARY_BODY));
         gateway.answer(Prompts.LINKS, "{\"insertions\": []}");
         gateway.answer(Prompts.SUPERSEDE, Prompts.json(Map.of("proposals", List.of(
-            Map.of("supersededPath", "concepts/mitosis", "sectionAnchor", "phase", "supersedingPath", "concepts/meiosis"),
+            Map.of("supersededPath", "concepts/mitosis", "sectionAnchor", "phase",
+                "supersedingPath", "concepts/meiosis"),
             Map.of("supersededPath", "sources/biology", "sectionAnchor", "summary",
                 "supersedingPath", "concepts/meiosis")))));
 
@@ -328,7 +335,8 @@ class IngestRunTest extends TestContainerBase {
             RunStatus.COMPLETED);
 
         assertThat(run.supersessionCount()).isEqualTo(1);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::step, RunFailure::dropped).containsExactly("supersede", 1));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
+            .extracting(RunFailure::step, RunFailure::dropped).containsExactly("supersede", 1));
         UUID mitosis = wiki.findByPath(kbId, "concepts/mitosis").orElseThrow().pageId();
         assertThat(wiki.liveSupersessionsOf(kbId, List.of(mitosis)))
             .extracting(LiveSupersession::sectionAnchor, LiveSupersession::supersedingPath)
@@ -381,13 +389,15 @@ class IngestRunTest extends TestContainerBase {
             Map.of("kind", "delete", "path", "sources/biology"),
             Map.of("kind", "retitle", "path", "concepts/mitosis", "title", "Cell mitosis")))));
 
-        IngestRun run = awaitRun(kbId, edit(kbId, "Delete meiosis and give mitosis a fuller name."), RunStatus.COMPLETED);
+        IngestRun run = awaitRun(kbId, edit(kbId, "Delete meiosis and give mitosis a fuller name."),
+            RunStatus.COMPLETED);
 
         assertThat(wiki.findByPath(kbId, "concepts/meiosis")).isEmpty();
         assertThat(wiki.findByPath(kbId, "sources/biology")).isPresent();
         assertThat(wiki.findByPath(kbId, "concepts/mitosis")).get()
             .extracting(WikiPage::title, WikiPage::markdownBody).containsExactly("Cell mitosis", MITOSIS_BODY);
-        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure).extracting(RunFailure::item, RunFailure::path).containsExactly("delete", "sources/biology"));
+        assertThat(run.failures()).anySatisfy(failure -> assertThat(failure)
+            .extracting(RunFailure::item, RunFailure::path).containsExactly("delete", "sources/biology"));
         assertThat(LogRenderer.render(runReports.logEntries(kbId)))
             .contains("* **Edit**: conversation — 1 revised, 1 deleted.");
     }
