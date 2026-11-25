@@ -60,6 +60,24 @@ curl http://localhost:8080/actuator/health   # {"status":"UP"}
 healthy. `compose.override.yml` is picked up automatically for local work: it publishes PostgreSQL on 5432, turns off
 `Secure` cookies for plain HTTP and supplies a development JWT secret. Flyway migrates the schema at startup.
 
+### E2E stack (test only)
+
+`compose.e2e.yml` is test-only: never use it for a deployment. It adds `model-stub`, a pinned WireMock image that
+answers every model call from the static mappings in `src/test/e2e/model-stub/mappings/`, and points the app's
+`OPENROUTER_BASE_URL` at it, with a throwaway JWT secret and plain-HTTP cookies
+([ADR-0042](../adr/0042-e2e-model-answers-come-from-a-fake-openai-compatible-server.md)). A prompt that no mapping
+matches gets a 400, so the run fails at once. Always name both files; a plain `docker compose up` never starts the stub:
+
+```bash
+docker compose -f compose.yml -f compose.e2e.yml up -d --build --wait
+docker compose -f compose.yml -f compose.e2e.yml exec model-stub \
+  wget -qO- http://localhost:8080/__admin/requests/unmatched   # prompts that got no answer
+docker compose -f compose.yml -f compose.e2e.yml down -v
+```
+
+`ModelStubMappingsTest` (`mvn test`) fails when a mapping's `# Task: ...` heading is in no prompt resource or a
+mapping's answer is not chat-completion JSON.
+
 ## Configuration
 
 Every variable is listed in `env.example`. The ones a deployment must set:

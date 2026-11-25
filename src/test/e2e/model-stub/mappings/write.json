@@ -1,0 +1,41 @@
+{
+  "metadata": {
+    "prompt": "Prompts.WRITE"
+  },
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/chat/completions",
+    "bodyPatterns": [
+      {
+        "contains": "# Task: wiki page writing"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "id": "chatcmpl-e2e-write",
+      "object": "chat.completion",
+      "created": 1764028800,
+      "model": "e2e-stub",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "{\"description\": \"Cell division.\", \"body\": \"# Course\\n\\nMitosis splits a cell in two.\\n\"}"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 10,
+        "completion_tokens": 20,
+        "total_tokens": 30
+      }
+    }
+  }
+}

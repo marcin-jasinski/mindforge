@@ -1,13 +1,13 @@
 ---
 id: P21-08
 title: Answer the E2E stack's model calls from a WireMock OpenAI-compatible stub in a test-only compose override
-status: ready
+status: done
 plan_tasks: [21.2]
 decisions: [D06]
 depends_on: [P21-02]
 size: M
 issue: 73
-commit:
+commit: e9ab579
 fix_rounds: 0
 ---
 ## Goal
@@ -70,13 +70,13 @@ prompt fragment. Do not change `src/main`: no `stub` Spring profile, no fake `AI
 - No change to `src/main` and no change to `compose.yml` defaults.
 
 ## Acceptance criteria
-- [ ] AC1: `compose.e2e.yml` exists as specified (pinned WireMock 3.x tag, read-only volume, no published port, the four `app.environment` values, `depends_on: [model-stub]`). `compose.yml`, `compose.override.yml` and `src/main/**` are unchanged.
-- [ ] AC2: `src/test/e2e/model-stub/mappings/` holds one mapping per journey prompt (at least GUARD, EXTRACT, WRITE, LINKS, SUPERSEDE, FLASHCARDS, QUIZ, GRADE), each with a `metadata` naming its `Prompts` constant, plus `zz-unmatched.json` (priority 10, 400, body "no e2e stub answer for this prompt").
-- [ ] AC3: The quiz answer's `referenceAnswer` is a distinct marker string (for example `E2E-SECRET-REFERENCE-ANSWER`) so the journey can assert it never appears in the DOM.
-- [ ] AC4: `ModelStubMappingsTest` passes; it fails if a mapping's fragment is not in any prompt resource (proved by a test on a `@TempDir` mapping, or by a hand-made bad mapping recorded in Notes), and it fails if a non-catch-all response is not valid chat-completion JSON.
-- [ ] AC5: Manual stack check (Docker is available on the factory host): with `docker compose -f compose.yml -f compose.e2e.yml up -d --build --wait`, a register + upload of a small markdown file through the API (curl with the cookie jar) reaches run status `COMPLETED`, and `docker compose -f compose.yml -f compose.e2e.yml exec model-stub wget -qO- http://localhost:8080/__admin/requests/unmatched` shows no unmatched request. Then `down -v`. Record the commands and result in Notes.
-- [ ] AC6: `docs/project/deployment.md` states `compose.e2e.yml` is test-only and gives the exact up and down commands.
-- [ ] AC7: `mvn -B verify -DskipFrontend=true` is green.
+- [x] AC1: `compose.e2e.yml` exists as specified (pinned WireMock 3.x tag, read-only volume, no published port, the four `app.environment` values, `depends_on: [model-stub]`). `compose.yml`, `compose.override.yml` and `src/main/**` are unchanged.
+- [x] AC2: `src/test/e2e/model-stub/mappings/` holds one mapping per journey prompt (at least GUARD, EXTRACT, WRITE, LINKS, SUPERSEDE, FLASHCARDS, QUIZ, GRADE), each with a `metadata` naming its `Prompts` constant, plus `zz-unmatched.json` (priority 10, 400, body "no e2e stub answer for this prompt").
+- [x] AC3: The quiz answer's `referenceAnswer` is a distinct marker string (for example `E2E-SECRET-REFERENCE-ANSWER`) so the journey can assert it never appears in the DOM.
+- [x] AC4: `ModelStubMappingsTest` passes; it fails if a mapping's fragment is not in any prompt resource (proved by a test on a `@TempDir` mapping, or by a hand-made bad mapping recorded in Notes), and it fails if a non-catch-all response is not valid chat-completion JSON.
+- [x] AC5: Manual stack check (Docker is available on the factory host): with `docker compose -f compose.yml -f compose.e2e.yml up -d --build --wait`, a register + upload of a small markdown file through the API (curl with the cookie jar) reaches run status `COMPLETED`, and `docker compose -f compose.yml -f compose.e2e.yml exec model-stub wget -qO- http://localhost:8080/__admin/requests/unmatched` shows no unmatched request. Then `down -v`. Record the commands and result in Notes.
+- [x] AC6: `docs/project/deployment.md` states `compose.e2e.yml` is test-only and gives the exact up and down commands.
+- [x] AC7: `mvn -B verify -DskipFrontend=true` is green.
 
 ## Test plan
 - Unit: `src/test/java/dev/mindforge/unit/infrastructure/ai/ModelStubMappingsTest.java` (AC2, AC4), reads files with `Path.of("src/test/e2e/model-stub/mappings")`, parses JSON with the Jackson already on the test classpath, AssertJ.
@@ -94,3 +94,9 @@ prompt fragment. Do not change `src/main`: no `stub` Spring profile, no fake `AI
 - Playwright files (P21-09) and the CI job (P21-11).
 
 ## Notes
+- Decided: pin `wiremock/wiremock:3.13.2` because it is the newest 3.x tag pulled on the factory host.
+- Decided: add `COPY config ./config` to the `Dockerfile` backend stage because P21-02 put Checkstyle in `validate` and the image build failed with "Unable to find suppressions file config/checkstyle/suppressions.xml"; without it AC5 cannot build the image. No other Dockerfile change.
+- Decided: the grading answer has English feedback ("Almost right.") and the quiz `referenceAnswer` is `E2E-SECRET-REFERENCE-ANSWER`; the other answers copy `ApiFlowTest`. REVIEW, SELECT and ANSWER have no mapping because ingest does not call REVIEW (`ApiFlowTest` would fail on the unmatched prompt) and the journey asks no Query.
+- Decided: AC4 is proved by three `@TempDir` tests in `ModelStubMappingsTest` (unknown fragment, response without chat-completion fields, content that is not JSON).
+- AC5 run (project `-p mf-e2e-p2108`): `docker compose -p mf-e2e-p2108 -f compose.yml -f compose.e2e.yml up -d --build --wait` -> all three services healthy. curl with a cookie jar: `POST /api/v1/auth/register` 201, `POST /api/v1/knowledge-bases`, multipart upload of `# Mitosis\n\nMitosis is cell division.\n` -> `latestRun.status` COMPLETED, index has `concepts/mitosis` and `sources/biology`. Also `POST flashcards/refresh` -> 1 card, `POST quiz-sessions` -> `next` gives "What does mitosis mean?", answer -> score 4. `exec model-stub wget -qO- http://localhost:8080/__admin/requests/unmatched` -> `"requests" : [ ]`; journal: 9 requests, all 200. An unknown prompt POST returns 400 from `zz-unmatched.json`. Then `down -v`.
+- Tester r1 AC map: AC1 compose.e2e.yml (config parses); AC2 mappings + ModelStubMappingsTest; AC3 quiz.json marker; AC4 ModelStubMappingsTest 3 @TempDir tests; AC5 implementer hand-run; AC6 deployment.md; AC7 gate green.

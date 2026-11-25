@@ -36,3 +36,6 @@
 2026-11-25T12:20:30+01:00 P21-07 implement@inherit DONE (ci.yml artifacts; weekly dependency-check.yml)
 2026-11-25T12:29:06+01:00 P21-07 test@sonnet r1 PASS (gate green; workflows static-checked; note: jacoco report goal not bound so jacoco artifact is empty); review r1 correctness@opus(2 minor),standards@sonnet,spec-security@opus(1 minor) approve; test-guard clean -> PASS
 2026-11-25T12:29:06+01:00 P21-07 commit c72e161
+2026-11-25T12:51:15+01:00 P21-08 implement@inherit DONE (compose.e2e.yml WireMock stub, 9 mappings, drift test; Dockerfile COPY config fixes image build broken by P21-02)
+2026-11-25T13:00:01+01:00 P21-08 test@sonnet r1 PASS (gate green; compose config parses); review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
+2026-11-25T13:00:01+01:00 P21-08 commit e9ab579
