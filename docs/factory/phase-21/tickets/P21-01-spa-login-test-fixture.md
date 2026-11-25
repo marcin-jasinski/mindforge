@@ -1,13 +1,13 @@
 ---
 id: P21-01
 title: Serve a test-classpath SPA shell so the login-route test passes without the Angular build
-status: ready
+status: done
 plan_tasks: [21.1]
 decisions: [D14]
 depends_on: []
 size: S
-issue:
-commit:
+issue: 66
+commit: ffe473d
 fix_rounds: 0
 ---
 ## Goal
@@ -40,10 +40,10 @@ fix_rounds: 0
   the real build, or nothing under `-DskipFrontend=true`).
 
 ## Acceptance criteria
-- [ ] AC1: `src/test/resources/static/index.html` exists with exactly the D14 content (the comment, `<app-root></app-root>`, no `<script>`).
-- [ ] AC2: `mvn -B verify -DskipFrontend=true` is green, and `ApiFlowTest.theLoginRouteIsTheSinglePageApp` runs and passes (not skipped).
-- [ ] AC3: `ApiFlowTest` and `SpaConfig` are unchanged.
-- [ ] AC4: After `mvn -B package -DskipFrontend=true -DskipTests`, `jar tf target/*.jar | grep static/index.html` prints nothing (the fixture is not in the product JAR).
+- [x] AC1: `src/test/resources/static/index.html` exists with exactly the D14 content (the comment, `<app-root></app-root>`, no `<script>`).
+- [x] AC2: `mvn -B verify -DskipFrontend=true` is green, and `ApiFlowTest.theLoginRouteIsTheSinglePageApp` runs and passes (not skipped).
+- [x] AC3: `ApiFlowTest` and `SpaConfig` are unchanged.
+- [x] AC4: After `mvn -B package -DskipFrontend=true -DskipTests`, `jar tf target/*.jar | grep static/index.html` prints nothing (the fixture is not in the product JAR).
 
 ## Test plan
 - Integration (existing): `src/test/java/dev/mindforge/integration/api/ApiFlowTest.java` proves AC2 under the gate.
@@ -57,3 +57,7 @@ fix_rounds: 0
 - Assumption-skips or `@Disabled` on the test.
 
 ## Notes
+- Decided: put the D14 comment on its own line after the doctype, because a comment before the doctype can switch browsers to quirks mode.
+- AC2: `mvn -B -o verify -DskipFrontend=true -Dit.test=ApiFlowTest` -> ApiFlowTest Tests run: 15, Failures: 0, Errors: 0, Skipped: 0; theLoginRouteIsTheSinglePageApp ran and passed.
+- AC4: `mvn -B package -DskipFrontend=true -DskipTests` then `jar tf target/mindforge-1.1.0-SNAPSHOT.jar | grep static/index.html` printed nothing.
+- Not run: the full build with `-DskipFrontend=false` (needs the Angular build); test-classes come first on the test classpath, so the fixture shadows the real index.html there.

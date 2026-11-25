@@ -12,3 +12,7 @@
 2026-11-25T09:56:15+01:00 Q14 decided judge votes=A(sonnet) changes=none -> test fixture src/test/resources/static/index.html with <app-root> so theLoginRouteIsTheSinglePageApp passes under -DskipFrontend
 2026-11-25T09:58:48+01:00 Q07 decided debate votes=r1 C,C,C -> r2 A,A,A(opus) changes=pragmatist,architect,skeptic C->A -> Playwright Test (TypeScript) as its own npm project in src/test/e2e/ next to the D06 mappings, run against compose outside Maven; test-writing.md gains a browser-suite line
 2026-11-25T10:05:04+01:00 - tickets ticket-writer@opus 12 tickets P21-01..P21-12
+2026-11-25T10:05:44+01:00 - tracker tickets 12 issues
+2026-11-25T10:10:11+01:00 P21-01 implement@inherit DONE (test fixture static/index.html)
+2026-11-25T10:21:32+01:00 P21-01 test@sonnet r1 PASS (gate green, baseline failure fixed); review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
+2026-11-25T10:21:32+01:00 P21-01 commit ffe473d
