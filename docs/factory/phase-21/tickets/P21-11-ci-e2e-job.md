@@ -1,13 +1,13 @@
 ---
 id: P21-11
 title: Run the browser E2E journey in a CI job against the compose stack
-status: ready
+status: done
 plan_tasks: [21.1, 21.2]
 decisions: [D08, D07]
 depends_on: [P21-07, P21-10]
 size: S
 issue: 76
-commit:
+commit: ccf80ab
 fix_rounds: 0
 ---
 ## Goal
@@ -48,12 +48,12 @@ WireMock unmatched requests with `if: always()` (for example
 plus `docker compose ... logs` into a file, uploaded with the report).
 
 ## Acceptance criteria
-- [ ] AC1: `ci.yml` has a job `e2e` with `needs: linux`, `runs-on: ubuntu-latest`, no new trigger and no branch filter.
-- [ ] AC2: Steps in order: checkout; setup-node 22 with the `src/test/e2e/package-lock.json` cache; `docker compose -f compose.yml -f compose.e2e.yml build`; `... up -d --wait`; `npm ci`, `npx playwright install --with-deps chromium`, `npm test` in `src/test/e2e`; then with `if: always()`: dump WireMock unmatched requests and compose logs, upload `playwright-report/`, `test-results/` and the dumps as one artifact, `... down -v`.
-- [ ] AC3: Every compose command names both `-f` files; none uses `compose.override.yml`.
-- [ ] AC4: The workflow file is valid YAML (parse check or `actionlint`).
-- [ ] AC5: `docs/project/deployment.md` has a "Run the E2E locally" section with the exact up / `npm ci` / `npx playwright install chromium` / `npm test` / down commands, states that `mvn verify` and the factory gate do not run it, and is separate from the failsafe `e2e/` text.
-- [ ] AC6: Locally, the commands of AC5 run the suite green (record in Notes). `mvn -B verify -DskipFrontend=true` is green.
+- [x] AC1: `ci.yml` has a job `e2e` with `needs: linux`, `runs-on: ubuntu-latest`, no new trigger and no branch filter.
+- [x] AC2: Steps in order: checkout; setup-node 22 with the `src/test/e2e/package-lock.json` cache; `docker compose -f compose.yml -f compose.e2e.yml build`; `... up -d --wait`; `npm ci`, `npx playwright install --with-deps chromium`, `npm test` in `src/test/e2e`; then with `if: always()`: dump WireMock unmatched requests and compose logs, upload `playwright-report/`, `test-results/` and the dumps as one artifact, `... down -v`.
+- [x] AC3: Every compose command names both `-f` files; none uses `compose.override.yml`.
+- [x] AC4: The workflow file is valid YAML (parse check or `actionlint`).
+- [x] AC5: `docs/project/deployment.md` has a "Run the E2E locally" section with the exact up / `npm ci` / `npx playwright install chromium` / `npm test` / down commands, states that `mvn verify` and the factory gate do not run it, and is separate from the failsafe `e2e/` text.
+- [x] AC6: Locally, the commands of AC5 run the suite green (record in Notes). `mvn -B verify -DskipFrontend=true` is green.
 
 ## Test plan
 - No new test code. AC4 by a YAML parse; AC6 by running the documented commands locally and the factory gate. The CI run on the pushed branch is the final proof; record its outcome in Notes if visible.
@@ -68,3 +68,11 @@ plus `docker compose ... logs` into a file, uploaded with the report).
 - Changing the triggers.
 
 ## Notes
+- Decided: the dumps go to `src/test/e2e/test-results/` (`wiremock-unmatched.json`, `compose.log`), so the one `e2e` artifact holds `playwright-report/` and `test-results/` with no new path and no `.gitignore` change. They are written after `npm test`, so Playwright does not clean them.
+- Decided: the unmatched dump and the compose logs are two `if: always()` steps, because in one step a failed `exec` (stub down) would stop the logs dump.
+- AC4: `python3 yaml.safe_load` parses `ci.yml` (jobs linux, windows, e2e; triggers unchanged). actionlint is not installed on this host.
+- AC6 run (project `-p mf-e2e-p2111`): `build` and `up -d --wait` -> all three services healthy. No Chromium on this host, so `npm ci && npm test` ran with `CI=true` in `mcr.microsoft.com/playwright:v1.65.1-noble` (host network, a copy of `src/test/e2e` without `node_modules`) -> 2 passed (44.3s). The two dump commands of the job gave `"requests" : [ ]` and a 218-line log. Then `down -v`. `mvn -q -o test -DskipFrontend=true -Djacoco.skip=true` green; the gate is left to the factory gate step.
+- Tester r1: AC1-3 -> static read of ci.yml `e2e` job (needs linux, ubuntu-latest, 6 compose cmds all with both -f, order as AC2); AC4 -> YAML parse; AC5 -> deployment.md "Run the E2E locally"; AC6 -> `mvn -B verify -DskipFrontend=true` BUILD SUCCESS.
+
+### Deferred findings
+- spec-security/S1 minor 0.6 .github/workflows/ci.yml:60: The new `e2e` job runs code from the pushed branch or PR (`npm ci` install scripts, `docker compose build`, Playwright specs) with the default `GITHUB_TOKEN` scope, because neither the workflow nor the job sets `permissions:`.

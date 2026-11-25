@@ -78,6 +78,28 @@ docker compose -f compose.yml -f compose.e2e.yml down -v
 `ModelStubMappingsTest` (`mvn test`) fails when a mapping's `# Task: ...` heading is in no prompt resource or a
 mapping's answer is not chat-completion JSON.
 
+### Run the E2E locally
+
+The browser E2E suite is the Playwright project in `src/test/e2e/` (Node 22). It drives the SPA from sign-up to a
+downloaded OKF bundle against the E2E stack above. It is not the failsafe `e2e/` Java tests of `mvn verify`:
+`mvn verify` and the factory gate do not run the browser suite, and no Maven profile runs it. The CI job `e2e` runs it
+on every push and pull request, after the `linux` job.
+
+```bash
+docker compose -f compose.yml -f compose.e2e.yml up -d --build --wait
+cd src/test/e2e
+npm ci
+npx playwright install chromium   # the browser of the pinned @playwright/test version
+npm test                          # report in playwright-report/, traces of failed tests in test-results/
+cd ../../..
+docker compose -f compose.yml -f compose.e2e.yml down -v
+```
+
+- Run `npm test` from `src/test/e2e/`: the spec reads its upload fixture relative to that directory.
+- The suite expects the app on `http://localhost:8080`. Set `E2E_BASE_URL` for a different address.
+- On Linux, `npx playwright install --with-deps chromium` also installs the system libraries of the browser (it needs
+  root).
+
 ## Configuration
 
 Every variable is listed in `env.example`. The ones a deployment must set:

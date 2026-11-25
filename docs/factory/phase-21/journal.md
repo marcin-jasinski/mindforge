@@ -47,3 +47,6 @@
 2026-11-25T14:01:51+01:00 P21-10 fix@inherit r1 FIXED TG1 (URL and heading assertions restored in smoke.spec.ts)
 2026-11-25T14:15:00+01:00 P21-10 test@sonnet r2 PASS (fresh stack, 2 passed; gate green); review r2 correctness@opus approve; test-guard clean -> PASS
 2026-11-25T14:15:00+01:00 P21-10 commit 0fc2b5e
+2026-11-25T14:20:51+01:00 P21-11 implement@inherit DONE (ci.yml e2e job needs linux; deployment.md local E2E; simulated job: 2 passed)
+2026-11-25T14:29:37+01:00 P21-11 test@sonnet r1 PASS (gate green; workflow static-checked); review r1 correctness@opus,standards@sonnet,spec-security@opus(1 minor) approve; test-guard clean -> PASS
+2026-11-25T14:29:37+01:00 P21-11 commit ccf80ab
