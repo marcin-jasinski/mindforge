@@ -1,13 +1,13 @@
 ---
 id: P21-05
 title: Enforce thin controllers, independent model services and RunWorker-only queue reads with ArchUnit
-status: ready
+status: done
 plan_tasks: [21.3]
 decisions: [D11]
 depends_on: [P21-04]
 size: S
 issue: 70
-commit:
+commit: 057f002
 fix_rounds: 0
 ---
 ## Goal
@@ -53,11 +53,11 @@ Spring Security's `ClientRegistrationRepository` in `AuthController`) are not co
   query port directly.
 
 ## Acceptance criteria
-- [ ] AC1: Rule `controllers_do_not_access_ports_or_persistence_directly` exists exactly as D11 defines it and passes on current code with `AuthController` unchanged.
-- [ ] AC2: Rule `model_services_do_not_depend_on_other_model_services`: no class in `dev.mindforge.agent..` depends on a different top-level class in `dev.mindforge.agent..`; it passes on current code. Shared non-service types, if any exist in `agent` today and make the rule fail, are recorded in Notes and the ticket stops for review (no silent allowlist).
-- [ ] AC3: Rule `only_run_worker_reads_the_run_queue`: no class other than `dev.mindforge.application.service.RunWorker` calls `IngestRunRepository.findUnfinished()` or `IngestRunRepository.knowledgeBasesWithQueuedRuns()`; `.because(...)` cites T25. It passes on current code.
-- [ ] AC4: Each new rule is shown able to fail by a planted violation (for example a controller field of a `domain.port` type; an agent class referencing another; a second caller of `findUnfinished`), verified by hand and removed before commit (record in Notes).
-- [ ] AC5: `mvn -B verify -DskipFrontend=true` is green.
+- [x] AC1: Rule `controllers_do_not_access_ports_or_persistence_directly` exists exactly as D11 defines it and passes on current code with `AuthController` unchanged.
+- [x] AC2: Rule `model_services_do_not_depend_on_other_model_services`: no class in `dev.mindforge.agent..` depends on a different top-level class in `dev.mindforge.agent..`; it passes on current code. Shared non-service types, if any exist in `agent` today and make the rule fail, are recorded in Notes and the ticket stops for review (no silent allowlist).
+- [x] AC3: Rule `only_run_worker_reads_the_run_queue`: no class other than `dev.mindforge.application.service.RunWorker` calls `IngestRunRepository.findUnfinished()` or `IngestRunRepository.knowledgeBasesWithQueuedRuns()`; `.because(...)` cites T25. It passes on current code.
+- [x] AC4: Each new rule is shown able to fail by a planted violation (for example a controller field of a `domain.port` type; an agent class referencing another; a second caller of `findUnfinished`), verified by hand and removed before commit (record in Notes).
+- [x] AC5: `mvn -B verify -DskipFrontend=true` is green.
 
 ## Test plan
 - Unit: `unit/architecture/ArchitectureTest` (ArchUnit `@ArchTest` fields), run by surefire. AC4 by manual planted violations.
@@ -71,3 +71,9 @@ Spring Security's `ClientRegistrationRepository` in `AuthController`) are not co
 - Any production change.
 
 ## Notes
+- Decided: rule 3 uses a small custom `ArchCondition` that compares top-level owners (via `getEnclosingClass`, array base types) because ArchUnit has no built-in "other top-level class in the same package tree" predicate; no shared non-service types exist in `agent`, so no allowlist.
+- AC4 verified by hand: planted `api.controller.PlantedController` (field of `IngestRunRepository`), `agent.PlantedAgent` (field of `PageWriter`) and `application.service.PlantedCaller` (calls `findUnfinished` and `knowledgeBasesWithQueuedRuns`); `ArchitectureTest` reported 3 failures, one per new rule (4 violations). Files and their compiled classes removed.
+
+### Deferred findings
+- correctness/C1 minor 0.6 src/test/java/dev/mindforge/unit/architecture/ArchitectureTest.java:86: `callMethod(IngestRunRepository.class, "findUnfinished")` matches only call sites whose bytecode owner is exactly `IngestRunRepository`, so a call through the concrete `IngestRunRepositoryAdapter` type (or a sub-interface) is not caught.
+- spec-security/S1 minor 0.5 src/test/java/dev/mindforge/unit/architecture/ArchitectureTest.java:86: Rule `only_run_worker_reads_the_run_queue` matches only calls whose owner is `IngestRunRepository`; a call through the concrete `IngestRunRepositoryAdapter` type (for example from another infrastructure class that injects the adapter) does not match.

@@ -25,3 +25,6 @@
 2026-11-25T11:28:45+01:00 P21-04 implement@inherit DONE (archunit 1.4.1, 4 layer rules)
 2026-11-25T11:38:41+01:00 P21-04 test@sonnet r1 PASS (gate green); review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
 2026-11-25T11:38:42+01:00 P21-04 commit 1a67fec
+2026-11-25T11:44:37+01:00 P21-05 implement@inherit DONE (3 ArchUnit rules: controllers, model services, run queue)
+2026-11-25T11:53:10+01:00 P21-05 test@sonnet r1 PASS (gate green); review r1 correctness@opus(1 minor),standards@sonnet,spec-security@opus(1 minor) approve; test-guard clean -> PASS
+2026-11-25T11:53:10+01:00 P21-05 commit 057f002
