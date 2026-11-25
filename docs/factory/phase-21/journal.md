@@ -42,3 +42,8 @@
 2026-11-25T13:19:05+01:00 P21-09 implement@inherit DONE (src/test/e2e Playwright 1.65.1 project + smoke spec; ran in playwright container, 1 passed)
 2026-11-25T13:28:01+01:00 P21-09 test@sonnet r1 PASS (gate green, tsc ok; browser run is the implementer's container run); review r1 correctness@opus,standards@sonnet,spec-security@opus(1 minor) approve; test-guard clean -> PASS
 2026-11-25T13:28:02+01:00 P21-09 commit 40d10da
+2026-11-25T13:46:09+01:00 P21-10 implement@inherit DONE (journey spec upload->wiki->flashcard->quiz->export; smoke spec fixed for empty KB list; 2 passed in container)
+2026-11-25T13:59:32+01:00 P21-10 test@sonnet r1 PASS (independent e2e run 2 passed; gate green); review r1 correctness@opus(1 minor),standards@sonnet,spec-security@opus approve; test-guard 1 blocker (smoke.spec.ts lost 2 assertion lines) -> fix
+2026-11-25T14:01:51+01:00 P21-10 fix@inherit r1 FIXED TG1 (URL and heading assertions restored in smoke.spec.ts)
+2026-11-25T14:15:00+01:00 P21-10 test@sonnet r2 PASS (fresh stack, 2 passed; gate green); review r2 correctness@opus approve; test-guard clean -> PASS
+2026-11-25T14:15:00+01:00 P21-10 commit 0fc2b5e

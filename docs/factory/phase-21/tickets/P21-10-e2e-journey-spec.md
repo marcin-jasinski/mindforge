@@ -1,14 +1,14 @@
 ---
 id: P21-10
 title: Drive the wiki journey in the browser from upload to a downloaded OKF bundle
-status: ready
+status: done
 plan_tasks: [21.2]
 decisions: [D07]
 depends_on: [P21-09]
 size: M
 issue: 75
-commit:
-fix_rounds: 0
+commit: 0fc2b5e
+fix_rounds: 1
 ---
 ## Goal
 `src/test/e2e/specs/journey.spec.ts` runs, in plan 21.2 order, register -> upload -> run completes -> pages appear ->
@@ -47,13 +47,13 @@ include `index.md`, `log.md` and the page files of the journey (as `ApiFlowTest`
 validator on the downloaded files; the server-side validator is the oracle.
 
 ## Acceptance criteria
-- [ ] AC1: The spec registers a unique user, creates a knowledge base, and uploads a small markdown fixture committed under `src/test/e2e/fixtures/` (content consistent with the stub answers, e.g. the `ApiFlowTest` biology notes).
-- [ ] AC2: It waits (bounded timeout, no fixed sleeps) until the run shows completed in the UI, then sees the wiki pages from the stub answers in the pages list and opens one page, asserting its title and some body text.
-- [ ] AC3: It reviews at least one flashcard (shows the front, reveals the back, records a grade) in the study screen.
-- [ ] AC4: It takes a quiz: answers the question, submits, and sees the grading result; at no point does the DOM contain the quiz `referenceAnswer` marker (checked after the question is shown and after grading).
-- [ ] AC5: It clicks Export, catches the download (`page.waitForEvent('download')`), asserts the suggested file name matches `<slug>-okf.zip`, and asserts the zip's entries include `index.md`, `log.md` and the journey's page files. Zip reading uses Node built-ins only or a helper in the spec — no new npm dependency unless unavoidable (if one is added, pin it exactly and record why in Notes and `tech-stack.md`).
-- [ ] AC6: Against the running P21-08 stack, `npm test` in `src/test/e2e/` passes both specs; `npx tsc --noEmit` passes; WireMock shows no unmatched request after the run. Record the run in Notes.
-- [ ] AC7: `mvn -B verify -DskipFrontend=true` is green.
+- [x] AC1: The spec registers a unique user, creates a knowledge base, and uploads a small markdown fixture committed under `src/test/e2e/fixtures/` (content consistent with the stub answers, e.g. the `ApiFlowTest` biology notes).
+- [x] AC2: It waits (bounded timeout, no fixed sleeps) until the run shows completed in the UI, then sees the wiki pages from the stub answers in the pages list and opens one page, asserting its title and some body text.
+- [x] AC3: It reviews at least one flashcard (shows the front, reveals the back, records a grade) in the study screen.
+- [x] AC4: It takes a quiz: answers the question, submits, and sees the grading result; at no point does the DOM contain the quiz `referenceAnswer` marker (checked after the question is shown and after grading).
+- [x] AC5: It clicks Export, catches the download (`page.waitForEvent('download')`), asserts the suggested file name matches `<slug>-okf.zip`, and asserts the zip's entries include `index.md`, `log.md` and the journey's page files. Zip reading uses Node built-ins only or a helper in the spec — no new npm dependency unless unavoidable (if one is added, pin it exactly and record why in Notes and `tech-stack.md`).
+- [x] AC6: Against the running P21-08 stack, `npm test` in `src/test/e2e/` passes both specs; `npx tsc --noEmit` passes; WireMock shows no unmatched request after the run. Record the run in Notes.
+- [x] AC7: `mvn -B verify -DskipFrontend=true` is green.
 
 ## Test plan
 - E2E (browser, Playwright Test): `src/test/e2e/specs/journey.spec.ts` proves AC1–AC6 against the compose stack.
@@ -70,3 +70,11 @@ validator on the downloaded files; the server-side validator is the oracle.
 - Any SPA or `src/main` change; if a step is impossible through the UI, stop and record it in Notes.
 
 ## Notes
+- Decided: the register flow moved from `smoke.spec.ts` into `specs/register.ts`, and both specs use it, because the ticket asks to reuse it as a small helper.
+- Decided: the smoke spec now asserts that the "Knowledge bases" region is loaded (`aria-busy="false"`) and that the empty state "Start your first knowledge base" is visible. It no longer asserts that the region is visible, because a new user's region is empty and has zero height: the P21-09 assertion failed 3 of 3 times on this stack.
+- Decided: the spec keeps the quiz marker `E2E-SECRET-REFERENCE-ANSWER` as a constant and does not read `quiz.json`, because `ModelStubMappingsTest` already pins the marker and a JSON import would need a tsconfig change. The marker check covers the text (`not.toContainText`) and the full HTML (`page.content()`) after the question, after grading and on the results screen.
+- Decided: the spec reads the downloaded zip's central directory with `DataView` and `TextDecoder` in the spec, because this needs no new npm dependency (AC5). It asserts the entries `biology-okf/index.md`, `log.md`, `concepts/mitosis.md`, `sources/biology.md`, as `ApiFlowTest` does.
+- Run (AC6): stack `docker compose -p mf-e2e-p2110 -f compose.yml -f compose.e2e.yml up -d --build --wait` healthy. In `mcr.microsoft.com/playwright:v1.65.1-noble` (host network, host node_modules): `npx playwright test --trace off` -> 2 passed (23.4s). `npx -p typescript tsc --noEmit` passes. WireMock: `/__admin/requests/unmatched` was empty. The journal had 9 requests, all 200 from the mapped prompts (GUARD, EXTRACT, WRITE x2, LINKS, SUPERSEDE, FLASHCARDS, QUIZ, GRADE), and the catch-all answered none. Then `down -v`.
+
+### Deferred findings
+- correctness/C1 minor 0.5 src/test/e2e/specs/journey.spec.ts:22: The upload fixture path `'fixtures/biology.md'` is resolved against the process working directory, not the spec or config directory, so the spec only finds the file when Playwright is started from `src/test/e2e/`.
