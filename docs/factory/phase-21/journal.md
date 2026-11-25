@@ -33,3 +33,6 @@
 2026-11-25T12:09:18+01:00 P21-06 fix@inherit r1 FIXED C1 (link check matches ]\( )
 2026-11-25T12:17:47+01:00 P21-06 test@sonnet r2 PASS (gate green); review r2 correctness@opus approve; test-guard clean -> PASS
 2026-11-25T12:17:47+01:00 P21-06 commit 4aa4ebe
+2026-11-25T12:20:30+01:00 P21-07 implement@inherit DONE (ci.yml artifacts; weekly dependency-check.yml)
+2026-11-25T12:29:06+01:00 P21-07 test@sonnet r1 PASS (gate green; workflows static-checked; note: jacoco report goal not bound so jacoco artifact is empty); review r1 correctness@opus(2 minor),standards@sonnet,spec-security@opus(1 minor) approve; test-guard clean -> PASS
+2026-11-25T12:29:06+01:00 P21-07 commit c72e161

@@ -44,8 +44,10 @@ mvn -B dependency-check:check
 - The goal needs the network: it does not run with `mvn -o`.
 - The OSS Index analyzer and the Node, npm, Yarn, pnpm and RetireJS analyzers are off: the check covers the Maven
   dependencies only.
-- No CI job runs the check yet; a scheduled job is Phase 21 work
-  ([#63](https://github.com/marcin-jasinski/mindforge/issues/63)).
+- The `Dependency check` workflow (`.github/workflows/dependency-check.yml`) runs the goal every Monday and on manual
+  dispatch ([#63](https://github.com/marcin-jasinski/mindforge/issues/63)). It reads the key from the `NVD_API_KEY`
+  repository secret (a human sets it), caches the NVD data in `~/.m2/repository/org/owasp/dependency-check-data`
+  between runs and uploads `target/dependency-check-report.html`. A finding fails the job.
 
 ## Run locally
 

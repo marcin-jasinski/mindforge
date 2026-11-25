@@ -21,13 +21,26 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci && npm test -- --no-watch
         working-directory: frontend
-      # Unit + integration tests (Testcontainers, Docker is on the runner), coverage gate, frontend build.
+      # One step, lifecycle order: Checkstyle (validate), frontend build, unit + integration tests (Testcontainers,
+      # Docker is on the runner), SpotBugs (verify), JaCoCo 70% coverage gate.
       - run: mvn -B verify
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: jacoco
           path: target/site/jacoco/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: checkstyle
+          path: target/checkstyle-result.xml
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spotbugs
+          path: target/spotbugsXml.xml
+          if-no-files-found: ignore
 
   windows:
     runs-on: windows-latest

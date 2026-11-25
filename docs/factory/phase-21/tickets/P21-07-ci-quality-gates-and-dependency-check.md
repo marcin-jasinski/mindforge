@@ -1,13 +1,13 @@
 ---
 id: P21-07
 title: Run the quality gates in CI, publish their reports, and add the scheduled dependency-check workflow
-status: ready
+status: done
 plan_tasks: [21.1]
 decisions: [D03]
 depends_on: [P21-03]
 size: S
 issue: 72
-commit:
+commit: c72e161
 fix_rounds: 0
 ---
 ## Goal
@@ -53,12 +53,12 @@ as separate CI steps, was rejected). D01's note "CI: run `mvn -B checkstyle:chec
   `deployment.md` § Dependency check to drop "No CI job runs the check yet".
 
 ## Acceptance criteria
-- [ ] AC1: `ci.yml` keeps `on: push:` and `pull_request:` unchanged, keeps the single `mvn -B verify` step in `linux` (comment updated to name Checkstyle, Testcontainers tests, SpotBugs and the JaCoCo 70% gate), and keeps the `windows` job.
-- [ ] AC2: The `linux` job uploads, with `if: always()`, the JaCoCo report (existing) plus the Checkstyle and SpotBugs result files (artifact names `checkstyle`, `spotbugs`, or one `quality-reports` artifact), with `if-no-files-found: ignore` where a file may be absent.
-- [ ] AC3: New `.github/workflows/dependency-check.yml`: `on: schedule` (weekly cron) and `workflow_dispatch` only; Java 21 temurin with maven cache; `actions/cache@v4` on `~/.m2/repository/org/owasp/dependency-check-data` with a key that lets new NVD data be saved (for example `nvd-${{ github.run_id }}` with `restore-keys: nvd-`); step `mvn -B dependency-check:check` with `env: NVD_API_KEY: ${{ secrets.NVD_API_KEY }}`; the report uploaded with `if: always()`. No `continue-on-error`.
-- [ ] AC4: Both workflow files are valid YAML (`python3 -c 'import yaml,sys; [yaml.safe_load(open(f)) for f in sys.argv[1:]]' .github/workflows/*.yml`, or `actionlint` if available).
-- [ ] AC5: `docs/project/deployment.md` § Dependency check names the workflow (schedule + manual, `NVD_API_KEY` secret, NVD cache) and no longer says "No CI job runs the check yet".
-- [ ] AC6: `mvn -B verify -DskipFrontend=true` is green (no Maven change expected).
+- [x] AC1: `ci.yml` keeps `on: push:` and `pull_request:` unchanged, keeps the single `mvn -B verify` step in `linux` (comment updated to name Checkstyle, Testcontainers tests, SpotBugs and the JaCoCo 70% gate), and keeps the `windows` job.
+- [x] AC2: The `linux` job uploads, with `if: always()`, the JaCoCo report (existing) plus the Checkstyle and SpotBugs result files (artifact names `checkstyle`, `spotbugs`, or one `quality-reports` artifact), with `if-no-files-found: ignore` where a file may be absent.
+- [x] AC3: New `.github/workflows/dependency-check.yml`: `on: schedule` (weekly cron) and `workflow_dispatch` only; Java 21 temurin with maven cache; `actions/cache@v4` on `~/.m2/repository/org/owasp/dependency-check-data` with a key that lets new NVD data be saved (for example `nvd-${{ github.run_id }}` with `restore-keys: nvd-`); step `mvn -B dependency-check:check` with `env: NVD_API_KEY: ${{ secrets.NVD_API_KEY }}`; the report uploaded with `if: always()`. No `continue-on-error`.
+- [x] AC4: Both workflow files are valid YAML (`python3 -c 'import yaml,sys; [yaml.safe_load(open(f)) for f in sys.argv[1:]]' .github/workflows/*.yml`, or `actionlint` if available).
+- [x] AC5: `docs/project/deployment.md` § Dependency check names the workflow (schedule + manual, `NVD_API_KEY` secret, NVD cache) and no longer says "No CI job runs the check yet".
+- [x] AC6: `mvn -B verify -DskipFrontend=true` is green (no Maven change expected).
 
 ## Test plan
 - No Java test: AC4 by a YAML parse; AC6 by the factory gate. The CI run on the pushed branch is the real proof of AC1/AC2; record its outcome in Notes if visible.
@@ -75,3 +75,12 @@ as separate CI steps, was rejected). D01's note "CI: run `mvn -B checkstyle:chec
 - Binding dependency-check to any Maven phase.
 
 ## Notes
+- Decided: SpotBugs artifact path `target/spotbugsXml.xml` only, because a local `mvn verify` with plugin 4.9.8.5 writes that file and no `target/spotbugs.xml`.
+- Decided: two artifacts `checkstyle` and `spotbugs` (not one `quality-reports`), because each matches the existing per-tool `jacoco` artifact.
+- Decided: weekly cron `0 4 * * 1` (Monday 04:00 UTC) and artifact `dependency-check` with `if-no-files-found: ignore`, because a failed NVD download leaves no report.
+- AC4: both workflow files parse with `yaml.safe_load`; `actionlint` is not installed here. The CI run is not visible here (no push).
+
+### Deferred findings
+- correctness/C1 minor 0.8 .github/workflows/dependency-check.yml:20: The NVD cache is not saved when the check fails, so a known finding stops the weekly NVD data from being kept until the finding is fixed or suppressed.
+- correctness/C2 minor 0.6 .github/workflows/dependency-check.yml:18: `setup-java` `cache: maven` caches all of `~/.m2/repository`, so it also stores the NVD data, under the same key that the `ci.yml` jobs use.
+- spec-security/S1 minor 0.5 .github/workflows/dependency-check.yml:8: The new workflow declares no `permissions:` block, so its `GITHUB_TOKEN` gets the repository default scope (write on repos with the legacy permissive default) while it runs third-party Maven plugin code that the job downloads.
