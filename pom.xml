@@ -35,6 +35,7 @@
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <checkstyle.version>10.26.1</checkstyle.version>
         <spotbugs-maven-plugin.version>4.9.8.5</spotbugs-maven-plugin.version>
+        <archunit.version>1.4.1</archunit.version>
         <skipFrontend>true</skipFrontend>
     </properties>
 
@@ -280,6 +281,12 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
 

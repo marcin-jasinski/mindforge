@@ -57,6 +57,7 @@ It deliberately has **one data store**: PostgreSQL.
 | **Mockito** | 5.x | Mocking framework; domain and application unit tests use no Spring context |
 | **Testcontainers** | 1.x | Real PostgreSQL containers in integration tests — no DB mocks |
 | **AssertJ** | 3.x | Fluent assertions: `assertThat(page).extracting(WikiPage::revision).isEqualTo(2)` |
+| **ArchUnit** | 1.4.x | Architecture fitness functions: `unit/architecture/ArchitectureTest` fails the build when a class breaks the hexagonal layer table |
 | **Vitest** | ^4.0.x | Frontend test runner |
 | **jsdom** | ^28.0.0 | DOM simulation for Vitest frontend tests |
 
@@ -213,6 +214,7 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 | `spring-ai-starter-model-openai` | LLM access (OpenAI-compatible API) |
 | `spring-boot-starter-flyway` + `flyway-database-postgresql` | SQL schema migrations |
 | `testcontainers-postgresql` | Real database containers in integration tests |
+| `archunit-junit5` (`com.tngtech.archunit`, test scope) | Enforces the hexagonal layer table (CLAUDE.md, `hexagonal.md`) on the compiled classes in a unit test. The source-scan guards (`OutboundHttpGuardTest`, ADR 0023) stay as they are |
 | `caffeine` | In-memory caching |
 | `resilience4j-retry` + `resilience4j-circuitbreaker` | AI gateway resilience (ADR 0009) |
 | `jjwt-api` + `jjwt-impl` | JWT issuance after OAuth2 login |

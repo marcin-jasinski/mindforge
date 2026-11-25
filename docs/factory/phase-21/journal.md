@@ -22,3 +22,6 @@
 2026-11-25T11:01:43+01:00 P21-03 implement@inherit DONE (spotbugs 4.9.8.5 in verify; 2 null derefs fixed, DM_EXIT excluded narrowly)
 2026-11-25T11:21:47+01:00 P21-03 test@sonnet r1 PASS (gate green; added PipelineCommandRunnerTest root-path test); review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
 2026-11-25T11:21:47+01:00 P21-03 commit d324083
+2026-11-25T11:28:45+01:00 P21-04 implement@inherit DONE (archunit 1.4.1, 4 layer rules)
+2026-11-25T11:38:41+01:00 P21-04 test@sonnet r1 PASS (gate green); review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
+2026-11-25T11:38:42+01:00 P21-04 commit 1a67fec

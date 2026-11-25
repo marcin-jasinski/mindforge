@@ -1,13 +1,13 @@
 ---
 id: P21-04
 title: Add ArchUnit and enforce the hexagonal layer table as fitness functions
-status: ready
+status: done
 plan_tasks: [21.3]
 decisions: []
 depends_on: [P21-02]
 size: S
 issue: 69
-commit:
+commit: 1a67fec
 fix_rounds: 0
 ---
 ## Goal
@@ -46,12 +46,12 @@ No D-decision. Answered questions that bind this ticket:
   "not infrastructure or api"). `MindForgeApplication` in the root package is allowed.
 
 ## Acceptance criteria
-- [ ] AC1: `pom.xml` has `com.tngtech.archunit:archunit-junit5` in test scope with a pinned version property (1.3.x or later, supports Java 21 bytecode).
-- [ ] AC2: `src/test/java/dev/mindforge/unit/architecture/ArchitectureTest.java` imports `dev.mindforge` main classes only (`ImportOption.DoNotIncludeTests`) and declares named `@ArchTest` rules, each with `.because(...)` citing CLAUDE.md / hexagonal.md: `domain_depends_only_on_the_jdk`, `application_depends_only_on_domain_agent_tx_and_slf4j`, `model_services_depend_only_on_domain_and_infrastructure_ai`, `inner_layers_do_not_depend_on_adapters`.
-- [ ] AC3: All rules pass against the current code with no production change.
-- [ ] AC4: Each rule is proven able to fail: a deliberate violation (for example a `dev.mindforge.domain` class importing `org.springframework.*`) turns the test red; verified by hand and removed before commit (record in Notes).
-- [ ] AC5: The dependency and its purpose are listed in `docs/project/tech-stack.md` (test tooling) per Minimal Dependencies.
-- [ ] AC6: `mvn -B verify -DskipFrontend=true` is green.
+- [x] AC1: `pom.xml` has `com.tngtech.archunit:archunit-junit5` in test scope with a pinned version property (1.3.x or later, supports Java 21 bytecode).
+- [x] AC2: `src/test/java/dev/mindforge/unit/architecture/ArchitectureTest.java` imports `dev.mindforge` main classes only (`ImportOption.DoNotIncludeTests`) and declares named `@ArchTest` rules, each with `.because(...)` citing CLAUDE.md / hexagonal.md: `domain_depends_only_on_the_jdk`, `application_depends_only_on_domain_agent_tx_and_slf4j`, `model_services_depend_only_on_domain_and_infrastructure_ai`, `inner_layers_do_not_depend_on_adapters`.
+- [x] AC3: All rules pass against the current code with no production change.
+- [x] AC4: Each rule is proven able to fail: a deliberate violation (for example a `dev.mindforge.domain` class importing `org.springframework.*`) turns the test red; verified by hand and removed before commit (record in Notes).
+- [x] AC5: The dependency and its purpose are listed in `docs/project/tech-stack.md` (test tooling) per Minimal Dependencies.
+- [x] AC6: `mvn -B verify -DskipFrontend=true` is green.
 
 ## Test plan
 - Unit: `unit/architecture/ArchitectureTest` (ArchUnit JUnit 5, `@AnalyzeClasses(packages = "dev.mindforge", importOptions = DoNotIncludeTests.class)`), run by surefire. AC4 by a manual planted violation.
@@ -67,3 +67,7 @@ No D-decision. Answered questions that bind this ticket:
 - Any production refactor; if a rule fails on real code, stop and record it in Notes rather than weaken the rule silently.
 
 ## Notes
+- Decided: ArchUnit version 1.4.1 (`archunit.version`) because it is the newest 1.x release in reach and reads Java 21 bytecode.
+- Decided: the agent rule needs no added allowance because `dev.mindforge.agent` imports nothing outside java, domain, agent and infrastructure.ai (the rule passes as written).
+- AC4 verified by hand: planted `ZzPlantedViolation` in domain, application, agent (field of type `org.springframework.stereotype.Component`) and infrastructure (field of type `api.controller.AuthController`); all 4 rules went red (Tests run: 4, Failures: 4); files removed.
+- Tester r1 AC map: AC1 pom.xml archunit.version 1.4.1 test scope; AC2/AC3 ArchitectureTest 4 named @ArchTest rules, pass in gate; AC4 Notes manual plant (4 red); AC5 tech-stack.md two entries; AC6 `mvn -B verify -DskipFrontend=true` BUILD SUCCESS.
