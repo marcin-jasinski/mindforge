@@ -1770,36 +1770,98 @@ identity resolution.
 
 ---
 
-## [ ] Phase 21 — End-to-End Testing and CI/CD
+## [x] Phase 21 — End-to-End Testing and CI/CD
 
 > **Changed in v3.0:** the E2E journey follows the wiki; ArchUnit gains model-service rules.
+
+> **As built:** `mvn verify` runs Checkstyle, the tests, SpotBugs and the JaCoCo 70% check in lifecycle order, and CI
+> runs `mvn -B verify` on every push and pull request. A separate `e2e` job drives the SPA in a browser against the
+> compose stack, with model answers from a WireMock OpenAI-compatible stub (ADR 0042). `ArchitectureTest` (ArchUnit)
+> and `MarkdownRegexGuardTest` enforce the layer and model-service boundaries. A scheduled workflow runs the OWASP
+> dependency check (#63). Decisions: `docs/factory/phase-21/decisions/` D01–D03, D06–D08, D11, D12, D14. Follow-ups
+> and actions for the human: see **Follow-ups** below.
 
 **Goal:** Full E2E test suite covering core user journeys, GitHub Actions CI pipeline, and quality gates.
 
 ### Tasks
 
-- [ ] **21.1 — GitHub Actions workflow** (`.github/workflows/ci.yml`)
+- [x] **21.1 — GitHub Actions workflow** (`.github/workflows/ci.yml`)
   - Push to `main`, PRs: Checkstyle → SpotBugs → `mvn test` (Testcontainers) → JaCoCo 70% gate.
   - Follow-up: the FindSecBugs SpotBugs plugin (security patterns) — deferred by D02.
+  - *As built:* CI triggers on every push and every pull request, so it covers `develop` and the default branch (the
+    task text had "Push to `main`", Q04). The `linux` job runs the frontend tests and one `mvn -B verify` step, not
+    `mvn test`, because the Testcontainers integration tests run in failsafe (Q05). The order is the Maven lifecycle
+    (D03): Checkstyle (`validate`) → compile → unit tests (surefire) and integration tests (failsafe, Testcontainers)
+    → SpotBugs (`verify`) → JaCoCo 70% check. This is not the task's "Checkstyle → SpotBugs → tests" order: SpotBugs
+    reads the compiled classes, and the tests run before it. Checkstyle 10.26.1 with `config/checkstyle/checkstyle.xml`
+    (D01) and SpotBugs 4.9.8 at threshold Medium, effort Max, with `config/spotbugs-exclude.xml` (D02). The job
+    uploads the `jacoco`, `checkstyle` and `spotbugs` reports as artifacts. The `windows` job runs `mvn -B package`.
+    The `Dependency check` workflow (`.github/workflows/dependency-check.yml`) runs `mvn -B dependency-check:check`
+    every Monday and on manual dispatch (#63). The browser E2E runs in its own `e2e` job after `linux` (D08).
 
-- [ ] **21.2 — Playwright E2E smoke tests** (`src/test/e2e/`)
-  - Against `docker compose up` with a stub-provider profile: register → upload → run completes → pages
-    appear → open a page → review flashcards → take a quiz → export bundle (validates).
+- [x] **21.2 — Playwright E2E smoke tests** (`src/test/e2e/`)
+  - Against `docker compose up` with the test-only `compose.e2e.yml` override: register → upload → run completes →
+    pages appear → open a page → review flashcards → take a quiz → export bundle (validates).
+  - *As built:* the path is kept: `src/test/e2e/` is a Playwright Test project (`@playwright/test` 1.65.1, exact pin)
+    with its own `package.json` and lockfile; Maven does not run it (D07). The model answers come from `model-stub`, a
+    pinned WireMock image in the test-only `compose.e2e.yml` override, with static OpenAI-compatible mappings in
+    `src/test/e2e/model-stub/mappings/` (D06, ADR 0042); an unmatched prompt gets a 400. `ModelStubMappingsTest`
+    checks the mappings against the prompt resources. `smoke.spec.ts` signs up; `journey.spec.ts` does the full
+    journey and checks that the quiz reference answer never shows in the page. "Validates" means a successful
+    `<slug>-okf.zip` download with the expected entries, because the server validates the bundle before it sends it
+    (Q15). The CI `e2e` job builds and starts the stack, runs the suite, and uploads the Playwright report, the
+    WireMock unmatched requests and the compose logs (D08).
 
-- [ ] **21.3 — Architecture fitness functions** (ArchUnit)
+- [x] **21.3 — Architecture fitness functions** (ArchUnit)
   - No `dev.mindforge.domain` class imports from `infrastructure` or `api`.
   - No `@RestController` method accesses a repository directly.
   - No class in `dev.mindforge.agent` depends on another class in `dev.mindforge.agent`.
   - Only `RunWorker` calls `IngestRunRepository.findUnfinished` and `knowledgeBasesWithQueuedRuns` (T25).
   - No class outside `dev.mindforge.domain.model.MarkdownStructure` matches heading or link syntax with a regex
-    (reviewed by a name rule on `Pattern` constants mentioning `#` or `](`) (T26).
+    (reviewed by a name rule on `Pattern` constants mentioning `#` or `](`) (T26). One exception:
+    `BundleConformanceValidator`, allowed by exact path, because it checks the generated `index.md` and `log.md`
+    bundle grammar as an independent oracle, not wiki page syntax (D12).
+  - *As built:* ArchUnit 1.4.1 as a test dependency; `unit/architecture/ArchitectureTest` holds the rules. The layer
+    rules cover the full table of `hexagonal.md`, not only the domain line (Q10): domain depends on the JDK only;
+    application on domain, agent, `org.springframework.transaction` and SLF4J; model services on domain and
+    `infrastructure.ai`; no domain, application, agent or infrastructure class on `api` or `cli`. The controller
+    rule forbids `@RestController` classes to depend on `domain.port..` and `infrastructure.persistence..` (D11).
+    Model services do not depend on another top-level class in `dev.mindforge.agent`. Only `RunWorker` calls the
+    two run-queue methods (T25). T26 is a source scan, not a name rule: `unit/architecture/MarkdownRegexGuardTest`
+    reads every `Pattern.compile(...)` in `src/main/java` and fails on a heading or link regex outside
+    `MarkdownStructure` and the allowed `BundleConformanceValidator` (D12).
+  - Baseline: a test-classpath SPA fixture (`src/test/resources/static/index.html`) makes
+    `ApiFlowTest.theLoginRouteIsTheSinglePageApp` pass with `-DskipFrontend` (D14).
 
 ### Completion Checklist
 
-- [ ] CI passes on a clean checkout with real Testcontainers.
-- [ ] JaCoCo gate blocks PRs below 70%.
-- [ ] E2E covers upload → wiki → study → export.
-- [ ] ArchUnit enforces layer and model-service boundaries.
+- [x] CI passes on a clean checkout with real Testcontainers. (Not yet seen on GitHub Actions: the branch is not
+  pushed yet, so no CI run exists. The factory gate `mvn -B verify -DskipFrontend=true` is green. The `linux` job is
+  configured to run `mvn -B verify` with Docker on the runner. A human confirms the first CI run, see Follow-ups.)
+- [x] JaCoCo gate blocks PRs below 70%. (`jacoco-check` fails `mvn verify` below 70% instruction coverage, so the
+  `linux` job fails. A failing job blocks a merge only when a human makes `linux` a required status check.)
+- [x] E2E covers upload → wiki → study → export. (`src/test/e2e/specs/journey.spec.ts`)
+- [x] ArchUnit enforces layer and model-service boundaries. (`ArchitectureTest`, `MarkdownRegexGuardTest`)
+
+### Follow-ups
+
+- The FindSecBugs SpotBugs plugin (security patterns) — deferred by D02.
+- The JaCoCo `report` goal is not bound to a phase, so the CI `jacoco` artifact is empty.
+- The run-queue rule (T25) matches only calls whose owner is `IngestRunRepository`; a call through
+  `IngestRunRepositoryAdapter` is not caught.
+- `MarkdownRegexGuardTest` does not catch a heading regex with only whitespace or a group before the `#`, for example
+  `"(?m)^\\s*#+ (.*)$"`.
+- `ci.yml` and `dependency-check.yml` declare no `permissions:` block, so their `GITHUB_TOKEN` has the repository
+  default scope.
+- `dependency-check.yml`: the NVD cache is not saved when the check fails, and `setup-java` `cache: maven` also
+  stores the NVD data under the key of the `ci.yml` jobs.
+- `journey.spec.ts` reads its upload fixture relative to the working directory, so `npm test` must start in
+  `src/test/e2e/`.
+- For the human: after the phase branch is pushed and merged into `develop`, confirm that the first CI run of the
+  `linux`, `windows` and `e2e` jobs is green, and start the `Dependency check` workflow one time by manual dispatch
+  and confirm its result.
+- For the human: set the repository secret `NVD_API_KEY`; in the branch protection of `develop` and the default
+  branch, make `linux` (and `e2e` if wanted) a required status check, so that a failing JaCoCo gate blocks a merge.
 
 ---
 

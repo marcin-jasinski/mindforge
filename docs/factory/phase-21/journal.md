@@ -50,3 +50,8 @@
 2026-11-25T14:20:51+01:00 P21-11 implement@inherit DONE (ci.yml e2e job needs linux; deployment.md local E2E; simulated job: 2 passed)
 2026-11-25T14:29:37+01:00 P21-11 test@sonnet r1 PASS (gate green; workflow static-checked); review r1 correctness@opus,standards@sonnet,spec-security@opus(1 minor) approve; test-guard clean -> PASS
 2026-11-25T14:29:37+01:00 P21-11 commit ccf80ab
+2026-11-25T14:34:08+01:00 P21-12 implement@inherit DONE (plan, roadmap, INDEX, deployment CI section, CLAUDE.md project state)
+2026-11-25T14:42:53+01:00 P21-12 test@sonnet r1 PASS (gate green); review r1 correctness@opus(1 minor,1 nit),standards@sonnet approve,spec-security@opus changes(1 major accepted: CI checklist item marked done without a CI run); test-guard clean -> fix
+2026-11-25T14:45:15+01:00 P21-12 fix@inherit r1 FIXED S1 (checklist states no CI run yet; human follow-up to confirm first CI run)
+2026-11-25T14:53:55+01:00 P21-12 test@sonnet r2 PASS (gate green); review r2 spec-security@opus,correctness@opus approve; test-guard clean -> PASS
+2026-11-25T14:53:55+01:00 P21-12 commit 81d7d27

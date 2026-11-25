@@ -26,6 +26,25 @@ and before the coverage gate. It reports at threshold Medium with effort Max, an
 `config/spotbugs-exclude.xml` does not drop fails the build. Fix a finding in code; add an exclusion only for a false
 positive, as a narrow class and method match with a reason comment. `-Dspotbugs.skip` skips the check.
 
+### CI and quality gates
+
+`.github/workflows/ci.yml` runs on every push and every pull request:
+
+| Job | Runs | Reports (artifacts) |
+|---|---|---|
+| `linux` | `npm ci && npm test` in `frontend/`, then one `mvn -B verify`: Checkstyle (`validate`) -> compile -> unit and integration tests (Testcontainers, Docker is on the runner) -> SpotBugs (`verify`) -> JaCoCo check (70% instruction coverage) | `jacoco` (`target/site/jacoco/`), `checkstyle` (`target/checkstyle-result.xml`), `spotbugs` (`target/spotbugsXml.xml`) |
+| `windows` | `mvn -B package`: Checkstyle and the unit tests, no Docker, no coverage gate | none |
+| `e2e` | After `linux`: the browser E2E suite against the E2E stack (see [Run the E2E locally](#run-the-e2e-locally)) | `e2e` (Playwright report, traces, WireMock unmatched requests, compose logs) |
+
+- A failed gate fails its job. The Maven build is the same locally, in the factory gate and in CI: the gates are
+  bound to the lifecycle, so `mvn verify` runs all of them. `-Dcheckstyle.skip` and `-Dspotbugs.skip` skip a gate for a
+  local run; `-Djacoco.skip=true` skips the coverage gate (see above).
+- The JaCoCo `report` goal is not bound to a phase, so the `jacoco` artifact is empty. `mvn jacoco:report` after
+  `mvn verify` writes the HTML report to `target/site/jacoco/`.
+- The OWASP dependency check is a separate weekly workflow (see [Dependency check](#dependency-check)).
+- A failed job blocks a merge only when it is a required status check. A human sets this in the branch protection of
+  `develop` and the default branch (`linux`, and `e2e` if wanted).
+
 ### Dependency check
 
 The OWASP dependency check audits the Maven dependencies against the NVD. No build phase runs it: `mvn verify` does not

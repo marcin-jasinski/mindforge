@@ -1,14 +1,14 @@
 ---
 id: P21-12
 title: Close Phase 21 in the plan, roadmap, index, deployment guide and project state
-status: ready
+status: done
 plan_tasks: [21.1, 21.2, 21.3]
 decisions: [D07]
 depends_on: [P21-01, P21-02, P21-03, P21-04, P21-05, P21-06, P21-07, P21-08, P21-09, P21-10, P21-11]
 size: S
 issue: 77
-commit:
-fix_rounds: 0
+commit: 81d7d27
+fix_rounds: 1
 ---
 ## Goal
 The project docs show Phase 21 as complete and describe what was built: plan tasks 21.1–21.3 and the completion
@@ -54,14 +54,14 @@ by Maven; CI e2e job`. Plan 21.2: keep the path; change "stub-provider profile" 
 "Run the E2E locally" (D08) uses the same commands. (Check each is present; add what an earlier ticket missed.)
 
 ## Acceptance criteria
-- [ ] AC1: Plan Phase 21 heading is `## [x] Phase 21`; tasks 21.1, 21.2, 21.3 are `[x]`, each with an "As built" note covering the facts in Context; the 21.2 text says `compose.e2e.yml` override instead of "stub-provider profile"; the 21.3 T26 line names the `BundleConformanceValidator` exception.
-- [ ] AC2: Completion checklist items are checked; "JaCoCo gate blocks PRs below 70%" notes that the check fails below 70% and that making it a required check is a human action.
-- [ ] AC3: The plan or roadmap lists the follow-ups: FindSecBugs "deferred by D02" (if P21-03 did not already), the human actions, and any deferred item from ticket Notes.
-- [ ] AC4: `docs/project/roadmap.md`: Phase 21 marked complete with a one-line summary; the "Next" line no longer points at Phase 21 (state what remains, e.g. Phase 14's manual Langfuse check).
-- [ ] AC5: `docs/INDEX.md` mentions ADR 0042 and any new doc sections; descriptions stay concise.
-- [ ] AC6: `docs/project/deployment.md` has a short "CI and quality gates" overview (jobs, what each runs, `-Dcheckstyle.skip` / `-Dspotbugs.skip`, where reports go) that links the sections earlier tickets wrote, with no contradiction between them.
-- [ ] AC7: `CLAUDE.md` changes only in the "Project State" paragraph: Phase 21 is complete and the remaining work is named.
-- [ ] AC8: `mvn -B verify -DskipFrontend=true` is green (docs only).
+- [x] AC1: Plan Phase 21 heading is `## [x] Phase 21`; tasks 21.1, 21.2, 21.3 are `[x]`, each with an "As built" note covering the facts in Context; the 21.2 text says `compose.e2e.yml` override instead of "stub-provider profile"; the 21.3 T26 line names the `BundleConformanceValidator` exception.
+- [x] AC2: Completion checklist items are checked; "JaCoCo gate blocks PRs below 70%" notes that the check fails below 70% and that making it a required check is a human action.
+- [x] AC3: The plan or roadmap lists the follow-ups: FindSecBugs "deferred by D02" (if P21-03 did not already), the human actions, and any deferred item from ticket Notes.
+- [x] AC4: `docs/project/roadmap.md`: Phase 21 marked complete with a one-line summary; the "Next" line no longer points at Phase 21 (state what remains, e.g. Phase 14's manual Langfuse check).
+- [x] AC5: `docs/INDEX.md` mentions ADR 0042 and any new doc sections; descriptions stay concise.
+- [x] AC6: `docs/project/deployment.md` has a short "CI and quality gates" overview (jobs, what each runs, `-Dcheckstyle.skip` / `-Dspotbugs.skip`, where reports go) that links the sections earlier tickets wrote, with no contradiction between them.
+- [x] AC7: `CLAUDE.md` changes only in the "Project State" paragraph: Phase 21 is complete and the remaining work is named.
+- [x] AC8: `mvn -B verify -DskipFrontend=true` is green (docs only).
 
 ## Test plan
 - Docs only; no test. Check by reading each file and by `grep` for stale phrases ("No CI job runs the check yet", "Work resumes at Phase 21", "stub-provider profile"). Factory gate for AC8.
@@ -80,3 +80,12 @@ by Maven; CI e2e job`. Plan 21.2: keep the path; change "stub-provider profile" 
 - Writing REPORT.md (the factory does that; the human actions go there too).
 
 ## Notes
+- Decided: the follow-ups (FindSecBugs by D02, the unbound JaCoCo `report` goal, the deferred findings of P21-05/06/07/10/11, the human actions) go in a new "### Follow-ups" list in plan Phase 21, and the roadmap points to it, because one list in the plan is easier to keep current than two copies.
+- Decided: the checklist and the deployment overview say 70% "instruction" coverage, because `pom.xml` `jacoco-check` uses the INSTRUCTION counter.
+- Decided: D07 docs parts were already present (test-writing.md line 37, tech-stack.md lines 63 and 231, deployment.md "Run the E2E locally"), so those files are not changed.
+- Fast check `mvn -q -o test -DskipFrontend=true -Djacoco.skip=true` exit 0. Grep for "No CI job runs the check yet", "Work resumes at Phase 21", "stub-provider profile" outside docs/factory: no hits. AC8 is left to the factory gate.
+
+### Deferred findings
+- correctness/C1 minor 0.75 docs/project/deployment.md:44: The docs say the CI `jacoco` artifact is "empty", but with no files at `target/site/jacoco/` the `jacoco` artifact is not uploaded at all; the jobs table also lists `jacoco` (`target/site/jacoco/`) as a report the `linux` job publishes.
+- correctness/C2 nit 0.9 docs/project/deployment.md:37: The `linux` row says `npm ci && npm test` in `frontend/`, but ci.yml runs `npm ci && npm test -- --no-watch`.
+- spec-security/S2 minor 0.6 docs/project/implementation-plan.md:1847: "JaCoCo gate blocks PRs below 70%" is marked `[x]` although nothing blocks a PR today; only the build-failure half is true.
