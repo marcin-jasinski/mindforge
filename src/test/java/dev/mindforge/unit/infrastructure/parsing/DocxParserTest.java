@@ -47,7 +47,8 @@ class DocxParserTest {
             ContentBlock.heading("Phases", 2, 3),
             ContentBlock.text("After the table.", 4));
         assertThat(parsed.text())
-            .isEqualTo("Mitosis\n\nBefore the table.\n\nPhase | Description\nProphase | Condensation\n\nPhases\n\nAfter the table.");
+            .isEqualTo("Mitosis\n\nBefore the table.\n\nPhase | Description\nProphase | Condensation\n\n"
+                + "Phases\n\nAfter the table.");
         assertThat(parsed.metadata()).isEmpty();
     }
 

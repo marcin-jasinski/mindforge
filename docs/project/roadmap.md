@@ -8,17 +8,24 @@
 - **Version**: 1.1.0-SNAPSHOT
 - **Completed Phases**: 0 (Scaffolding), 1 (Domain Layer), 2 (Infrastructure Foundation),
   2b (Persistence Cleanup & DTO Foundation), 3 (AI Gateway), 3b (Wiki Pivot Cleanup),
-  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete; 15 (CLI Entry Points), 16 (Image Analysis), 17 (Article Fetcher), 18 (Discord Bot), 19 (Slack Bot), 20 (Security Hardening)
+  4 (Document Parsing & Ingestion), 5 (Wiki Domain & Store), 6 (Ingest Pipeline), 7 (Lint), 9 (API Layer), 9b (Bundle Export), 10 (Quiz & Flashcard Services), 11 (Query), 12 (Angular Frontend), 13 (Docker & Deployment) — core system complete; 15 (CLI Entry Points), 16 (Image Analysis), 17 (Article Fetcher), 18 (Discord Bot), 19 (Slack Bot), 20 (Security Hardening), 21 (E2E Testing & CI/CD)
 - **In Progress**: None
-- **Next**: Phase 21 (E2E Testing & CI/CD); Phase 14 (Observability & Tracing) has only its manual Langfuse check open
+- **Next**: every planned phase is done except Phase 14 (Observability & Tracing), which has only its manual Langfuse
+  check open; then the Technical Debt Backlog and the Phase 21 follow-ups
 - **Open follow-ups**: account linking (bot ↔ web; a Discord user has a separate account, ADR 0027,
-  [#43](https://github.com/marcin-jasinski/mindforge/issues/43)); a scheduled OWASP dependency-check job with an
-  `NVD_API_KEY` secret ([#63](https://github.com/marcin-jasinski/mindforge/issues/63)); per-account password guessing
-  from many addresses is not slowed by the per-address sign-in limit
-  ([#64](https://github.com/marcin-jasinski/mindforge/issues/64))
+  [#43](https://github.com/marcin-jasinski/mindforge/issues/43)); per-account password guessing from many addresses is
+  not slowed by the per-address sign-in limit ([#64](https://github.com/marcin-jasinski/mindforge/issues/64)); the
+  Phase 21 follow-ups (FindSecBugs, deferred by D02; the JaCoCo `report` goal is not bound, so the CI `jacoco` artifact
+  is empty; no `permissions:` block in the workflows; gaps in the ArchUnit run-queue rule and the markdown regex guard)
+  in the "Follow-ups" list of Phase 21 in the implementation plan
 - **Human follow-ups**: a live smoke test of the Discord bot against real Discord (needs a bot token and a test guild);
   a live Socket Mode smoke test of the Slack bot against a real Slack workspace
-  ([#53](https://github.com/marcin-jasinski/mindforge/issues/53))
+  ([#53](https://github.com/marcin-jasinski/mindforge/issues/53)); set the `NVD_API_KEY` repository secret for the
+  scheduled dependency check ([#63](https://github.com/marcin-jasinski/mindforge/issues/63)); make the CI `linux` job
+  (and `e2e` if wanted) a required status check on `develop` and the default branch, so that a failing JaCoCo gate
+  blocks a merge; after the Phase 21 branch is pushed and merged into `develop`, confirm the first green CI run of
+  `linux`, `windows` and `e2e` (no CI run exists yet), and start the `Dependency check` workflow one time by manual
+  dispatch
 
 ## The Wiki Re-cut (2026-09-10)
 
@@ -131,8 +138,10 @@ Query, the Angular SPA and Docker deployment.
 
 - [x] **Phase 20 — Security Hardening** — Checklist pass against `web-security.md` (now including
   export and tenancy rules), OWASP dependency check, auth rate limiting. `[Effort: S]`
-- [ ] **Phase 21 — E2E Testing & CI/CD** *(changed)* — GitHub Actions, JaCoCo gate, a Playwright journey
-  from upload through pages, study and export, and ArchUnit layer rules. `[Effort: M]`
+- [x] **Phase 21 — E2E Testing & CI/CD** *(changed)* — GitHub Actions, JaCoCo gate, a Playwright journey
+  from upload through pages, study and export, and ArchUnit layer rules. `[Effort: M]` Built: `mvn verify` runs
+  Checkstyle, the tests, SpotBugs and the 70% JaCoCo check on every push and pull request; the browser journey runs in
+  the `e2e` job against the compose stack with a WireMock model stub (ADR 0042); a weekly OWASP dependency check.
 
 ---
 

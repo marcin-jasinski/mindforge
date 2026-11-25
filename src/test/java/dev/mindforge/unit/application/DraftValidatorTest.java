@@ -84,7 +84,7 @@ class DraftValidatorTest {
     }
 
     private static String problem(String body, String existingBody, boolean keepSections) {
-        return DraftValidator.problem(TITLE, DraftValidator.normalise(new PageDraft("Description.", body)), existingBody,
-            keepSections).orElse(null);
+        return DraftValidator.problem(TITLE, DraftValidator.normalise(new PageDraft("Description.", body)),
+            existingBody, keepSections).orElse(null);
     }
 }

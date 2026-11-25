@@ -9,7 +9,8 @@ public class LessonAlreadyExistsException extends IllegalStateException {
     private final LessonIdentity lesson;
 
     public LessonAlreadyExistsException(LessonIdentity lesson) {
-        super("Lesson '" + lesson.lessonId() + "' already exists; upload it as a new version or choose another lesson id");
+        super("Lesson '" + lesson.lessonId() + "' already exists; upload it as a new version or choose another"
+            + " lesson id");
         this.lesson = lesson;
     }
 

@@ -92,7 +92,9 @@ public class IngestRunEntity implements Persistable<UUID> {
     @Column(name = "findings", columnDefinition = "jsonb", nullable = false)
     private List<ReviewItem> findings = new ArrayList<>();
 
-    /** The database clock, like {@code started_at} and {@code finished_at}, which native updates set with {@code now()}. */
+    /**
+     * The database clock, like {@code started_at} and {@code finished_at}, which native updates set with {@code now()}.
+     */
     @CreationTimestamp(source = SourceType.DB)
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

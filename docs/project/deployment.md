@@ -17,6 +17,34 @@ The Dockerfile builds the SPA (`npm ci && npm run build`), packages the JAR with
 **requires a running Docker daemon**. `-DskipITs` skips the integration tests (and the Docker need), but the coverage
 gate then measures unit tests only and will fail; pair it with `-Djacoco.skip=true`.
 
+`mvn test`, `mvn package` and `mvn verify` also run Checkstyle (`checkstyle-check`, bound to the `validate` phase)
+over main and test sources, with the ruleset in `config/checkstyle/checkstyle.xml`. A violation fails the build.
+`-Dcheckstyle.skip` skips the check.
+
+`mvn verify` also runs SpotBugs (`spotbugs-check`, bound to the `verify` phase) over the main classes, after the tests
+and before the coverage gate. It reports at threshold Medium with effort Max, and every finding that
+`config/spotbugs-exclude.xml` does not drop fails the build. Fix a finding in code; add an exclusion only for a false
+positive, as a narrow class and method match with a reason comment. `-Dspotbugs.skip` skips the check.
+
+### CI and quality gates
+
+`.github/workflows/ci.yml` runs on every push and every pull request:
+
+| Job | Runs | Reports (artifacts) |
+|---|---|---|
+| `linux` | `npm ci && npm test` in `frontend/`, then one `mvn -B verify`: Checkstyle (`validate`) -> compile -> unit and integration tests (Testcontainers, Docker is on the runner) -> SpotBugs (`verify`) -> JaCoCo check (70% instruction coverage) | `jacoco` (`target/site/jacoco/`), `checkstyle` (`target/checkstyle-result.xml`), `spotbugs` (`target/spotbugsXml.xml`) |
+| `windows` | `mvn -B package`: Checkstyle and the unit tests, no Docker, no coverage gate | none |
+| `e2e` | After `linux`: the browser E2E suite against the E2E stack (see [Run the E2E locally](#run-the-e2e-locally)) | `e2e` (Playwright report, traces, WireMock unmatched requests, compose logs) |
+
+- A failed gate fails its job. The Maven build is the same locally, in the factory gate and in CI: the gates are
+  bound to the lifecycle, so `mvn verify` runs all of them. `-Dcheckstyle.skip` and `-Dspotbugs.skip` skip a gate for a
+  local run; `-Djacoco.skip=true` skips the coverage gate (see above).
+- The JaCoCo `report` goal is not bound to a phase, so the `jacoco` artifact is empty. `mvn jacoco:report` after
+  `mvn verify` writes the HTML report to `target/site/jacoco/`.
+- The OWASP dependency check is a separate weekly workflow (see [Dependency check](#dependency-check)).
+- A failed job blocks a merge only when it is a required status check. A human sets this in the branch protection of
+  `develop` and the default branch (`linux`, and `e2e` if wanted).
+
 ### Dependency check
 
 The OWASP dependency check audits the Maven dependencies against the NVD. No build phase runs it: `mvn verify` does not
@@ -35,8 +63,10 @@ mvn -B dependency-check:check
 - The goal needs the network: it does not run with `mvn -o`.
 - The OSS Index analyzer and the Node, npm, Yarn, pnpm and RetireJS analyzers are off: the check covers the Maven
   dependencies only.
-- No CI job runs the check yet; a scheduled job is Phase 21 work
-  ([#63](https://github.com/marcin-jasinski/mindforge/issues/63)).
+- The `Dependency check` workflow (`.github/workflows/dependency-check.yml`) runs the goal every Monday and on manual
+  dispatch ([#63](https://github.com/marcin-jasinski/mindforge/issues/63)). It reads the key from the `NVD_API_KEY`
+  repository secret (a human sets it), caches the NVD data in `~/.m2/repository/org/owasp/dependency-check-data`
+  between runs and uploads `target/dependency-check-report.html`. A finding fails the job.
 
 ## Run locally
 
@@ -48,6 +78,46 @@ curl http://localhost:8080/actuator/health   # {"status":"UP"}
 `compose.yml` starts `postgres` (data in the `postgres-data` volume) and `app`, which waits for PostgreSQL to be
 healthy. `compose.override.yml` is picked up automatically for local work: it publishes PostgreSQL on 5432, turns off
 `Secure` cookies for plain HTTP and supplies a development JWT secret. Flyway migrates the schema at startup.
+
+### E2E stack (test only)
+
+`compose.e2e.yml` is test-only: never use it for a deployment. It adds `model-stub`, a pinned WireMock image that
+answers every model call from the static mappings in `src/test/e2e/model-stub/mappings/`, and points the app's
+`OPENROUTER_BASE_URL` at it, with a throwaway JWT secret and plain-HTTP cookies
+([ADR-0042](../adr/0042-e2e-model-answers-come-from-a-fake-openai-compatible-server.md)). A prompt that no mapping
+matches gets a 400, so the run fails at once. Always name both files; a plain `docker compose up` never starts the stub:
+
+```bash
+docker compose -f compose.yml -f compose.e2e.yml up -d --build --wait
+docker compose -f compose.yml -f compose.e2e.yml exec model-stub \
+  wget -qO- http://localhost:8080/__admin/requests/unmatched   # prompts that got no answer
+docker compose -f compose.yml -f compose.e2e.yml down -v
+```
+
+`ModelStubMappingsTest` (`mvn test`) fails when a mapping's `# Task: ...` heading is in no prompt resource or a
+mapping's answer is not chat-completion JSON.
+
+### Run the E2E locally
+
+The browser E2E suite is the Playwright project in `src/test/e2e/` (Node 22). It drives the SPA from sign-up to a
+downloaded OKF bundle against the E2E stack above. It is not the failsafe `e2e/` Java tests of `mvn verify`:
+`mvn verify` and the factory gate do not run the browser suite, and no Maven profile runs it. The CI job `e2e` runs it
+on every push and pull request, after the `linux` job.
+
+```bash
+docker compose -f compose.yml -f compose.e2e.yml up -d --build --wait
+cd src/test/e2e
+npm ci
+npx playwright install chromium   # the browser of the pinned @playwright/test version
+npm test                          # report in playwright-report/, traces of failed tests in test-results/
+cd ../../..
+docker compose -f compose.yml -f compose.e2e.yml down -v
+```
+
+- Run `npm test` from `src/test/e2e/`: the spec reads its upload fixture relative to that directory.
+- The suite expects the app on `http://localhost:8080`. Set `E2E_BASE_URL` for a different address.
+- On Linux, `npx playwright install --with-deps chromium` also installs the system libraries of the browser (it needs
+  root).
 
 ## Configuration
 

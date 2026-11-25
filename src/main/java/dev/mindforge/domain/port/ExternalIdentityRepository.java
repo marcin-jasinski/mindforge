@@ -9,7 +9,9 @@ import dev.mindforge.domain.model.ExternalIdentityConflictException;
 import dev.mindforge.domain.model.ExternalPlatform;
 import dev.mindforge.domain.model.User;
 
-/** Chat-platform identities linked to accounts. Not tenant-scoped: an identity belongs to a user, not a knowledge base. */
+/**
+ * Chat-platform identities linked to accounts. Not tenant-scoped: an identity belongs to a user, not a knowledge base.
+ */
 public interface ExternalIdentityRepository {
 
     Optional<UUID> findUserId(ExternalPlatform platform, String externalId);

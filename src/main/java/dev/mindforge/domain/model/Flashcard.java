@@ -20,7 +20,8 @@ public record Flashcard(
 
     /** {@code sha256(kbId|pageId|cardType|front|back)[:16]}. */
     public static String computeCardId(UUID kbId, UUID pageId, CardType cardType, String front, String back) {
-        return Hashes.sha256Hex(kbId + "|" + pageId + "|" + cardType + "|" + front + "|" + back).substring(0, ID_LENGTH);
+        return Hashes.sha256Hex(kbId + "|" + pageId + "|" + cardType + "|" + front + "|" + back)
+            .substring(0, ID_LENGTH);
     }
 
     /** {@code sha256(title + "\n" + stripLinks(body))[:16]}: a link-only or supersession-only change keeps it (T21). */

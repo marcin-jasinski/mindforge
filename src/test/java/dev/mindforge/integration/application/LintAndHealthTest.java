@@ -142,7 +142,8 @@ class LintAndHealthTest extends TestContainerBase {
         IngestRun completed = awaitRun(kbId, lintRun, RunStatus.COMPLETED);
 
         WikiPage mitosis = wiki.findByPath(kbId, "concepts/mitosis").orElseThrow();
-        assertThat(mitosis.markdownBody()).isEqualTo("# Phase\n\nAfter mitosis comes [meiosis](/concepts/meiosis.md).\n");
+        assertThat(mitosis.markdownBody())
+            .isEqualTo("# Phase\n\nAfter mitosis comes [meiosis](/concepts/meiosis.md).\n");
         assertThat(MarkdownStructure.stripLinks(mitosis.markdownBody())).isEqualTo(MITOSIS_BODY);
         assertThat(completed.findings()).containsExactly(new ReviewItem("contradiction",
             List.of("concepts/mitosis"), "The pages describe the phases differently."));
@@ -157,8 +158,8 @@ class LintAndHealthTest extends TestContainerBase {
     void aFullLintLinksOnlyToConceptsAndSourceSummaries() {
         UUID kbId = insertKnowledgeBase();
         seedTwoConcepts(kbId);
-        completedRun(kbId, runId -> wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/copernicus", "Copernicus",
-            new PageType("Person"), "Astronom.\n"), runId));
+        completedRun(kbId, runId -> wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/copernicus",
+            "Copernicus", new PageType("Person"), "Astronom.\n"), runId));
         gateway.reset();
         gateway.answer(Prompts.LINKS, Prompts.json(Map.of("insertions", List.of(
             Map.of("pagePath", "concepts/mitosis", "phrase", "meiosis", "targetPath", "concepts/copernicus")))));

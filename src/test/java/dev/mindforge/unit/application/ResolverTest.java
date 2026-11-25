@@ -29,7 +29,8 @@ class ResolverTest {
     void shouldCreateAPageFromTheClaimsTitleWhenItsTargetIsHallucinatedOrASourceSummary() {
         Resolver resolver = new Resolver(List.of(LESSON), false);
 
-        resolver.addClaims(List.of(makeClaim("Meiosis", "concepts/no-such-page"), makeClaim("Gametes", "sources/bio-1")));
+        resolver.addClaims(List.of(makeClaim("Meiosis", "concepts/no-such-page"),
+            makeClaim("Gametes", "sources/bio-1")));
 
         assertThat(resolver.finish(List.of(), null, null, CAP).tasks())
             .extracting(PageWriteTask::path, PageWriteTask::title, PageWriteTask::create)

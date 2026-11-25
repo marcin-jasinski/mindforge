@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -26,5 +27,10 @@ class MimeTypeOfTest {
     })
     void theExtensionNamesTheMimeType(String file, String mimeType) {
         assertThat(PipelineCommandRunner.mimeTypeOf(Path.of(file))).isEqualTo(mimeType);
+    }
+
+    @Test
+    void aPathWithNoFileNameIsOctetStream() {
+        assertThat(PipelineCommandRunner.mimeTypeOf(Path.of("/"))).isEqualTo("application/octet-stream");
     }
 }

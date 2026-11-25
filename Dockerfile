@@ -13,6 +13,7 @@ FROM maven:3.9-eclipse-temurin-21 AS backend
 WORKDIR /build
 COPY pom.xml ./
 RUN mvn -q -B dependency:go-offline
+COPY config ./config
 COPY src ./src
 COPY --from=frontend /build/frontend/dist/frontend/browser ./frontend/dist/frontend/browser
 RUN mvn -q -B package -DskipTests -Djacoco.skip=true

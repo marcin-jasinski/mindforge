@@ -80,7 +80,8 @@ class StudyStoreTest extends TestContainerBase {
         study.recordReview(kbId, new CardState(changed, 2.6, 6, 2, NOW.plus(Duration.ofDays(6)), null), 5, NOW);
 
         Flashcard corrected = makeCard(kbId, pageId, "How many phases?", "Five.", "stages");
-        Flashcard moved = new Flashcard(kept.cardId(), pageId, "course", CardType.BASIC, kept.front(), kept.back(), "bbbbbbbbbbbbbbbb");
+        Flashcard moved = new Flashcard(kept.cardId(), pageId, "course", CardType.BASIC, kept.front(), kept.back(),
+            "bbbbbbbbbbbbbbbb");
         study.replaceCards(kbId, pageId, List.of(moved, corrected), NOW.plusSeconds(10));
 
         assertThat(study.findCard(kbId, kept.cardId())).get().satisfies(card -> {
@@ -147,7 +148,8 @@ class StudyStoreTest extends TestContainerBase {
     void studyDataNeverReachesAnExportAndGoesWithItsKnowledgeBase() {
         UUID kbId = insertKnowledgeBase();
         UUID pageId = UUID.randomUUID();
-        completedRun(kbId, runId -> wiki.savePage(kbId, makeWrite(pageId, "concepts/mitosis", "# Phase\n\nA.\n"), runId));
+        completedRun(kbId,
+            runId -> wiki.savePage(kbId, makeWrite(pageId, "concepts/mitosis", "# Phase\n\nA.\n"), runId));
         study.replaceCards(kbId, pageId, List.of(makeCard(kbId, pageId, "SECRET-FRONT", "SECRET-BACK", "phase")), NOW);
         study.recordQuizScore(kbId, pageId, 1, NOW);
         UUID owner = jdbc.queryForObject("SELECT owner_id FROM knowledge_bases WHERE kb_id = ?", UUID.class, kbId);

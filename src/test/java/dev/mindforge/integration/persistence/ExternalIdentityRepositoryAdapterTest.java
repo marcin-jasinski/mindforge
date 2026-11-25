@@ -41,7 +41,8 @@ class ExternalIdentityRepositoryAdapterTest extends TestContainerBase {
     @Test
     void migration_createsTheTableWithItsKeyCascadeAndUserIndex() {
         assertThat(jdbcTemplate.queryForList(
-            "SELECT a.attname FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)"
+            "SELECT a.attname FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid"
+                + " AND a.attnum = ANY(i.indkey)"
                 + " WHERE i.indrelid = 'external_identities'::regclass AND i.indisprimary", String.class))
             .containsExactlyInAnyOrder("platform", "external_id");
         assertThat(jdbcTemplate.queryForObject(

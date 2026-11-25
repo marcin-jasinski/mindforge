@@ -43,10 +43,12 @@ class LogRendererTest {
             * **Ingest**: [Biology — lesson 3](/sources/biology-lesson-3.md) — 2 created, 5 revised, 1 claim superseded.
             * **Edit**: conversation — 1 revised, 1 deleted.
             * **Lint**: links added to 12 pages.
-            * **Revert**: undid the ingest of 2026-09-09 ([Biology — lesson 2](/sources/biology-lesson-2.md)) — 3 pages restored, 2 pages removed, 1 supersession removed.
+            * **Revert**: undid the ingest of 2026-09-09 ([Biology — lesson 2](/sources/biology-lesson-2.md)) — \
+            3 pages restored, 2 pages removed, 1 supersession removed.
             * **Revert**: undid the edit of 2026-09-09 — 1 page restored.
             * **Revert**: undid the Lint of 2026-09-09 — 12 pages restored.
-            * **Revert**: removed 1 supersession from the ingest of 2026-09-09 ([Biology — lesson 2](/sources/biology-lesson-2.md)).
+            * **Revert**: removed 1 supersession from the ingest of 2026-09-09 \
+            ([Biology — lesson 2](/sources/biology-lesson-2.md)).
 
             ## 2026-09-09
             * **Ingest**: [Biology — lesson 2](/sources/biology-lesson-2.md) — 4 created.

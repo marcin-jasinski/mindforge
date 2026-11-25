@@ -83,7 +83,8 @@ import dev.mindforge.domain.port.WikiStore;
 /**
  * Ingests one claimed {@code INGEST} run end to end (ADR 0013, T17, ADR 0020): Describe images → Preprocess →
  * RelevanceGuard → Extract per chunk → Resolve → parallel writes with draft checks → link check → commit 1 → Supersede
- * → commit 2. Every model call happens outside a transaction; each commit is fenced on the run's status and lease. A run fails only when no page task
+ * → commit 2. Every model call happens outside a transaction; each commit is fenced on the run's status and lease.
+ * A run fails only when no page task
  * succeeded; a failure after commit 1 completes it with {@code supersession_skipped}.
  */
 public class IngestPipeline {
@@ -420,7 +421,8 @@ public class IngestPipeline {
                 dropped += result.dropped();
                 linked.add(write.withBody(result.body()));
             }
-            Set<String> checkedPaths = checkable.stream().map(write -> write.write().path()).collect(Collectors.toSet());
+            Set<String> checkedPaths = checkable.stream().map(write -> write.write().path())
+                .collect(Collectors.toSet());
             dropped += (int) proposals.stream().filter(proposal -> !checkedPaths.contains(proposal.pagePath())).count();
             if (dropped > 0) {
                 state.addFailure(RunFailure.dropped("linkCheck", dropped));

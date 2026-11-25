@@ -214,10 +214,11 @@ class RevertAndLeaseTest extends TestContainerBase {
         // What the sweep does to a run it believes was interrupted.
         jdbc.update("UPDATE knowledge_bases SET active_run_id = NULL WHERE kb_id = ?", kbId);
 
-        assertThatExceptionOfType(RunFencedException.class).isThrownBy(() -> transactions.executeWithoutResult(status -> {
-            runs.markWritten(kbId, run.runId(), List.of(), Map.of());
-            wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitosis", "Content.\n"), run.runId());
-        }));
+        assertThatExceptionOfType(RunFencedException.class)
+            .isThrownBy(() -> transactions.executeWithoutResult(status -> {
+                runs.markWritten(kbId, run.runId(), List.of(), Map.of());
+                wiki.savePage(kbId, makeWrite(UUID.randomUUID(), "concepts/mitosis", "Content.\n"), run.runId());
+            }));
         assertThatExceptionOfType(RunFencedException.class)
             .isThrownBy(() -> runs.markWritten(kbId, queued.runId(), List.of(), Map.of()));
 

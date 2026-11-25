@@ -89,7 +89,8 @@ public class BundleExporter {
         structure.put(INDEX, index);
         structure.put(LOG, logFile);
         for (IndexEntry entry : entries) {
-            structure.put(entry.path() + ".md", frontmatter(entry.type(), entry.title(), entry.description(), Instant.EPOCH));
+            structure.put(entry.path() + ".md",
+                frontmatter(entry.type(), entry.title(), entry.description(), Instant.EPOCH));
         }
         List<String> violations = BundleConformanceValidator.violations(structure);
         if (!violations.isEmpty()) {

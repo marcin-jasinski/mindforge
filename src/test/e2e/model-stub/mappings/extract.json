@@ -1,0 +1,41 @@
+{
+  "metadata": {
+    "prompt": "Prompts.EXTRACT"
+  },
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/chat/completions",
+    "bodyPatterns": [
+      {
+        "contains": "# Task: claim extraction"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "id": "chatcmpl-e2e-extract",
+      "object": "chat.completion",
+      "created": 1764028800,
+      "model": "e2e-stub",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "{\"claims\": [{\"text\": \"Mitosis is cell division.\", \"title\": \"Mitosis\", \"targetPath\": null, \"firstBlock\": 0, \"lastBlock\": 1}], \"chunkDigest\": \"Mitosis.\"}"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 10,
+        "completion_tokens": 20,
+        "total_tokens": 30
+      }
+    }
+  }
+}

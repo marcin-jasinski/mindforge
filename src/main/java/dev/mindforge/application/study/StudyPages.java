@@ -29,7 +29,8 @@ public final class StudyPages {
                 || !Identifier.matches(lesson.lessonId()) -> throw new NotFoundException("Lesson " + lesson.lessonId());
             case StudyScope.Lesson lesson -> {
                 Set<UUID> ids = new HashSet<>(wiki.pageIdsForLesson(kbId, lesson.lessonId()));
-                yield wiki.listBodies(kbId, PageType.CONCEPT).stream().filter(page -> ids.contains(page.pageId())).toList();
+                yield wiki.listBodies(kbId, PageType.CONCEPT).stream()
+                    .filter(page -> ids.contains(page.pageId())).toList();
             }
             case StudyScope.Page page -> wiki.findById(kbId, page.pageId())
                 .filter(root -> root.type().equals(PageType.CONCEPT)).map(List::of)

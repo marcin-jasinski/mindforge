@@ -1,0 +1,41 @@
+{
+  "metadata": {
+    "prompt": "Prompts.QUIZ"
+  },
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/chat/completions",
+    "bodyPatterns": [
+      {
+        "contains": "# Task: quiz questions"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "id": "chatcmpl-e2e-quiz",
+      "object": "chat.completion",
+      "created": 1764028800,
+      "model": "e2e-stub",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "{\"questions\": [{\"pagePath\": \"concepts/mitosis\", \"question\": \"What does mitosis mean?\", \"referenceAnswer\": \"E2E-SECRET-REFERENCE-ANSWER\", \"groundingExcerpt\": \"Mitosis splits a cell in two.\"}]}"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 10,
+        "completion_tokens": 20,
+        "total_tokens": 30
+      }
+    }
+  }
+}

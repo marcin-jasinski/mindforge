@@ -160,11 +160,11 @@ public class QuizService {
         Map<String, String> bodies = new LinkedHashMap<>();
         shown.forEach((path, page) -> bodies.put(path, page.markdownBody()));
         List<QuizQuestion> questions = generator.generate(bodies, QUESTIONS_PER_SESSION).stream()
-            .filter(draft -> draft.pagePath() != null && shown.containsKey(draft.pagePath()) && notBlank(draft.question())
-                && notBlank(draft.referenceAnswer()))
+            .filter(draft -> draft.pagePath() != null && shown.containsKey(draft.pagePath())
+                && notBlank(draft.question()) && notBlank(draft.referenceAnswer()))
             .limit(QUESTIONS_PER_SESSION)
-            .map(draft -> new QuizQuestion(shown.get(draft.pagePath()).pageId(), draft.sectionAnchor(), draft.question(),
-                draft.referenceAnswer(), draft.groundingExcerpt()))
+            .map(draft -> new QuizQuestion(shown.get(draft.pagePath()).pageId(), draft.sectionAnchor(),
+                draft.question(), draft.referenceAnswer(), draft.groundingExcerpt()))
             .toList();
         if (questions.isEmpty()) {
             throw new NotFoundException("Questions for this scope");
@@ -204,11 +204,13 @@ public class QuizService {
             .collect(Collectors.toMap(PageScore::pageId, PageScore::mean));
         Comparator<WikiPage> byMean = Comparator.comparing(page -> means.get(page.pageId()));
         List<WikiPage> ordered = new ArrayList<>();
-        pages.stream().filter(page -> means.containsKey(page.pageId()) && means.get(page.pageId()) < PageScore.WEAK_BELOW)
+        pages.stream()
+            .filter(page -> means.containsKey(page.pageId()) && means.get(page.pageId()) < PageScore.WEAK_BELOW)
             .sorted(byMean).forEach(ordered::add);
         pages.stream().filter(page -> !means.containsKey(page.pageId()))
             .sorted(Comparator.comparing(WikiPage::createdAt)).forEach(ordered::add);
-        pages.stream().filter(page -> means.containsKey(page.pageId()) && means.get(page.pageId()) >= PageScore.WEAK_BELOW)
+        pages.stream()
+            .filter(page -> means.containsKey(page.pageId()) && means.get(page.pageId()) >= PageScore.WEAK_BELOW)
             .sorted(byMean).forEach(ordered::add);
         return ordered;
     }

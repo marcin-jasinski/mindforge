@@ -14,7 +14,8 @@ import dev.mindforge.domain.port.AIGateway;
 
 /**
  * Deterministic {@link AIGateway}: the first answer whose fragment the prompt contains wins, then the tier's canned
- * response, then a placeholder (or, once any answer is registered, an {@link AssertionError}). Thread-safe, since a run writes pages in parallel.
+ * response, then a placeholder (or, once any answer is registered, an {@link AssertionError}). Thread-safe, since a run
+ * writes pages in parallel.
  */
 public final class StubAIGateway implements AIGateway {
 
@@ -57,7 +58,9 @@ public final class StubAIGateway implements AIGateway {
         return new CompletionResult(content, 10, 20, "stub-model", "stub", 0L, COST_PER_CALL_USD);
     }
 
-    /** With answers registered, an unmatched prompt is a routing bug: fail naming it rather than return a placeholder. */
+    /**
+     * With answers registered, an unmatched prompt is a routing bug: fail naming it rather than return a placeholder.
+     */
     private String unmatched(ModelTier tier, String prompt) {
         if (!answers.isEmpty() && !responses.containsKey(tier)) {
             throw new AssertionError("No stub answer matches this " + tier + " prompt. Registered fragments: "

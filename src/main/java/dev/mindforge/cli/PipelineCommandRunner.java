@@ -85,9 +85,16 @@ public class PipelineCommandRunner implements ApplicationRunner, ExitCodeGenerat
         this.err = err;
     }
 
-    /** The MIME type named by the file's extension, case-insensitive; any other extension is octet-stream. */
+    /**
+     * The MIME type named by the file's extension, case-insensitive; any other extension, or a path with no file
+     * name (a root), is octet-stream.
+     */
     public static String mimeTypeOf(Path file) {
-        String name = file.getFileName().toString();
+        Path fileName = file.getFileName();
+        if (fileName == null) {
+            return OCTET_STREAM;
+        }
+        String name = fileName.toString();
         int dot = name.lastIndexOf('.');
         if (dot < 0) {
             return OCTET_STREAM;
@@ -136,9 +143,14 @@ public class PipelineCommandRunner implements ApplicationRunner, ExitCodeGenerat
             return refuse("knowledge base not found or not owned by " + email);
         }
         Path file;
+        Path fileName;
         byte[] content;
         try {
             file = Path.of(fileOption);
+            fileName = file.getFileName();
+            if (fileName == null) {
+                return refuse("cannot read file: " + fileOption);
+            }
             content = Files.readAllBytes(file);
         } catch (IOException | InvalidPathException e) {
             return refuse("cannot read file: " + fileOption);
@@ -146,7 +158,7 @@ public class PipelineCommandRunner implements ApplicationRunner, ExitCodeGenerat
         UUID documentId;
         try {
             documentId = ingestion.ingest(new DocumentUpload(kbId, user.userId(), UploadSource.CLI,
-                file.getFileName().toString(), mimeTypeOf(file), content, lessonId, newVersion));
+                fileName.toString(), mimeTypeOf(file), content, lessonId, newVersion));
         } catch (LessonAlreadyExistsException e) {
             return refuse("Lesson '" + e.lesson().lessonId() + "' already exists; pass --new-version to upload a new"
                 + " version, or choose another --lesson-id");

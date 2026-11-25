@@ -56,7 +56,8 @@ import dev.mindforge.support.TestContainerBase;
 class ApiFlowTest extends TestContainerBase {
 
     private static final Pattern FORBIDDEN_FIELDS = Pattern.compile(
-        "\"(cost|stepVersions|step_versions|passwordHash|referenceAnswer|groundingContext|rawPrompt|rawCompletion|token|groundingExcerpt)\"");
+        "\"(cost|stepVersions|step_versions|passwordHash|referenceAnswer|groundingContext|rawPrompt|rawCompletion"
+            + "|token|groundingExcerpt)\"");
     private static final Pattern SESSION_COOKIE = Pattern.compile("token=([^;]*)");
     private static final String NOTES = "# Mitosis\n\nMitosis is cell division.\n";
     private static final String BODY = "# Course\n\nMitosis splits a cell in two.\n";
@@ -129,7 +130,8 @@ class ApiFlowTest extends TestContainerBase {
 
         List<Response> responses = List.of(upload, index, page, runs, report, client.get(kb),
             client.get(kb + "/documents"), client.get(kb + "/documents/" + documentId), client.get(kb + "/graph"),
-            client.get(kb + "/health"), client.get(kb + "/pages/concepts/mitosis/revisions"), client.get("/api/v1/auth/me"));
+            client.get(kb + "/health"), client.get(kb + "/pages/concepts/mitosis/revisions"),
+            client.get("/api/v1/auth/me"));
         responses.forEach(response -> assertThat(response.status()).as(response.body()).isLessThan(300));
         responses.forEach(ApiFlowTest::assertNoSensitiveFields);
 
@@ -244,7 +246,8 @@ class ApiFlowTest extends TestContainerBase {
         String kb = createKnowledgeBase(client);
         givenAnswers();
         gateway.answer(Prompts.SELECT, "{\"paths\": [\"concepts/mitosis\", \"concepts/missing\"]}");
-        gateway.answer(Prompts.ANSWER, "{\"answer\": \"Mitosis splits a cell.\", \"citations\": [\"concepts/mitosis\"]}");
+        gateway.answer(Prompts.ANSWER,
+            "{\"answer\": \"Mitosis splits a cell.\", \"citations\": [\"concepts/mitosis\"]}");
         gateway.answer(Prompts.EDIT, "{\"items\": [{\"kind\": \"retitle\", \"path\": \"concepts/mitosis\","
             + " \"title\": \"Cell mitosis\"}]}");
         awaitRun(client, kb, client.upload(kb, "biology.md", NOTES, false).json().get("documentId").asString(),

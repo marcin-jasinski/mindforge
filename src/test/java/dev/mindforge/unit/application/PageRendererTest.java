@@ -22,9 +22,11 @@ class PageRendererTest {
         String body = "```\n# Phase\n```\n\n# Phase\n\nProphase takes an hour.\n\n# Stages\n\nProphase.\n";
 
         String rendered = PageRenderer.withNotes(body, List.of(
-            new LiveSupersession(UUID.randomUUID(), PAGE, "phase", UUID.randomUUID(), "concepts/meiosis", "Meiosis [new]")));
+            new LiveSupersession(UUID.randomUUID(), PAGE, "phase", UUID.randomUUID(), "concepts/meiosis",
+                "Meiosis [new]")));
 
-        assertThat(rendered).isEqualTo("```\n# Phase\n```\n\n# Phase\n\n> Superseded by [Meiosis \\[new\\]](/concepts/meiosis.md)."
+        assertThat(rendered).isEqualTo("```\n# Phase\n```\n\n# Phase\n\n"
+            + "> Superseded by [Meiosis \\[new\\]](/concepts/meiosis.md)."
             + "\n\nProphase takes an hour.\n\n# Stages\n\nProphase.\n");
     }
 
@@ -35,7 +37,8 @@ class PageRendererTest {
             makeSource("conversation", "Conversation", "2026-09-02T10:00:00Z", true),
             makeSource("bio-1", "Lesson 1 — corrected", "2026-09-03T10:00:00Z", false));
 
-        assertThat(PageRenderer.withCitations("Content.\n", PageType.CONCEPT, sources)).isEqualTo("Content.\n\n# Citations\n\n"
+        assertThat(PageRenderer.withCitations("Content.\n", PageType.CONCEPT, sources))
+            .isEqualTo("Content.\n\n# Citations\n\n"
             + "[1] Conversation, 2026-09-02\n[2] [Lesson 1 — corrected](/sources/bio-1.md)\n");
     }
 

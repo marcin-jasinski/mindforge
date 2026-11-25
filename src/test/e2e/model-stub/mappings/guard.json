@@ -1,0 +1,41 @@
+{
+  "metadata": {
+    "prompt": "Prompts.GUARD"
+  },
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/chat/completions",
+    "bodyPatterns": [
+      {
+        "contains": "# Task: document relevance check"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "id": "chatcmpl-e2e-guard",
+      "object": "chat.completion",
+      "created": 1764028800,
+      "model": "e2e-stub",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "{\"relevant\": true, \"reason\": \"Biology notes.\", \"confidence\": 0.9}"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 10,
+        "completion_tokens": 20,
+        "total_tokens": 30
+      }
+    }
+  }
+}

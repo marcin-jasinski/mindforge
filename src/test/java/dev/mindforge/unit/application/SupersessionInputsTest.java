@@ -51,7 +51,7 @@ class SupersessionInputsTest {
     }
 
     private static WikiPage makePage(String path, String body) {
-        return new WikiPage(UUID.randomUUID(), UUID.randomUUID(), path, "Title", "Description.", PageType.CONCEPT, body, 1,
-            Instant.EPOCH, Instant.EPOCH);
+        return new WikiPage(UUID.randomUUID(), UUID.randomUUID(), path, "Title", "Description.", PageType.CONCEPT,
+            body, 1, Instant.EPOCH, Instant.EPOCH);
     }
 }

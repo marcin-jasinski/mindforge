@@ -1,0 +1,17 @@
+# Test only: the browser E2E stack. Model calls go to a WireMock stub that answers from static mappings (ADR-0042).
+# Always name both files: docker compose -f compose.yml -f compose.e2e.yml up -d --build --wait
+# A plain `docker compose up` merges compose.override.yml instead and never starts the stub.
+services:
+  model-stub:
+    image: wiremock/wiremock:3.13.2
+    volumes:
+      - ./src/test/e2e/model-stub:/home/wiremock:ro
+
+  app:
+    depends_on:
+      - model-stub
+    environment:
+      OPENROUTER_BASE_URL: http://model-stub:8080/v1
+      OPENROUTER_API_KEY: e2e-not-a-key
+      AUTH_SECURE_COOKIES: "false"
+      JWT_SECRET: e2e-throwaway-jwt-secret-at-least-32-bytes

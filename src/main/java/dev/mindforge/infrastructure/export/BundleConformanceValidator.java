@@ -32,6 +32,7 @@ public final class BundleConformanceValidator {
 
     private static final Pattern PAGE_FILE =
         Pattern.compile("(concepts|sources)/(" + Identifier.PATTERN.pattern() + ")\\.md");
+    // INDEX_ENTRY and LOG_DATE are allowed by exact path in MarkdownRegexGuardTest.ALLOWED (bundle grammar oracle).
     private static final Pattern INDEX_ENTRY =
         Pattern.compile("\\* \\[(?:\\\\.|[^\\\\\\]\\n])*\\]\\([^()\\s]+\\)(?: - .*)?");
     private static final Pattern LOG_DATE = Pattern.compile("## \\d{4}-\\d{2}-\\d{2}");
@@ -122,7 +123,8 @@ public final class BundleConformanceValidator {
             return Optional.empty();
         }
         try {
-            Object parsed = new Yaml(new SafeConstructor(new LoaderOptions())).load(content.substring(FENCE.length(), end));
+            Object parsed = new Yaml(new SafeConstructor(new LoaderOptions()))
+                .load(content.substring(FENCE.length(), end));
             return parsed instanceof Map<?, ?> map ? Optional.of(map) : Optional.empty();
         } catch (YAMLException e) {
             return Optional.empty();

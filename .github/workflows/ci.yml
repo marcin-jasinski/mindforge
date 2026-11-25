@@ -21,13 +21,26 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci && npm test -- --no-watch
         working-directory: frontend
-      # Unit + integration tests (Testcontainers, Docker is on the runner), coverage gate, frontend build.
+      # One step, lifecycle order: Checkstyle (validate), frontend build, unit + integration tests (Testcontainers,
+      # Docker is on the runner), SpotBugs (verify), JaCoCo 70% coverage gate.
       - run: mvn -B verify
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: jacoco
           path: target/site/jacoco/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: checkstyle
+          path: target/checkstyle-result.xml
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spotbugs
+          path: target/spotbugsXml.xml
+          if-no-files-found: ignore
 
   windows:
     runs-on: windows-latest
@@ -41,3 +54,46 @@ jobs:
       # Everything but the integration tests and the coverage gate they feed: windows runners have no Linux Docker
       # for Testcontainers. Unit tests, the frontend build and the JAR catch Windows-only failures (R01: line endings).
       - run: mvn -B package
+
+  # Browser E2E (D08): the compose stack with the WireMock model stub, driven by the Playwright suite in src/test/e2e.
+  # Always name both compose files: a bare `docker compose` merges compose.override.yml and never starts the stub.
+  e2e:
+    needs: linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/test/e2e/package-lock.json
+      - run: docker compose -f compose.yml -f compose.e2e.yml build
+      - run: docker compose -f compose.yml -f compose.e2e.yml up -d --wait
+      # The exact @playwright/test version in the lockfile pins the browser version.
+      - run: npm ci
+        working-directory: src/test/e2e
+      - run: npx playwright install --with-deps chromium
+        working-directory: src/test/e2e
+      - run: npm test
+        working-directory: src/test/e2e
+      # Two steps, so that the compose logs are dumped also when the stub does not answer.
+      - name: Dump WireMock unmatched requests
+        if: always()
+        run: |
+          mkdir -p src/test/e2e/test-results
+          docker compose -f compose.yml -f compose.e2e.yml exec -T model-stub \
+            wget -qO- http://localhost:8080/__admin/requests/unmatched > src/test/e2e/test-results/wiremock-unmatched.json
+      - name: Dump compose logs
+        if: always()
+        run: |
+          mkdir -p src/test/e2e/test-results
+          docker compose -f compose.yml -f compose.e2e.yml logs --no-color > src/test/e2e/test-results/compose.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e
+          path: |
+            src/test/e2e/playwright-report/
+            src/test/e2e/test-results/
+      - if: always()
+        run: docker compose -f compose.yml -f compose.e2e.yml down -v

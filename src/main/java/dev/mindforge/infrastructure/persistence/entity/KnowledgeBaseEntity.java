@@ -29,7 +29,8 @@ public class KnowledgeBaseEntity extends BaseEntity {
     private long pageCount;
 
     // a chat edit stores its turn as a CONVERSATION document; it is not one the learner uploaded
-    @Formula("(SELECT COUNT(*) FROM documents d WHERE d.knowledge_base_id = kb_id AND d.upload_source <> 'CONVERSATION')")
+    @Formula("(SELECT COUNT(*) FROM documents d WHERE d.knowledge_base_id = kb_id"
+        + " AND d.upload_source <> 'CONVERSATION')")
     private long documentCount;
 
     public UUID getKbId() { return kbId; }

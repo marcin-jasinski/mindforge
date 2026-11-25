@@ -52,7 +52,8 @@ import dev.mindforge.support.TestContainerBase;
 class SecurityTest extends TestContainerBase {
 
     private static final Pattern FORBIDDEN_FIELDS = Pattern.compile(
-        "\"(cost|stepVersions|step_versions|passwordHash|referenceAnswer|groundingContext|rawPrompt|rawCompletion|token|groundingExcerpt)\"");
+        "\"(cost|stepVersions|step_versions|passwordHash|referenceAnswer|groundingContext|rawPrompt|rawCompletion"
+            + "|token|groundingExcerpt)\"");
     private static final Pattern SESSION_COOKIE = Pattern.compile("token=([^;]*)");
     private static final String NOTES = "# Mitosis\n\nMitosis is cell division.\n";
     private static final String BODY = "# Course\n\nMitosis splits a cell in two.\n";
@@ -99,7 +100,8 @@ class SecurityTest extends TestContainerBase {
         Instant now = Instant.now();
         String wrongKey = Jwts.builder().subject(userId).issuedAt(Date.from(now))
             .expiration(Date.from(now.plus(Duration.ofHours(1))))
-            .signWith(Keys.hmacShaKeyFor("another-secret-that-is-long-enough-for-hs256".getBytes(StandardCharsets.UTF_8)))
+            .signWith(Keys.hmacShaKeyFor(
+                "another-secret-that-is-long-enough-for-hs256".getBytes(StandardCharsets.UTF_8)))
             .compact();
         String expired = Jwts.builder().subject(userId).issuedAt(Date.from(now.minus(Duration.ofHours(2))))
             .expiration(Date.from(now.minus(Duration.ofHours(1))))

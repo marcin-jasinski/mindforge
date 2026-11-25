@@ -148,7 +148,8 @@ class FlashcardServiceTest {
 
     private static CardState makeState(WikiPage page, String front, Instant due) {
         Flashcard card = new Flashcard(Flashcard.computeCardId(KB, page.pageId(), CardType.BASIC, front, "back"),
-            page.pageId(), null, CardType.BASIC, front, "back", Flashcard.sourceHash(page.title(), page.markdownBody()));
+            page.pageId(), null, CardType.BASIC, front, "back",
+            Flashcard.sourceHash(page.title(), page.markdownBody()));
         return new CardState(card, 2.5, 1, 1, due, null);
     }
 

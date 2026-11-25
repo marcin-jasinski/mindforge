@@ -17,7 +17,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Tripwire for D03 / ADR 0023: outbound HTTP to content- or user-derived URLs goes through {@code EgressPolicy}, so
- * HTTP-client and HTML-fetch code may live only in the article fetch adapter ({@code dev.mindforge.infrastructure.web}).
+ * HTTP-client and HTML-fetch code may live only in the article fetch adapter
+ * ({@code dev.mindforge.infrastructure.web}).
  */
 class OutboundHttpGuardTest {
 

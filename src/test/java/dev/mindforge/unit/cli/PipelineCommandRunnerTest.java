@@ -171,6 +171,18 @@ class PipelineCommandRunnerTest {
     }
 
     @Test
+    void aRootPathWithNoFileNameIsRefusedWithoutIngest() {
+        when(accounts.byEmail(EMAIL)).thenReturn(makeUser());
+        Path root = Path.of("/");
+
+        runner.run(makeArgs(root));
+
+        assertThat(runner.getExitCode()).isEqualTo(2);
+        assertThat(stderrLines()).containsExactly("cannot read file: " + root);
+        verify(ingestion, never()).ingest(any());
+    }
+
+    @Test
     void theHappyPathIngestsTheFileAsTheResolvedUserFromTheCli() throws IOException {
         when(accounts.byEmail(EMAIL)).thenReturn(makeUser());
         when(ingestion.ingest(any())).thenReturn(DOCUMENT_ID);

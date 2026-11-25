@@ -57,8 +57,10 @@ It deliberately has **one data store**: PostgreSQL.
 | **Mockito** | 5.x | Mocking framework; domain and application unit tests use no Spring context |
 | **Testcontainers** | 1.x | Real PostgreSQL containers in integration tests — no DB mocks |
 | **AssertJ** | 3.x | Fluent assertions: `assertThat(page).extracting(WikiPage::revision).isEqualTo(2)` |
+| **ArchUnit** | 1.4.x | Architecture fitness functions: `unit/architecture/ArchitectureTest` fails the build when a class breaks the hexagonal layer table |
 | **Vitest** | ^4.0.x | Frontend test runner |
 | **jsdom** | ^28.0.0 | DOM simulation for Vitest frontend tests |
+| **Playwright Test** | 1.65.1 (exact pin) | Browser E2E in `src/test/e2e/`, its own npm project, against the compose stack; not run by Maven (D07) |
 
 ---
 
@@ -164,7 +166,18 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 ## Development Tools
 
 ### Linting & Formatting
-- **Checkstyle / Spotless** — Java code style enforcement via Maven plugin
+- **Checkstyle** (`maven-checkstyle-plugin` 3.6.0, Checkstyle 10.26.1) — runs `check` in the `validate` phase, so
+  `mvn test`, `package` and `verify` fail on a violation. The ruleset `config/checkstyle/checkstyle.xml` encodes only
+  rules the project already states: no tabs, no trailing whitespace, a final newline, no star, unused or redundant
+  imports, no field `@Autowired` in main code (constructor injection), loggers named `log`, and lines of at most 120
+  characters. Spotless is not adopted: a formatter rewrites code to a style the project never stated; Checkstyle only
+  reports breaks of the stated rules.
+- **SpotBugs** (`spotbugs-maven-plugin` 4.9.8.5, SpotBugs engine 4.9.8) — runs `check` in the `verify` phase over
+  main classes, before the JaCoCo check, at threshold Medium and effort Max. It finds bytecode defects (for example
+  null dereferences) that tests and Checkstyle do not catch. `config/spotbugs-exclude.xml` drops `EI_EXPOSE_REP`,
+  `EI_EXPOSE_REP2` and `CT_CONSTRUCTOR_THROW` for the project (records with `List` fields, constructor-injected beans,
+  validating constructors) and holds only narrow matches for triaged false positives. Version 4.9.8.5 is the newest
+  plugin that runs on Maven 3.8; the 4.10 line needs Maven 3.8.9 or later. FindSecBugs is not adopted yet.
 - **ESLint + Prettier** — Frontend TypeScript formatting
 
 ### Type Safety
@@ -202,6 +215,7 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 | `spring-ai-starter-model-openai` | LLM access (OpenAI-compatible API) |
 | `spring-boot-starter-flyway` + `flyway-database-postgresql` | SQL schema migrations |
 | `testcontainers-postgresql` | Real database containers in integration tests |
+| `archunit-junit5` (`com.tngtech.archunit`, test scope) | Enforces the hexagonal layer table (CLAUDE.md, `hexagonal.md`) on the compiled classes in a unit test. The source-scan guards (`OutboundHttpGuardTest`, ADR 0023) stay as they are |
 | `caffeine` | In-memory caching |
 | `resilience4j-retry` + `resilience4j-circuitbreaker` | AI gateway resilience (ADR 0009) |
 | `jjwt-api` + `jjwt-impl` | JWT issuance after OAuth2 login |
@@ -214,6 +228,7 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 | `bolt` + `bolt-socket-mode` (`com.slack.api`, 1.55.0) + `Java-WebSocket` (`org.java-websocket`, 1.6.0) | Slack bot (Phase 19): Socket Mode connection, slash commands, DM events, replies and file download; its types stay in `dev.mindforge.slack`. The WebSocket client is Java-WebSocket, with no `javax`/`jakarta.websocket` API (ADR 0037). Declared after JDA and before Spring AI, so that JDA's `okhttp-jvm` 5 stays before the `okhttp` 4 that `slack-api-client` brings (ADR 0025) |
 | `cytoscape` (npm) | Interactive page-link graph visualization |
 | `openapi-typescript` (npm) | Frontend type generation from OpenAPI spec |
+| `@playwright/test` (npm, `src/test/e2e/` only) | Browser E2E runner, assertions and Chromium driver in one dev dependency, so the suite needs no other package. It has its own `package.json` and lockfile, so the frontend lockfile, the image build and the frontend gate do not see it |
 
 ---
 

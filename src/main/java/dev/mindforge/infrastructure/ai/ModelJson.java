@@ -6,7 +6,10 @@ import tools.jackson.databind.json.JsonMapper;
 
 import dev.mindforge.domain.model.ModelOutputException;
 
-/** Reads a model's JSON answer into a record, tolerating prose or a code fence around it, trailing text after it and unknown fields. */
+/**
+ * Reads a model's JSON answer into a record, tolerating prose or a code fence around it, trailing text after it and
+ * unknown fields.
+ */
 public final class ModelJson {
 
     private static final JsonMapper JSON = JsonMapper.builder()
