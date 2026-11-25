@@ -57,3 +57,4 @@
 2026-11-25T14:53:55+01:00 P21-12 commit 81d7d27
 2026-11-25T14:56:06+01:00 - holistic review@opus approve (1 minor deferred: ci.yml comment says linux job builds the frontend; it does not)
 2026-11-25T14:57:09+01:00 - docs scribe@sonnet REPORT.md + INDEX.md factory run records; ticket commit hashes corrected
+2026-11-25T15:05:56+01:00 - integration gate on phase branch: green (145 IT, 0 failures; coverage, Checkstyle, SpotBugs pass); no frontend changes so no extra gates
