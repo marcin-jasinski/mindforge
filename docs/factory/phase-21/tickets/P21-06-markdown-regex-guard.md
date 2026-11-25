@@ -1,14 +1,14 @@
 ---
 id: P21-06
 title: Guard that only MarkdownStructure matches markdown heading or link syntax with a regex
-status: ready
+status: done
 plan_tasks: [21.3]
 decisions: [D12]
 depends_on: [P21-02]
 size: M
 issue: 71
-commit:
-fix_rounds: 0
+commit: 4aa4ebe
+fix_rounds: 1
 ---
 ## Goal
 A source-scan unit test fails the build when a `Pattern.compile` string literal in `src/main/java` contains markdown
@@ -57,12 +57,12 @@ page syntax. Do not change `BundleConformanceValidator` or `MarkdownStructure`.
 - Risk to watch: the allowlist becomes a habit. Each new entry needs a reason, and a stale entry must fail.
 
 ## Acceptance criteria
-- [ ] AC1: `MarkdownRegexGuardTest` reports no offender in the real `src/main/java` outside OWNER and ALLOWED.
-- [ ] AC2: A test fails when an ALLOWED file has no hit (stale allowlist entry).
-- [ ] AC3: A `@TempDir` tree with a planted offender (for example `Pattern.compile("^## (.+)$")` and `Pattern.compile("\\[(.+)\\]\\((.+)\\)")` in a non-owner file) is reported; OWNER and ALLOWED copies in that tree are not.
-- [ ] AC4: Planted literals in the shape of `Identifier.PATTERN`, the `DocxParser` heading-style pattern and an URL pattern are not reported.
-- [ ] AC5: `BundleConformanceValidator.java` changes only by a one-line comment above `INDEX_ENTRY`/`LOG_DATE` pointing to the guard; `MarkdownStructure.java` is unchanged.
-- [ ] AC6: `mvn -B verify -DskipFrontend=true` is green, including `BundleConformanceValidatorTest` and the export tests.
+- [x] AC1: `MarkdownRegexGuardTest` reports no offender in the real `src/main/java` outside OWNER and ALLOWED.
+- [x] AC2: A test fails when an ALLOWED file has no hit (stale allowlist entry).
+- [x] AC3: A `@TempDir` tree with a planted offender (for example `Pattern.compile("^## (.+)$")` and `Pattern.compile("\\[(.+)\\]\\((.+)\\)")` in a non-owner file) is reported; OWNER and ALLOWED copies in that tree are not.
+- [x] AC4: Planted literals in the shape of `Identifier.PATTERN`, the `DocxParser` heading-style pattern and an URL pattern are not reported.
+- [x] AC5: `BundleConformanceValidator.java` changes only by a one-line comment above `INDEX_ENTRY`/`LOG_DATE` pointing to the guard; `MarkdownStructure.java` is unchanged.
+- [x] AC6: `mvn -B verify -DskipFrontend=true` is green, including `BundleConformanceValidatorTest` and the export tests.
 
 ## Test plan
 - Unit: `src/test/java/dev/mindforge/unit/architecture/MarkdownRegexGuardTest.java`, four test methods mapping to AC1–AC4, `@TempDir` for AC3/AC4, AssertJ.
@@ -77,3 +77,10 @@ page syntax. Do not change `BundleConformanceValidator` or `MarkdownStructure`.
 - Plan text edits (P21-12 writes the "As built" note; record the exception wording in Notes for it).
 
 ## Notes
+- Decided: a literal is flagged when it starts with `#` (optionally after inline flags, `^` or `(`), or when the call's literals joined contain `#{`, `## ` or `\\]\\(` as written in source, because this catches the planted shapes and the known offenders and spares Identifier, DocxParser and ArticleFetcher.
+- Decided: the scan reads only `Pattern.compile(...)` arguments up to the matching close paren (not `String.matches`/`replaceAll`), because the ticket puts other regex uses out of scope.
+- Exception wording for P21-12 (21.3 rule 5 / T26 "As built"): `BundleConformanceValidator` is allowed by exact path in `MarkdownRegexGuardTest.ALLOWED` because it validates the generated index.md/log.md OKF bundle grammar as an independent oracle, not wiki page syntax.
+- AC map (tester r1): AC1 -> MarkdownRegexGuardTest.shouldFindMarkdownRegexesOnlyInTheOwnerAndAllowedFiles; AC2 -> shouldStillFindAHitInEveryAllowedFile; AC3 -> shouldReportAPlantedOffenderAndIgnoreTheOwnerAndAllowedCopies; AC4 -> shouldNotReportNonMarkdownPatterns; AC5 -> git diff (one comment line only, MarkdownStructure untouched); AC6 -> gate green.
+
+### Deferred findings
+- correctness/C2 minor 0.6 src/test/java/dev/mindforge/unit/architecture/MarkdownRegexGuardTest.java:35: The heading check misses common ATX heading regexes in which only whitespace or a group comes before the `#` and no `## ` or `#{` follows, for example `"(?m)^\\s*#+ (.*)$"` or `"(^|\\n)# "`.

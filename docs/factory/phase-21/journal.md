@@ -28,3 +28,8 @@
 2026-11-25T11:44:37+01:00 P21-05 implement@inherit DONE (3 ArchUnit rules: controllers, model services, run queue)
 2026-11-25T11:53:10+01:00 P21-05 test@sonnet r1 PASS (gate green); review r1 correctness@opus(1 minor),standards@sonnet,spec-security@opus(1 minor) approve; test-guard clean -> PASS
 2026-11-25T11:53:10+01:00 P21-05 commit 057f002
+2026-11-25T11:57:29+01:00 P21-06 implement@inherit DONE (MarkdownRegexGuardTest; validator allowlisted with reason)
+2026-11-25T12:06:26+01:00 P21-06 test@sonnet r1 PASS; review r1 correctness@opus changes(1 major accepted),standards@sonnet,spec-security@opus approve; test-guard clean -> fix
+2026-11-25T12:09:18+01:00 P21-06 fix@inherit r1 FIXED C1 (link check matches ]\( )
+2026-11-25T12:17:47+01:00 P21-06 test@sonnet r2 PASS (gate green); review r2 correctness@opus approve; test-guard clean -> PASS
+2026-11-25T12:17:47+01:00 P21-06 commit 4aa4ebe
