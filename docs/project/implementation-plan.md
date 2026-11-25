@@ -1780,6 +1780,7 @@ identity resolution.
 
 - [ ] **21.1 — GitHub Actions workflow** (`.github/workflows/ci.yml`)
   - Push to `main`, PRs: Checkstyle → SpotBugs → `mvn test` (Testcontainers) → JaCoCo 70% gate.
+  - Follow-up: the FindSecBugs SpotBugs plugin (security patterns) — deferred by D02.
 
 - [ ] **21.2 — Playwright E2E smoke tests** (`src/test/e2e/`)
   - Against `docker compose up` with a stub-provider profile: register → upload → run completes → pages

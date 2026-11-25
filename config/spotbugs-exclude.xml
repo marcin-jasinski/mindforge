@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter
+        xmlns="https://github.com/spotbugs/filter/3.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/master/spotbugs/etc/findbugsfilter.xsd">
+
+    <!-- Records with List or other collection fields return them from their accessors, and Spring beans keep the
+         collaborators they receive through constructor injection. Both are deliberate design, not leaked state. -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+
+    <!-- Same reason as EI_EXPOSE_REP: records and constructor-injected beans store the references they are given. -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Records and value objects validate their arguments in the constructor and throw on bad input. No class
+         relies on finalizers, so a partly built instance cannot be captured. -->
+    <Match>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+
+    <!-- The CLI process must end once every runner has returned: the non-web context would keep the JVM alive.
+         Ending the JVM with the runners' exit code is the purpose of this listener. -->
+    <Match>
+        <Class name="dev.mindforge.cli.CliExitOnReady"/>
+        <Method name="onApplicationEvent"/>
+        <Bug pattern="DM_EXIT"/>
+    </Match>
+</FindBugsFilter>

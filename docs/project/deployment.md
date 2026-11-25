@@ -21,6 +21,11 @@ gate then measures unit tests only and will fail; pair it with `-Djacoco.skip=tr
 over main and test sources, with the ruleset in `config/checkstyle/checkstyle.xml`. A violation fails the build.
 `-Dcheckstyle.skip` skips the check.
 
+`mvn verify` also runs SpotBugs (`spotbugs-check`, bound to the `verify` phase) over the main classes, after the tests
+and before the coverage gate. It reports at threshold Medium with effort Max, and every finding that
+`config/spotbugs-exclude.xml` does not drop fails the build. Fix a finding in code; add an exclusion only for a false
+positive, as a narrow class and method match with a reason comment. `-Dspotbugs.skip` skips the check.
+
 ### Dependency check
 
 The OWASP dependency check audits the Maven dependencies against the NVD. No build phase runs it: `mvn verify` does not

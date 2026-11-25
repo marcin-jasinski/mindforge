@@ -170,6 +170,12 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
   imports, no field `@Autowired` in main code (constructor injection), loggers named `log`, and lines of at most 120
   characters. Spotless is not adopted: a formatter rewrites code to a style the project never stated; Checkstyle only
   reports breaks of the stated rules.
+- **SpotBugs** (`spotbugs-maven-plugin` 4.9.8.5, SpotBugs engine 4.9.8) — runs `check` in the `verify` phase over
+  main classes, before the JaCoCo check, at threshold Medium and effort Max. It finds bytecode defects (for example
+  null dereferences) that tests and Checkstyle do not catch. `config/spotbugs-exclude.xml` drops `EI_EXPOSE_REP`,
+  `EI_EXPOSE_REP2` and `CT_CONSTRUCTOR_THROW` for the project (records with `List` fields, constructor-injected beans,
+  validating constructors) and holds only narrow matches for triaged false positives. Version 4.9.8.5 is the newest
+  plugin that runs on Maven 3.8; the 4.10 line needs Maven 3.8.9 or later. FindSecBugs is not adopted yet.
 - **ESLint + Prettier** — Frontend TypeScript formatting
 
 ### Type Safety

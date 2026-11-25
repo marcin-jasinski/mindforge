@@ -1,13 +1,13 @@
 ---
 id: P21-03
 title: Fail verify on SpotBugs findings at Medium threshold and fix the real defects
-status: ready
+status: done
 plan_tasks: [21.1]
 decisions: [D02, D03]
 depends_on: [P21-02]
 size: L
 issue: 68
-commit:
+commit: d324083
 fix_rounds: 0
 ---
 ## Goal
@@ -60,12 +60,12 @@ findings in code. Do not add FindSecBugs in this phase. Put it on the follow-up 
   document `-Dspotbugs.skip`.
 
 ## Acceptance criteria
-- [ ] AC1: `pom.xml` declares `spotbugs-maven-plugin` (pinned, engine 4.8+), execution `spotbugs-check` in `verify`, Medium/Max/failOnError, main classes only, declared before `jacoco-maven-plugin`; the `verify` log shows `spotbugs-check` before `jacoco-check`.
-- [ ] AC2: `config/spotbugs-exclude.xml` has the three project-wide pattern matches, each preceded by a reason comment, plus only narrow class/method matches with reasons for triaged false positives.
-- [ ] AC3: Every other finding is fixed in code; each fix keeps existing tests green and changes no observable behaviour except removing the defect. A fix that changes behaviour (for example a null-dereference path) has a unit test that proves the new behaviour.
-- [ ] AC4: `mvn -B verify -DskipFrontend=true` is green, including the JaCoCo 70% check.
-- [ ] AC5: `mvn -B verify -DskipFrontend=true -Dspotbugs.skip` skips SpotBugs.
-- [ ] AC6: Docs: `deployment.md` § Build (SpotBugs in `verify`, `-Dspotbugs.skip`); `tech-stack.md` names SpotBugs and why; FindSecBugs is listed as a follow-up "deferred by D02" (in the plan Phase 21 section or roadmap follow-ups).
+- [x] AC1: `pom.xml` declares `spotbugs-maven-plugin` (pinned, engine 4.8+), execution `spotbugs-check` in `verify`, Medium/Max/failOnError, main classes only, declared before `jacoco-maven-plugin`; the `verify` log shows `spotbugs-check` before `jacoco-check`.
+- [x] AC2: `config/spotbugs-exclude.xml` has the three project-wide pattern matches, each preceded by a reason comment, plus only narrow class/method matches with reasons for triaged false positives.
+- [x] AC3: Every other finding is fixed in code; each fix keeps existing tests green and changes no observable behaviour except removing the defect. A fix that changes behaviour (for example a null-dereference path) has a unit test that proves the new behaviour.
+- [x] AC4: `mvn -B verify -DskipFrontend=true` is green, including the JaCoCo 70% check.
+- [x] AC5: `mvn -B verify -DskipFrontend=true -Dspotbugs.skip` skips SpotBugs.
+- [x] AC6: Docs: `deployment.md` § Build (SpotBugs in `verify`, `-Dspotbugs.skip`); `tech-stack.md` names SpotBugs and why; FindSecBugs is listed as a follow-up "deferred by D02" (in the plan Phase 21 section or roadmap follow-ups).
 
 ## Test plan
 - Build-level: `mvn -B verify -DskipFrontend=true` (AC1, AC4); manual skip run (AC5).
@@ -84,3 +84,7 @@ findings in code. Do not add FindSecBugs in this phase. Put it on the follow-up 
 - CI workflow edits (P21-07).
 
 ## Notes
+- Decided: pin `spotbugs-maven-plugin` 4.9.8.5 (engine 4.9.8), not 4.10.5.0, because the 4.10 line needs Maven 3.8.9 and the build host has Maven 3.8.7; 4.9.8 meets the 4.8+ requirement.
+- Findings of the first run (3): `PipelineCommandRunner.mimeTypeOf` and `ingest` NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE (`Path.getFileName()` is null for a root path) fixed in code; `CliExitOnReady.onApplicationEvent` DM_EXIT is a false positive (ending the JVM is the listener's purpose), dropped by a class+method match.
+- Decided: a root path in `ingest` is refused with the existing "cannot read file" message before the read, because the read of a root already gave that refusal (no visible change).
+- Tester AC map: AC1 -> verify log order spotbugs-check before jacoco-check (seen); AC2 -> config/spotbugs-exclude.xml inspected; AC3 -> MimeTypeOfTest.aPathWithNoFileNameIsOctetStream, PipelineCommandRunnerTest.aRootPathWithNoFileNameIsRefusedWithoutIngest (ADDED); AC4 -> full gate green; AC5 -> run with -Dspotbugs.skip prints "Spotbugs plugin skipped"; AC6 -> docs diff inspected.

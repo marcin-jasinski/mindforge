@@ -34,6 +34,7 @@
         <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <checkstyle.version>10.26.1</checkstyle.version>
+        <spotbugs-maven-plugin.version>4.9.8.5</spotbugs-maven-plugin.version>
         <skipFrontend>true</skipFrontend>
     </properties>
 
@@ -427,6 +428,30 @@
                                 </resource>
                             </resources>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- SpotBugs runs check in verify on main classes only; declared above jacoco-maven-plugin so it runs
+                 before jacoco-check. Any finding not dropped by config/spotbugs-exclude.xml fails the build.
+                 -Dspotbugs.skip skips it. -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs-maven-plugin.version}</version>
+                <configuration>
+                    <threshold>Medium</threshold>
+                    <effort>Max</effort>
+                    <failOnError>true</failOnError>
+                    <includeTests>false</includeTests>
+                    <excludeFilterFile>${project.basedir}/config/spotbugs-exclude.xml</excludeFilterFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotbugs-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

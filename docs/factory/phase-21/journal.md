@@ -19,3 +19,6 @@
 2026-11-25T10:36:59+01:00 P21-02 implement@inherit DONE (checkstyle in validate, 124 violations fixed in 66 files)
 2026-11-25T10:46:57+01:00 P21-02 test@sonnet r1 PASS (gate green); review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
 2026-11-25T10:46:57+01:00 P21-02 commit 6401696
+2026-11-25T11:01:43+01:00 P21-03 implement@inherit DONE (spotbugs 4.9.8.5 in verify; 2 null derefs fixed, DM_EXIT excluded narrowly)
+2026-11-25T11:21:47+01:00 P21-03 test@sonnet r1 PASS (gate green; added PipelineCommandRunnerTest root-path test); review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
+2026-11-25T11:21:47+01:00 P21-03 commit d324083
