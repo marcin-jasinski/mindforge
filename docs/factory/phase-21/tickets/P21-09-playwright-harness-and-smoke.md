@@ -1,13 +1,13 @@
 ---
 id: P21-09
 title: Add the Playwright Test project in src/test/e2e with a sign-up smoke spec against the compose stack
-status: ready
+status: done
 plan_tasks: [21.2]
 decisions: [D07]
 depends_on: [P21-08]
 size: M
 issue: 74
-commit:
+commit: 40d10da
 fix_rounds: 0
 ---
 ## Goal
@@ -54,13 +54,13 @@ project in `src/test/e2e/`, with its own `package.json` and committed `package-l
   `docs/project/tech-stack.md`: name `@playwright/test` and why (Minimal Dependencies).
 
 ## Acceptance criteria
-- [ ] AC1: `src/test/e2e/package.json` and committed `package-lock.json` match the notes (private, `packageManager` npm@11.9.0, one exact-pinned devDependency `@playwright/test`, `test` script). `frontend/package.json` is unchanged.
-- [ ] AC2: `src/test/e2e/tsconfig.json` (strict) and `playwright.config.ts` match the notes; `npx tsc --noEmit` in `src/test/e2e/` passes.
-- [ ] AC3: `specs/smoke.spec.ts`: opens `/login`, asserts an Angular-rendered element of the login page (for example the sign-in heading or e-mail field), registers a unique user through `/register`, and asserts the dashboard ("Knowledge bases") is shown.
-- [ ] AC4: Against the running P21-08 stack, `npm ci && npx playwright install chromium && npm test` in `src/test/e2e/` passes (record the run in Notes; then `docker compose -f compose.yml -f compose.e2e.yml down -v`).
-- [ ] AC5: `.dockerignore` and `.gitignore` have the listed entries; `git status` after a run shows no report or result files.
-- [ ] AC6: `test-writing.md` and `tech-stack.md` are updated as the notes say.
-- [ ] AC7: `mvn -B verify -DskipFrontend=true` is green with the suite present.
+- [x] AC1: `src/test/e2e/package.json` and committed `package-lock.json` match the notes (private, `packageManager` npm@11.9.0, one exact-pinned devDependency `@playwright/test`, `test` script). `frontend/package.json` is unchanged.
+- [x] AC2: `src/test/e2e/tsconfig.json` (strict) and `playwright.config.ts` match the notes; `npx tsc --noEmit` in `src/test/e2e/` passes.
+- [x] AC3: `specs/smoke.spec.ts`: opens `/login`, asserts an Angular-rendered element of the login page (for example the sign-in heading or e-mail field), registers a unique user through `/register`, and asserts the dashboard ("Knowledge bases") is shown.
+- [x] AC4: Against the running P21-08 stack, `npm ci && npx playwright install chromium && npm test` in `src/test/e2e/` passes (record the run in Notes; then `docker compose -f compose.yml -f compose.e2e.yml down -v`).
+- [x] AC5: `.dockerignore` and `.gitignore` have the listed entries; `git status` after a run shows no report or result files.
+- [x] AC6: `test-writing.md` and `tech-stack.md` are updated as the notes say.
+- [x] AC7: `mvn -B verify -DskipFrontend=true` is green with the suite present.
 
 ## Test plan
 - E2E (browser, Playwright Test): `src/test/e2e/specs/smoke.spec.ts` proves AC3/AC4 against the compose stack.
@@ -77,3 +77,10 @@ project in `src/test/e2e/`, with its own `package.json` and committed `package-l
 - Any change to the SPA, `frontend/`, or `src/main` (if a selector is missing, use a role/text selector; do not add test ids to the SPA).
 
 ## Notes
+- Decided: pin `@playwright/test` 1.65.1 (latest on the registry) because the notes ask for an exact pin and no version was given; lockfile made with npm 11.9.0 (`npx npm@11.9.0 install`).
+- Decided: `playwright.config.ts` declares `process` locally because `@types/node` would be a second dependency; type check is `npx -p typescript tsc --noEmit` (passes) because `typescript` is not a dependency and plain `npx tsc` would fetch an unrelated package.
+- Decided: the smoke spec asserts the "Welcome back" heading and the E-mail field on `/login`, and on the dashboard the URL, the "Your knowledge bases" heading and the "Knowledge bases" region, because these are the role/label selectors the templates give.
+- Run (AC4): stack `docker compose -p mf-e2e-p2109 -f compose.yml -f compose.e2e.yml up -d --build --wait` healthy. This host has no Chromium, so the suite ran in `mcr.microsoft.com/playwright:v1.65.1-noble` (host network, no browser install): `npx playwright test --trace off` -> 1 passed (11.7s). Then `down -v`. `git status` showed no report or result files.
+
+### Deferred findings
+- spec-security/S1 minor 0.5 docs/factory/phase-21/tickets/P21-09-playwright-harness-and-smoke.md:80: The AC4 run record uses a different command than the AC text (`npx playwright test --trace off` in the mcr.microsoft.com/playwright:v1.65.1-noble container). It does not record `npm ci` or `npm test`, and it turns off the configured `trace: 'retain-on-failure'`.

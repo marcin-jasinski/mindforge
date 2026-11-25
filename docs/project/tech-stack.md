@@ -60,6 +60,7 @@ It deliberately has **one data store**: PostgreSQL.
 | **ArchUnit** | 1.4.x | Architecture fitness functions: `unit/architecture/ArchitectureTest` fails the build when a class breaks the hexagonal layer table |
 | **Vitest** | ^4.0.x | Frontend test runner |
 | **jsdom** | ^28.0.0 | DOM simulation for Vitest frontend tests |
+| **Playwright Test** | 1.65.1 (exact pin) | Browser E2E in `src/test/e2e/`, its own npm project, against the compose stack; not run by Maven (D07) |
 
 ---
 
@@ -227,6 +228,7 @@ Registry pattern: `ParserRegistry` dispatches by MIME type — open/closed for n
 | `bolt` + `bolt-socket-mode` (`com.slack.api`, 1.55.0) + `Java-WebSocket` (`org.java-websocket`, 1.6.0) | Slack bot (Phase 19): Socket Mode connection, slash commands, DM events, replies and file download; its types stay in `dev.mindforge.slack`. The WebSocket client is Java-WebSocket, with no `javax`/`jakarta.websocket` API (ADR 0037). Declared after JDA and before Spring AI, so that JDA's `okhttp-jvm` 5 stays before the `okhttp` 4 that `slack-api-client` brings (ADR 0025) |
 | `cytoscape` (npm) | Interactive page-link graph visualization |
 | `openapi-typescript` (npm) | Frontend type generation from OpenAPI spec |
+| `@playwright/test` (npm, `src/test/e2e/` only) | Browser E2E runner, assertions and Chromium driver in one dev dependency, so the suite needs no other package. It has its own `package.json` and lockfile, so the frontend lockfile, the image build and the frontend gate do not see it |
 
 ---
 

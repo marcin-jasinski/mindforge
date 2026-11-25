@@ -39,3 +39,6 @@
 2026-11-25T12:51:15+01:00 P21-08 implement@inherit DONE (compose.e2e.yml WireMock stub, 9 mappings, drift test; Dockerfile COPY config fixes image build broken by P21-02)
 2026-11-25T13:00:01+01:00 P21-08 test@sonnet r1 PASS (gate green; compose config parses); review r1 correctness@opus,standards@sonnet,spec-security@opus approve; test-guard clean -> PASS
 2026-11-25T13:00:01+01:00 P21-08 commit e9ab579
+2026-11-25T13:19:05+01:00 P21-09 implement@inherit DONE (src/test/e2e Playwright 1.65.1 project + smoke spec; ran in playwright container, 1 passed)
+2026-11-25T13:28:01+01:00 P21-09 test@sonnet r1 PASS (gate green, tsc ok; browser run is the implementer's container run); review r1 correctness@opus,standards@sonnet,spec-security@opus(1 minor) approve; test-guard clean -> PASS
+2026-11-25T13:28:02+01:00 P21-09 commit 40d10da

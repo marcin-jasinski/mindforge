@@ -5,6 +5,9 @@ target
 frontend/node_modules
 frontend/dist
 frontend/.angular
+src/test/e2e/node_modules
+src/test/e2e/test-results
+src/test/e2e/playwright-report
 verification
 *.log
 .env

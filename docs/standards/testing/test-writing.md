@@ -34,9 +34,12 @@ Match edge case testing to the risk profile of the code.
 src/test/java/.../unit/        — no I/O, no Spring context, fast; run on every PR
 src/test/java/.../integration/ — real DB via Testcontainers; @Tag("integration")
 src/test/java/.../e2e/         — full stack; @Tag("e2e")
+src/test/e2e/                  — browser E2E (Playwright Test, TypeScript) against compose; not run by Maven; CI e2e job
 ```
 
 Run without DB: `mvn test -Dgroups=\!integration`
+
+The Java `e2e/` layer (failsafe, `*Test.java`) and the browser suite in `src/test/e2e/` are two different things. The browser suite is its own npm project; Maven does not see it.
 
 ### Unit Tests (No Spring Context)
 
