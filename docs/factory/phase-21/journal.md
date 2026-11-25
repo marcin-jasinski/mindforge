@@ -55,3 +55,5 @@
 2026-11-25T14:45:15+01:00 P21-12 fix@inherit r1 FIXED S1 (checklist states no CI run yet; human follow-up to confirm first CI run)
 2026-11-25T14:53:55+01:00 P21-12 test@sonnet r2 PASS (gate green); review r2 spec-security@opus,correctness@opus approve; test-guard clean -> PASS
 2026-11-25T14:53:55+01:00 P21-12 commit 81d7d27
+2026-11-25T14:56:06+01:00 - holistic review@opus approve (1 minor deferred: ci.yml comment says linux job builds the frontend; it does not)
+2026-11-25T14:57:09+01:00 - docs scribe@sonnet REPORT.md + INDEX.md factory run records; ticket commit hashes corrected

@@ -51,6 +51,9 @@ The decision map that produced the wiki re-cut: destination, every decision with
 ### Code Review Map (`wayfinder/code-review-map.md`)
 The 2026-09-16 two-axis review of Phases 0–13 (Standards, Spec and Quality), split into 20 actionable tickets in `wayfinder/review-tickets/` (`R01`–`R20`). Carries the measured state of the build, the list of things verified correct that must not be re-litigated, and a suggested fix order. Read this before picking up remediation work; the frontier is `grep -l 'status: open' docs/wayfinder/review-tickets/*.md`.
 
+### Factory Run Records (`factory/phase-15/` to `factory/phase-21/`)
+One directory per automated build run (Phases 15–21): scope, questions, ballots, decisions, tickets, reviews, the journal and `REPORT.md`. Read a decision's file in `decisions/` for the reasoning behind a choice that has no ADR; start with `REPORT.md` for the outcome and the open checks of a run. Phase 21 is `factory/phase-21/`.
+
 ### LLM Wiki Background (`wiki/`)
 `llm_wiki.md` describes the LLM Wiki pattern MindForge adopts; `demo-transfer-notes.md` records what transferred from the reference implementation and why.
 
