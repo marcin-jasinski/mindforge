@@ -28,6 +28,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:-}
       AUTH_SECURE_COOKIES: ${AUTH_SECURE_COOKIES:-true}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      AI_MODEL_SMALL: ${AI_MODEL_SMALL:-openai/gpt-4o-mini}
+      AI_MODEL_LARGE: ${AI_MODEL_LARGE:-openai/gpt-4o}
+      AI_MODEL_VISION: ${AI_MODEL_VISION:-openai/gpt-4o}
       # Spring Security refuses an empty client id; placeholders keep sign-in by email working without OAuth.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-not-configured}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-not-configured}
