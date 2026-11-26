@@ -146,6 +146,7 @@ public class LintService {
         int dropped = 0;
         int rounds = (conceptPaths.size() + PAGES_PER_ROUND - 1) / PAGES_PER_ROUND;
         for (int round = 0; round < rounds; round++) {
+            checkActive(state);
             progress.notify(kbId, RunProgress.step(run, "review", round, rounds));
             List<String> paths = conceptPaths.subList(round * PAGES_PER_ROUND,
                 Math.min(conceptPaths.size(), (round + 1) * PAGES_PER_ROUND));
@@ -175,7 +176,8 @@ public class LintService {
      */
     private List<ChunkResult> reviewAll(RunState state, List<List<WikiPage>> chunks, String renderedIndex,
                                         Set<String> livePaths, Set<String> targetPaths) {
-        try (ExecutorService executor = Executors.newFixedThreadPool(CONCURRENT_CHUNKS, Thread.ofVirtual().factory())) {
+        ExecutorService executor = Executors.newFixedThreadPool(CONCURRENT_CHUNKS, Thread.ofVirtual().factory());
+        try {
             List<Future<ChunkResult>> futures = chunks.stream()
                 .map(chunk -> executor.submit(() -> reviewChunk(state, chunk, renderedIndex, livePaths, targetPaths)))
                 .toList();
@@ -185,10 +187,18 @@ public class LintService {
             }
             return results;
         } catch (InterruptedException e) {
+            // a stop: the chunks still waiting on the model are interrupted, not left to finish their calls
+            executor.shutdownNow();
             Thread.currentThread().interrupt();
+            checkActive(state);
             throw new IllegalStateException("interrupted while linting pages", e);
         } catch (ExecutionException e) {
+            if (e.getCause() instanceof RunFencedException fenced) {
+                throw fenced;
+            }
             throw new IllegalStateException("a lint chunk crashed", e.getCause());
+        } finally {
+            executor.close();
         }
     }
 
@@ -199,6 +209,7 @@ public class LintService {
         List<PageWrite> linked = new ArrayList<>();
         List<ReviewItem> findings = new ArrayList<>();
         int dropped = 0;
+        checkActive(state);
         try {
             List<LinkInsertion> proposals = linkChecker.check(bodies, renderedIndex);
             state.version(LinkChecker.class, LinkChecker.VERSION, LinkChecker.TIER);
@@ -221,6 +232,7 @@ public class LintService {
             dropped = 0;
             state.addFailure(RunFailure.of("linkCheck", IngestRunFailedException.reasonFor(e)));
         }
+        checkActive(state);
         try {
             reviewer.review(bodies, renderedIndex).stream()
                 .map(item -> new ReviewItem(item.kind(), item.pages().stream().filter(livePaths::contains).toList(),
@@ -232,6 +244,17 @@ public class LintService {
             state.addFailure(RunFailure.of("review", IngestRunFailedException.reasonFor(e)));
         }
         return new ChunkResult(linked, findings, dropped);
+    }
+
+    /**
+     * Stops a run that its user has stopped, or whose lease was lost. Called before each model call, outside the
+     * {@code try} blocks that record a failed call as a finding, so a stop is never recorded as a failure.
+     */
+    private void checkActive(RunState state) {
+        RunStatus status = runs.findById(state.kbId(), state.run.runId()).map(IngestRun::status).orElse(null);
+        if (status != RunStatus.RUNNING) {
+            throw new RunFencedException(state.run.runId(), RunStatus.RUNNING);
+        }
     }
 
     /**

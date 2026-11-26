@@ -6,6 +6,7 @@ import java.util.UUID;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -24,6 +26,7 @@ import dev.mindforge.api.mapper.RunDtoMapper;
 import dev.mindforge.api.mapper.WikiDtoMapper;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.RevertService;
+import dev.mindforge.application.service.RunWorker;
 import dev.mindforge.application.service.RunReportService;
 import dev.mindforge.infrastructure.event.SseProgressNotifier;
 
@@ -35,15 +38,18 @@ public class RunController {
     private final KnowledgeBaseService knowledgeBases;
     private final RunReportService reports;
     private final RevertService revertService;
+    private final RunWorker runWorker;
     private final SseProgressNotifier progress;
     private final RunDtoMapper mapper;
     private final WikiDtoMapper wikiMapper;
 
     public RunController(KnowledgeBaseService knowledgeBases, RunReportService reports, RevertService revertService,
-                         SseProgressNotifier progress, RunDtoMapper mapper, WikiDtoMapper wikiMapper) {
+                         RunWorker runWorker, SseProgressNotifier progress, RunDtoMapper mapper,
+                         WikiDtoMapper wikiMapper) {
         this.knowledgeBases = knowledgeBases;
         this.reports = reports;
         this.revertService = revertService;
+        this.runWorker = runWorker;
         this.progress = progress;
         this.mapper = mapper;
         this.wikiMapper = wikiMapper;
@@ -63,6 +69,16 @@ public class RunController {
                                     @PathVariable UUID runId) {
         knowledgeBases.requireOwner(kbId, user.userId());
         return mapper.toResponse(reports.report(kbId, runId), wikiMapper);
+    }
+
+    @Operation(summary = "Stop a queued or running ingest before it writes pages; nothing it did not write is kept")
+    @ApiResponse(responseCode = "404", description = "No such run")
+    @ApiResponse(responseCode = "409", description = "Not a queued or running ingest, or it has begun writing pages")
+    @PostMapping("/runs/{runId}/cancel")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancel(@AuthenticationPrincipal CurrentUser user, @PathVariable UUID kbId, @PathVariable UUID runId) {
+        knowledgeBases.requireOwner(kbId, user.userId());
+        runWorker.cancel(kbId, runId);
     }
 
     @Operation(summary = "Revert a run, synchronously")

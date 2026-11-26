@@ -13,6 +13,9 @@
       </div>
       <h1>{{ kindLabel(run.kind) }} run</h1>
     </div>
+    @if (canStop(run)) {
+      <button mat-stroked-button type="button" (click)="stop()">Stop this run</button>
+    }
     @if (run.revertOffered) {
       <button mat-stroked-button type="button" (click)="revert()"><app-icon name="undo" /> Revert this run</button>
     }

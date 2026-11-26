@@ -552,7 +552,7 @@ Every method checks that the caller owns the resource.
 | Knowledge bases | `GET/POST /knowledge-bases`, `GET/PATCH/DELETE /knowledge-bases/{kbId}` |
 | Documents | `POST /knowledge-bases/{kbId}/documents` (multipart, `202`), `GET …/documents`, `GET/DELETE …/documents/{id}`, `POST …/documents/{id}/runs` (retry) |
 | Wiki | `GET …/{kbId}/index`, `GET …/{kbId}/pages/{directory}/{name}`, `GET …/pages/{directory}/{name}/revisions`, `GET …/{kbId}/graph`, `GET …/{kbId}/pages/search` |
-| Runs | `GET …/{kbId}/runs`, `GET …/runs/{runId}`, `POST …/runs/{runId}/revert`, `DELETE …/supersessions/{id}`, `GET …/{kbId}/progress` (SSE) |
+| Runs | `GET …/{kbId}/runs`, `GET …/runs/{runId}`, `POST …/runs/{runId}/cancel` (stop a queued or running ingest or lint run before it writes pages, ADR 0043), `POST …/runs/{runId}/revert`, `DELETE …/supersessions/{id}`, `GET …/{kbId}/progress` (SSE) |
 | Health and Lint | `GET …/{kbId}/health`, `POST …/{kbId}/lint-runs` |
 | Query | `POST/GET …/{kbId}/query-sessions`, `POST …/query-sessions/{id}/messages`, `POST …/query-sessions/{id}/edits` |
 | Flashcards | `GET …/{kbId}/flashcards`, `POST …/flashcards/refresh`, `POST …/flashcards/{cardId}/reviews` |

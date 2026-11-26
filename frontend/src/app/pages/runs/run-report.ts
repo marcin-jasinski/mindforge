@@ -59,6 +59,15 @@ export class RunReportView {
     }
   }
 
+  /** A queued or running ingest or lint run can be stopped before it writes pages. */
+  canStop(run: RunReport): boolean {
+    return run.kind !== 'REVERT' && (run.status === 'QUEUED' || run.status === 'RUNNING');
+  }
+
+  stop(): void {
+    this.act(this.runs.cancel(this.kbId(), this.runId()), 'The run was stopped. Nothing it had not written was kept.');
+  }
+
   removeSupersession(supersessionId: string): void {
     this.act(this.runs.removeSupersession(this.kbId(), supersessionId));
   }

@@ -41,7 +41,8 @@
     </div>
     @if (startingQuiz()) {
       <p class="alert info" role="status"><span class="dot-loader"><span></span><span></span><span></span></span>
-        Writing the quiz questions — this can take a moment…</p>
+        Writing the quiz questions — this can take a moment…
+        <button mat-button type="button" (click)="stop()">Stop</button></p>
     }
     @if (error(); as message) {
       <p class="alert" role="alert"><app-icon name="error" /> {{ message }}</p>
@@ -58,6 +59,7 @@
       </h2>
       @if (loadingDeck()) {
         <span class="chip info status-running">Adding cards</span>
+        <button mat-button type="button" (click)="stop()">Stop</button>
       }
     </div>
     <div class="progress-track"><span [style.width.%]="cards().length ? (cardIndex() / cards().length) * 100 : 0"></span></div>
@@ -96,6 +98,7 @@
         <span class="dot-loader"><span></span><span></span><span></span></span>
         <h3>Writing your flashcards</h3>
         <p class="muted">MindForge is cutting cards from your pages. On a local model this can take a few minutes.</p>
+        <button mat-stroked-button type="button" (click)="stop()">Stop</button>
       </div>
     } @else {
       <div class="card done">
@@ -191,6 +194,9 @@
             <span class="muted small" role="status"><span class="dot-loader"><span></span><span></span><span></span></span> Checking…</span>
           } @else {
             <span class="muted small"><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> to submit</span>
+          }
+          @if (grading()) {
+            <button mat-stroked-button type="button" (click)="stop()">Stop</button>
           }
           <button mat-flat-button type="button" [disabled]="!answer().trim() || grading()" (click)="submitAnswer()">Check answer</button>
         </div>

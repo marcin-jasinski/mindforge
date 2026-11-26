@@ -112,6 +112,9 @@ import { apiErrorMessage, findingKindLabel } from '../../shared/labels';
             <button mat-flat-button type="button" [disabled]="reviewing()" (click)="runReview()">
               <app-icon name="sparkle" /> {{ reviewing() ? 'Reviewing…' : 'Run a full review' }}
             </button>
+            @if (stoppableReview(); as review) {
+              <button mat-stroked-button type="button" (click)="stopReview(review.runId)">Stop</button>
+            }
           </div>
           @if (message(); as text) {
             <p class="alert info" role="status">{{ text }}</p>
@@ -177,6 +180,9 @@ export class HealthView {
   readonly issueCount = computed(() => this.checks().reduce((sum, check) => sum + check.count, 0));
   readonly reviewing = computed(() => this.progress.runs()
     .some((run) => run.kind === 'LINT' && ['QUEUED', 'RUNNING', 'WRITTEN'].includes(run.status)));
+  /** A review that has not begun writing can still be stopped. */
+  readonly stoppableReview = computed(() => this.progress.runs()
+    .find((run) => run.kind === 'LINT' && ['QUEUED', 'RUNNING'].includes(run.status)) ?? null);
 
   constructor() {
     // a run that ends can change every check and brings a review's findings; the first pass loads the page
@@ -188,6 +194,17 @@ export class HealthView {
 
   pageLink(path: string): string[] {
     return ['..', 'pages', ...path.split('/')];
+  }
+
+  stopReview(runId: string): void {
+    this.runs.cancel(this.kbId(), runId).subscribe({
+      next: () => {
+        this.message.set('The review was stopped. Nothing it had not written was kept.');
+        this.progress.reload(this.kbId());
+      },
+      error: (response: HttpErrorResponse) =>
+        this.message.set(apiErrorMessage(response.error as ApiError | null, 'The review could not be stopped.')),
+    });
   }
 
   runReview(): void {

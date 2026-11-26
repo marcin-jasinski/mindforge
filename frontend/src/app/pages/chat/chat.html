@@ -82,7 +82,8 @@
           <span class="muted small">{{ editStatus() ?? 'Thinking…' }}</span>
           @if (editStatus()) {
             <span class="muted small">· this can take a few minutes</span>
-          }</div>
+          }
+          <button mat-button type="button" (click)="stop()">Stop</button></div>
       </div>
     }
     <div #end class="end"></div>

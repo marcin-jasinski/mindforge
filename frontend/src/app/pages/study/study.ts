@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -62,6 +63,8 @@ export class Study implements OnInit {
   ];
   /** Cards and quiz questions are cut by a model on demand and can take minutes on a slow one. */
   readonly loadingDeck = signal(false);
+  /** Requests the page has sent and not yet answered; Stop drops them. */
+  private pending = new Subscription();
   readonly startingQuiz = signal(false);
   readonly grading = signal(false);
   readonly error = signal<string | null>(null);
@@ -110,7 +113,7 @@ export class Study implements OnInit {
     this.error.set(null);
     this.loadingDeck.set(true);
     const scope = this.studyScope();
-    this.study.flashcards(this.kbId(), scope).subscribe({
+    this.pending.add(this.study.flashcards(this.kbId(), scope).subscribe({
       next: (cards) => {
         this.cards.set(cards);
         this.cardIndex.set(0);
@@ -122,11 +125,11 @@ export class Study implements OnInit {
         this.refreshDeck(scope);
       },
       error: (response: HttpErrorResponse) => this.fail(response, () => this.loadingDeck.set(false)),
-    });
+    }));
   }
 
   private refreshDeck(scope: StudyScope): void {
-    this.study.refreshFlashcards(this.kbId(), scope).subscribe({
+    this.pending.add(this.study.refreshFlashcards(this.kbId(), scope).subscribe({
       next: (fresh) => {
         this.loadingDeck.set(false);
         const known = new Set(this.cards().map((card) => card.cardId));
@@ -137,7 +140,7 @@ export class Study implements OnInit {
       },
       // the deck already shown stays usable when the model cannot cut more cards
       error: (response: HttpErrorResponse) => this.fail(response, () => this.loadingDeck.set(false)),
-    });
+    }));
   }
 
   rate(rating: number): void {
@@ -158,7 +161,7 @@ export class Study implements OnInit {
   startQuiz(): void {
     this.error.set(null);
     this.startingQuiz.set(true);
-    this.study.startQuiz(this.kbId(), this.studyScope()).subscribe({
+    this.pending.add(this.study.startQuiz(this.kbId(), this.studyScope()).subscribe({
       next: (session) => {
         this.session.set(session);
         this.question.set(null);
@@ -168,7 +171,7 @@ export class Study implements OnInit {
         this.next();
       },
       error: (response: HttpErrorResponse) => this.fail(response, () => this.startingQuiz.set(false)),
-    });
+    }));
   }
 
   submitAnswer(): void {
@@ -177,7 +180,7 @@ export class Study implements OnInit {
     }
     this.error.set(null);
     this.grading.set(true);
-    this.study.answer(this.kbId(), this.sessionId(), this.answer()).subscribe({
+    this.pending.add(this.study.answer(this.kbId(), this.sessionId(), this.answer()).subscribe({
       next: (evaluation) => {
         this.grading.set(false);
         this.evaluation.set(evaluation);
@@ -186,19 +189,31 @@ export class Study implements OnInit {
         this.answer.set('');
       },
       error: (response: HttpErrorResponse) => this.fail(response, () => this.grading.set(false)),
-    });
+    }));
   }
 
   next(): void {
     this.evaluation.set(null);
-    this.study.next(this.kbId(), this.sessionId()).subscribe({
+    this.pending.add(this.study.next(this.kbId(), this.sessionId()).subscribe({
       next: (question) => {
         this.startingQuiz.set(false);
         this.question.set(question);
         this.finished.set(question === null);
       },
       error: (response: HttpErrorResponse) => this.fail(response, () => this.startingQuiz.set(false)),
-    });
+    }));
+  }
+
+  /**
+   * Abandons the model work in progress. The page drops its requests; the server finishes a call it has already sent,
+   * within its deadline, and the result is not shown.
+   */
+  stop(): void {
+    this.pending.unsubscribe();
+    this.pending = new Subscription();
+    this.loadingDeck.set(false);
+    this.startingQuiz.set(false);
+    this.grading.set(false);
   }
 
   exit(): void {

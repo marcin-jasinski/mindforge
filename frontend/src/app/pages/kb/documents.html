@@ -87,12 +87,18 @@
     <div class="section-head">
       <h2 id="runs-heading">Activity</h2>
     </div>
+    @if (runError(); as message) {
+      <p class="alert" role="alert"><app-icon name="error" /> {{ message }}</p>
+    }
     <ul class="list" aria-live="polite">
       @for (run of progress.runs(); track run.runId) {
         <li class="stack run">
           <div class="row">
             <span [class]="'chip status-' + run.status.toLowerCase()">{{ statusLabel(run.status) }}</span>
             <a class="grow title" [routerLink]="['runs', run.runId]">{{ runTitle(run) }}</a>
+            @if (canCancel(run)) {
+              <button mat-stroked-button type="button" (click)="cancel(run)">Stop</button>
+            }
             @if (canRetry(run)) {
               <button mat-stroked-button type="button" (click)="retry(run)"><app-icon name="refresh" /> Retry</button>
             }

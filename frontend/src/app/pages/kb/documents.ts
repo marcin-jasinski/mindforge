@@ -57,6 +57,7 @@ export class Documents {
   readonly file = signal<File | null>(null);
   readonly collision = signal<Collision | null>(null);
   readonly uploadError = signal<string | null>(null);
+  readonly runError = signal<string | null>(null);
   readonly dragging = signal(false);
   readonly newLessonId = signal('');
   readonly uploading = signal(false);
@@ -132,6 +133,22 @@ export class Documents {
     }
   }
 
+  /** Stops an ingest the user started by mistake; the document then has a failed run and can be removed. */
+  cancel(run: RunSummary): void {
+    // ponytail: native confirm, as for a revert and a removal
+    if (!confirm('Stop this run? Pages it has not yet written are not kept.')) {
+      return;
+    }
+    this.runError.set(null);
+    this.runs.cancel(this.kbId(), run.runId).subscribe({
+      next: () => this.progress.reload(this.kbId()),
+      error: (response: HttpErrorResponse) => {
+        this.runError.set(apiErrorMessage(response.error as ApiError | null, 'The run could not be stopped.'));
+        this.progress.reload(this.kbId());
+      },
+    });
+  }
+
   retry(run: RunSummary): void {
     this.runs.retryDocument(this.kbId(), run.documentId).subscribe(() =>
       this.progress.reload(this.kbId()),
@@ -146,6 +163,11 @@ export class Documents {
   runTitle(run: RunSummary): string {
     const subject = run.conversation ? 'conversation' : run.lessonTitle;
     return subject ? `${runKindLabel(run.kind)} · ${subject}` : runKindLabel(run.kind);
+  }
+
+  /** A queued or running ingest or lint run can be stopped; a revert cannot. */
+  canCancel(run: RunSummary): boolean {
+    return run.kind !== 'REVERT' && (run.status === 'QUEUED' || run.status === 'RUNNING');
   }
 
   /** Only a document's newest run can be retried; an older failure was already answered by a later run. */

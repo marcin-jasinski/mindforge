@@ -5,7 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { Router, RouterLink } from '@angular/router';
-import { filter, interval, switchMap, take } from 'rxjs';
+import { Subscription, filter, interval, switchMap, take } from 'rxjs';
 
 import { ApiError, RunReport } from '../../core/models/api';
 import { QueryApi } from '../../core/services/query-api';
@@ -57,6 +57,9 @@ export class Chat implements OnInit {
   private readonly editRun = signal<string | null>(null);
   /** The answer a pending edit saves; its mark is taken back when the save fails. */
   private savingAnswer: string | null = null;
+  /** The request of the question or edit being sent, and the text to put back in the box if it is stopped. */
+  private inFlight: Subscription | null = null;
+  private inFlightDraft = '';
   /** An edit is a whole ingest run and takes minutes on a local model, so it says so and names its step. */
   readonly editStatus = computed(() => {
     const runId = this.editRun();
@@ -97,7 +100,8 @@ export class Chat implements OnInit {
     this.push({ role: 'user', text: question });
     this.draft.set('');
     this.busy.set(true);
-    this.query.ask(this.kbId(), this.sessionId(), question).subscribe({
+    this.inFlightDraft = question;
+    this.inFlight = this.query.ask(this.kbId(), this.sessionId(), question).subscribe({
       next: (answer) =>
         this.push({ role: 'assistant', text: answer.answer, html: renderMarkdown(answer.answer, this.kbId()), cited: answer.citedPaths }),
       complete: () => this.busy.set(false),
@@ -119,7 +123,8 @@ export class Chat implements OnInit {
     this.editRun.set('');
     this.savingAnswer = quotedAnswer ?? null;
     this.markSaved(true);
-    this.query.edit(this.kbId(), this.sessionId(), instruction, quotedAnswer).subscribe({
+    this.inFlightDraft = typed;
+    this.inFlight = this.query.edit(this.kbId(), this.sessionId(), instruction, quotedAnswer).subscribe({
       next: (accepted) => {
         this.editRun.set(accepted.runId);
         this.follow(accepted.runId);
@@ -132,6 +137,24 @@ export class Chat implements OnInit {
         this.busy.set(false);
       },
     });
+  }
+
+  /**
+   * Stops the work in progress. A saved edit is an ingest run, so the run is cancelled on the server; the thread then
+   * shows how it ended. A question or an edit still being sent is dropped, and its text goes back in the box.
+   */
+  stop(): void {
+    const run = this.editRun();
+    if (run) {
+      // a run that has begun writing pages answers 409 and completes; the thread shows that outcome
+      this.runs.cancel(this.kbId(), run).subscribe({ error: () => undefined });
+      return;
+    }
+    this.inFlight?.unsubscribe();
+    this.inFlight = null;
+    this.dropLast();
+    this.draft.set(this.inFlightDraft);
+    this.busy.set(false);
   }
 
   revert(run: RunReport): void {

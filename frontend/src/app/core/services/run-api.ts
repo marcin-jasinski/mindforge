@@ -22,6 +22,11 @@ export class RunApi {
     return this.api.get(`/knowledge-bases/${kbId}/runs/${runId}`);
   }
 
+  /** Stops a queued or running ingest before it writes pages (409 once it writes them). */
+  cancel(kbId: string, runId: string): Observable<unknown> {
+    return this.api.post(`/knowledge-bases/${kbId}/runs/${runId}/cancel`, {}, true);
+  }
+
   revert(kbId: string, runId: string): Observable<unknown> {
     return this.api.post(`/knowledge-bases/${kbId}/runs/${runId}/revert`, {}, true);
   }

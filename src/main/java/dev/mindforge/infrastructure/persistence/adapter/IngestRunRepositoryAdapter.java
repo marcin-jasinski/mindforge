@@ -91,6 +91,11 @@ public class IngestRunRepositoryAdapter implements IngestRunRepository {
     }
 
     @Override
+    public boolean cancelQueued(UUID kbId, UUID runId, String reason) {
+        return runs.cancelQueued(kbId, runId, reason) == 1;
+    }
+
+    @Override
     public void recordCost(UUID kbId, UUID runId, Double costUsd) {
         runs.addCost(kbId, runId, costUsd);
     }

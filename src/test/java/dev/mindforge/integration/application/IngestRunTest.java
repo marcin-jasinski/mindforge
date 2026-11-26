@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
@@ -33,6 +34,7 @@ import dev.mindforge.agent.SupersessionDetector;
 import dev.mindforge.application.service.DocumentUpload;
 import dev.mindforge.application.service.IngestionService;
 import dev.mindforge.application.service.RevertService;
+import dev.mindforge.application.service.RunWorker;
 import dev.mindforge.application.wiki.LogRenderer;
 import dev.mindforge.domain.model.ContentBlock;
 import dev.mindforge.domain.model.ContentHash;
@@ -83,6 +85,9 @@ class IngestRunTest extends TestContainerBase {
 
     @Autowired
     private IngestRunRepository runs;
+
+    @Autowired
+    private RunWorker runWorker;
 
     @Autowired
     private DocumentRepository documents;
@@ -151,6 +156,45 @@ class IngestRunTest extends TestContainerBase {
 
         assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
             .containsExactly("unexpected error", false);
+    }
+
+    @Test
+    void aRunStoppedWhileItsModelCallIsPendingWritesNothingAndFreesTheLease() {
+        UUID kbId = insertKnowledgeBase();
+        gateway.reset();
+        CountDownLatch entered = new CountDownLatch(1);
+        AtomicBoolean interrupted = new AtomicBoolean();
+        gateway.answer(Prompts.GUARD, prompt -> {
+            entered.countDown();
+            try {
+                // held open until the stop interrupts this thread, as a slow model would hold it
+                Thread.sleep(TIMEOUT.toMillis());
+            } catch (InterruptedException e) {
+                interrupted.set(true);
+                Thread.currentThread().interrupt();
+            }
+            return "{}";
+        });
+        UUID documentId = upload(kbId, "biology.md", NOTES, false);
+        try {
+            assertThat(entered.await(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)).isTrue();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(e);
+        }
+
+        runWorker.cancel(kbId, runs.latestForDocument(kbId, documentId).orElseThrow().runId());
+
+        IngestRun run = awaitRun(kbId, documentId, RunStatus.FAILED);
+        assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
+            .containsExactly(RunWorker.CANCELLED_REASON, false);
+        for (int i = 0; i < 200 && !interrupted.get(); i++) {
+            await(Duration.ofMillis(50));
+        }
+        assertThat(interrupted).isTrue();
+        assertThat(wiki.listIndex(kbId)).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT active_run_id FROM knowledge_bases WHERE kb_id = ?", UUID.class, kbId))
+            .isNull();
     }
 
     @Test

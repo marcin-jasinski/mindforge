@@ -15,9 +15,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionOperations;
 
 import dev.mindforge.domain.model.DomainEvent;
+import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.RunFencedException;
 import dev.mindforge.domain.model.RunKind;
+import dev.mindforge.domain.model.RunNotCancellableException;
 import dev.mindforge.domain.model.RunCost;
 import dev.mindforge.domain.model.RunProgress;
 import dev.mindforge.domain.model.RunStatus;
@@ -37,6 +39,8 @@ public class RunWorker {
 
     private static final int MAX_ATTEMPTS = 3;
     private static final String INTERRUPTED = "interrupted";
+    /** The failure reason of a run its user stopped; such a run is never retried. */
+    public static final String CANCELLED_REASON = "cancelled by the user";
 
     private final IngestRunRepository runs;
     private final IngestPipeline pipeline;
@@ -49,6 +53,8 @@ public class RunWorker {
     private final double costWarningUsd;
     private final Duration retryDelay;
     private final Set<UUID> active = ConcurrentHashMap.newKeySet();
+    /** The thread executing each run, so a stop can interrupt the model call it is waiting on. */
+    private final Map<UUID, Thread> executing = new ConcurrentHashMap<>();
     private volatile boolean stopped;
 
     public RunWorker(IngestRunRepository runs, IngestPipeline pipeline, LintService lint, ProgressNotifier progress,
@@ -89,11 +95,13 @@ public class RunWorker {
         }
         progress.notify(kbId, RunProgress.status(run, RunStatus.RUNNING));
         executor.execute(() -> {
+            executing.put(run.runId(), Thread.currentThread());
             try {
                 dispatch(run);
             } catch (RuntimeException e) {
                 log.error("Run {} ended abnormally; the sweep settles it", run.runId(), e);
             } finally {
+                executing.remove(run.runId());
                 active.remove(run.runId());
                 drain(kbId);
             }
@@ -117,6 +125,39 @@ public class RunWorker {
             }
         }
         runs.knowledgeBasesWithQueuedRuns().forEach(this::drain);
+    }
+
+    /**
+     * Stops a queued or running ingest or lint run before it writes pages. A queued run is failed in place. A running
+     * one is failed under its lease, so its next fenced commit finds nothing to write, and its thread is interrupted so
+     * that it stops waiting for the model. A model call already sent to the server runs to its end there.
+     *
+     * @throws RunNotCancellableException when the run is a revert, is not queued or running, or already writes pages
+     */
+    public void cancel(UUID kbId, UUID runId) {
+        IngestRun run = runs.findById(kbId, runId).orElseThrow(() -> new NotFoundException("run"));
+        if (run.kind() == RunKind.REVERT) {
+            throw new RunNotCancellableException(runId);
+        }
+        try {
+            switch (run.status()) {
+                case QUEUED -> {
+                    if (!runs.cancelQueued(kbId, runId, CANCELLED_REASON)) {
+                        throw new RunNotCancellableException(runId);
+                    }
+                }
+                case RUNNING -> transactions.execute(status -> {
+                    runs.fail(kbId, runId, CANCELLED_REASON, false, run.failures(), run.stepVersions());
+                    return null;
+                });
+                default -> throw new RunNotCancellableException(runId);
+            }
+        } catch (RunFencedException e) {
+            throw new RunNotCancellableException(runId);
+        }
+        log.info("Run {} stopped by its user", runId);
+        Optional.ofNullable(executing.get(runId)).ifPresent(Thread::interrupt);
+        progress.notify(kbId, RunProgress.status(run, RunStatus.FAILED));
     }
 
     /** Stops claiming; runs already executing finish. */

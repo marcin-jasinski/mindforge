@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Tag;
@@ -152,6 +153,45 @@ class LintAndHealthTest extends TestContainerBase {
         revertService.revert(kbId, lintRun);
 
         assertThat(wiki.findByPath(kbId, "concepts/mitosis")).map(WikiPage::markdownBody).contains(MITOSIS_BODY);
+    }
+
+    @Test
+    void aReviewStoppedWhileItsModelCallIsPendingWritesNothingAndRecordsNoFinding() {
+        UUID kbId = insertKnowledgeBase();
+        seedTwoConcepts(kbId);
+        gateway.reset();
+        AtomicBoolean entered = new AtomicBoolean();
+        AtomicBoolean interrupted = new AtomicBoolean();
+        gateway.answer(Prompts.LINKS, prompt -> {
+            entered.set(true);
+            try {
+                // held open until the stop interrupts this thread, as a slow model would hold it
+                Thread.sleep(TIMEOUT.toMillis());
+            } catch (InterruptedException e) {
+                interrupted.set(true);
+                Thread.currentThread().interrupt();
+            }
+            return Prompts.json(Map.of("insertions", List.of(
+                Map.of("pagePath", "concepts/mitosis", "phrase", "meiosis", "targetPath", "concepts/mitosis"))));
+        });
+        gateway.answer(Prompts.REVIEW, Prompts.json(Map.of("items", List.of(
+            Map.of("kind", "contradiction", "pages", List.of("concepts/mitosis"), "text", "Never reached.")))));
+        UUID runId = lintService.request(kbId);
+        for (int i = 0; i < 200 && !entered.get(); i++) {
+            sleep(Duration.ofMillis(50));
+        }
+        assertThat(entered).isTrue();
+
+        worker.cancel(kbId, runId);
+
+        IngestRun run = awaitRun(kbId, runId, RunStatus.FAILED);
+        assertThat(run.failureReason()).isEqualTo(RunWorker.CANCELLED_REASON);
+        for (int i = 0; i < 200 && !interrupted.get(); i++) {
+            sleep(Duration.ofMillis(50));
+        }
+        assertThat(interrupted).isTrue();
+        assertThat(wiki.findByPath(kbId, "concepts/mitosis")).map(WikiPage::markdownBody).contains(MITOSIS_BODY);
+        assertThat(runs.findById(kbId, runId)).map(IngestRun::findings).contains(List.of());
     }
 
     @Test

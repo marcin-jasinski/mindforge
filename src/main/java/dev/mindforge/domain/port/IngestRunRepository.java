@@ -41,6 +41,9 @@ public interface IngestRunRepository {
     void complete(UUID kbId, UUID runId, int supersessionCount, boolean supersessionSkipped,
                   List<RunFailure> failures, Map<String, String> stepVersions);
 
+    /** {@code QUEUED → FAILED} without a lease, since a queued run holds none; false when it is no longer queued. */
+    boolean cancelQueued(UUID kbId, UUID runId, String reason);
+
     /** {@code RUNNING → FAILED}, releasing the lease. */
     void fail(UUID kbId, UUID runId, String reason, boolean retryable, List<RunFailure> failures,
               Map<String, String> stepVersions);

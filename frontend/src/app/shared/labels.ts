@@ -21,6 +21,7 @@ const PAGE_TYPES: Record<string, string> = {
 
 /** What the server says in its own words, by error code; a code the page knows reads better than the server's own message. */
 const ERROR_MESSAGES: Record<string, string> = {
+  RUN_NOT_CANCELLABLE: 'This run can no longer be stopped: it is writing its pages or has finished. Revert it if it is wrong.',
   NOT_FOUND: 'The requested resource was not found.',
   FORBIDDEN: 'You do not have access to this resource.',
   EMAIL_TAKEN: 'An account with this e-mail address already exists.',
@@ -54,6 +55,7 @@ const FAILURE_REASONS: [RegExp, string][] = [
   [/^no applicable change/, 'There is no change to apply.'],
   [/^no page task succeeded/, 'No page was written.'],
   [/^not learning material/, 'The document does not look like learning material.'],
+  [/^cancelled by the user$/, 'Stopped by you. Nothing was written.'],
 ];
 
 const FAILURE_STEPS: Record<string, string> = {

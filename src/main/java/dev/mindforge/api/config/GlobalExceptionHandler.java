@@ -30,6 +30,7 @@ import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.NotOwnerException;
 import dev.mindforge.domain.model.QuizFinishedException;
 import dev.mindforge.domain.model.RetryNotAllowedException;
+import dev.mindforge.domain.model.RunNotCancellableException;
 import dev.mindforge.domain.model.RevertNotAllowedException;
 import dev.mindforge.domain.model.UnknownLessonException;
 import dev.mindforge.domain.model.UploadRejectedException;
@@ -75,6 +76,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RevertNotAllowedException.class)
     ResponseEntity<ErrorResponse> revertNotAllowed(RevertNotAllowedException e) {
         return error(HttpStatus.CONFLICT, "REVERT_NOT_ALLOWED", e);
+    }
+
+    @ExceptionHandler(RunNotCancellableException.class)
+    ResponseEntity<ErrorResponse> runNotCancellable(RunNotCancellableException e) {
+        return error(HttpStatus.CONFLICT, "RUN_NOT_CANCELLABLE", e);
     }
 
     @ExceptionHandler(RetryNotAllowedException.class)

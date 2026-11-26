@@ -137,7 +137,8 @@ public class IngestPipeline {
             committed = generateAndCommit(state);
             failure = null;
         } catch (RunFencedException e) {
-            log.warn("Run {} lost its lease before commit 1; nothing written: {}", run.runId(), e.getMessage());
+            log.warn("Run {} was stopped or lost its lease before commit 1; nothing written: {}", run.runId(),
+                e.getMessage());
             failure = null;
         } catch (IngestRunFailedException e) {
             failure = e.getMessage();
@@ -198,6 +199,7 @@ public class IngestPipeline {
             }
             step(state, "extract", null, null);
             for (List<ContentBlock> chunk : chunks) {
+                checkActive(state);
                 ExtractResult result = extractor.extract(chunk, renderedIndex, resolver.planned());
                 state.version(ClaimExtractor.class, ClaimExtractor.VERSION, ClaimExtractor.TIER);
                 checkClaimCap(result.claims().size());
@@ -236,6 +238,7 @@ public class IngestPipeline {
                 !conversation);
         }
 
+        checkActive(state);
         List<Drafted> checked = linkCheck(state, writes, plan.deletions(), drafted, linkableIndex);
 
         List<PageRevision> revisions = transactions.execute(status -> {
@@ -321,7 +324,8 @@ public class IngestPipeline {
         AtomicInteger done = new AtomicInteger();
 
         List<Drafted> changed = Collections.synchronizedList(new ArrayList<>());
-        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+        try {
             List<Future<?>> futures = new ArrayList<>();
             for (PageWriteTask task : tasks) {
                 futures.add(executor.submit(() -> {
@@ -347,13 +351,19 @@ public class IngestPipeline {
                 future.get();
             }
         } catch (InterruptedException e) {
+            // a stop: the drafts still waiting on the model are interrupted, not left to finish their calls
+            executor.shutdownNow();
             Thread.currentThread().interrupt();
+            checkActive(state);
             throw new IllegalStateException("interrupted while writing pages", e);
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof RuntimeException cause && isTransient(cause)) {
+            if (e.getCause() instanceof RuntimeException cause
+                && (cause instanceof RunFencedException || isTransient(cause))) {
                 throw cause;
             }
             throw new IllegalStateException("a page write crashed", e.getCause());
+        } finally {
+            executor.close();
         }
         return new ArrayList<>(changed);
     }
@@ -365,6 +375,7 @@ public class IngestPipeline {
         if (task.create() && !Resolver.isValidTitle(task.title())) {
             throw new TaskFailed("invalid title");
         }
+        checkActive(state);
         String existingBody = existing == null ? null : existing.markdownBody();
         List<SupersededSection> superseded = existing == null ? List.of() : supersededSections(existing,
             supersededByPage.getOrDefault(existing.pageId(), List.of()));
@@ -542,6 +553,18 @@ public class IngestPipeline {
     /** A model timeout or an open circuit breaker: trying the same run again can succeed. */
     static boolean isTransient(RuntimeException e) {
         return e instanceof AIGatewayUnavailableException || e instanceof DeadlineExceededException;
+    }
+
+    /**
+     * Stops a run that its user has stopped, or whose lease was lost: a stopped run is no longer {@code RUNNING}, so
+     * the work after this check would only be refused at its commit. Runs before each model call, not inside a
+     * transaction.
+     */
+    private void checkActive(RunState state) {
+        RunStatus status = runs.findById(state.kbId(), state.run.runId()).map(IngestRun::status).orElse(null);
+        if (status != RunStatus.RUNNING) {
+            throw new RunFencedException(state.run.runId(), RunStatus.RUNNING);
+        }
     }
 
     private void fail(RunState state, String reason, boolean retryable) {

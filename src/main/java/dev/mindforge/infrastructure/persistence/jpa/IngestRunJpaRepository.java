@@ -96,6 +96,12 @@ public interface IngestRunJpaRepository extends JpaRepository<IngestRunEntity, U
     int fence(UUID knowledgeBaseId, UUID runId, String from, String to);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = "UPDATE ingest_runs SET status = 'FAILED', failure_reason = :reason, retryable = FALSE,"
+        + " finished_at = now() WHERE run_id = :runId AND knowledge_base_id = :knowledgeBaseId"
+        + " AND status = 'QUEUED'", nativeQuery = true)
+    int cancelQueued(UUID knowledgeBaseId, UUID runId, String reason);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(value = "UPDATE ingest_runs SET cost = COALESCE(cost, 0) + :cost"
         + " WHERE run_id = :runId AND knowledge_base_id = :knowledgeBaseId AND CAST(:cost AS float8) IS NOT NULL",
         nativeQuery = true)

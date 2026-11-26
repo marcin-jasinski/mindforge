@@ -1,11 +1,13 @@
 package dev.mindforge.unit.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -32,6 +34,8 @@ import dev.mindforge.application.service.RunWorker;
 import dev.mindforge.domain.model.DomainEvent;
 import dev.mindforge.domain.model.IngestRun;
 import dev.mindforge.domain.model.RunCost;
+import dev.mindforge.domain.model.RunFencedException;
+import dev.mindforge.domain.model.RunNotCancellableException;
 import dev.mindforge.domain.model.RunKind;
 import dev.mindforge.domain.model.RunStatus;
 import dev.mindforge.domain.port.EventPublisher;
@@ -166,6 +170,79 @@ class RunWorkerTest {
     }
 
     @Test
+    void shouldStopAQueuedIngestByFailingItWithoutALease() {
+        IngestRun queued = makeRun(RunKind.INGEST, RunStatus.QUEUED, 1);
+        when(runs.findById(KB, queued.runId())).thenReturn(Optional.of(queued));
+        when(runs.cancelQueued(KB, queued.runId(), RunWorker.CANCELLED_REASON)).thenReturn(true);
+
+        makeWorker(Runnable::run).cancel(KB, queued.runId());
+
+        verify(runs, never()).fail(any(), any(), any(), anyBoolean(), any(), any());
+    }
+
+    @Test
+    void shouldStopARunningIngestUnderItsLeaseAsNotRetryable() {
+        IngestRun running = makeRun(RunKind.INGEST, RunStatus.RUNNING, 1);
+        when(runs.findById(KB, running.runId())).thenReturn(Optional.of(running));
+
+        makeWorker(Runnable::run).cancel(KB, running.runId());
+
+        verify(runs).fail(KB, running.runId(), RunWorker.CANCELLED_REASON, false, List.of(), Map.of());
+    }
+
+    @Test
+    void shouldRefuseToStopARunThatIsAlreadyWritingItsPages() {
+        IngestRun written = makeRun(RunKind.INGEST, RunStatus.WRITTEN, 1);
+        when(runs.findById(KB, written.runId())).thenReturn(Optional.of(written));
+
+        assertThatThrownBy(() -> makeWorker(Runnable::run).cancel(KB, written.runId()))
+            .isInstanceOf(RunNotCancellableException.class);
+        verify(runs, never()).fail(any(), any(), any(), anyBoolean(), any(), any());
+        verify(runs, never()).cancelQueued(any(), any(), any());
+    }
+
+    @Test
+    void shouldRefuseToStopARunWhoseLeaseWasLostMeanwhile() {
+        IngestRun running = makeRun(RunKind.INGEST, RunStatus.RUNNING, 1);
+        when(runs.findById(KB, running.runId())).thenReturn(Optional.of(running));
+        doThrow(new RunFencedException(running.runId(), RunStatus.RUNNING))
+            .when(runs).fail(any(), any(), any(), anyBoolean(), any(), any());
+
+        assertThatThrownBy(() -> makeWorker(Runnable::run).cancel(KB, running.runId()))
+            .isInstanceOf(RunNotCancellableException.class);
+    }
+
+    @Test
+    void shouldRefuseToStopAQueuedRunThatWasClaimedFirst() {
+        IngestRun queued = makeRun(RunKind.INGEST, RunStatus.QUEUED, 1);
+        when(runs.findById(KB, queued.runId())).thenReturn(Optional.of(queued));
+        when(runs.cancelQueued(KB, queued.runId(), RunWorker.CANCELLED_REASON)).thenReturn(false);
+
+        assertThatThrownBy(() -> makeWorker(Runnable::run).cancel(KB, queued.runId()))
+            .isInstanceOf(RunNotCancellableException.class);
+    }
+
+    @Test
+    void shouldStopALintRunUnderItsLease() {
+        IngestRun lint = makeRun(RunKind.LINT, RunStatus.RUNNING, 1);
+        when(runs.findById(KB, lint.runId())).thenReturn(Optional.of(lint));
+
+        makeWorker(Runnable::run).cancel(KB, lint.runId());
+
+        verify(runs).fail(KB, lint.runId(), RunWorker.CANCELLED_REASON, false, List.of(), Map.of());
+    }
+
+    @Test
+    void shouldRefuseToStopARevert() {
+        IngestRun revert = makeRun(RunKind.REVERT, RunStatus.RUNNING, 1);
+        when(runs.findById(KB, revert.runId())).thenReturn(Optional.of(revert));
+
+        assertThatThrownBy(() -> makeWorker(Runnable::run).cancel(KB, revert.runId()))
+            .isInstanceOf(RunNotCancellableException.class);
+        verify(runs, never()).fail(any(), any(), any(), anyBoolean(), any(), any());
+    }
+
+    @Test
     void shouldNotSweepARunThisProcessIsExecuting() {
         IngestRun queued = makeRun(RunKind.INGEST, RunStatus.QUEUED, 1);
         when(runs.oldestQueued(KB)).thenReturn(Optional.of(queued));
@@ -209,9 +286,8 @@ class RunWorkerTest {
     }
 
     private static IngestRun makeFailed(IngestRun run, boolean retryable) {
-        return new IngestRun(run.runId(), KB, RunKind.INGEST, run.documentId(), null, RunStatus.FAILED,
-            run.attempt(), "AI provider call failed", retryable, List.of(), false, 0, Map.of(), List.of(),
-            Instant.EPOCH, null, null);
+        return new IngestRun(run.runId(), KB, RunKind.INGEST, run.documentId(), null, RunStatus.FAILED, run.attempt(),
+            "AI provider call failed", retryable, List.of(), false, 0, Map.of(), List.of(), Instant.EPOCH, null, null);
     }
 
     private static IngestRun makeRun(UUID runId, RunStatus status) {
