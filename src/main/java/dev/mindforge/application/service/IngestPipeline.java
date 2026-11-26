@@ -42,10 +42,12 @@ import dev.mindforge.application.ingest.Resolver;
 import dev.mindforge.application.ingest.SupersessionInputs;
 import dev.mindforge.application.wiki.IndexRenderer;
 import dev.mindforge.application.wiki.LinkInsertionApplier;
+import dev.mindforge.domain.model.AIGatewayUnavailableException;
 import dev.mindforge.domain.model.BlockType;
 import dev.mindforge.domain.model.Claim;
 import dev.mindforge.domain.model.ContentBlock;
 import dev.mindforge.domain.model.ConversationTurn;
+import dev.mindforge.domain.model.DeadlineExceededException;
 import dev.mindforge.domain.model.Document;
 import dev.mindforge.domain.model.EditItem;
 import dev.mindforge.domain.model.ExtractResult;
@@ -143,6 +145,7 @@ public class IngestPipeline {
         } catch (RuntimeException e) {
             log.error("Run {} failed", run.runId(), e);
             failure = IngestRunFailedException.reasonFor(e);
+            retryable = isTransient(e);
         } finally {
             if (failure != null) {
                 fail(state, failure, retryable);
@@ -347,6 +350,9 @@ public class IngestPipeline {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("interrupted while writing pages", e);
         } catch (ExecutionException e) {
+            if (e.getCause() instanceof RuntimeException cause && isTransient(cause)) {
+                throw cause;
+            }
             throw new IllegalStateException("a page write crashed", e.getCause());
         }
         return new ArrayList<>(changed);
@@ -367,6 +373,10 @@ public class IngestPipeline {
             draft = DraftValidator.normalise(
                 writer.write(task, source, existingBody, superseded, linkableIndex, keepSections));
         } catch (RuntimeException e) {
+            if (isTransient(e)) {
+                // a timeout or an open breaker fails the whole attempt, which the worker retries; nothing is written
+                throw e;
+            }
             log.warn("Writing {} in run {} failed", task.path(), state.run.runId(), e);
             throw new TaskFailed(IngestRunFailedException.reasonFor(e));
         } finally {
@@ -527,6 +537,11 @@ public class IngestPipeline {
             }
         });
         progress.notify(state.kbId(), RunProgress.status(state.run, RunStatus.COMPLETED));
+    }
+
+    /** A model timeout or an open circuit breaker: trying the same run again can succeed. */
+    static boolean isTransient(RuntimeException e) {
+        return e instanceof AIGatewayUnavailableException || e instanceof DeadlineExceededException;
     }
 
     private void fail(RunState state, String reason, boolean retryable) {

@@ -150,7 +150,7 @@ class IngestRunTest extends TestContainerBase {
         IngestRun run = awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.FAILED);
 
         assertThat(run).extracting(IngestRun::failureReason, IngestRun::retryable)
-            .containsExactly("unexpected error", true);
+            .containsExactly("unexpected error", false);
     }
 
     @Test

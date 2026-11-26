@@ -48,6 +48,9 @@ spring:
     openai:
       base-url: ${OPENROUTER_BASE_URL:https://openrouter.ai/api/v1}
       api-key: ${OPENROUTER_API_KEY:}
+      # HTTP timeout per model call. Longer than the background deadline, so that deadline is the limit that applies
+      # to slow local models (a long prompt can take minutes to process). Must stay above AI_DEADLINE_BACKGROUND.
+      timeout: ${AI_CLIENT_TIMEOUT:PT16M}
     # Resilience4j owns retries in AIGatewayAdapter; disable Spring AI's built-in retry so
     # attempts aren't multiplied (Resilience4j retries × Spring AI retries). See ADR-0009.
     retry:
@@ -154,7 +157,7 @@ mindforge:
     deadlines:
       interactive: ${AI_DEADLINE_INTERACTIVE:10s}
       batch: ${AI_DEADLINE_BATCH:60s}
-      background: ${AI_DEADLINE_BACKGROUND:300s}
+      background: ${AI_DEADLINE_BACKGROUND:900s}
     resilience:
       retry:
         max-attempts: ${AI_RETRY_MAX_ATTEMPTS:3}

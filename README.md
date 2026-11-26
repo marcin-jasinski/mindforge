@@ -391,7 +391,8 @@ commit secrets.
 | `AI_MODEL_SMALL` | `openai/gpt-4o-mini` | Classification and cheap steps |
 | `AI_MODEL_LARGE` | `openai/gpt-4o` | Synthesis steps |
 | `AI_MODEL_VISION` | `openai/gpt-4o` | Image descriptions |
-| `AI_DEADLINE_INTERACTIVE` / `_BATCH` / `_BACKGROUND` | `10s` / `60s` / `300s` | Per-call deadlines |
+| `AI_DEADLINE_INTERACTIVE` / `_BATCH` / `_BACKGROUND` | `10s` / `60s` / `900s` | Per-call deadlines |
+| `AI_CLIENT_TIMEOUT` | `PT16M` | HTTP timeout per model call; keep it above `AI_DEADLINE_BACKGROUND` so the deadline governs slow local models |
 | `AI_BACKGROUND_PERMITS` | `4` | Global limit of concurrent background model calls |
 | `AI_COST_WARNING_USD` | `0.50` | A run above this cost logs a warning |
 | `AI_RETRY_*`, `AI_CB_*` | see `application.yml` | Resilience4j retry and circuit breaker tuning |

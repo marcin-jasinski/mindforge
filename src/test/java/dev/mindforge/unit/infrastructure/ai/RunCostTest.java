@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -113,7 +114,7 @@ class RunCostTest {
         when(runs.claim(KB, run.runId())).thenReturn(true);
         new RunWorker(runs, pipeline, lint, mock(ProgressNotifier.class), mock(EventPublisher.class),
             TransactionOperations.withoutTransaction(), Runnable::run,
-            new ObservationRunMeter(ObservationRegistry.NOOP), costWarningUsd).drain(KB);
+            new ObservationRunMeter(ObservationRegistry.NOOP), costWarningUsd, Duration.ZERO).drain(KB);
     }
 
     private static IngestRun makeQueued(RunKind kind) {

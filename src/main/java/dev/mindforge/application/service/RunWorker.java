@@ -1,5 +1,6 @@
 package dev.mindforge.application.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -46,12 +47,13 @@ public class RunWorker {
     private final Executor executor;
     private final RunMeter meter;
     private final double costWarningUsd;
+    private final Duration retryDelay;
     private final Set<UUID> active = ConcurrentHashMap.newKeySet();
     private volatile boolean stopped;
 
     public RunWorker(IngestRunRepository runs, IngestPipeline pipeline, LintService lint, ProgressNotifier progress,
                      EventPublisher events, TransactionOperations transactions, Executor executor, RunMeter meter,
-                     double costWarningUsd) {
+                     double costWarningUsd, Duration retryDelay) {
         this.runs = runs;
         this.pipeline = pipeline;
         this.lint = lint;
@@ -61,6 +63,7 @@ public class RunWorker {
         this.executor = executor;
         this.meter = meter;
         this.costWarningUsd = costWarningUsd;
+        this.retryDelay = retryDelay;
     }
 
     /** Starts the oldest queued run of the knowledge base, unless another run holds its lease. */
@@ -123,11 +126,52 @@ public class RunWorker {
 
     private void dispatch(IngestRun run) {
         switch (run.kind()) {
-            case INGEST -> recordCost(run, meter.measure(run, () -> pipeline.run(run)));
+            case INGEST -> {
+                recordCost(run, meter.measure(run, () -> pipeline.run(run)));
+                requeueTransientFailure(run);
+            }
             case LINT -> recordCost(run, meter.measure(run, () -> lint.run(run)));
             // a revert is one synchronous transaction and is never queued
             case REVERT -> runs.fail(run.knowledgeBaseId(), run.runId(), "a revert is never queued", false,
                 List.of(), Map.of());
+        }
+    }
+
+    /**
+     * Queues the next attempt of an ingest that failed on a transient model error, up to {@link #MAX_ATTEMPTS}. The
+     * pause happens after the lease is released, so other runs of the knowledge base are not blocked by it.
+     */
+    private void requeueTransientFailure(IngestRun run) {
+        UUID kbId = run.knowledgeBaseId();
+        if (run.attempt() >= MAX_ATTEMPTS) {
+            return;
+        }
+        Optional<IngestRun> failed = runs.findById(kbId, run.runId());
+        if (failed.isEmpty() || failed.get().status() != RunStatus.FAILED
+            || !Boolean.TRUE.equals(failed.get().retryable())) {
+            return;
+        }
+        pause();
+        IngestRun retry = transactions.execute(status -> {
+            IngestRun queued = runs.enqueue(kbId, new IngestRun(UUID.randomUUID(), kbId, RunKind.INGEST,
+                run.documentId(), null, RunStatus.QUEUED, run.attempt() + 1, null, null, List.of(), false, 0,
+                Map.of(), List.of(), null, null, null));
+            events.publish(new DomainEvent.IngestRunQueued(queued.runId(), kbId, Instant.now()));
+            return queued;
+        });
+        log.warn("Run {} failed on a transient error; queued attempt {} as run {}", run.runId(),
+            run.attempt() + 1, retry.runId());
+        progress.notify(kbId, RunProgress.status(retry, RunStatus.QUEUED));
+    }
+
+    private void pause() {
+        if (retryDelay.isZero()) {
+            return;
+        }
+        try {
+            Thread.sleep(retryDelay);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

@@ -1,5 +1,6 @@
 package dev.mindforge.infrastructure.config;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
@@ -42,6 +43,8 @@ import dev.mindforge.infrastructure.event.SseProgressNotifier;
 public class PipelineConfig {
 
     private static final String PROMPT_LOCALE = "en";
+    /** Pause before an ingest is retried after a transient model error (the circuit breaker may still be open). */
+    private static final Duration RUN_RETRY_DELAY = Duration.ofSeconds(30);
 
     @Bean
     ProcessingSettings processingSettings(AppProperties properties) {
@@ -161,7 +164,7 @@ public class PipelineConfig {
                         ObservationRegistry observationRegistry, AppProperties properties) {
         return new RunWorker(ingestRunRepository, ingestPipeline, lintService, progressNotifier, eventPublisher,
             transactionOperations, runExecutor, new ObservationRunMeter(observationRegistry),
-            properties.getAi().getCostWarningUsd());
+            properties.getAi().getCostWarningUsd(), RUN_RETRY_DELAY);
     }
 
     /** Not in the {@code cli} profile: a CLI process must not sweep or drain the runs of a live server. */

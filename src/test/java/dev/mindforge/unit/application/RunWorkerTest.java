@@ -12,6 +12,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -123,6 +124,48 @@ class RunWorkerTest {
     }
 
     @Test
+    void shouldQueueTheNextAttemptOfAnIngestThatFailedOnATransientError() {
+        IngestRun queued = makeRun(RunKind.INGEST, RunStatus.QUEUED, 1);
+        when(runs.oldestQueued(KB)).thenReturn(Optional.of(queued), Optional.empty());
+        when(runs.claim(KB, queued.runId())).thenReturn(true);
+        when(runs.findById(KB, queued.runId())).thenReturn(Optional.of(makeFailed(queued, true)));
+        when(runs.enqueue(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
+
+        makeWorker(Runnable::run).drain(KB);
+
+        ArgumentCaptor<IngestRun> requeued = ArgumentCaptor.forClass(IngestRun.class);
+        verify(runs).enqueue(eq(KB), requeued.capture());
+        assertThat(requeued.getValue()).extracting(IngestRun::documentId, IngestRun::attempt, IngestRun::status)
+            .containsExactly(queued.documentId(), 2, RunStatus.QUEUED);
+        verify(events).publish(any(DomainEvent.IngestRunQueued.class));
+    }
+
+    @Test
+    void shouldNotQueueAnIngestThatFailedWithoutRetryableFlag() {
+        IngestRun queued = makeRun(RunKind.INGEST, RunStatus.QUEUED, 1);
+        when(runs.oldestQueued(KB)).thenReturn(Optional.of(queued), Optional.empty());
+        when(runs.claim(KB, queued.runId())).thenReturn(true);
+        when(runs.findById(KB, queued.runId())).thenReturn(Optional.of(makeFailed(queued, false)));
+
+        makeWorker(Runnable::run).drain(KB);
+
+        verify(runs, never()).enqueue(any(), any());
+    }
+
+    @Test
+    void shouldNotQueueATransientFailureBeyondTheAttemptLimit() {
+        IngestRun third = makeRun(RunKind.INGEST, RunStatus.QUEUED, 3);
+        when(runs.oldestQueued(KB)).thenReturn(Optional.of(third), Optional.empty());
+        when(runs.claim(KB, third.runId())).thenReturn(true);
+        when(runs.findById(KB, third.runId())).thenReturn(Optional.of(makeFailed(third, true)));
+
+        makeWorker(Runnable::run).drain(KB);
+
+        verify(runs, never()).enqueue(any(), any());
+        verify(runs, never()).findById(any(), any());
+    }
+
+    @Test
     void shouldNotSweepARunThisProcessIsExecuting() {
         IngestRun queued = makeRun(RunKind.INGEST, RunStatus.QUEUED, 1);
         when(runs.oldestQueued(KB)).thenReturn(Optional.of(queued));
@@ -157,12 +200,18 @@ class RunWorkerTest {
             TransactionOperations.withoutTransaction(), executor, (run, work) -> {
                 work.run();
                 return RunCost.of(Map.of());
-            }, 0.50);
+            }, 0.50, Duration.ZERO);
     }
 
     private static IngestRun makeRun(RunKind kind, RunStatus status, int attempt) {
         return new IngestRun(UUID.randomUUID(), KB, kind, UUID.randomUUID(), null, status, attempt, null, null,
             List.of(), false, 0, Map.of(), List.of(), Instant.EPOCH, null, null);
+    }
+
+    private static IngestRun makeFailed(IngestRun run, boolean retryable) {
+        return new IngestRun(run.runId(), KB, RunKind.INGEST, run.documentId(), null, RunStatus.FAILED,
+            run.attempt(), "AI provider call failed", retryable, List.of(), false, 0, Map.of(), List.of(),
+            Instant.EPOCH, null, null);
     }
 
     private static IngestRun makeRun(UUID runId, RunStatus status) {
