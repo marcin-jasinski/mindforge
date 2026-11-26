@@ -3,11 +3,13 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 
-import { KnowledgeBase } from '../../core/models/api';
+import { ApiError, KnowledgeBase } from '../../core/models/api';
 import { WikiApi } from '../../core/services/wiki-api';
 import { Icon } from '../../shared/icon';
+import { apiErrorMessage } from '../../shared/labels';
 
 @Component({
   selector: 'app-dashboard',
@@ -40,6 +42,7 @@ export class Dashboard implements OnInit {
   readonly creating = signal(false);
   readonly name = signal('');
   readonly description = signal('');
+  readonly message = signal<string | null>(null);
 
   ngOnInit(): void {
     this.load();
@@ -49,6 +52,26 @@ export class Dashboard implements OnInit {
     // a new knowledge base is empty, so the next step is always an upload: open it at once
     this.wiki.createKnowledgeBase(this.name(), this.description()).subscribe((kb) => {
       this.router.navigate(['/kb', kb.kbId]);
+    });
+  }
+
+  /** Deletes a knowledge base after the user confirms; its documents, pages, cards and chats go with it for good. */
+  remove(kb: KnowledgeBase): void {
+    // ponytail: native confirm, as for a revert and a removed document; a typed name when the list grows
+    const warning = `Delete “${kb.name}” and everything in it? Its documents, wiki pages, flashcards, quizzes and chats `
+      + 'are deleted permanently. This cannot be undone.';
+    if (!confirm(warning)) {
+      return;
+    }
+    this.message.set(null);
+    this.wiki.deleteKnowledgeBase(kb.kbId).subscribe({
+      next: () => this.knowledgeBases.update((bases) => bases.filter((base) => base.kbId !== kb.kbId)),
+      error: (response: HttpErrorResponse) => {
+        const error = response.error as ApiError | null;
+        this.message.set(error?.code === 'KNOWLEDGE_BASE_BUSY'
+          ? `“${kb.name}” cannot be deleted while a run in it is active. Stop or wait for the run on its Documents page, then delete it.`
+          : apiErrorMessage(error, 'The knowledge base could not be deleted.'));
+      },
     });
   }
 

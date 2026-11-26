@@ -31,6 +31,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 
+import dev.mindforge.domain.port.QuizSessionStore;
 import dev.mindforge.application.service.DocumentUpload;
 import dev.mindforge.application.service.ExternalIdentityService;
 import dev.mindforge.application.service.IngestionService;
@@ -72,7 +73,8 @@ class UploadCommandTest {
     private final KnowledgeBaseRepository repository = mock(KnowledgeBaseRepository.class);
     private final ExternalIdentityService identities = mock(ExternalIdentityService.class);
     private final DiscordKnowledgeBases knowledgeBases = new DiscordKnowledgeBases(
-        new DiscordAllowlist(Set.of(GUILD), Set.of()), identities, new KnowledgeBaseService(repository));
+        new DiscordAllowlist(Set.of(GUILD), Set.of()), identities,
+            new KnowledgeBaseService(repository, mock(QuizSessionStore.class)));
     private final UploadCommand command =
         new UploadCommand(ingestion, knowledgeBases, new DiscordAttachments(), MAX_BYTES);
     private final RecordingDiscordReply reply = new RecordingDiscordReply();

@@ -25,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InOrder;
 
+import dev.mindforge.domain.port.QuizSessionStore;
 import dev.mindforge.application.service.ExternalIdentityService;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.QueryService;
@@ -61,7 +62,8 @@ class AskCommandTest {
     private final KnowledgeBaseRepository repository = mock(KnowledgeBaseRepository.class);
     private final ExternalIdentityService identities = mock(ExternalIdentityService.class);
     private final DiscordKnowledgeBases knowledgeBases = new DiscordKnowledgeBases(
-        new DiscordAllowlist(Set.of(GUILD), Set.of()), identities, new KnowledgeBaseService(repository));
+        new DiscordAllowlist(Set.of(GUILD), Set.of()), identities,
+            new KnowledgeBaseService(repository, mock(QuizSessionStore.class)));
     private final AskCommand command = new AskCommand(queryService, knowledgeBases);
     private final RecordingDiscordReply reply = new RecordingDiscordReply();
 

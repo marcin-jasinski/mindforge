@@ -12,6 +12,7 @@ import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.domain.port.ExternalIdentityRepository;
 import dev.mindforge.domain.port.KnowledgeBaseRepository;
 import dev.mindforge.domain.port.PasswordHasher;
+import dev.mindforge.domain.port.QuizSessionStore;
 import dev.mindforge.domain.port.UserRepository;
 import dev.mindforge.infrastructure.security.BCryptPasswordHasher;
 import dev.mindforge.infrastructure.security.JwtService;
@@ -38,8 +39,9 @@ public class AccountConfig {
     }
 
     @Bean
-    KnowledgeBaseService knowledgeBaseService(KnowledgeBaseRepository knowledgeBaseRepository) {
-        return new KnowledgeBaseService(knowledgeBaseRepository);
+    KnowledgeBaseService knowledgeBaseService(KnowledgeBaseRepository knowledgeBaseRepository,
+                                              QuizSessionStore quizSessionStore) {
+        return new KnowledgeBaseService(knowledgeBaseRepository, quizSessionStore);
     }
 
     @Bean

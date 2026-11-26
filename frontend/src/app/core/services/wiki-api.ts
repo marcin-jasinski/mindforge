@@ -17,6 +17,11 @@ export class WikiApi {
     return this.api.post('/knowledge-bases', { name, description });
   }
 
+  /** Deletes the knowledge base and everything in it; 409 while one of its runs is active. */
+  deleteKnowledgeBase(kbId: string): Observable<unknown> {
+    return this.api.delete(`/knowledge-bases/${kbId}`, true);
+  }
+
   knowledgeBase(kbId: string): Observable<KnowledgeBase> {
     return this.api.get(`/knowledge-bases/${kbId}`);
   }

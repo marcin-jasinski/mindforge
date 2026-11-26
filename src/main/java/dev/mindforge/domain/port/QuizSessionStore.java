@@ -16,6 +16,9 @@ public interface QuizSessionStore {
 
     void updateCursor(UUID kbId, UUID sessionId, int cursor);
 
+    /** Drops the cached sessions of a deleted knowledge base; their rows go with it through the database. */
+    void forgetKnowledgeBase(UUID kbId);
+
     // ---------------------------------------------------------------------------
     // System method: for the scheduled cleanup only, which acts for no user
     // ---------------------------------------------------------------------------

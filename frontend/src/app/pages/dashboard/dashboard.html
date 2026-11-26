@@ -52,10 +52,18 @@
         } @else {
           <a mat-button [routerLink]="['/kb', kb.kbId]"><app-icon name="upload" /> Upload a first document</a>
         }
+        <span class="spacer"></span>
+        <button mat-button type="button" color="warn" (click)="remove(kb)" [attr.aria-label]="'Delete ' + kb.name">
+          <app-icon name="delete" /> Delete
+        </button>
       </footer>
     </article>
   }
 </section>
+
+@if (message(); as text) {
+  <p class="alert" role="alert"><app-icon name="error" /> {{ text }}</p>
+}
 
 @if (loaded() && !knowledgeBases().length) {
   <div class="empty">

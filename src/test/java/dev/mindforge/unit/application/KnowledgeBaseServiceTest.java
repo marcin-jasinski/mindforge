@@ -19,6 +19,7 @@ import dev.mindforge.domain.model.KnowledgeBaseBusyException;
 import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.NotOwnerException;
 import dev.mindforge.domain.port.KnowledgeBaseRepository;
+import dev.mindforge.domain.port.QuizSessionStore;
 import dev.mindforge.support.TestFixtures;
 
 class KnowledgeBaseServiceTest {
@@ -26,11 +27,12 @@ class KnowledgeBaseServiceTest {
     private static final UUID OWNER = UUID.randomUUID();
 
     private final KnowledgeBaseRepository knowledgeBases = mock(KnowledgeBaseRepository.class);
+    private final QuizSessionStore quizSessions = mock(QuizSessionStore.class);
 
     @Test
     void shouldRefuseAKnowledgeBaseToAnyoneButItsOwner() {
         KnowledgeBase knowledgeBase = givenKnowledgeBase();
-        KnowledgeBaseService service = new KnowledgeBaseService(knowledgeBases);
+        KnowledgeBaseService service = new KnowledgeBaseService(knowledgeBases, quizSessions);
 
         assertThat(service.get(knowledgeBase.kbId(), OWNER)).isEqualTo(knowledgeBase);
         assertThatExceptionOfType(NotOwnerException.class)
@@ -43,7 +45,8 @@ class KnowledgeBaseServiceTest {
     @Test
     void shouldReportAMissingKnowledgeBaseAsNotFound() {
         assertThatExceptionOfType(NotFoundException.class)
-            .isThrownBy(() -> new KnowledgeBaseService(knowledgeBases).requireOwner(UUID.randomUUID(), OWNER));
+            .isThrownBy(() -> new KnowledgeBaseService(knowledgeBases, quizSessions)
+                .requireOwner(UUID.randomUUID(), OWNER));
     }
 
     @Test
@@ -52,7 +55,8 @@ class KnowledgeBaseServiceTest {
         when(knowledgeBases.deleteIfIdle(knowledgeBase.kbId())).thenReturn(false);
 
         assertThatExceptionOfType(KnowledgeBaseBusyException.class)
-            .isThrownBy(() -> new KnowledgeBaseService(knowledgeBases).delete(knowledgeBase.kbId(), OWNER));
+            .isThrownBy(() -> new KnowledgeBaseService(knowledgeBases, quizSessions)
+                .delete(knowledgeBase.kbId(), OWNER));
     }
 
     @Test
@@ -60,9 +64,21 @@ class KnowledgeBaseServiceTest {
         KnowledgeBase knowledgeBase = givenKnowledgeBase();
         when(knowledgeBases.deleteIfIdle(knowledgeBase.kbId())).thenReturn(true);
 
-        new KnowledgeBaseService(knowledgeBases).delete(knowledgeBase.kbId(), OWNER);
+        new KnowledgeBaseService(knowledgeBases, quizSessions).delete(knowledgeBase.kbId(), OWNER);
 
         verify(knowledgeBases).deleteIfIdle(knowledgeBase.kbId());
+        verify(quizSessions).forgetKnowledgeBase(knowledgeBase.kbId());
+    }
+
+    @Test
+    void shouldKeepTheCachedQuizSessionsOfABusyKnowledgeBase() {
+        KnowledgeBase knowledgeBase = givenKnowledgeBase();
+        when(knowledgeBases.deleteIfIdle(knowledgeBase.kbId())).thenReturn(false);
+
+        KnowledgeBaseService service = new KnowledgeBaseService(knowledgeBases, quizSessions);
+        assertThatExceptionOfType(KnowledgeBaseBusyException.class)
+            .isThrownBy(() -> service.delete(knowledgeBase.kbId(), OWNER));
+        verify(quizSessions, never()).forgetKnowledgeBase(any());
     }
 
     private KnowledgeBase givenKnowledgeBase() {

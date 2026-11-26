@@ -33,6 +33,7 @@ import dev.mindforge.agent.RelevanceGuard;
 import dev.mindforge.agent.SupersessionDetector;
 import dev.mindforge.application.service.DocumentUpload;
 import dev.mindforge.application.service.IngestionService;
+import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.application.service.RevertService;
 import dev.mindforge.application.service.RunWorker;
 import dev.mindforge.application.wiki.LogRenderer;
@@ -53,6 +54,7 @@ import dev.mindforge.domain.model.WikiPage;
 import dev.mindforge.domain.port.DocumentRepository;
 import dev.mindforge.domain.port.EventPublisher;
 import dev.mindforge.domain.port.IngestRunRepository;
+import dev.mindforge.domain.port.QuizSessionStore;
 import dev.mindforge.domain.port.RunReportQuery;
 import dev.mindforge.domain.port.WikiStore;
 import dev.mindforge.infrastructure.parsing.MarkdownParser;
@@ -88,6 +90,12 @@ class IngestRunTest extends TestContainerBase {
 
     @Autowired
     private RunWorker runWorker;
+
+    @Autowired
+    private KnowledgeBaseService knowledgeBases;
+
+    @Autowired
+    private QuizSessionStore quizSessions;
 
     @Autowired
     private DocumentRepository documents;
@@ -195,6 +203,44 @@ class IngestRunTest extends TestContainerBase {
         assertThat(wiki.listIndex(kbId)).isEmpty();
         assertThat(jdbc.queryForObject("SELECT active_run_id FROM knowledge_bases WHERE kb_id = ?", UUID.class, kbId))
             .isNull();
+    }
+
+    @Test
+    void deletingAKnowledgeBaseRemovesEveryRowOfItAndItsCachedQuizSessions() {
+        UUID kbId = insertKnowledgeBase();
+        UUID owner = ownerOf(kbId);
+        givenTheNotesAnswers(MITOSIS_BODY, MEIOSIS_BODY, NO_LINKS);
+        awaitRun(kbId, upload(kbId, "biology.md", NOTES, false), RunStatus.COMPLETED);
+        UUID pageId = wiki.findByPath(kbId, "concepts/mitosis").orElseThrow().pageId();
+        UUID sessionId = UUID.randomUUID();
+        UUID interactionId = UUID.randomUUID();
+        jdbc.update("INSERT INTO flashcards (knowledge_base_id, card_id, page_id, card_type, front, back, source_hash,"
+            + " due_at) VALUES (?, 'abcdefghijklmnop', ?, 'BASIC', 'Front', 'Back', 'abcdefghijklmnop', now())",
+            kbId, pageId);
+        jdbc.update("INSERT INTO study_events (knowledge_base_id, page_id, card_id, kind, score, occurred_at)"
+            + " VALUES (?, ?, 'abcdefghijklmnop', 'CARD', 4, now())", kbId, pageId);
+        jdbc.update("INSERT INTO quiz_sessions (session_id, knowledge_base_id, user_id, questions, expires_at)"
+            + " VALUES (?, ?, ?, '[]'::jsonb, now() + interval '2 hours')", sessionId, kbId, owner);
+        jdbc.update("INSERT INTO interactions (interaction_id, knowledge_base_id, user_id) VALUES (?, ?, ?)",
+            interactionId, kbId, owner);
+        jdbc.update("INSERT INTO interaction_turns (turn_id, knowledge_base_id, interaction_id, question, answer,"
+            + " created_at) VALUES (?, ?, ?, 'Q?', 'A.', now())", UUID.randomUUID(), kbId, interactionId);
+        // a read fills the quiz cache, so the delete has to drop the cached copy as well as the row
+        assertThat(quizSessions.find(kbId, sessionId, Instant.now())).isPresent();
+
+        knowledgeBases.delete(kbId, owner);
+
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM knowledge_bases WHERE kb_id = ?", Integer.class, kbId))
+            .isZero();
+        List<String> tables = jdbc.queryForList("SELECT table_name FROM information_schema.columns"
+            + " WHERE table_schema = current_schema() AND column_name = 'knowledge_base_id'", String.class);
+        assertThat(tables).contains("documents", "ingest_runs", "wiki_pages", "page_revisions", "flashcards",
+            "study_events", "quiz_sessions", "interactions", "interaction_turns");
+        for (String table : tables) {
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM " + table + " WHERE knowledge_base_id = ?",
+                Integer.class, kbId)).as("rows left in %s", table).isZero();
+        }
+        assertThat(quizSessions.find(kbId, sessionId, Instant.now())).isEmpty();
     }
 
     @Test

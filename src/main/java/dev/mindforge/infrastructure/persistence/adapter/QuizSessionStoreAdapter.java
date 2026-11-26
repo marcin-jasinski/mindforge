@@ -52,6 +52,11 @@ public class QuizSessionStoreAdapter implements QuizSessionStore {
     }
 
     @Override
+    public void forgetKnowledgeBase(UUID kbId) {
+        cache.asMap().values().removeIf(session -> session.knowledgeBaseId().equals(kbId));
+    }
+
+    @Override
     public void updateCursor(UUID kbId, UUID sessionId, int cursor) {
         sessions.updateCursor(kbId, sessionId, cursor);
         cache.invalidate(sessionId);

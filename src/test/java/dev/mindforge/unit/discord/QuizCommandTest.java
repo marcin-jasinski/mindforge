@@ -79,7 +79,8 @@ class QuizCommandTest {
     private final KnowledgeBaseRepository repository = mock(KnowledgeBaseRepository.class);
     private final ExternalIdentityService identities = mock(ExternalIdentityService.class);
     private final DiscordKnowledgeBases knowledgeBases = new DiscordKnowledgeBases(
-        new DiscordAllowlist(Set.of(GUILD), Set.of()), identities, new KnowledgeBaseService(repository));
+        new DiscordAllowlist(Set.of(GUILD), Set.of()), identities,
+            new KnowledgeBaseService(repository, mock(QuizSessionStore.class)));
     private final DiscordQuizSessions quizzes = new DiscordQuizSessions(Duration.ofHours(2));
     private final QuizCommand command = new QuizCommand(quizService, knowledgeBases, quizzes);
     private final RecordingDiscordReply reply = new RecordingDiscordReply();

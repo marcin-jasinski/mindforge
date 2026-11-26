@@ -9,14 +9,17 @@ import dev.mindforge.domain.model.NotFoundException;
 import dev.mindforge.domain.model.NotOwnerException;
 import dev.mindforge.domain.model.TextRules;
 import dev.mindforge.domain.port.KnowledgeBaseRepository;
+import dev.mindforge.domain.port.QuizSessionStore;
 
 /** A user's knowledge bases, and the one ownership check every request into a knowledge base passes. */
 public class KnowledgeBaseService {
 
     private final KnowledgeBaseRepository knowledgeBases;
+    private final QuizSessionStore quizSessions;
 
-    public KnowledgeBaseService(KnowledgeBaseRepository knowledgeBases) {
+    public KnowledgeBaseService(KnowledgeBaseRepository knowledgeBases, QuizSessionStore quizSessions) {
         this.knowledgeBases = knowledgeBases;
+        this.quizSessions = quizSessions;
     }
 
     public KnowledgeBase create(UUID ownerId, String name, String description) {
@@ -51,11 +54,17 @@ public class KnowledgeBaseService {
         return knowledgeBases.update(kbId, TextRules.singleLine(name), description);
     }
 
-    /** Deletes everything in the knowledge base. @throws KnowledgeBaseBusyException while a run is active */
+    /**
+     * Deletes the knowledge base and, through the database cascade, every row of it. Its cached quiz sessions are
+     * dropped as well, so none of it is served from memory afterwards.
+     *
+     * @throws KnowledgeBaseBusyException while a run is active
+     */
     public void delete(UUID kbId, UUID userId) {
         requireOwner(kbId, userId);
         if (!knowledgeBases.deleteIfIdle(kbId)) {
             throw new KnowledgeBaseBusyException(kbId);
         }
+        quizSessions.forgetKnowledgeBase(kbId);
     }
 }

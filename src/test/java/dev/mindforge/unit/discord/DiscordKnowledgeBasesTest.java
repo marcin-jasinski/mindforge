@@ -16,6 +16,7 @@ import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
 
+import dev.mindforge.domain.port.QuizSessionStore;
 import dev.mindforge.application.service.ExternalIdentityService;
 import dev.mindforge.application.service.KnowledgeBaseService;
 import dev.mindforge.discord.DiscordAllowlist;
@@ -36,7 +37,8 @@ class DiscordKnowledgeBasesTest {
     private final KnowledgeBaseRepository repository = mock(KnowledgeBaseRepository.class);
     private final ExternalIdentityService identities = mock(ExternalIdentityService.class);
     private final DiscordKnowledgeBases knowledgeBases = new DiscordKnowledgeBases(
-        new DiscordAllowlist(Set.of(GUILD), Set.of()), identities, new KnowledgeBaseService(repository));
+        new DiscordAllowlist(Set.of(GUILD), Set.of()), identities,
+            new KnowledgeBaseService(repository, mock(QuizSessionStore.class)));
     private final RecordingDiscordReply reply = new RecordingDiscordReply();
 
     // AC7
