@@ -96,6 +96,10 @@ management:
   tracing:
     sampling:
       probability: 1.0
+  otlp:
+    metrics:
+      export:
+        enabled: false
 
 mindforge:
   # Langfuse trace export (TracingConfig); off unless both keys are set.
